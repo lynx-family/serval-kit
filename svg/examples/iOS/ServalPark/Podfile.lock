@@ -1,0 +1,16 @@
+PODS:
+  - ServalSVG (0.0.15)
+
+DEPENDENCIES:
+  - ServalSVG (from `../../../`)
+
+EXTERNAL SOURCES:
+  ServalSVG:
+    :path: "../../../"
+
+SPEC CHECKSUMS:
+  ServalSVG: 8305a06a738ad5757604251392224edd10c137fd
+
+PODFILE CHECKSUM: 8cc15bf6b09f0fba3497037c96119bcba2732121
+
+COCOAPODS: 1.16.2

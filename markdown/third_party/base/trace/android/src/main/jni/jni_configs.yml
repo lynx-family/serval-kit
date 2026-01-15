@@ -1,0 +1,20 @@
+# jni register file configs.
+jni_register_configs:
+  output_path: base/trace/android/src/main/jni/gen/lynx_trace_so_load.cc
+  namespaces:
+    - lynxtrace
+  custom_headers:
+    - base/include/platform/android/jni_utils.h
+# gn file configs.
+gn_configs:
+  output_path: base/trace/android/src/main/jni/BUILD.gn
+  template_name: source_set
+  custom_configs:
+    - base/trace/native:trace_private_config
+    - base/trace/native:trace_public_config
+# jni files configs.
+jni_class_configs:
+  output_dir: base/trace/android/src/main/jni/gen
+  jni_classes:
+    - java: base/trace/android/src/main/java/com/lynx/tasm/base/TraceEvent.java
+    - java: base/trace/android/src/main/java/com/lynx/tasm/base/TraceController.java

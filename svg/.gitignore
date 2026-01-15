@@ -1,0 +1,13 @@
+examples/android/app/build
+examples/android/.gradle
+
+examples/iOS/ServalPark/Pods
+examples/iOS/ServalPark/.bundle
+examples/android/local.properties
+
+platform/harmony/build
+platform/harmony/oh_modules
+
+build
+
+.gradle

@@ -1,0 +1,29 @@
+// Copyright 2017 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef MARKDOWN_THIRD_PARTY_BASE_INCLUDE_TIMER_TIME_UTILS_H_
+#define MARKDOWN_THIRD_PARTY_BASE_INCLUDE_TIMER_TIME_UTILS_H_
+
+#include <time.h>
+
+#include <cstdint>
+
+#include "base/include/base_export.h"
+
+namespace lynx {
+namespace base {
+// This method should not be used except in unsatisfied scenarios.
+BASE_EXPORT uint64_t CurrentSystemTimeMilliseconds();
+// This method should not be used except in unsatisfied scenarios.
+BASE_EXPORT uint64_t CurrentSystemTimeMicroseconds();
+BASE_EXPORT uint64_t CurrentTimeMicroseconds();
+BASE_EXPORT uint64_t CurrentTimeMilliseconds();
+BASE_EXPORT uint64_t CurrentThreadCPUTimeMicroseconds();
+#if !defined(OS_WIN)
+BASE_EXPORT timespec ToTimeSpecFromNow(uint64_t interval_time);
+#endif
+}  // namespace base
+}  // namespace lynx
+
+#endif  // MARKDOWN_THIRD_PARTY_BASE_INCLUDE_TIMER_TIME_UTILS_H_

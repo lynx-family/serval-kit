@@ -1,0 +1,12 @@
+{
+  "name": "@lynx/serval_markdown",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "libserval_markdown.so": "file:./src/main/cpp/types/libserval_markdown",
+    "@lynx/lynxtextra": "file:../../../third_party/lynx-textra/platform/harmony/lynxtextra"
+  }
+}

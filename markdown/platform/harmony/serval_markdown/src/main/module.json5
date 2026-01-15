@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "serval_markdown",
+    "type": "har",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1",
+      "wearable"
+    ],
+  }
+}

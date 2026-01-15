@@ -1,0 +1,16 @@
+// Do not use Chinese characters in this file, only English is supported !!!!!!!!!!!!
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = "ServalKit"
+def rootDir = { relativePath ->
+    return new File(rootProject.projectDir, "../../" + relativePath)
+}
+include ':app'
+include ':serval_markdown'
+project(':serval_markdown').projectDir = rootDir("platform/android/serval_markdown")
+include ':lynxtextra'
+project(':lynxtextra').projectDir = rootDir("third_party/lynx-textra/platform/android/lynxtextra")

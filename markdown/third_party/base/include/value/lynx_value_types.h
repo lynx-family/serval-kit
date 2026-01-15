@@ -1,0 +1,66 @@
+/**
+ * Copyright (c) 2017 Node.js API collaborators. All Rights Reserved.
+ *
+ * Use of this source code is governed by a MIT license that can be
+ * found in the LICENSE file in the root of the source tree.
+ */
+
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef MARKDOWN_THIRD_PARTY_BASE_INCLUDE_VALUE_LYNX_VALUE_TYPES_H_
+#define MARKDOWN_THIRD_PARTY_BASE_INCLUDE_VALUE_LYNX_VALUE_TYPES_H_
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "base/include/value/lynx_api_types.h"
+
+typedef struct LYNX_VALUE_OPAQUE_STRUCT(value_ref) * lynx_value_ref;
+
+typedef enum : uint8_t {
+  lynx_value_null,
+  lynx_value_undefined,
+  lynx_value_bool,
+  lynx_value_double,
+  lynx_value_int32,
+  lynx_value_uint32,
+  lynx_value_int64,
+  lynx_value_uint64,
+  lynx_value_nan,
+  lynx_value_string,
+  lynx_value_array,
+  lynx_value_map,
+  lynx_value_arraybuffer,
+  lynx_value_object,
+  lynx_value_function,
+  lynx_value_function_table,
+  lynx_value_external,  // external raw pointer
+  lynx_value_extended,
+} lynx_value_type;
+
+#define LYNX_VALUE_BASE_STORAGE_DEFINITION \
+  union {                                  \
+    bool val_bool;                         \
+    double val_double;                     \
+    int32_t val_int32;                     \
+    uint32_t val_uint32;                   \
+    int64_t val_int64;                     \
+    uint64_t val_uint64;                   \
+    lynx_value_ptr val_ptr;                \
+  };
+
+struct lynx_value {
+  LYNX_VALUE_BASE_STORAGE_DEFINITION
+  lynx_value_type type;
+
+  int32_t tag;
+};
+
+typedef void (*lynx_value_iterator_callback)(lynx_api_env env, lynx_value key,
+                                             lynx_value val, void* pfunc,
+                                             void* raw_data);
+typedef void (*lynx_value_print_ext_callback)(void* stream, const char* str);
+
+#endif  // MARKDOWN_THIRD_PARTY_BASE_INCLUDE_VALUE_LYNX_VALUE_TYPES_H_

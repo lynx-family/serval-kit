@@ -1,0 +1,76 @@
+@startuml
+
+interface ParagraphFactory {
+{method} void PushTextStyle(const TextStyle& style);
+{method} void PopTextStyle();
+{method} void AddText(std::string text);
+{method} void SetParagraphStyle(const ParagraphStyle& style);
+{method} std::unique_ptr<Paragraph> CreateParagraph();
+{method} void Reset();
+}
+
+note left of ParagraphFactory::Reset
+Reset the building context instead of
+re-instantiate a ParagraphFactory
+end note
+
+class ParagraphFactoryDarwin
+class ParagraphFactoryAndroid
+class ParagraphFactoryHarmony
+
+ParagraphFactoryDarwin ..|> ParagraphFactory
+ParagraphFactoryHarmony ..|> ParagraphFactory
+ParagraphFactoryAndroid ..|> ParagraphFactory
+note right on link
+Implement factory to generate platform
+impls of Paragraph.
+end note
+
+interface Paragraph {
+ {method} void Layout(float max_width);
+ {method} void Draw(Canvas* canvas);
+}
+
+note bottom of Paragraph
+Class that represents a collection of styled string.
+Being layout and rendered as an entire block.
+end note
+
+ParagraphFactory --> Paragraph : > Generates
+
+class ParagraphDarwin {
+ NSLayoutManager text_layout;
+ void AppendStyledText(NSTextStorage styled_text);
+}
+class ParagraphAndroid
+class ParagraphHarmony
+
+ParagraphDarwin ..|> Paragraph
+ParagraphAndroid ..|> Paragraph
+ParagraphHarmony ..|> Paragraph
+
+struct TextStyle {
+{field} uint32_t color = BLACK;
+float font_size = 14.0;
+FontWidth font_width = NORMAL;
+FontWeight font_weight = W400;
+FontStyle font_style = NORMAL;
+TextBaseline baseline = ALPHABETIC;
+bool halfLeading = false;
+float letter_spacing = .0f;
+float word_spacing = .0f;
+}
+
+struct ParagraphStyle {
+  BreakStrategy breakStrategy = BreakStrategy::GREEDY;
+  WordBreakType wordBreakType = WordBreakType::BREAK_WORD;
+  EllipsisModal ellipsisModal = EllipsisModal::TAIL;
+  float textSplitRatio = 0.5f;
+  TextAlign textAlign = TextAlign::START;
+  TextDirection textDirection = TextDirection::LTR;
+  size_t maxLines = 1e9;
+}
+
+ParagraphFactory --> TextStyle
+ParagraphFactory --> ParagraphStyle
+@enduml

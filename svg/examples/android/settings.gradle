@@ -1,0 +1,13 @@
+// Do not use Chinese characters in this file, only English is supported !!!!!!!!!!!!
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'serval-svg-demo'
+
+include ':app'
+
+include ':serval-svg'
+project(':serval-svg').projectDir = new File('../../platform/android')

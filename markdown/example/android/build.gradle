@@ -1,0 +1,32 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+buildscript {
+    ext {
+        gradle_version = '3.5.0'
+        kotlin_version = '1.5.32'
+
+        minSdkVersion = 21
+        compileSdkVersion = 30
+        targetSdkVersion = 29
+        ndkVersion = ndk_version
+        abiList=['armeabi-v7a', 'arm64-v8a']
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.2.2'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

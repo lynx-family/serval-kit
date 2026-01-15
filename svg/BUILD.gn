@@ -1,0 +1,92 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+config("src_include") {
+  include_dirs = [ "include" ]
+}
+
+source_set("serval-svg") {
+  sources = [
+    # common
+    "include/canvas/SrCanvas.h",
+    "include/canvas/SrParagraph.h",
+    "include/element/SrSVGCircle.h",
+    "include/element/SrSVGClipPath.h",
+    "include/element/SrSVGContainer.h",
+    "include/element/SrSVGDefs.h",
+    "include/element/SrSVGEllipse.h",
+    "include/element/SrSVGG.h",
+    "include/element/SrSVGImage.h",
+    "include/element/SrSVGLine.h",
+    "include/element/SrSVGLinearGradient.h",
+    "include/element/SrSVGNode.h",
+    "include/element/SrSVGPath.h",
+    "include/element/SrSVGPolyLine.h",
+    "include/element/SrSVGPolygon.h",
+    "include/element/SrSVGRadialGradient.h",
+    "include/element/SrSVGRect.h",
+    "include/element/SrSVGSVG.h",
+    "include/element/SrSVGShape.h",
+    "include/element/SrSVGStop.h",
+    "include/element/SrSVGText.h",
+    "include/element/SrSVGTypes.h",
+    "include/element/SrSVGUse.h",
+    "include/parser/SrDOM.h",
+    "include/parser/SrDOMParser.h",
+    "include/parser/SrSVGDOM.h",
+    "include/parser/SrXMLExtractor.h",
+    "include/parser/SrXMLParser.h",
+    "include/parser/SrXMLParserError.h",
+
+    # skity
+    "include/platform/skity/SrSkityCanvas.h",
+    "include/platform/skity/SrSkityParagraph.h",
+    "include/utils/SrFloatComparison.h",
+    "include/utils/SrSVGLog.h",
+  ]
+
+  sources += [
+    # skity
+    "platform/skity/SrSkityCanvas.cc",
+    "platform/skity/SrSkityParagraph.cc",
+    "src/element/SrSVGCircle.cc",
+    "src/element/SrSVGClipPath.cc",
+    "src/element/SrSVGContainer.cc",
+    "src/element/SrSVGDefs.cc",
+    "src/element/SrSVGEllipse.cc",
+    "src/element/SrSVGImage.cc",
+    "src/element/SrSVGLine.cc",
+    "src/element/SrSVGLinearGradient.cc",
+    "src/element/SrSVGNode.cc",
+    "src/element/SrSVGPath.cc",
+    "src/element/SrSVGPolyLine.cc",
+    "src/element/SrSVGPolygon.cc",
+    "src/element/SrSVGRadialGradient.cc",
+    "src/element/SrSVGRect.cc",
+    "src/element/SrSVGSVG.cc",
+    "src/element/SrSVGShape.cc",
+    "src/element/SrSVGStop.cc",
+    "src/element/SrSVGText.cc",
+    "src/element/SrSVGTypes.c",
+    "src/element/SrSVGUse.cc",
+    "src/parser/SrDOM.cc",
+    "src/parser/SrDOMParser.cc",
+    "src/parser/SrSVGDOM.cc",
+    "src/parser/SrXMLExtractor.c",
+    "src/parser/SrXMLParser.cc",
+    "src/parser/SrXMLParserError.cc",
+  ]
+
+  defines = []
+
+  public_configs = [ ":src_include" ]
+
+  include_dirs = [
+    # skity
+    "//third_party/skity/skity",
+    "//third_party/skity/skity/third_party/glm",
+    "//third_party/skity/skity/include",
+  ]
+
+  deps = [ "//clay/third_party/skity:skity_lib" ]
+}

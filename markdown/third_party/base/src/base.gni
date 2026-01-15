@@ -1,0 +1,67 @@
+import("//${lynx_dir}/build_overrides/darwin.gni")
+import("//build/config/profiler.gni")
+
+declare_args() {
+  # Whether to use a custom message loop.
+  # If false, the platform’s default implementation will be used.
+  use_custom_message_loop = false
+
+  # Controls the symbol visibility of the lynx base library.
+  # If true, symbols decorated with `BASE_EXPORT` are exported.
+  # Otherwise, no symbols from this library are exported.
+  base_export_symbols = true
+}
+
+base_configs = rebase_path([ ":base_private_config" ])
+base_public_configs = rebase_path([ ":base_public_config" ])
+use_sanitizer = is_asan || is_lsan || is_tsan || is_msan || is_hwasan
+
+template("lynx_base_source_set") {
+  source_set(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "public_configs",
+                           ])
+
+    if (!defined(deps)) {
+      deps = []
+    }
+    if (!defined(cflags)) {
+      cflags = []
+    }
+
+    if (!defined(configs)) {
+      configs = []
+    }
+    if (!defined(libs)) {
+      libs = []
+    }
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+
+    if (!defined(public_configs)) {
+      public_configs = []
+    }
+    if (defined(invoker.public_configs)) {
+      public_configs += invoker.public_configs
+    }
+    if (is_android) {
+      libs += [ "log" ]
+    }
+    configs += base_configs
+    public_configs += base_public_configs
+    if (is_apple) {
+      configs += darwin_config
+    }
+    if (is_android && !is_debug) {
+      if (!use_sanitizer && !enable_profiling) {
+        cflags += [ "-fomit-frame-pointer" ]
+      }
+      configs -= [ "//build/config/compiler:optimize" ]
+      cflags += [ "-O3" ]
+    }
+  }
+}

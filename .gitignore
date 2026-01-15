@@ -1,0 +1,7 @@
+tools_shared/
+__pycache__
+/venv
+.venv
+*.pyc
+
+svg/platform/harmony/servalsvg/.cxx/

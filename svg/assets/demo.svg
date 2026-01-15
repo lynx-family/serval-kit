@@ -1,0 +1,7 @@
+<svg viewBox="0 0 100 100">
+    <rect x="10" y="10" width="50" height="50" fill="url(#MyGradient)"/>
+    <rect x="10" y="10" width="50" height="50" fill="#ccff66" stroke="#ff0000"/>
+    <rect x="10" y="10" width="50" height="50" fill="none"/>
+    <path
+            d="M32 15.25a.75.75 0 01-.75.75H3a3 3 0 01-3-3V.75A.75.75 0 01.75 0H29a3 3 0 013 3v12.25z"/>
+</svg>

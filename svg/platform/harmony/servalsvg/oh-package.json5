@@ -1,0 +1,14 @@
+{
+  "name": "@lynx/servalsvg",
+  "version": "1.0.0",
+  "description": "ServalSVG is a high-performance SVG rendering library.",
+  "main": "Index.ets",
+  "author": "dongjiajian",
+  "tags": [
+    "SVG",
+    "ServalKit",
+    "Graphics"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

@@ -1,0 +1,92 @@
+// Copyright 2024 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    ndkVersion rootProject.ext.ndkVersion
+    defaultConfig {
+        minSdkVersion  rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        consumerProguardFiles 'consumer-rules.pro'
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE", '-DMINSIZE','-Wl,-ldl', "-fvisibility=hidden -fno-exceptions",
+                        '-Wno-unused-command-line-argument'
+                arguments "-DANDROID_TOOLCHAIN=clang",
+                        '-DANDROID_STL=c++_shared'
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            externalNativeBuild {
+                cmake {
+                    cppFlags "-DDEBUG=1 -DPERFLOG=1"
+                    arguments '-DBUILD_TYPE=debug'
+                }
+            }
+            ndk {
+                abiFilters(*rootProject.ext.abiList)
+            }
+            minifyEnabled false
+            jniDebuggable true
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            externalNativeBuild {
+                cmake {
+                    cppFlags "-fno-rtti -ffunction-sections -fdata-sections"
+                    arguments '-DBUILD_TYPE=release'
+                }
+            }
+            ndk {
+                abiFilters(*rootProject.ext.abiList)
+            }
+        }
+
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            version CMAKE_VERSION
+        }
+    }
+
+    buildFeatures {
+        prefab true
+    }
+
+    packagingOptions {
+        exclude '**/liblynxtextra.so'
+    }
+}
+
+dependencies {
+    implementation "androidx.appcompat:appcompat:1.0.0"
+    compileOnly(project(':lynxtextra'))
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'generateJsonModelDebug') {
+        task.dependsOn(':lynxtextra:prefabDebugPackage')
+    } else if (task.name == 'generateJsonModelRelease') {
+        task.dependsOn(':lynxtextra:prefabReleasePackage')
+    }
+}

@@ -1,0 +1,11 @@
+
+.hvigor/cache
+.hvigor/outputs
+.hvigor/report
+
+servalsvg/.hvigor/cache
+servalsvg/.hvigor/report
+servalsvg/.hvigor/outputs
+
+servalsvg/build
+servalsvg/oh_modules

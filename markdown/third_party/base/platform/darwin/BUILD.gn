@@ -1,0 +1,121 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("//${lynx_dir}/build_overrides/darwin.gni")
+import("../../src/base.gni")
+
+base_pod_target_xcconfig = {
+  GCC_PREPROCESSOR_DEFINITIONS = [
+    "OS_IOS=1",
+    "HOST_OSTYPE=HOST_IOS",
+  ]
+  OTHER_CPLUSPLUSFLAGS = "-fno-aligned-allocation -std=gnu++17"
+}
+
+podspec_target("lynx_base_podspec") {
+  global_variables =
+      [ "\$enable_frozen_mode = Integer(ENV[\"LYNX_ENABLE_FROZEN\"] || 0)" ]
+  output_name = "LynxBase.podspec"
+  output_path = rebase_path("//")
+  root_specification = {
+    name = "LynxBase"
+    version = "$lynx_version"
+    summary = "The framework of LynxBase."
+    homepage = "https://github.com/lynx-family/lynx"
+    license = "Apache 2.0"
+    author = "Lynx"
+    source = {
+      git = "https://github.com/lynx-family/lynx.git"
+    }
+    requires_arc = true
+    default_subspec = "Framework"
+    compiler_flags = [
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Wmissing-field-initializers",
+      "-Wshorten-64-to-32",
+      "-fno-rtti",
+    ]
+    pod_target_xcconfig = base_pod_target_xcconfig
+    pod_target_xcconfig.CLANG_CXX_LANGUAGE_STANDARD = "gnu++17"
+    ios = {
+      deployment_target = "10.0"
+    }
+  }
+  deps = [ ":Framework" ]
+}
+
+base_darwin_public_headers = [
+  "log/LynxLog.h",
+  "LynxBaseEnv.h",
+  "LynxBaseDefines.h",
+  "trace/LynxBaseTrace.h",
+]
+
+subspec_target("Framework") {
+  # The following flags are added just to keep it consistent with the original podspec.
+  pod_target_xcconfig = base_pod_target_xcconfig
+  pod_target_xcconfig.GCC_PREPROCESSOR_DEFINITIONS += [
+    "RAPIDJSON_HAS_STDSTRING=1",
+    "RAPIDJSON_NAMESPACE=lynx::rapidjson",
+    "RAPIDJSON_NAMESPACE_BEGIN=\\\"namespace lynx{namespace rapidjson{\\\"",
+    "RAPIDJSON_NAMESPACE_END=\\\"}};namespace rapidjson=::lynx::rapidjson;\\\"",
+    "ENABLE_INSPECTOR=1",
+    "LYNX_ENABLE_FROZEN_MODE=#{\$enable_frozen_mode}",
+    "OS_POSIX=1",
+  ]
+  pod_target_xcconfig.HEADER_SEARCH_PATHS = [
+    "//PODS_ROOT/LynxBase/lynx",
+    "//PODS_ROOT/LynxBase",
+    "../../..",
+    "//",
+  ]
+  pod_target_xcconfig.OTHER_CPLUSPLUSFLAGS += " -std=gnu++17"
+
+  if (!is_debug) {
+    pod_target_xcconfig.GCC_PREPROCESSOR_DEFINITIONS += [ "NDEBUG=1" ]
+  }
+  compiler_flags = [
+    "-Wall",
+    "-Wextra",
+    "-Wno-unused-parameter",
+    "-Wmissing-field-initializers",
+    "-Wno-documentation",
+    "-Werror",
+  ]
+  public_header_files = base_darwin_public_headers
+  deps = [
+    ":base",
+    "../../../third_party/rapidjson:rapidjson",
+    "../../src:base_core",
+    "../../src:base_log",
+    "../../src:base_log_headers",
+    "../../src:base_trace",
+    "../../src:datauri_utils",
+    "../../src:string_utils",
+    "../../src:time_utils",
+    "../../src:values",
+    "//third_party/modp_b64",
+  ]
+  frameworks = []
+  libraries = [ "stdc++" ]
+  dependency = [ "LynxServiceAPI/Core" ]
+}
+
+lynx_base_source_set("base") {
+  public = base_darwin_public_headers
+  sources = base_darwin_public_headers + [
+              "LynxBaseEnv.mm",
+              "log/LynxLog.mm",
+              "trace/LynxBaseTrace.mm",
+            ]
+}
+
+group("base_for_macos") {
+  public_deps = [
+    ":base",
+    "../../src:base_group",
+  ]
+}

@@ -1,0 +1,8 @@
+modules:
+  - "serval-svg"
+component_upgrade_result_dir:
+  modulea: "Android"
+version_suffix_mapping:
+  serval-svg:
+    noasan: ""
+    asan: "asan"

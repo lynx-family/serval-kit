@@ -1,0 +1,14 @@
+{
+  "modelVersion": "5.0.5",
+  "name": "servalsvg-project",
+  "version": "1.0.0",
+  "description": "ServalSVG Project",
+  "main": "",
+  "author": "dongjiajian",
+  "tags": [
+    "SVG",
+    "ServalKit"
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {}
+}

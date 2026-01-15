@@ -1,0 +1,28 @@
+// Copyright 2022 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FILE_UTILS_H_
+#define MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FILE_UTILS_H_
+
+#include <string>
+
+#include "base/include/base_export.h"
+
+namespace lynx {
+namespace base {
+
+class BASE_EXPORT FileUtils {
+ public:
+  [[nodiscard]] static bool ReadFileBinary(const std::string& path,
+                                           size_t max_size,
+                                           std::string& file_content);
+  [[nodiscard]] static bool WriteFileBinary(const std::string& path,
+                                            const unsigned char* file_content,
+                                            size_t size);
+};
+
+}  // namespace base
+}  // namespace lynx
+
+#endif  // MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FILE_UTILS_H_

@@ -1,0 +1,154 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class SrDOMNode {}
+
+class SkXMLParser {
+  - fError : SkXMLParserError
+  - fParser : void*
+
+  + SkXMLParser(SkXMLParserError*)
+  + ~SkXMLParser()
+  + parse(const char[], size_t)
+  + parse(const SrDOM&, const SrDOMNode*)
+  + GetNativeErrorString(int, std::string*)
+
+  + StartElement(const char[])
+  + AddAttribute(const char[], const char[])
+  + EndElement(const char[])
+  + Text(const char[], int)
+
+  - onStartElement(const char[])
+  - onAddAttribute(const char[], const char[])
+  - onEndElement(const char[])
+  - onText(const char[], int)
+
+  - ReportError()
+}
+
+class SkXMLParserError {
+
+- ErrorCode
+- fCode : ErrorCode
++ SkXMLParserError()
++ ~SkXMLParserError()
++ getErrorCode()
++ getErrorString(std::string&)
++ getLineNumber()
++ getNativeCode()
++ hasError()
++ hasNoun()
++ reset()
++ setCode(ErrorCode)
++ setNoun(std::string&)
++ setNoun(const char*)
++ setNoun(const char*, size_t)
+- fLineNumber : int
+- fNativeCode : int
+- fNoun : std::string
+}
+SkXMLParser "1" -- "1" SkXMLParserError
+
+class SrSVGDOM {
+  - root_ : SrSVGSVG
+
+  + SrSVGDOM(SrSVGSVG*)
+  + ~SrSVGDOM()
+  + make()
+  + render()
+
+  # dpi_ : float
+}
+
+class SrDOM {
+
+  - fRoot : Node
+  - fParser : SrDOMParser
+
+  + SrDOM()
+  + ~SrDOM()
+
+  + build(const char*, size_t)
+  + copy(const SrDOM&, const Node*)
+
+  + getRootNode()
+
+  + beginParsing()
+  + finishParsing()
+
+  + getType(const Node*)
+  + getName(const Node*)
+  + getFirstChild(const Node*, const char[])
+  + getNextSibling(const Node*, const char[])
+
+  + findAttr(const Node*, const char[])
+  + getFirstAttr(const Node*)
+  + getNextAttr(const Node*, const Attr*)
+  + getAttrName(const Node*, const Attr*)
+  + getAttrValue(const Node*, const Attr*)
+
+  + countChildren(const Node*, const char[])
+
+  + findS32(const Node*, const char[], int32_t*)
+  + findHex(const Node*, const char[], uint32_t*)
+  + findBool(const Node*, const char[], bool*)
+  + findList(const Node*, const char[], const char[])
+
+  + hasAttr(const Node*, const char[], const char[])
+  + hasS32(const Node*, const char[], int32_t)
+  + hasHex(const Node*, const char[], uint32_t)
+  + hasBool(const Node*, const char[], bool)
+
+
+
+}
+  class AttrIter {
+    - fAttr : Attr
+    - fStop : Attr
+
+    + AttrIter(const SrDOM&, const Node*)
+    + next(const char**)
+  }
+
+
+class SrDOMAttr
+
+class SrDOMParser {
+
+- fRoot : Node
+- fParentStack : vector<Node*>
+- fAttrs : vector<Attr>
+- fElemName : char*
+- fElemType : Type
+- fLevel : int
+- fNeedToFlush : bool
+- fParserError : SkXMLParserError
+
++ SrDOMParser()
++ getRoot()
+
++ OnStartElement(const char[])
++ OnAddAttribute(const char[], const char[])
++ OnEndElement(const char[])
++ OnText(const char[], int)
+
+- flushAttributes()
+- startCommon()
+
+}
+
+SrDOM "1" o-- "*" SrDOMNode
+SrDOMNode "1" o-- "1" SrDOMAttr
+
+class SrSVGDOM
+class SrSVGNode
+
+SrSVGDOM -up-|> SrDOM
+SrSVGNode -up-|> SrDOMNode
+
+SrDOMParser -up-|> SkXMLParser
+SrDOMParser "1" - "1" SrDOM : uses
+SrDOMParser "1" - "1" SrDOMNode
+SrDOMParser "1" - "1" SrDOMAttr
+
+@enduml

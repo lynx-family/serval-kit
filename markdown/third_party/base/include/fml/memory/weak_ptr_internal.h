@@ -1,0 +1,49 @@
+// Copyright 2013 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#ifndef MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FML_MEMORY_WEAK_PTR_INTERNAL_H_
+#define MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FML_MEMORY_WEAK_PTR_INTERNAL_H_
+
+#include "base/include/base_export.h"
+#include "base/include/fml/macros.h"
+#include "base/include/fml/memory/ref_counted.h"
+
+namespace lynx {
+namespace fml {
+namespace internal {
+
+// |WeakPtr<T>|s have a reference to a |WeakPtrFlag| to determine whether they
+// are valid (non-null) or not. We do not store a |T*| in this object since
+// there may also be |WeakPtr<U>|s to the same object, where |U| is a superclass
+// of |T|.
+//
+// This class in not thread-safe, though references may be released on any
+// thread (allowing weak pointers to be destroyed/reset/reassigned on any
+// thread).
+class BASE_EXPORT WeakPtrFlag : public fml::RefCountedThreadSafe<WeakPtrFlag> {
+ public:
+  WeakPtrFlag() = default;
+
+  ~WeakPtrFlag() {
+    // Should be invalidated before destruction.
+    LYNX_BASE_DCHECK(!is_valid());
+  }
+
+  bool is_valid() const { return __padding_chars__[0] == 0; }
+
+  void Invalidate() {
+    // Invalidation should happen exactly once.
+    LYNX_BASE_DCHECK(is_valid());
+    __padding_chars__[0] = 1;
+  }
+
+ private:
+  BASE_DISALLOW_COPY_AND_ASSIGN(WeakPtrFlag);
+};
+
+}  // namespace internal
+}  // namespace fml
+}  // namespace lynx
+
+#endif  // MARKDOWN_THIRD_PARTY_BASE_INCLUDE_FML_MEMORY_WEAK_PTR_INTERNAL_H_

@@ -1,0 +1,69 @@
+{
+  "apiType": "stageMode",
+  "buildOptionSet": [
+    {
+      "name": "release",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": true,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          },
+          "consumerFiles": [
+            "./consumer-rules.txt"
+          ]
+        }
+      },
+      "externalNativeOptions": {
+        "path": "./src/main/cpp/CMakeLists.txt",
+        "arguments": "-DCMAKE_BUILD_TYPE=Release",
+        "cppFlags": "-std=c++17 -DDEBUG=0",
+        "abiFilters": [
+          "arm64-v8a"
+        ]
+      },
+      "nativeLib": {
+        "debugSymbol": {
+          "strip": true,
+          "exclude": []
+        },
+        "filter": {
+          "excludes": [
+            "**/libc++_shared.so"
+          ]
+        }
+      }
+    },
+    {
+      "name": "debug",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": true,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          },
+          "consumerFiles": [
+            "./consumer-rules.txt"
+          ]
+        }
+      },
+      "externalNativeOptions": {
+        "path": "./src/main/cpp/CMakeLists.txt",
+        "arguments": "-DCMAKE_BUILD_TYPE=Debug",
+        "cppFlags": "-std=c++17 -DDEBUG=1",
+        "abiFilters": [
+          "arm64-v8a"
+        ]
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "default"
+    }
+  ]
+}

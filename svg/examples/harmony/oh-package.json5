@@ -1,0 +1,17 @@
+{
+  "name": "@lynx/servalsvg",
+  "license": "Apache-2.0",
+  "devDependencies": {},
+  "repository": "https://github.com/lynx-family/serval-kit",
+  "author": "lynx",
+  "description": "A corssplatform svg parser and render",
+  "main": "Index.ets",
+  "scripts": {
+    "build": "hvigorw --mode module -p product=default -p module=servalsvg@default assembleHar --analyze=normal --parallel --incremental --daemon -p buildMode=release"
+  },
+  "version": "0.0.1",
+  "dependencies": {
+  },
+  "dynamicDependencies": {},
+  "modelVersion": "5.0.0"
+}
