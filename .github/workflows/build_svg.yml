@@ -108,7 +108,23 @@ jobs:
             -sdk iphoneos \
             -derivedDataPath build/ios_build \
             CODE_SIGNING_ALLOWED=NO
-          tar -cvzf '${{ github.workspace }}/build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework.tar.gz' build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework
+          xcodebuild build \
+            -workspace gen/ServalSVG/ServalSVG.xcworkspace \
+            -scheme ServalSVG \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ios_build \
+            CODE_SIGNING_ALLOWED=NO
+          DEVICE_LIB=$(find build/ios_build/Build/Products -name "libServalSVG.a" -path "*Release-iphoneos*" | head -n 1)
+          SIM_LIB=$(find build/ios_build/Build/Products -name "libServalSVG.a" -path "*Release-iphonesimulator*" | head -n 1)
+          if [ -z "$DEVICE_LIB" ] || [ -z "$SIM_LIB" ]; then
+            echo "Failed to locate built libraries"; ls -R build/ios_build/Build/Products; exit 1
+          fi
+          xcodebuild -create-xcframework \
+            -library "$DEVICE_LIB" -headers svg/include \
+            -library "$SIM_LIB" -headers svg/include \
+            -output build/ios_build/ServalSVG.xcframework
+          tar -cvzf '${{ github.workspace }}/build/ios_build/ServalSVG.xcframework.tar.gz' build/ios_build/ServalSVG.xcframework
 
   build-harmony:
     name: Build HarmonyOS

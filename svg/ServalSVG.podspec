@@ -1,7 +1,7 @@
 # Replace with the name of your library
 Pod::Spec.new do |s|
   s.name             = 'ServalSVG'
-  s.version          = '0.0.16'
+  s.version          = '0.0.17'
   s.summary          = 'A library for parsing and rendering SVG documents'
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
 
@@ -11,12 +11,12 @@ Pod::Spec.new do |s|
   # Replace with the path to your library header files
 #   s.ios.public_header_files = 'path/to/headers/**/*.h'
 
-  s.license          = { :type => 'Apache-2.0', :file => '../LICENSE' }
+  s.license          = { :type => 'Apache-2.0',  }
 
-  s.author           = { 'thendlessky' => 'fncdong@gmail.com' }
+  s.author           = 'Lynx'
 
 #   s.platform         = :ios, '12.0'
-  s.ios.deployment_target = "9.0"
+  s.ios.deployment_target = "12.0"
 
   s.public_header_files = "svg/include/platform/iOS/SrSVG.h",
                           "svg/include/platform/iOS/SrSVGView.h"
