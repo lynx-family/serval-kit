@@ -71,17 +71,9 @@ jobs:
           echo "artifact_list=$artifact_list" >> $GITHUB_OUTPUT;
           popd
         id: build_artifact
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Ensure pip works
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip --version
 
       - name: Publish artifact to maven
-        uses: lynx-infra/maven-publish-action@2a55bab5273ffd84ebbb600e783286fc6251c239
+        uses: lynx-infra/maven-publish-action@8f547cf037360752cc9f195d04c2d8f327fee434
         with:
           portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
           artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
