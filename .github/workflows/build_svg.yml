@@ -74,11 +74,6 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
-      - name: Upload Android Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-aar-${{ needs.get-version.outputs.version }}
-          path: svg/platform/android/build/outputs/aar/*.aar
 
   build-ios:
     name: Build iOS
@@ -114,30 +109,6 @@ jobs:
             -derivedDataPath build/ios_build \
             CODE_SIGNING_ALLOWED=NO
           tar -cvzf '${{ github.workspace }}/build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework.tar.gz' build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework
-      - name: Upload iOS Artifacts
-        uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092
-        continue-on-error: true
-        with:
-          name: ios-framework
-          path: build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework
-
-      - name: push to release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ needs.get-version.outputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "${{ github.workspace }}/build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework.tar.gz"
-          allowUpdates: true
-          body: ""
-      # - name: Publish to CocoaPods Repo    # 发布 podspec 产物
-      #   env:
-      #     COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
-      #     POD_VERSION: ${{ needs.get-version.outputs.version }}
-      #     PRIMJS_COMMIT_ID: ${{ github.sha }}
-      #   run: |-
-      #     export LANG=en_US.UTF-8
-      #     bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-      #     COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings
 
   build-harmony:
     name: Build HarmonyOS
@@ -165,10 +136,3 @@ jobs:
           pushd svg/examples/harmony && ohpm install
           chmod +x ./scripts/build.py
           ./scripts/build.py --modules servalsvg
-
-      - name: Upload Harmony Artifacts
-        uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092
-        if: success()
-        with:
-          name: harmony-har
-          path: svg/platform/harmony/servalsvg/build/default/outputs/default/servalsvg.har

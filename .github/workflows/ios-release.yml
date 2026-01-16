@@ -1,0 +1,64 @@
+name: ios sdk release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag"
+        required: false
+        type: string
+
+jobs:
+  get-version:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: Get Version
+        id: get_version
+        run: |-
+          if [ ${{ github.event_name }} == 'workflow_dispatch' ]; then
+            version=${{ github.event.inputs.tag }}
+          else
+            version=$(echo ${{ github.ref }} | awk -F "/" '{print $3}')
+          fi
+          if [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "Version is valid"
+            echo "VERSION=$version" >> $GITHUB_OUTPUT;
+          else
+            echo "Version is invalid"
+            exit 1
+          fi
+
+  build-ios:
+    name: Build iOS
+    needs: get-version
+    runs-on: lynx-darwin-14-medium
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Cocoapods Generate
+        run: |
+          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          bundle install --path .bundle
+
+      - name: Generate Workspace
+        run: |
+          export LANG=en_US.UTF-8
+          bundle exec pod gen svg/ServalSVG.podspec --no-auto-open
+
+      - name: Publish to CocoaPods Repo
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
+          POD_VERSION: ${{ needs.get-version.outputs.version }}
+          PRIMJS_COMMIT_ID: ${{ github.sha }}
+        run: |-
+          export LANG=en_US.UTF-8
+          bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings
