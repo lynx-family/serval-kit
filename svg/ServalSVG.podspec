@@ -1,7 +1,7 @@
 # Replace with the name of your library
 Pod::Spec.new do |s|
   s.name             = 'ServalSVG'
-  s.version          = '0.0.15'
+  s.version          = '0.0.16'
   s.summary          = 'A library for parsing and rendering SVG documents'
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
 
