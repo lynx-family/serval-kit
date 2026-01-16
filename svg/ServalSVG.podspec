@@ -1,7 +1,7 @@
 # Replace with the name of your library
 Pod::Spec.new do |s|
   s.name             = 'ServalSVG'
-  s.version          = '0.0.16'
+  s.version          = '0.0.18'
   s.summary          = 'A library for parsing and rendering SVG documents'
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
 
@@ -11,9 +11,9 @@ Pod::Spec.new do |s|
   # Replace with the path to your library header files
 #   s.ios.public_header_files = 'path/to/headers/**/*.h'
 
-  s.license          = { :type => 'Apache-2.0', :file => '../LICENSE' }
+  s.license          = { :type => 'Apache 2.0' }
 
-  s.author           = { 'thendlessky' => 'fncdong@gmail.com' }
+  s.author           = 'Lynx'
 
 #   s.platform         = :ios, '12.0'
   s.ios.deployment_target = "9.0"
@@ -77,6 +77,8 @@ Pod::Spec.new do |s|
                     "svg/include/element/SrSVGRect.h",
                     "svg/include/element/SrSVGSVG.h",
                     "svg/include/element/SrSVGShape.h",
+                    "svg/include/element/SrSVGTypes.h",
+                    "svg/include/element/SrSVGUse.h",
                     "svg/include/element/SrSVGStop.h",
                     "svg/include/element/SrSVGText.h",
                     "svg/src/element/SrSVGCircle.cc",
@@ -135,7 +137,6 @@ Pod::Spec.new do |s|
   #                   "src/SrLogHarmony.cc",
   #                   "src/SrLogAndroid.cc",
   #                   "src/SVGRenderEngine.cc"
-
   s.description  = <<-DESC
     ServalSVG provides an SVG parsing and rendering engine for iOS.
     It includes DOM parsing, gradient support, shapes, paths and text rendering,
@@ -153,7 +154,7 @@ Pod::Spec.new do |s|
   }
 
   s.xcconfig = {
-    "USER_HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/include\"",
+    "USER_HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/svg/include/**\"",
     "OTHER_CPLUSPLUSFLAGS" => "-std=c++17 -stdlib=libc++"
   }
   s.libraries = 'stdc++', 'c++'

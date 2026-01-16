@@ -42,7 +42,6 @@ jobs:
     runs-on: lynx-darwin-14-medium
     steps:
       - uses: actions/checkout@v3
-
       - name: Install Cocoapods Generate
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
@@ -61,4 +60,4 @@ jobs:
         run: |-
           export LANG=en_US.UTF-8
           bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings --verbose
