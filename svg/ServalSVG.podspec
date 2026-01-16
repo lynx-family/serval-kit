@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
 
   # Replace with the path to your library source directory
-  s.source                = { :git => 'https://github.com/lynx-family/serval-kit.git', :tag => s.version }
+  s.source                = { :git => 'https://github.com/lynx-family/serval-kit.git', :branch => "main" }
 
   # Replace with the path to your library header files
 #   s.ios.public_header_files = 'path/to/headers/**/*.h'
