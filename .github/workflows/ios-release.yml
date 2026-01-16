@@ -39,18 +39,22 @@ jobs:
   build-ios:
     name: Build iOS
     needs: get-version
-    runs-on: lynx-darwin-14-medium
+    runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Cocoapods Generate
-        run: |
-          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-          bundle install --path .bundle
-
-      - name: Generate Workspace
-        run: |
-          export LANG=en_US.UTF-8
-          bundle exec pod gen svg/ServalSVG.podspec --no-auto-open
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Set up Ruby + specify Bundler version
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.6.10'
+      - name: Bundle Install
+        run: |-
+          cd svg
+          SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk bundle install --path .bundle
 
       - name: Publish to CocoaPods Repo
         env:
