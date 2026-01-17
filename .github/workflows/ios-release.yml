@@ -45,6 +45,8 @@ jobs:
       - name: Install Cocoapods Generate
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          ruby -r psych -e 'puts Psych::VERSION'
+          echo "111"
           bundle install --path .bundle
 
       - name: Generate Workspace
