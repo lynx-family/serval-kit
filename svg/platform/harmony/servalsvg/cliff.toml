@@ -4,9 +4,7 @@ filter_commits = true
 commit_parsers = [
   { message = ".*changelog: no.*", skip = true },
 
-  { message = "(?i).*harmony.*", group = "Harmony" },
-
-  { message = ".*", skip = true }
+  { message = ".*", group = "General" }
 ]
 
 [changelog]

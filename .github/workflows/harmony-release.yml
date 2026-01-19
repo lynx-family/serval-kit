@@ -111,25 +111,3 @@ jobs:
           pushd svg/platform/harmony/servalsvg/build/default/outputs/default/
           ohpm publish servalsvg.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key
           popd
-
-      - name: Get release info
-        if: ${{ github.event_name == 'push' }}
-        id: get_release
-        uses: octokit/request-action@v2.x
-        with:
-          route: GET /repos/${{ github.repository }}/releases/tags/${{ needs.get-version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push to release
-        if: ${{ github.event_name == 'push' }}
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ needs.get-version.outputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          replacesArtifacts: true
-          allowUpdates: true
-          artifacts: "svg/platform/harmony/servalsvg/build/default/outputs/default/servalsvg.har"
-          body: ${{ fromJSON(steps.get_release.outputs.data).body }}
-          draft: ${{ fromJSON(steps.get_release.outputs.data).draft }}
-          prerelease: ${{ fromJSON(steps.get_release.outputs.data).prerelease }}

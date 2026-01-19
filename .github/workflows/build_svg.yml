@@ -1,65 +1,26 @@
 name: Build SVG Artifacts
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "svg/**"
   pull_request:
     branches: ["main"]
     paths:
       - "svg/**"
-  workflow_dispatch:
-    inputs:
-      build_android:
-        description: "Build Android"
-        required: true
-        default: true
-        type: boolean
-      build_ios:
-        description: "Build iOS"
-        required: true
-        default: true
-        type: boolean
-      build_harmony:
-        description: "Build HarmonyOS"
-        required: true
-        default: true
-        type: boolean
+      - ".github/workflows/build_svg.yml"
+
 
 jobs:
-  get-version:
-    runs-on: lynx-ubuntu-22.04-medium
-    timeout-minutes: 60
-    outputs:
-      version: ${{ steps.get_version.outputs.VERSION }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get Version
-        id: get_version
-        run: |
-          file="svg/ServalSVG.podspec"
-          line=$(grep -E "^\s*s\.version\s*=\s*" "$file" | head -n 1)
-          version=$(echo "$line" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -n 1)
-          if [ -n "$version" ]; then
-            echo "VERSION=$version" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not found"
-            exit 1
-          fi
-
   build-android:
     name: Build Android
-    needs: get-version
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android == true }}
     runs-on: lynx-ubuntu-22.04-large
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Java SDK
         uses: actions/setup-java@v3
         with:
           java-version: 11
           distribution: "zulu"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -74,11 +35,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      - name: Upload Android Artifacts
+        uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092
+        with:
+          name: android-svg-build
+          path: svg/platform/android/build/outputs/aar/*.aar
 
   build-ios:
     name: Build iOS
-    needs: get-version
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_ios == true }}
     runs-on: lynx-darwin-14-medium
     steps:
       - uses: actions/checkout@v3
@@ -88,32 +52,12 @@ jobs:
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
           bundle install --path .bundle
 
-      - name: Generate Workspace
+      - name: Lint Podspec File
         run: |
-          export LANG=en_US.UTF-8
-          # Generate an Xcode project/workspace from the podspec to build it
-          # We use --local-sources to ensure it uses the checked out code if dependencies allow,
-          # but primarily this creates a project for the pod itself.
-          bundle exec pod gen svg/ServalSVG.podspec --no-auto-open
-          # The workspace is usually generated in ./gen/ServalSVG/
-
-      - name: Build iOS Framework
-        run: |
-          # Build the generated workspace
-          # Adjust the path to the generated workspace if necessary
-          xcodebuild build \
-            -workspace gen/ServalSVG/ServalSVG.xcworkspace \
-            -scheme ServalSVG \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build/ios_build \
-            CODE_SIGNING_ALLOWED=NO
-          tar -cvzf '${{ github.workspace }}/build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework.tar.gz' build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework
+          POD_VERSION=0.0.1-for-ci-test SERVAL_KIT_VERSION=${{ github.event.pull_request.head.sha }} bundle exec pod spec lint svg/ServalSVG.podspec --verbose --skip-import-validation --allow-warnings
 
   build-harmony:
     name: Build HarmonyOS
-    needs: get-version
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_harmony == true }}
     runs-on: lynx-custom-container
     container:
       image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:8eb0ee8da7e8592669f0fcd41d0e1bc818b33a75e27943521f57af87d04db2fb
@@ -136,3 +80,10 @@ jobs:
           pushd svg/examples/harmony && ohpm install
           chmod +x ./scripts/build.py
           ./scripts/build.py --modules servalsvg
+
+      - name: Upload Harmony Artifacts
+        uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092
+        continue-on-error: true
+        with:
+          name: harmony-svg-build
+          path: svg/platform/harmony/servalsvg/build/default/outputs/default/servalsvg.har
