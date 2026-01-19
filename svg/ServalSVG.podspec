@@ -1,13 +1,17 @@
 # Replace with the name of your library
 Pod::Spec.new do |s|
   s.name             = 'ServalSVG'
-  s.version          = '0.0.18'
+  s.version = begin
+    raw_version = ENV['POD_VERSION'] || File.read('SERVAL_KIT_VERSION').strip
+    raw_version
+  end
   s.summary          = 'A library for parsing and rendering SVG documents'
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
 
   # Replace with the path to your library source directory
-  s.source                = { :git => 'https://github.com/lynx-family/serval-kit.git', :branch => "main" }
-
+  s.source = { :git => 'https://github.com/lynx-family/serval-kit.git', }.tap do |source_hash|
+    source_hash[:commit] = ENV['SERVAL_KIT_COMMIT_ID']
+end
   # Replace with the path to your library header files
 #   s.ios.public_header_files = 'path/to/headers/**/*.h'
 

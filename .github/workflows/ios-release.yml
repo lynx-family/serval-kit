@@ -6,8 +6,8 @@ on:
       - "*"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "release tag"
+      version:
+        description: 'version of pod'
         required: false
         type: string
 
@@ -22,7 +22,7 @@ jobs:
         id: get_version
         run: |-
           if [ ${{ github.event_name }} == 'workflow_dispatch' ]; then
-            version=${{ github.event.inputs.tag }}
+            version=${{ github.event.inputs.version }}
           else
             version=$(echo ${{ github.ref }} | awk -F "/" '{print $3}')
           fi
@@ -46,18 +46,12 @@ jobs:
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
           bundle install --path .bundle
-
-      - name: Generate Workspace
-        run: |
-          export LANG=en_US.UTF-8
-          bundle exec pod gen svg/ServalSVG.podspec --no-auto-open
-
       - name: Publish to CocoaPods Repo
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
           POD_VERSION: ${{ needs.get-version.outputs.version }}
-          PRIMJS_COMMIT_ID: ${{ github.sha }}
+          SERVAL_KIT_COMMIT_ID: ${{ github.sha }}
         run: |-
           export LANG=en_US.UTF-8
           bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings --verbose
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push svg/ServalSVG.podspec --skip-import-validation --allow-warnings --verbose
