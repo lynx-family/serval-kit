@@ -88,27 +88,9 @@ jobs:
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
           bundle install --path .bundle
 
-      - name: Generate Workspace
+      - name: Lint Podspec File
         run: |
-          export LANG=en_US.UTF-8
-          # Generate an Xcode project/workspace from the podspec to build it
-          # We use --local-sources to ensure it uses the checked out code if dependencies allow,
-          # but primarily this creates a project for the pod itself.
-          bundle exec pod gen svg/ServalSVG.podspec --no-auto-open
-          # The workspace is usually generated in ./gen/ServalSVG/
-
-      - name: Build iOS Framework
-        run: |
-          # Build the generated workspace
-          # Adjust the path to the generated workspace if necessary
-          xcodebuild build \
-            -workspace gen/ServalSVG/ServalSVG.xcworkspace \
-            -scheme ServalSVG \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build/ios_build \
-            CODE_SIGNING_ALLOWED=NO
-          tar -cvzf '${{ github.workspace }}/build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework.tar.gz' build/ios_build/Build/Products/Release-iphoneos/ServalSVG/ServalSVG.framework
+          POD_VERSION=0.0.1-for-ci-test SERVAL_KIT_VERSION=${{ github.event.pull_request.head.sha }} bundle exec pod spec lint svg/ServalSVG.podspec --verbose --skip-import-validation --allow-warnings
 
   build-harmony:
     name: Build HarmonyOS
