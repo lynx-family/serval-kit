@@ -38,3 +38,4 @@ jobs:
       - name: Lint Podspec File
         run: |
           POD_VERSION=0.0.1-for-ci-test SERVAL_KIT_VERSION=${{ github.event_name == 'pull_request' ? github.event.pull_request.head.sha : github.sha }} bundle exec pod spec lint svg/ServalSVG.podspec --verbose --skip-import-validation --allow-warnings
+          echo "111"
