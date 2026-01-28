@@ -2,8 +2,10 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 #include "markdown/platform/android/markdown_class_cache.h"
+
 #include <memory>
 #include <utility>
+
 #include "base/include/platform/android/jni_utils.h"
 void MarkdownClassCache::Initial(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
@@ -14,32 +16,43 @@ void MarkdownClassCache::Initial(JNIEnv* env) {
 }
 AndroidMarkdownView::Methods AndroidMarkdownView::methods_{};
 void AndroidMarkdownView::Initialize(JNIEnv* env) {
-  auto clazz = env->FindClass("com/lynx/markdown/IMarkdownView");
-  methods_.request_layout_ = env->GetMethodID(clazz, "requestLayout", "()V");
+  auto clazz = env->FindClass("com/lynx/markdown/MarkdownViewHandle");
+  methods_.request_measure_ = env->GetMethodID(clazz, "requestMeasure", "()V");
+  methods_.request_align_ = env->GetMethodID(clazz, "requestAlign", "()V");
   methods_.request_draw_ = env->GetMethodID(clazz, "requestDraw", "()V");
-  methods_.measure_ = env->GetMethodID(clazz, "measure", "(FIFI)V");
-  methods_.align_ = env->GetMethodID(clazz, "align", "(FF)V");
+  methods_.measure_ = env->GetMethodID(clazz, "measure", "(IIII)J");
+  methods_.align_ = env->GetMethodID(clazz, "align", "(II)V");
   methods_.get_position_ = env->GetMethodID(clazz, "getPosition", "()J");
   methods_.get_size_ = env->GetMethodID(clazz, "getSize", "()J");
-  methods_.set_size_ = env->GetMethodID(clazz, "setSize", "(FF)V");
-  methods_.set_position_ = env->GetMethodID(clazz, "setPosition", "(FF)V");
+  methods_.set_size_ = env->GetMethodID(clazz, "setSize", "(II)V");
+  methods_.set_position_ = env->GetMethodID(clazz, "setPosition", "(II)V");
   methods_.set_visibility_ = env->GetMethodID(clazz, "setVisibility", "(Z)V");
 }
 AndroidMarkdownView::AndroidMarkdownView(JNIEnv* env, jobject ref)
     : ref_(env, ref) {}
-void AndroidMarkdownView::RequestLayout() {
+void AndroidMarkdownView::RequestMeasure() {
   auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.request_layout_);
+  env->CallVoidMethod(ref_.Get(), methods_.request_measure_);
+}
+void AndroidMarkdownView::RequestAlign() {
+  auto* env = MarkdownClassCache::GetEnv();
+  env->CallVoidMethod(ref_.Get(), methods_.request_align_);
 }
 void AndroidMarkdownView::RequestDraw() {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.request_draw_);
 }
-void AndroidMarkdownView::Measure(lynx::markdown::MeasureSpec spec) {
+lynx::markdown::SizeF AndroidMarkdownView::Measure(
+    lynx::markdown::MeasureSpec spec) {
   auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.measure_, spec.width_,
-                      static_cast<jint>(spec.width_mode_), spec.height_,
-                      static_cast<jint>(spec.height_mode_));
+  jlong result =
+      env->CallLongMethod(ref_.Get(), methods_.measure_, spec.width_,
+                          static_cast<jint>(spec.width_mode_), spec.height_,
+                          static_cast<jint>(spec.height_mode_));
+  return {
+      .width_ = static_cast<float>(MarkdownJNIUtils::GetIntPackFirst(result)),
+      .height_ = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(result)),
+  };
 }
 void AndroidMarkdownView::Align(float left, float top) {
   auto* env = MarkdownClassCache::GetEnv();
@@ -77,7 +90,7 @@ void AndroidMarkdownView::SetVisibility(bool visible) {
 }
 
 void AndroidCustomView::Initialize(JNIEnv* env) {
-  auto clazz = env->FindClass("com/lynx/markdown/ICustomView");
+  auto clazz = env->FindClass("com/lynx/markdown/MarkdownViewHandle");
   methods_.attach_drawable_ = env->GetMethodID(clazz, "attachDrawable", "(J)V");
 }
 AndroidCustomView::Methods AndroidCustomView::methods_{};
@@ -91,13 +104,22 @@ void AndroidCustomView::AttachDrawable(
   env->CallVoidMethod(ref_.Get(), methods_.attach_drawable_,
                       reinterpret_cast<int64_t>(drawable_ptr));
 }
-
+lynx::markdown::SizeF AndroidCustomView::Measure(
+    lynx::markdown::MeasureSpec spec) {
+  auto size = drawable_->Measure(spec);
+  SetMeasuredSize(size);
+  return size;
+}
+lynx::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
+  return {drawable_->GetWidth(), drawable_->GetHeight()};
+}
 void AndroidMainView::Initialize(JNIEnv* env) {
-  auto clazz = env->FindClass("com/lynx/markdown/IMainView");
-  methods_.create_custom_subview_ = env->GetMethodID(
-      clazz, "createCustomView", "()Lcom/lynx/markdown/IMarkdownView;");
+  auto clazz = env->FindClass("com/lynx/markdown/MarkdownViewHandle");
+  methods_.create_custom_subview_ =
+      env->GetMethodID(clazz, "createCustomDrawView",
+                       "()Lcom/lynx/markdown/MarkdownViewHandle;");
   methods_.remove_subview_ = env->GetMethodID(
-      clazz, "removeSubView", "(Lcom/lynx/markdown/IMarkdownView;)V");
+      clazz, "removeSubview", "(Lcom/lynx/markdown/MarkdownViewHandle;)V");
   methods_.remove_all_subviews_ =
       env->GetMethodID(clazz, "removeAllSubviews", "()V");
   methods_.get_view_rect_in_screen_ =

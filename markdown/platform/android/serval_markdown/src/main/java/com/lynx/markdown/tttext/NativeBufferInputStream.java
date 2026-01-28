@@ -8,14 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-public class CBufferInputStream extends DataInputStream {
+public class NativeBufferInputStream extends DataInputStream {
   /**
    * Creates a DataInputStream that uses the specified
    * underlying InputStream.
    *
    * @param in the specified input stream
    */
-  public CBufferInputStream(InputStream in) { super(in); }
+  public NativeBufferInputStream(InputStream in) {
+    super(in);
+  }
 
   public String readCString() throws IOException {
     int tag_l = readInt();

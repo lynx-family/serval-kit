@@ -4,17 +4,24 @@
 package com.lynx.markdown;
 
 import android.graphics.Typeface;
-import com.lynx.markdown.tttext.IRunDelegate;
+import android.graphics.drawable.Drawable;
+
 public interface IResourceLoader {
-  IRunDelegate loadImage(String source, float desire_width, float desire_height,
-                         float max_width, float max_height);
+  Drawable loadImage(String source);
   Typeface loadFont(String family);
-  IRunDelegate measureInlineView(String idSelector, float max_width,
-                                 float max_height);
-
-  IRunDelegate generateBackground(String backgroundImage, float borderRadius,
-                                  float fontSize, float rootFontSize);
-
-  IRunDelegate loadGradient(String gradient, float fontSize,
-                            float rootFontSize);
+  class InlineView {
+    /**
+     * creator of inline view
+     * @param handle: a handle of view
+     * @param verticalAlign: view's vertical align, it's value should be
+     *     Constants.VERTICAL_ALIGN_XXX
+     */
+    public InlineView(MarkdownViewHandle handle, int verticalAlign) {
+      mHandle = handle;
+      mVerticalAlign = verticalAlign;
+    }
+    public MarkdownViewHandle mHandle;
+    public int mVerticalAlign;
+  }
+  InlineView loadInlineView(String id);
 }

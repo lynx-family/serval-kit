@@ -15,7 +15,7 @@ import com.lynx.textra.TTTextDefinition;
 import com.lynx.textra.TTTextUtils;
 import java.io.IOException;
 
-public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
+public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected static final int CANVAS_OP_EXTEND = -1;
   protected static final int CANVAS_OP_CLIP_PATH = 0;
   protected static final int CANVAS_OP_DRAW_PATH = 1;
@@ -29,15 +29,15 @@ public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
   protected static final int PATH_TYPE_CUBIC_TO = 6;
   protected static final int PATH_TYPE_QUAD_TO = 7;
 
-  protected JavaResourceManager resource_manager_;
-  IDrawerCallback drawer_callback_;
+  protected JavaResourceManager mResourceManager;
+  IDrawerCallback mDrawerCallback;
 
-  public MarkdownJavaCanvasHelper(Canvas canvas, JavaResourceManager manager,
-                                  IDrawerCallback drawer) {
+  public MarkdownAndroidCanvasHelper(
+      Canvas canvas, JavaResourceManager manager, IDrawerCallback drawer) {
     super(TTText.mFontManager);
     canvas_ = canvas;
-    resource_manager_ = manager;
-    drawer_callback_ = drawer;
+    mResourceManager = manager;
+    mDrawerCallback = drawer;
   }
 
   public void drawBuffer(byte[] input) {
@@ -73,23 +73,21 @@ public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
     canvas_.clipPath(path);
   }
 
-  protected void drawMarkdownPath(BBufferInputStream stream)
-      throws IOException {
+  protected void drawMarkdownPath(BBufferInputStream stream) throws IOException {
     Path path = readPath(stream);
     Paint p = readPaint(stream, paint_);
     canvas_.drawPath(path, p);
   }
 
-  protected void drawDelegateOnPath(BBufferInputStream stream)
-      throws IOException {
+  protected void drawDelegateOnPath(BBufferInputStream stream) throws IOException {
     int id = stream.readInt();
     Path path = readPath(stream);
     Paint paint = readPaint(stream, paint_);
-    if (drawer_callback_ == null) {
+    if (mDrawerCallback == null) {
       return;
     }
-    drawer_callback_.drawRunDelegateOnPath(
-        canvas_, resource_manager_.getRunDelegate(id), path, paint);
+    mDrawerCallback.drawRunDelegateOnPath(
+        canvas_, mResourceManager.getRunDelegate(id), path, paint);
   }
 
   protected Path readPath(BBufferInputStream stream) throws IOException {
@@ -152,8 +150,7 @@ public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
     float radiusX = TTTextUtils.Dp2Px(stream.readFloat());
     float radiusY = TTTextUtils.Dp2Px(stream.readFloat());
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      path.addRoundRect(left, top, right, bottom, radiusX, radiusY,
-                        Path.Direction.CW);
+      path.addRoundRect(left, top, right, bottom, radiusX, radiusY, Path.Direction.CW);
     }
   }
   protected void moveTo(Path path, BBufferInputStream stream) {
@@ -190,11 +187,10 @@ public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
     float dt = TTTextUtils.Dp2Px(stream.readFloat());
     float dr = TTTextUtils.Dp2Px(stream.readFloat());
     float db = TTTextUtils.Dp2Px(stream.readFloat());
-    if (drawer_callback_ == null)
+    if (mDrawerCallback == null)
       return;
-    drawer_callback_.drawRunDelegate(
-        resource_manager_.getRunDelegate(id),
-        new Rect((int)dl, (int)dt, (int)dr, (int)db));
+    mDrawerCallback.drawRunDelegate(
+        mResourceManager.getRunDelegate(id), new Rect((int) dl, (int) dt, (int) dr, (int) db));
   }
 
   Path mPath;
@@ -207,8 +203,7 @@ public class MarkdownJavaCanvasHelper extends JavaCanvasHelper {
     return mPath;
   }
 
-  protected Paint readPaint(BBufferInputStream stream, Paint painter)
-      throws IOException {
+  protected Paint readPaint(BBufferInputStream stream, Paint painter) throws IOException {
     painter.setAntiAlias(true);
     painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
     color_ = stream.readInt();

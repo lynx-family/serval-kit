@@ -7,29 +7,35 @@ namespace lynx::markdown {
 
 MarkdownPlatformViewIOS::MarkdownPlatformViewIOS(UIView* view) : view_(view) {}
 
-void MarkdownPlatformViewIOS::RequestDraw() {
-  [view_ setNeedsDisplay];
-}
+void MarkdownPlatformViewIOS::RequestDraw() { [view_ setNeedsDisplay]; }
 PointF MarkdownPlatformViewIOS::GetAlignedPosition() {
-  return {static_cast<float>(view_.frame.origin.x),
-          static_cast<float>(view_.frame.origin.y)};
+  if (view_ == nil) {
+    return {0, 0};
+  }
+  return {static_cast<float>(view_.frame.origin.x), static_cast<float>(view_.frame.origin.y)};
 }
 SizeF MarkdownPlatformViewIOS::GetMeasuredSize() {
-  return {static_cast<float>(view_.frame.size.width),
-          static_cast<float>(view_.frame.size.height)};
+  if (view_ == nil) {
+    return {0, 0};
+  }
+  return {static_cast<float>(view_.frame.size.width), static_cast<float>(view_.frame.size.height)};
 }
 
 void MarkdownPlatformViewIOS::SetMeasuredSize(SizeF size) {
+  if (view_ == nil) {
+    return;
+  }
   CGRect new_frame = view_.frame;
   new_frame.size = CGSizeMake(size.width_, size.height_);
   view_.frame = new_frame;
 }
 void MarkdownPlatformViewIOS::SetAlignPosition(PointF position) {
+  if (view_ == nil) {
+    return;
+  }
   CGRect new_frame = view_.frame;
   new_frame.origin = CGPointMake(position.x_, position.y_);
   view_.frame = new_frame;
 }
-void MarkdownPlatformViewIOS::SetVisibility(bool visible) {
-  view_.hidden = !visible;
-}
+void MarkdownPlatformViewIOS::SetVisibility(bool visible) { view_.hidden = !visible; }
 }  // namespace lynx::markdown

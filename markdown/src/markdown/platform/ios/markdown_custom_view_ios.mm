@@ -9,7 +9,7 @@
 }
 
 @end
-
+const float kServalMarkdownMaxSize = 1e8;
 @implementation MarkdownCustomViewImpl
 - (instancetype)init {
   self = [super init];
@@ -22,8 +22,7 @@
   _markdownViewHandle = new lynx::markdown::MarkdownCustomViewIOS(self);
 }
 
-- (void)setMarkdownViewHandle:
-    (lynx::markdown::MarkdownCustomViewIOS*)markdownViewHandle {
+- (void)setMarkdownViewHandle:(lynx::markdown::MarkdownCustomViewIOS*)markdownViewHandle {
   _markdownViewHandle = markdownViewHandle;
 }
 
@@ -38,14 +37,14 @@
 }
 
 - (void)requestMeasure {
+  [self invalidateIntrinsicContentSize];
   [self setNeedsLayout];
+  [self setNeedsDisplay];
 }
 
 - (void)layoutSubviews {
-  [self measureByWidth:self.frame.size.width
-             WidthMode:kServalMarkdownLayoutModeDefinite
-                Height:self.frame.size.height
-            HeightMode:kServalMarkdownLayoutModeDefinite];
+  [super layoutSubviews];
+  self.markdownViewHandle->Align(self.frame.origin.x, self.frame.origin.y);
 }
 
 - (CGSize)measureByWidth:(CGFloat)width
@@ -57,55 +56,72 @@
   spec.height_ = height;
   spec.width_mode_ = static_cast<tttext::LayoutMode>(widthMode);
   spec.height_mode_ = static_cast<tttext::LayoutMode>(heightMode);
-  self.markdownViewHandle->Measure(spec);
-  return self.frame.size;
+  auto size = self.markdownViewHandle->Measure(spec);
+  return CGSizeMake(size.width_, size.height_);
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+  BOOL hasWidth = size.width > 0 && size.width < CGFLOAT_MAX;
+  BOOL hasHeight = size.height > 0 && size.height < CGFLOAT_MAX;
+  ServalMarkdownLayoutMode widthMode =
+      hasWidth ? kServalMarkdownLayoutModeAtMost : kServalMarkdownLayoutModeIndefinite;
+  ServalMarkdownLayoutMode heightMode =
+      hasHeight ? kServalMarkdownLayoutModeAtMost : kServalMarkdownLayoutModeIndefinite;
+  CGFloat width = hasWidth ? size.width : kServalMarkdownMaxSize;
+  CGFloat height = hasHeight ? size.height : kServalMarkdownMaxSize;
+  return [self measureByWidth:width WidthMode:widthMode Height:height HeightMode:heightMode];
+}
+
+- (CGSize)intrinsicContentSize {
+  CGSize size = self.bounds.size;
+  BOOL hasWidth = size.width > 0 && size.width < CGFLOAT_MAX;
+  ServalMarkdownLayoutMode widthMode =
+      hasWidth ? kServalMarkdownLayoutModeDefinite : kServalMarkdownLayoutModeAtMost;
+  CGFloat width = hasWidth ? size.width : kServalMarkdownMaxSize;
+  return [self measureByWidth:width
+                    WidthMode:widthMode
+                       Height:kServalMarkdownMaxSize
+                   HeightMode:kServalMarkdownLayoutModeAtMost];
+}
+
+- (CGSize)systemLayoutSizeFittingSize:(CGSize)targetSize
+        withHorizontalFittingPriority:(UILayoutPriority)horizontalFittingPriority
+              verticalFittingPriority:(UILayoutPriority)verticalFittingPriority {
+  BOOL hasWidth = targetSize.width > 0 && targetSize.width < CGFLOAT_MAX;
+  BOOL hasHeight = targetSize.height > 0 && targetSize.height < CGFLOAT_MAX;
+  ServalMarkdownLayoutMode widthMode =
+      (horizontalFittingPriority >= UILayoutPriorityRequired && hasWidth)
+          ? kServalMarkdownLayoutModeDefinite
+          : (hasWidth ? kServalMarkdownLayoutModeAtMost : kServalMarkdownLayoutModeIndefinite);
+  ServalMarkdownLayoutMode heightMode =
+      (verticalFittingPriority >= UILayoutPriorityRequired && hasHeight)
+          ? kServalMarkdownLayoutModeDefinite
+          : (hasHeight ? kServalMarkdownLayoutModeAtMost : kServalMarkdownLayoutModeIndefinite);
+  CGFloat width = hasWidth ? targetSize.width : kServalMarkdownMaxSize;
+  CGFloat height = hasHeight ? targetSize.height : kServalMarkdownMaxSize;
+  return [self measureByWidth:width WidthMode:widthMode Height:height HeightMode:heightMode];
 }
 
 - (void)drawRect:(CGRect)rect {
-}
-- (void)displayLayer:(CALayer*)layer {
-  layer.contentsGravity =
-      layer.contentsAreFlipped ? kCAGravityBottomLeft : kCAGravityTopLeft;
-  CGSize size = self.frame.size;
-  CGFloat scale = [UIScreen mainScreen].scale;
-  CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-  size.width *= scale;
-  size.height *= scale;
-  size_t context_width = ceil(size.width);
-  size_t context_height = ceil(size.height);
-  CGContextRef context = CGBitmapContextCreate(
-      NULL, context_width, context_height, 8, 4 * context_width, color_space,
-      kCGImageAlphaPremultipliedLast);
-  CGContextScaleCTM(context, 1, -1);
-  CGContextTranslateCTM(context, 0, -ceil(size.height));
-  CGContextScaleCTM(context, scale, scale);
-  CGColorSpaceRelease(color_space);
-  CGContextClearRect(context, CGRectMake(0, 0, size.width, size.height));
-  CGContextSaveGState(context);
-  CGContextClipToRect(context, CGRectMake(0, 0, size.width, size.height));
-
+  CGContextRef context = UIGraphicsGetCurrentContext();
   MarkdownCanvas canvas(context);
-  self.markdownViewHandle->GetDrawable()->Draw(&canvas, 0, 0);
-
-  CGImageRef image = CGBitmapContextCreateImage(context);
-  CGContextRestoreGState(context);
-  CGContextRelease(context);
-  id result = (__bridge_transfer id)image;
-  layer.contents = result;
+  self.markdownViewHandle->Draw(&canvas);
 }
 @end
 
 namespace lynx::markdown {
 MarkdownCustomViewIOS::MarkdownCustomViewIOS(MarkdownCustomViewImpl* view)
     : MarkdownPlatformViewIOS(view) {}
-void MarkdownCustomViewIOS::RequestLayout() {
-  [((MarkdownCustomViewImpl*)view_) requestMeasure];
-}
-void MarkdownCustomViewIOS::Measure(MeasureSpec spec) {
+void MarkdownCustomViewIOS::RequestMeasure() { [((MarkdownCustomViewImpl*)view_) requestMeasure]; }
+void MarkdownCustomViewIOS::RequestAlign() { [((MarkdownCustomViewImpl*)view_) setNeedsLayout]; }
+SizeF MarkdownCustomViewIOS::Measure(MeasureSpec spec) {
   auto size = drawable_->Measure(spec);
   SetMeasuredSize(size);
+  return size;
 }
 void MarkdownCustomViewIOS::Align(float left, float top) {
   SetAlignPosition({left, top});
+  drawable_->Align();
 }
+void MarkdownCustomViewIOS::Draw(tttext::ICanvasHelper* cavas) { drawable_->Draw(cavas, 0, 0); }
 }  // namespace lynx::markdown

@@ -25,8 +25,9 @@ class HarmonyView : public MarkdownPlatformView {
   explicit HarmonyView(ArkUI_NodeHandle handle);
   ~HarmonyView() override;
 
-  void Measure(MeasureSpec spec) override;
+  SizeF Measure(MeasureSpec spec) override;
   void Align(float left, float top) override;
+  void Draw(tttext::ICanvasHelper* canvas) override;
   SizeF GetMeasuredSize() final;
   PointF GetAlignedPosition() final;
   void SetMeasuredSize(SizeF size) final {
@@ -62,7 +63,8 @@ class HarmonyView : public MarkdownPlatformView {
   void SetLayoutPosition(int32_t x_offset, int32_t y_offset) {
     api_->setLayoutPosition(handle_, x_offset, y_offset);
   }
-  void RequestLayout() override { MarkNeedsMeasure(); }
+  void RequestMeasure() override { MarkNeedsMeasure(); }
+  void RequestAlign() override { MarkNeedsLayout(); }
   void RequestDraw() override { MarkNeedsRender(); }
 
   void EnableTapEvent(bool enable, ArkUI_GesturePriority priority);
@@ -104,12 +106,9 @@ class HarmonyView : public MarkdownPlatformView {
     children_.emplace_back(std::move(child));
   }
   std::unique_ptr<HarmonyView> RemoveChild(HarmonyView* child) {
-    auto pred = [child](const auto& ptr) {
-      return ptr.get() == child;
-    };
+    auto pred = [child](const auto& ptr) { return ptr.get() == child; };
     auto find = std::find_if(children_.begin(), children_.end(), pred);
-    if (find == children_.end())
-      return nullptr;
+    if (find == children_.end()) return nullptr;
     auto content = std::move(*find);
     children_.erase(find);
     api_->removeChild(handle_, child->GetHandle());

@@ -21,6 +21,7 @@ class MarkdownDrawable : public tttext::RunDelegate {
   }
 
   virtual SizeF Measure(MeasureSpec spec) = 0;
+  virtual void Align() {}
   virtual void Draw(tttext::ICanvasHelper* canvas, float left, float top,
                     float right, float bottom) = 0;
   virtual float GetWidth() const = 0;

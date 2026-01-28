@@ -8,14 +8,13 @@ set(HEADERS_PATH "${SOURCE_ROOT_PATH}/include")
 set(DISCOUNT_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/discount")
 set(BASE_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/base")
 set(IS_ANDROID true)
-include_directories(
-                  ${SOURCE_ROOT_PATH}
+include_directories(${SOURCE_ROOT_PATH}
                     ${DISCOUNT_ROOT_PATH}
-                     ${SRC_ROOT_PATH}
-                     ${SOURCE_ROOT_PATH}/third_party
-                     ${BASE_ROOT_PATH}
-                     ${HEADERS_PATH}
-                     )
+                    ${SRC_ROOT_PATH}
+                    ${SOURCE_ROOT_PATH}/third_party
+                    ${BASE_ROOT_PATH}
+                    ${HEADERS_PATH}
+)
 
 add_library(
     serval_markdown

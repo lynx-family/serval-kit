@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 package com.lynx.markdown;
 
-import com.lynx.markdown.tttext.CBufferOutputStream;
+import com.lynx.markdown.tttext.NativeBufferOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,10 +19,10 @@ public class MarkdownBufferWriter {
   private static final int OBJECT_TYPE_STRING = 7;
 
   private final ByteArrayOutputStream mByteArray;
-  private final CBufferOutputStream mStream;
+  private final NativeBufferOutputStream mStream;
   public MarkdownBufferWriter() {
     mByteArray = new ByteArrayOutputStream();
-    mStream = new CBufferOutputStream(mByteArray);
+    mStream = new NativeBufferOutputStream(mByteArray);
   }
   public void writeMap(HashMap<String, Object> map) throws IOException {
     mStream.writeInt(OBJECT_TYPE_MAP);
@@ -75,22 +75,24 @@ public class MarkdownBufferWriter {
     if (object == null) {
       writeNull();
     } else if (object instanceof Boolean) {
-      writeBoolean((Boolean)object);
+      writeBoolean((Boolean) object);
     } else if (object instanceof Integer) {
-      writeInt(((Integer)object));
+      writeInt(((Integer) object));
     } else if (object instanceof Long) {
-      writeLong((Long)object);
+      writeLong((Long) object);
     } else if (object instanceof Number) {
-      writeDouble(((Number)object).doubleValue());
+      writeDouble(((Number) object).doubleValue());
     } else if (object instanceof String) {
-      writeString((String)object);
+      writeString((String) object);
     } else if (object instanceof ArrayList) {
-      writeArray((ArrayList<Object>)object);
+      writeArray((ArrayList<Object>) object);
     } else if (object instanceof HashMap) {
-      writeMap((HashMap<String, Object>)object);
+      writeMap((HashMap<String, Object>) object);
     } else {
       writeNull();
     }
   }
-  public byte[] getBuffer() { return mByteArray.toByteArray(); }
+  public byte[] getBuffer() {
+    return mByteArray.toByteArray();
+  }
 }

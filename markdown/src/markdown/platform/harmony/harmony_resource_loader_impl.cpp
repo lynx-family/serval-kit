@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "markdown/platform/harmony/internal/harmony_resource_loader_impl.h"
+
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 
 namespace lynx::markdown {
@@ -37,7 +38,7 @@ ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadImageView(
   return nullptr;
 }
 ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadReplacementView(
-    void* ud, float max_width, float max_height) {
+    void* ud, int id, float max_width, float max_height) {
   if (replacement_view_loader_.IsNull()) {
     return nullptr;
   }

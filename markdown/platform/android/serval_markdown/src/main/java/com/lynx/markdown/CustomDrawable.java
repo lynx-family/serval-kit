@@ -6,17 +6,16 @@ package com.lynx.markdown;
 import android.graphics.Canvas;
 import com.lynx.markdown.tttext.IDrawerCallback;
 import com.lynx.markdown.tttext.JavaResourceManager;
-import com.lynx.markdown.tttext.MarkdownJavaCanvasHelper;
+import com.lynx.markdown.tttext.MarkdownAndroidCanvasHelper;
 public class CustomDrawable {
-  public static void draw(long drawable, Canvas canvas,
-                          JavaResourceManager resourceManager,
-                          IDrawerCallback drawerCallback) {
+  public static void draw(long drawable, Canvas canvas, JavaResourceManager resourceManager,
+      IDrawerCallback drawerCallback) {
     byte[] buffer = nativeDrawCustomDrawable(drawable);
-    MarkdownJavaCanvasHelper canvasHelper =
-        new MarkdownJavaCanvasHelper(canvas, resourceManager, drawerCallback);
+    MarkdownAndroidCanvasHelper canvasHelper =
+        new MarkdownAndroidCanvasHelper(canvas, resourceManager, drawerCallback);
     canvasHelper.drawBuffer(buffer);
   }
-  public native static long measure(long drawable, float width, int widthMode,
-                                    float height, int heightMode);
+  public native static long measure(
+      long drawable, float width, int widthMode, float height, int heightMode);
   private native static byte[] nativeDrawCustomDrawable(long drawable);
 }

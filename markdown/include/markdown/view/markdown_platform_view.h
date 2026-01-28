@@ -14,10 +14,9 @@
 namespace lynx::markdown {
 
 class MarkdownPlatformView;
-class MarkdownMainViewHandle {
+class MarkdownViewContainerHandle {
  public:
-  virtual ~MarkdownMainViewHandle() = default;
-  virtual void SetFrameRate(int32_t frame_rate) = 0;
+  virtual ~MarkdownViewContainerHandle() = default;
   virtual MarkdownPlatformView* CreateCustomSubView() = 0;
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
@@ -40,15 +39,20 @@ class MarkdownPlatformView {
  public:
   virtual ~MarkdownPlatformView() = default;
 
-  virtual void RequestLayout() = 0;
+  virtual void RequestMeasure() = 0;
+  virtual void RequestAlign() = 0;
   virtual void RequestDraw() = 0;
-  virtual void Measure(MeasureSpec spec) = 0;
+
+  virtual SizeF Measure(MeasureSpec spec) = 0;
   virtual void Align(float left, float top) = 0;
+  virtual void Draw(tttext::ICanvasHelper* canvas) = 0;
+
   virtual PointF GetAlignedPosition() = 0;
   virtual SizeF GetMeasuredSize() = 0;
 
   virtual void SetMeasuredSize(SizeF size) = 0;
   virtual void SetAlignPosition(PointF position) = 0;
+
   virtual void SetVisibility(bool visible) = 0;
 
   void SetTapListener(TapGestureListener tap_gesture_listener) {
@@ -62,7 +66,9 @@ class MarkdownPlatformView {
     pan_gesture_listener_ = pan_gesture_listener;
   }
 
-  virtual MarkdownMainViewHandle* GetMainViewHandle() { return nullptr; }
+  virtual MarkdownViewContainerHandle* GetViewContainerHandle() {
+    return nullptr;
+  }
   virtual MarkdownCustomViewHandle* GetCustomViewHandle() { return nullptr; }
 
  protected:

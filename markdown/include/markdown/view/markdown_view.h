@@ -29,6 +29,7 @@ class MarkdownView final : public MarkdownDrawable {
   explicit MarkdownView(MarkdownPlatformView* view);
   ~MarkdownView() override;
   void SetResourceLoader(MarkdownResourceLoader* loader);
+  MarkdownResourceLoader* GetResourceLoader();
   void SetEventListener(MarkdownEventListener* listener);
   void SetExposureListener(MarkdownExposureListener* listener);
   void SetContent(std::string_view content);
@@ -41,7 +42,6 @@ class MarkdownView final : public MarkdownDrawable {
   void SetAnimationType(MarkdownAnimationType type);
   void SetAnimationVelocity(float velocity);
   void SetTypewriterDynamicHeight(bool enable);
-  void SetFrameRate(int32_t frame_rate) const;
   void SetParserType(std::string_view parser_type, void* parser_ud = nullptr);
   void SetSourceType(SourceType type);
 
@@ -75,7 +75,7 @@ class MarkdownView final : public MarkdownDrawable {
             float bottom) override;
   float GetWidth() const override;
   float GetHeight() const override;
-  void Align();
+  void Align() override;
 
   float GetMeasureWidth() const { return measured_width_; }
   float GetMeasureHeight() const { return measured_height_; }
@@ -84,10 +84,12 @@ class MarkdownView final : public MarkdownDrawable {
 
   void NeedsParse();
   void NeedsMeasure();
+  void NeedsAlign() const;
   void NeedsDraw() const;
 
   void OnLongPress(PointF position, GestureEventType event);
   void OnTap(PointF position, GestureEventType event);
+  void OnPan(PointF position, PointF motion, GestureEventType event);
 
  protected:
   int32_t GetCharCount();
@@ -138,7 +140,7 @@ class MarkdownView final : public MarkdownDrawable {
 
  protected:
   MarkdownPlatformView* view_{nullptr};
-  MarkdownMainViewHandle* handle_{nullptr};
+  MarkdownViewContainerHandle* handle_{nullptr};
 
   MarkdownDocument document_;
   MarkdownExposureListener* exposure_listener_{nullptr};
