@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 package com.lynx.markdown;
 
-import com.lynx.markdown.tttext.CBufferOutputStream;
+import com.lynx.markdown.tttext.NativeBufferOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,10 +19,10 @@ public class MarkdownBufferWriter {
   private static final int OBJECT_TYPE_STRING = 7;
 
   private final ByteArrayOutputStream mByteArray;
-  private final CBufferOutputStream mStream;
+  private final NativeBufferOutputStream mStream;
   public MarkdownBufferWriter() {
     mByteArray = new ByteArrayOutputStream();
-    mStream = new CBufferOutputStream(mByteArray);
+    mStream = new NativeBufferOutputStream(mByteArray);
   }
   public void writeMap(HashMap<String, Object> map) throws IOException {
     mStream.writeInt(OBJECT_TYPE_MAP);

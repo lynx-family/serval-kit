@@ -12,15 +12,15 @@ import java.util.Hashtable;
 import java.util.Map;
 
 public class JavaResourceManager {
-  private final ArrayList<IRunDelegate> run_delegate_list_;
-  private final Map<Object, Integer> id_map_;
-  private JavaFontManager font_manager_;
+  private final ArrayList<IRunDelegate> mRunDelegateList;
+  private final Map<Object, Integer> mIDMap;
+  private final JavaFontManager mFontManager;
 
   public JavaResourceManager() {
-    run_delegate_list_ = new ArrayList<>();
-    run_delegate_list_.add(null);
-    id_map_ = new Hashtable<>();
-    font_manager_ = TTText.mFontManager;
+    mRunDelegateList = new ArrayList<>();
+    mRunDelegateList.add(null);
+    mIDMap = new Hashtable<>();
+    mFontManager = TTText.mFontManager;
   }
 
   public int add(IRunDelegate run_delegate) {
@@ -29,9 +29,9 @@ public class JavaResourceManager {
     int id = find(run_delegate);
     if (id != -1)
       return id;
-    run_delegate_list_.add(run_delegate);
-    id = run_delegate_list_.size() - 1;
-    id_map_.put(run_delegate, id);
+    mRunDelegateList.add(run_delegate);
+    id = mRunDelegateList.size() - 1;
+    mIDMap.put(run_delegate, id);
     return id;
   }
 
@@ -39,24 +39,24 @@ public class JavaResourceManager {
     if (font == null) {
       families = "";
     }
-    return font_manager_.CreateOrRegisterTypeface(font, families, 400, false);
+    return mFontManager.CreateOrRegisterTypeface(font, families, 400, false);
   }
 
   public IRunDelegate getRunDelegate(int id) {
-    if (id < 0 || id >= run_delegate_list_.size()) {
+    if (id < 0 || id >= mRunDelegateList.size()) {
       return null;
     }
-    return run_delegate_list_.get(id);
+    return mRunDelegateList.get(id);
   }
 
   public JavaTypeface getFont(int id) {
-    return font_manager_.GetTypefaceByIndex(id);
+    return mFontManager.GetTypefaceByIndex(id);
   }
 
   private int find(Object obj) {
     if (obj == null)
       return -1;
-    Integer id = id_map_.get(obj);
+    Integer id = mIDMap.get(obj);
     if (id == null) {
       return -1;
     }

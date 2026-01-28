@@ -16,18 +16,24 @@
 #include "markdown/view/markdown_selection_view.h"
 namespace lynx::markdown {
 MarkdownView::MarkdownView(MarkdownPlatformView* view)
-    : view_(view), handle_(view->GetMainViewHandle()) {
+    : view_(view), handle_(view->GetViewContainerHandle()) {
   view_->SetTapListener([this](PointF position, GestureEventType event) {
     OnTap(position, event);
   });
   view_->SetLongPressListener([this](PointF position, GestureEventType event) {
     OnLongPress(position, event);
   });
+  view_->SetPanGestureListener([this](PointF position, PointF motion, GestureEventType event) {
+    OnPan(position, motion, event);
+  });
 }
 MarkdownView::~MarkdownView() = default;
 void MarkdownView::SetResourceLoader(MarkdownResourceLoader* loader) {
   document_.SetResourceLoader(loader);
   NeedsParse();
+}
+MarkdownResourceLoader *MarkdownView::GetResourceLoader() {
+  return document_.GetResourceLoader();
 }
 void MarkdownView::SetEventListener(MarkdownEventListener* listener) {
   document_.SetMarkdownEventListener(listener);
@@ -81,9 +87,6 @@ void MarkdownView::SetSourceType(SourceType type) {
   source_type_ = type;
   NeedsParse();
 }
-void MarkdownView::SetFrameRate(int32_t frame_rate) const {
-  handle_->SetFrameRate(frame_rate);
-}
 void MarkdownView::SetEnableSelection(bool enable_selection) {
   enable_selection_ = enable_selection;
   CreateSelectionHandles();
@@ -103,9 +106,9 @@ void MarkdownView::SetSelectionHandleTouchMargin(float margin) {
   selection_handle_touch_margin_ = margin;
   if (selection_handles_.left_ != nullptr) {
     GetSelectionHandle(selection_handles_.left_)->SetTouchMargin(margin);
-    selection_handles_.left_->RequestLayout();
+    selection_handles_.left_->RequestMeasure();
     GetSelectionHandle(selection_handles_.right_)->SetTouchMargin(margin);
-    selection_handles_.right_->RequestLayout();
+    selection_handles_.right_->RequestMeasure();
   }
 }
 void MarkdownView::SetSelectionHandleColor(uint32_t color) {
@@ -257,7 +260,7 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
     MarkdownTypewriterDrawer drawer(
         static_cast<MarkdownCanvas*>(canvas), current_animation_step_,
         document_.GetResourceLoader(), document_.GetStyle().typewriter_cursor_,
-        false, &cursor);
+        false, custom_typewriter_cursor_ == nullptr ? nullptr : &cursor);
     auto page = document_.GetPage();
     if (page != nullptr) {
       drawer.DrawPage(*page);
@@ -288,11 +291,14 @@ void MarkdownView::HideAllSubviews() {}
 void MarkdownView::NeedsParse() {
   needs_parse_ = true;
   needs_measure_ = true;
-  view_->RequestLayout();
+  view_->RequestMeasure();
 }
 void MarkdownView::NeedsMeasure() {
   needs_measure_ = true;
-  view_->RequestLayout();
+  view_->RequestMeasure();
+}
+void MarkdownView::NeedsAlign() const {
+  view_->RequestAlign();
 }
 void MarkdownView::NeedsDraw() const {
   view_->RequestDraw();
@@ -387,21 +393,21 @@ void MarkdownView::UpdateSelectionViews() const {
       ->SetRects(selection_highlight_rects_);
   GetSelectionHighlight(selection_highlight_)
       ->UpdateViewRect(selection_highlight_);
-  selection_highlight_->RequestLayout();
+  selection_highlight_->RequestMeasure();
 
   const auto rect_start = selection_highlight_rects_.front();
   auto* handle_start = GetSelectionHandle(selection_handles_.left_);
   handle_start->SetTextHeight(rect_start.GetHeight());
   handle_start->UpdateViewRect({rect_start.GetLeft(), rect_start.GetBottom()},
                                selection_handles_.left_);
-  selection_highlight_->RequestLayout();
+  selection_highlight_->RequestMeasure();
 
   const auto& rect_end = selection_highlight_rects_.back();
   auto* handle_end = GetSelectionHandle(selection_handles_.right_);
   handle_end->SetTextHeight(selection_highlight_rects_.back().GetHeight());
   handle_end->UpdateViewRect({rect_end.GetRight(), rect_end.GetBottom()},
                              selection_handles_.right_);
-  selection_highlight_->RequestLayout();
+  selection_highlight_->RequestMeasure();
 }
 
 void MarkdownView::UpdateSelectionRects(SelectionState state) {
@@ -448,7 +454,7 @@ void MarkdownView::UpdateAnimationStep(int64_t timestamp) {
     current_animation_step_time_ = current;
     SendAnimationStep(current_animation_step_, max_animation_step_);
     if (typewriter_dynamic_height_) {
-      view_->RequestLayout();
+      view_->RequestMeasure();
     } else {
       view_->RequestDraw();
     }
@@ -686,6 +692,22 @@ void MarkdownView::OnLongPress(PointF position, GestureEventType event) {
     RecalculateSelectionPosition();
   }
 }
+
+void MarkdownView::OnPan(PointF position, PointF motion,
+                         GestureEventType event) {
+  auto state = MarkdownTouchState::kNone;
+  if (event == GestureEventType::kDown) {
+    state = document_.OnTouchEvent(MarkdownTouchEventType::kDown, position);
+  } else if (event == GestureEventType::kMove) {
+    state = document_.OnTouchEvent(MarkdownTouchEventType::kMove, position);
+  } else {
+    state = document_.OnTouchEvent(MarkdownTouchEventType::kUp, position);
+  }
+  if (state == MarkdownTouchState::kOnScroll) {
+    NeedsAlign();
+  }
+}
+
 
 void MarkdownView::OnStartHandleMove(PointF position, PointF motion,
                                      GestureEventType type) {

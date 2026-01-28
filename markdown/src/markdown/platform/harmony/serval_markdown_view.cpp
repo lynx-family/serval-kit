@@ -33,6 +33,7 @@ NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);
   EnableLongPressEvent(true, NORMAL);
+  EnablePanEvent(true, GESTURE_DIRECTION_HORIZONTAL, NORMAL);
   GetMarkdownView()->SetSelectionHandleSize(MarkdownScreenMetrics::DPToPx(10));
   GetMarkdownView()->SetSelectionHandleTouchMargin(
       MarkdownScreenMetrics::DPToPx(5));
@@ -44,7 +45,7 @@ void NativeServalMarkdownView::UpdateDisplayMetrics() {
   float density;
   auto err = OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&density);
   if (err == DISPLAY_MANAGER_OK) {
-    MarkdownScreenMetrics::SetDpi(density);
+    MarkdownScreenMetrics::SetDensity(density);
   }
   int32_t width, height;
   err = OH_NativeDisplayManager_GetDefaultDisplayWidth(&width);
@@ -68,7 +69,6 @@ void NativeServalMarkdownView::DetachFromNodeContent() {
   OH_ArkUI_NodeContent_RemoveNode(node_content_handle_, GetHandle());
   node_content_handle_ = nullptr;
 }
-void NativeServalMarkdownView::SetFrameRate(int32_t frame_rate) {}
 RectF NativeServalMarkdownView::GetViewRectInScreen() {
   ArkUI_IntOffset offset;
   OH_ArkUI_NodeUtils_GetLayoutPositionInScreen(handle_, &offset);
@@ -137,11 +137,12 @@ NativeServalMarkdownView::LoadBackgroundDrawable(
   return nullptr;
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
-    void* ud, float max_width, float max_height) {
+    void* ud, int32_t id, float max_width, float max_height) {
   if (loader_ == nullptr) {
     return nullptr;
   }
-  return InsertEtsView(loader_->LoadReplacementView(ud, max_width, max_height));
+  return InsertEtsView(
+      loader_->LoadReplacementView(ud, id, max_width, max_height));
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   GetMarkdownView()->OnNextFrame(time_stamp);

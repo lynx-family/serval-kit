@@ -37,7 +37,7 @@ ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadImageView(
   return nullptr;
 }
 ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadReplacementView(
-    void* ud, float max_width, float max_height) {
+    void* ud, int id, float max_width, float max_height) {
   if (replacement_view_loader_.IsNull()) {
     return nullptr;
   }

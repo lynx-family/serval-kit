@@ -4,6 +4,7 @@
 
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include <arkui/ui_input_event.h>
+#include <hilog/log.h>
 #include <algorithm>
 #include <cstdint>
 #include <vector>
@@ -190,7 +191,7 @@ void HarmonyView::EnablePanEvent(bool enable,
   auto api = ArkUINativeAPI::GetGestureApi();
   if (enable) {
     if (pan_ == nullptr) {
-      pan_ = api->createPanGesture(1, direction, 0);
+      pan_ = api->createPanGesture(1, direction, 5);
       auto pan_callback = [](ArkUI_GestureEvent* event, void* ud) {
         auto* view = reinterpret_cast<HarmonyView*>(ud);
         if (view->pan_gesture_listener_ == nullptr)
@@ -326,7 +327,7 @@ void HarmonyView::SetFloatsAttribute(ArkUI_NodeAttributeType type, float* v,
   api_->setAttribute(handle_, type, &attribute);
 }
 
-void HarmonyView::Measure(MeasureSpec spec) {
+SizeF HarmonyView::Measure(MeasureSpec spec) {
   auto* constraint = OH_ArkUI_LayoutConstraint_Create();
   OH_ArkUI_LayoutConstraint_SetPercentReferenceWidth(
       constraint, static_cast<int32_t>(std::min(1e5f, spec.width_)));
@@ -340,9 +341,13 @@ void HarmonyView::Measure(MeasureSpec spec) {
   OH_ArkUI_LayoutConstraint_SetMinHeight(constraint, 0);
   Measure(constraint);
   OH_ArkUI_LayoutConstraint_Dispose(constraint);
+  return GetMeasuredSize();
 }
 void HarmonyView::Align(float left, float top) {
   Layout(left, top);
+}
+void HarmonyView::Draw(tttext::ICanvasHelper *canvas) {
+  
 }
 SizeF HarmonyView::GetMeasuredSize() {
   auto size = GetMeasuredIntSize();
@@ -367,7 +372,13 @@ EtsViewHolder::~EtsViewHolder() {
 void EtsViewHolder::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   api_->measureNode(child_, constraint);
   auto child_size = api_->getMeasuredSize(child_);
-  SetMeasuredSize(child_size.width, child_size.height);
+  if (child_size.width > 1e5 || child_size.height > 1e5) {
+    OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
+                 "ets view measure too large, width:%d, height:%d",
+                 child_size.width, child_size.height);
+  }
+  SetMeasuredSize(std::min(100000, child_size.width),
+                  std::min(100000, child_size.height));
 }
 void EtsViewHolder::OnLayout(int32_t offset_x, int32_t offset_y) {
   SetLayoutPosition(offset_x, offset_y);
@@ -388,8 +399,14 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   MeasureSpec spec{.width_ = static_cast<float>(max_width),
                    .height_ = static_cast<float>(max_height)};
   auto size = drawable_->Measure(spec);
-  SetMeasuredSize(static_cast<int32_t>(std::ceil(size.width_)),
-                  static_cast<int32_t>(std::ceil(size.height_)));
+  if (size.width_ > 1e5f || size.height_ > 1e5f) {
+    OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
+                 "custom view measure too large, width:%f, height:%f",
+                 size.width_, size.height_);
+  }
+  SetMeasuredSize(
+      static_cast<int32_t>(std::ceil(std::min(1e5f, size.width_))),
+      static_cast<int32_t>(std::ceil(std::min(1e5f, size.height_))));
 }
 void HarmonyCustomView::OnLayout(int32_t offset_x, int32_t offset_y) {
   SetLayoutPosition(offset_x, offset_y);

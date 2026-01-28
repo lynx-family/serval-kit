@@ -8,10 +8,10 @@
 namespace lynx::markdown {
 class MarkdownScreenMetrics {
  public:
-  static float DPToPx(float dp) { return GetDpi() * dp; }
-  static float PxToDp(float px) { return px / GetDpi(); }
-  static float GetDpi() { return Ins().dpi_; }
-  static void SetDpi(float density) { Ins().dpi_ = density; }
+  static float DPToPx(float dp) { return GetDensity() * dp; }
+  static float PxToDp(float px) { return px / GetDensity(); }
+  static float GetDensity() { return Ins().density_; }
+  static void SetDensity(float density) { Ins().density_ = density; }
   static int32_t GetScreenWidth() { return Ins().screen_width_; }
   static int32_t GetScreenHeight() { return Ins().screen_height_; }
   static void SetScreenWidth(int32_t width) { Ins().screen_width_ = width; }
@@ -26,7 +26,7 @@ class MarkdownScreenMetrics {
  private:
   static MarkdownScreenMetrics& Ins();
 
-  float dpi_{1};
+  float density_{1};
   int32_t screen_width_{0};
   int32_t screen_height_{0};
 };
