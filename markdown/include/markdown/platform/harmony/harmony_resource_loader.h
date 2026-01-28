@@ -16,7 +16,8 @@ class IHarmonyResourceLoader {
                                          float border_radius) = 0;
   virtual ArkUI_NodeHandle LoadInlineView(const char* id, float max_width,
                                           float max_height) = 0;
-  virtual ArkUI_NodeHandle LoadReplacementView(void* ud, float max_width,
+  virtual ArkUI_NodeHandle LoadReplacementView(void* ud, int id,
+                                               float max_width,
                                                float max_height) = 0;
 };
 }  // namespace lynx::markdown

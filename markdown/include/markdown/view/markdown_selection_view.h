@@ -13,7 +13,7 @@ enum class SelectionHandleType {
 };
 class MarkdownSelectionHandle final : public MarkdownDrawable {
  public:
-  static MarkdownPlatformView* CreateView(MarkdownMainViewHandle* handle,
+  static MarkdownPlatformView* CreateView(MarkdownViewContainerHandle* parent,
                                           SelectionHandleType type, float size,
                                           float margin, uint32_t color);
 
@@ -48,7 +48,7 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
 
 class MarkdownSelectionHighlight final : public MarkdownDrawable {
  public:
-  static MarkdownPlatformView* CreateView(MarkdownMainViewHandle* handle,
+  static MarkdownPlatformView* CreateView(MarkdownViewContainerHandle* parent,
                                           uint32_t color);
 
  public:

@@ -3,13 +3,16 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "markdown/platform/harmony/serval_markdown_view.h"
+
 #include <arkui/ui_input_event.h>
 #include <window_manager/oh_display_manager.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "markdown/draw/markdown_drawer.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_layout.h"
@@ -33,6 +36,7 @@ NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);
   EnableLongPressEvent(true, NORMAL);
+  EnablePanEvent(true, GESTURE_DIRECTION_HORIZONTAL, NORMAL);
   GetMarkdownView()->SetSelectionHandleSize(MarkdownScreenMetrics::DPToPx(10));
   GetMarkdownView()->SetSelectionHandleTouchMargin(
       MarkdownScreenMetrics::DPToPx(5));
@@ -44,7 +48,7 @@ void NativeServalMarkdownView::UpdateDisplayMetrics() {
   float density;
   auto err = OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&density);
   if (err == DISPLAY_MANAGER_OK) {
-    MarkdownScreenMetrics::SetDpi(density);
+    MarkdownScreenMetrics::SetDensity(density);
   }
   int32_t width, height;
   err = OH_NativeDisplayManager_GetDefaultDisplayWidth(&width);
@@ -68,7 +72,6 @@ void NativeServalMarkdownView::DetachFromNodeContent() {
   OH_ArkUI_NodeContent_RemoveNode(node_content_handle_, GetHandle());
   node_content_handle_ = nullptr;
 }
-void NativeServalMarkdownView::SetFrameRate(int32_t frame_rate) {}
 RectF NativeServalMarkdownView::GetViewRectInScreen() {
   ArkUI_IntOffset offset;
   OH_ArkUI_NodeUtils_GetLayoutPositionInScreen(handle_, &offset);
@@ -85,8 +88,7 @@ RectF NativeServalMarkdownView::GetViewRectInScreen() {
   return RectF::MakeLTRB(left, top, right, bottom);
 }
 void* NativeServalMarkdownView::LoadFont(const char* family) {
-  if (loader_ == nullptr)
-    return nullptr;
+  if (loader_ == nullptr) return nullptr;
   return loader_->LoadFont(family);
 }
 void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
@@ -115,16 +117,14 @@ MarkdownPlatformView* NativeServalMarkdownView::InsertEtsView(
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadInlineView(
     const char* id_selector, float max_width, float max_height) {
-  if (loader_ == nullptr)
-    return nullptr;
+  if (loader_ == nullptr) return nullptr;
   return InsertEtsView(
       loader_->LoadInlineView(id_selector, max_width, max_height));
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
     const char* src, float desire_width, float desire_height, float max_width,
     float max_height, float border_radius) {
-  if (loader_ == nullptr)
-    return nullptr;
+  if (loader_ == nullptr) return nullptr;
   return InsertEtsView(loader_->LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
@@ -132,16 +132,16 @@ std::shared_ptr<MarkdownDrawable>
 NativeServalMarkdownView::LoadBackgroundDrawable(
     MarkdownBackgroundStylePart* background_style, float border_radius,
     float font_size, float root_font_size) {
-  if (loader_ == nullptr)
-    return nullptr;
+  if (loader_ == nullptr) return nullptr;
   return nullptr;
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
-    void* ud, float max_width, float max_height) {
+    void* ud, int32_t id, float max_width, float max_height) {
   if (loader_ == nullptr) {
     return nullptr;
   }
-  return InsertEtsView(loader_->LoadReplacementView(ud, max_width, max_height));
+  return InsertEtsView(
+      loader_->LoadReplacementView(ud, id, max_width, max_height));
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   GetMarkdownView()->OnNextFrame(time_stamp);

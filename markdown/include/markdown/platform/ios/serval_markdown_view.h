@@ -10,7 +10,10 @@ typedef enum : NSUInteger {
   kServalMarkdownLayoutModeDefinite,
   kServalMarkdownLayoutModeAtMost,
 } ServalMarkdownLayoutMode;
-
+typedef enum : NSUInteger {
+  kServalMarkdownAnimationTypeNone,
+  kServalMarkdownAnimationTypeTypewriter,
+} ServalMarkdownAnimationType;
 @interface MarkdownCustomViewImpl : UIView
 - (CGSize)measureByWidth:(CGFloat)width
                WidthMode:(ServalMarkdownLayoutMode)widthMode
@@ -22,6 +25,9 @@ typedef enum : NSUInteger {
 @interface ServalMarkdownView : MarkdownCustomViewImpl
 @property(nonatomic, strong) NSString* content;
 @property(nonatomic, strong) NSDictionary* style;
+@property(nonatomic, assign) ServalMarkdownAnimationType animationType;
+@property(nonatomic, assign) float animationVelocity;
+@property(nonatomic, assign) int initialAnimationStep;
 @end
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_

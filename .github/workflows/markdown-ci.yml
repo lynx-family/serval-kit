@@ -86,8 +86,8 @@ jobs:
         shell: bash
         run: |
           source tools/envsetup.sh
-          chmod +x markdown/initial-markdown.sh
-          ./markdown/initial-markdown.sh
+          chmod +x markdown/tools/initial-markdown.sh
+          ./markdown/tools/initial-markdown.sh
 
       - name: Install dependencies and Build
         shell: bash

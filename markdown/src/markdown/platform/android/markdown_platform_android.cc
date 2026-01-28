@@ -29,13 +29,13 @@ tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
   return text_layout_mgr.GetLayout();
 }
 MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
-    lynx::markdown::MarkdownMainViewHandle* handle,
+    lynx::markdown::MarkdownViewContainerHandle* handle,
     lynx::markdown::SelectionHandleType type, float size, float margin,
     uint32_t color) {
   return nullptr;
 }
 MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
-    lynx::markdown::MarkdownMainViewHandle* handle, uint32_t color) {
+    lynx::markdown::MarkdownViewContainerHandle* handle, uint32_t color) {
   return nullptr;
 }
 }  // namespace markdown

@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+
 #include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
@@ -15,7 +16,7 @@
 #include "markdown/view/markdown_view.h"
 namespace lynx::markdown {
 class NativeServalMarkdownView final : public HarmonyCustomView,
-                                       public MarkdownMainViewHandle,
+                                       public MarkdownViewContainerHandle,
                                        public MarkdownResourceLoader,
                                        public HarmonyVSyncCallback {
  public:
@@ -41,7 +42,6 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   // MarkdownMainViewHandle
   void RemoveSubView(MarkdownPlatformView* view) override;
   void RemoveAllSubViews() override { RemoveAllChildren(); }
-  void SetFrameRate(int32_t frame_rate) override;
   RectF GetViewRectInScreen() override;
   MarkdownPlatformView* CreateCustomSubView() override;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
@@ -57,7 +57,8 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   std::shared_ptr<MarkdownDrawable> LoadBackgroundDrawable(
       MarkdownBackgroundStylePart* background_style, float border_radius,
       float font_size, float root_font_size) override;
-  MarkdownPlatformView* LoadReplacementView(void* ud, float max_width,
+  MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
+                                            float max_width,
                                             float max_height) override;
   // end
 
@@ -65,7 +66,9 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   void OnVSync(int64_t time_stamp) override;
   // end
 
-  MarkdownMainViewHandle* GetMainViewHandle() override { return this; }
+  MarkdownViewContainerHandle* GetViewContainerHandle() override {
+    return this;
+  }
 
  protected:
   MarkdownPlatformView* InsertEtsView(ArkUI_NodeHandle handle);

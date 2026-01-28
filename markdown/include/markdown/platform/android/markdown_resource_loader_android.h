@@ -39,7 +39,7 @@ class MarkdownResourceLoaderAndroid
     return nullptr;
   }
   lynx::markdown::MarkdownPlatformView* LoadReplacementView(
-      void* ud, float max_width, float max_height) override {
+      void* ud, int id, float max_width, float max_height) override {
     return nullptr;
   }
 

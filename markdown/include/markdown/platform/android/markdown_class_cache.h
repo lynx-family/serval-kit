@@ -9,6 +9,7 @@
 
 #include <list>
 #include <memory>
+
 #include "base/include/platform/android/scoped_java_ref.h"
 #include "markdown/view/markdown_platform_view.h"
 class MarkdownJNIUtils {
@@ -35,12 +36,14 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMarkdownView(JNIEnv* env, jobject ref);
-  void RequestLayout() final;
-  void RequestDraw() final;
-  void Measure(lynx::markdown::MeasureSpec spec) final;
+  void RequestMeasure() override;
+  void RequestAlign() override;
+  void RequestDraw() override;
+  lynx::markdown::SizeF Measure(lynx::markdown::MeasureSpec spec) override;
   void Align(float left, float top) final;
+  void Draw(tttext::ICanvasHelper* canvas) override {}
   lynx::markdown::PointF GetAlignedPosition() final;
-  lynx::markdown::SizeF GetMeasuredSize() final;
+  lynx::markdown::SizeF GetMeasuredSize() override;
   void SetMeasuredSize(lynx::markdown::SizeF size) final;
   void SetAlignPosition(lynx::markdown::PointF position) final;
   void SetVisibility(bool visible) final;
@@ -51,7 +54,8 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
 
  protected:
   static struct Methods {
-    jmethodID request_layout_{};
+    jmethodID request_measure_{};
+    jmethodID request_align_{};
     jmethodID request_draw_{};
     jmethodID measure_{};
     jmethodID align_{};
@@ -73,6 +77,8 @@ class AndroidCustomView : public AndroidMarkdownView,
   lynx::markdown::MarkdownCustomViewHandle* GetCustomViewHandle() final {
     return this;
   }
+  lynx::markdown::SizeF Measure(lynx::markdown::MeasureSpec spec) override;
+  lynx::markdown::SizeF GetMeasuredSize() override;
 
  protected:
   static struct Methods {
@@ -81,16 +87,15 @@ class AndroidCustomView : public AndroidMarkdownView,
 };
 
 class AndroidMainView : public AndroidCustomView,
-                        public lynx::markdown::MarkdownMainViewHandle {
+                        public lynx::markdown::MarkdownViewContainerHandle {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMainView(JNIEnv* env, jobject ref);
-  void SetFrameRate(int32_t frame_rate) override {}
   MarkdownPlatformView* CreateCustomSubView() final;
   void RemoveSubView(lynx::markdown::MarkdownPlatformView* subview) final;
   void RemoveAllSubViews() final;
   lynx::markdown::RectF GetViewRectInScreen() final;
-  lynx::markdown::MarkdownMainViewHandle* GetMainViewHandle() final {
+  lynx::markdown::MarkdownViewContainerHandle* GetViewContainerHandle() final {
     return this;
   }
 

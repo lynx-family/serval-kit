@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import androidx.appcompat.app.AppCompatActivity;
+import com.lynx.markdown.Constants;
 import com.lynx.markdown.IResourceLoader;
 import com.lynx.markdown.Markdown;
 import com.lynx.markdown.ServalMarkdownView;
@@ -24,10 +25,7 @@ import java.util.Map;
 public class MarkdownDemoActivity extends AppCompatActivity {
   ServalMarkdownView mMarkdownView;
 
-  String mContent1 =
-      "C++ was invented and implemented by Dr. Bjarne Stroustrup at Bell Labs in the 1980s. Initially called \"C with Classes\", it appeared as an enhanced version of C. Over time, C++ added features such as virtual functions, operator overloading, multiple inheritance, the Standard Template Library, exception handling, run‑time type information, and namespaces, which were gradually incorporated into the draft standard. In 1998, ISO published the first international standard ISO/IEC 14882:1998; the latest is ISO/IEC 14882:2020, commonly known as ISO C++. ISO C++ specifies rules for the core language and the standard library. Despite differences from C, ISO C++ normatively references ISO/IEC 9899 (ISO C), and parts of the C++ standard library share identical APIs with C’s, with minor differences (e.g., const overloads for strcat). This leads to joint implementations of C and C++ standard libraries and, given broad compatibility at the core language level, allows ISO C source to be compiled as C++ with little or no modification—one key reason for C++’s popularity after C.\n"
-      + "\n"
-      + "### Headings:\n"
+  String mContent1 = "### Headings:\n"
       + "\n"
       + "## Heading level 2\n"
       + "#### Heading level 4\n"
@@ -35,7 +33,7 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "\n"
       + "### Plain text:\n"
       + "\n"
-      + "This is a paragraph containing **bold**, *italic*, ***bold + italic***, ~~strikethrough~~, \\`inline code\\`, mixed inline styles, and emoji: \uD83D\uDE04 \n"
+      + "This is a paragraph containing **bold**, *italic*, ***bold + italic***, ~~strikethrough~~, `inline code`, mixed inline styles, and emoji: \uD83D\uDE04 \n"
       + "\n"
       + "### Blockquote:\n"
       + "\n"
@@ -132,24 +130,19 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "> {{The employment system is unfavorable to workers, but workers are powerless to break free from it.}}[[2]] — Ruan Yifeng\n"
       + "<mark>highlighted text</mark>";
 
-  String mContent2 =
-      "[I'm an inline-style link](https://www.google.com)\n"
+  String mContent2 = "[I'm an inline-style link](https://www.google.com)\n"
       + "\n"
-      +
-      "[I'm an inline-style link with title](https://www.google.com \"Google's Homepage\")\n"
+      + "[I'm an inline-style link with title](https://www.google.com \"Google's Homepage\")\n"
       + "\n"
-      +
-      "[I'm a reference-style link][Arbitrary case-insensitive reference text]\n"
+      + "[I'm a reference-style link][Arbitrary case-insensitive reference text]\n"
       + "\n"
-      +
-      "[I'm a relative reference to a repository file](../blob/master/LICENSE)\n"
+      + "[I'm a relative reference to a repository file](../blob/master/LICENSE)\n"
       + "\n"
       + "[You can use numbers for reference-style link definitions][1]\n"
       + "\n"
       + "Or leave it empty and use the [link text itself].\n"
       + "\n"
-      +
-      "URLs and URLs in angle brackets will automatically get turned into links.\n"
+      + "URLs and URLs in angle brackets will automatically get turned into links.\n"
       + "http://www.example.com or <http://www.example.com> and sometimes\n"
       + "example.com (but not on Github, for example).\n"
       + "\n"
@@ -163,8 +156,8 @@ public class MarkdownDemoActivity extends AppCompatActivity {
 
     Map<String, Object> normalText = new HashMap<>();
     normalText.put("font", "FZHei");
-    normalText.put("fontSize", 22);
-    normalText.put("lineHeight", 30);
+    normalText.put("fontSize", 17);
+    normalText.put("lineHeight", 22);
 
     Map<String, Object> h1 = new HashMap<>();
     h1.put("fontSize", 50);
@@ -184,16 +177,10 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     style.put("codeBlock", codeBlock);
     style.put("unorderedList", unorderedList);
 
-    //link style
+    // link style
     Map<String, Object> linkStyle = new HashMap<>();
     linkStyle.put("color", "0000ff");
     style.put("link", linkStyle);
-
-    //typewriteCursor style
-    Map<String, Object> customCursorStyle = new HashMap<>();
-    customCursorStyle.put("customCursor", mCustomCursorId);
-    customCursorStyle.put("verticalAlign", "center");
-    style.put("typewriterCursor", customCursorStyle);
 
     return style;
   }
@@ -207,17 +194,18 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     Intent intent = getIntent();
     String content = intent.getStringExtra("content");
 
-    Log.e("linxs", "content:" + content);
-
     ScrollView scrollView = findViewById(R.id.myScrollView);
     LinearLayout scrollContentLayout = findViewById(R.id.scrollContentLayout);
 
     mMarkdownView = new ServalMarkdownView(this);
-    scrollContentLayout.addView(
-        mMarkdownView,
-        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                                      ViewGroup.LayoutParams.WRAP_CONTENT));
-    //set markdown content
-    mMarkdownView.setContent(mContent2);
+    scrollContentLayout.addView(mMarkdownView,
+        new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    // set markdown content
+    mMarkdownView.setContent(mContent1);
+    mMarkdownView.setStyle(generateMarkdownStyle());
+    mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_TYPEWRITER);
+    mMarkdownView.setAnimationVelocity(10);
+    mMarkdownView.setInitialAnimationStep(4);
   }
 }
