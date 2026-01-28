@@ -1,0 +1,28 @@
+checker-config:
+  file-type-checker:
+    binary-files-allow-list:
+      - "markdown/example/android/gradle/wrapper/gradle-wrapper.jar"
+
+  coding-style-checker:
+    ignore-suffixes:
+      - "Podfile.yml"
+      - ".d.ts"
+      - ".r.ts"
+      - ".gni"
+    ignore-dirs:
+      - "markdown/third_party/*"
+      - ".github/*"
+
+  cpplint-checker:
+    ignore-suffixes:
+      - ".gn"
+    ignore-dirs:
+      - ".github/*"
+      - "markdown/third_party/*"
+      - "tools/*"
+      - "test/*"
+      - "build/*"
+      - "buildtools/*"
+      - "tools/*"
+      - "tools_shared/*"
+      
