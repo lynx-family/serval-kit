@@ -13,9 +13,11 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
  public:
   MarkdownCustomViewIOS(MarkdownCustomViewImpl* view);
   ~MarkdownCustomViewIOS() override = default;
-  void RequestLayout() override;
-  void Measure(MeasureSpec spec) override;
+  void RequestMeasure() override;
+  void RequestAlign() override;
+  SizeF Measure(MeasureSpec spec) override;
   void Align(float left, float top) override;
+  void Draw(tttext::ICanvasHelper *canvas) override;
   MarkdownCustomViewHandle* GetCustomViewHandle() override { return this; }
 };
 }  // namespace lynx::markdown

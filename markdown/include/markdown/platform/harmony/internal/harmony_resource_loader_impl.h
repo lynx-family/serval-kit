@@ -21,7 +21,7 @@ class HarmonyResourceLoaderImpl : public IHarmonyResourceLoader {
                                  float border_radius) override;
   ArkUI_NodeHandle LoadInlineView(const char* id, float max_width,
                                   float max_height) override;
-  ArkUI_NodeHandle LoadReplacementView(void* ud, float max_width,
+  ArkUI_NodeHandle LoadReplacementView(void* ud, int id, float max_width,
                                        float max_height) override;
 
   void SetFontLoader(napi_value loader);

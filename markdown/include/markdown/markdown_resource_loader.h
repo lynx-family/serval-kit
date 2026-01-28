@@ -30,7 +30,8 @@ class MarkdownResourceLoader {
       float font_size, float root_font_size) {
     return nullptr;
   }
-  virtual MarkdownPlatformView* LoadReplacementView(void* ud, float max_width,
+  virtual MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
+                                                    float max_width,
                                                     float max_height) = 0;
 };
 }  // namespace markdown

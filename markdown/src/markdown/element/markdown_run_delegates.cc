@@ -137,7 +137,6 @@ void MarkdownTextDelegate::Layout() {
   auto content_height = MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
   page_ = std::make_unique<tttext::LayoutRegion>(content_width, content_height);
   tttext::TTTextContext context2;
-  context2.SetHarmonyShaperForceLowAPI(true);
   layout->LayoutEx(text_.get(), page_.get(), context2);
 }
 

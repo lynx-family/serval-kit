@@ -10,6 +10,7 @@
 #include "markdown/view/markdown_view.h"
 @interface ServalMarkdownView ()
 @property(nonatomic, strong) UIView* customViews;
+@property(nonatomic, strong) CADisplayLink *displayLink;
 
 - (MarkdownCustomViewImpl*)createCustomView;
 - (void)removeSubview:(lynx::markdown::MarkdownPlatformView*)subview;
@@ -20,11 +21,10 @@
 
 namespace lynx::markdown {
 class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
-                            public MarkdownMainViewHandle {
+                                 public MarkdownViewContainerHandle {
  public:
   MarkdownMainViewIOS(ServalMarkdownView* view) : MarkdownCustomViewIOS(view) {}
   ~MarkdownMainViewIOS() override = default;
-  void SetFrameRate(int32_t frame_rate) override {}
   MarkdownPlatformView* CreateCustomSubView() override {
     MarkdownCustomViewImpl* view = [GetServalView() createCustomView];
     return view.markdownViewHandle;
@@ -35,17 +35,17 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
   void RemoveAllSubViews() override { [GetServalView() removeAllCustomViews]; }
   RectF GetViewRectInScreen() override { return {}; }
   ServalMarkdownView* GetServalView() { return (ServalMarkdownView*)(view_); }
-  MarkdownMainViewHandle* GetMainViewHandle() override { return this; }
+  MarkdownViewContainerHandle* GetViewContainerHandle() override { return this; }
 };
 
 MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
-    MarkdownMainViewHandle* handle, SelectionHandleType type, float size,
+  MarkdownViewContainerHandle* handle, SelectionHandleType type, float size,
     float margin, uint32_t color) {
   return nullptr;
 }
 
 MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
-    MarkdownMainViewHandle* handle, uint32_t color) {
+  MarkdownViewContainerHandle* handle, uint32_t color) {
   return nullptr;
 }
 
@@ -60,6 +60,9 @@ MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
     self.markdownViewHandle->AttachDrawable(
         std::make_unique<lynx::markdown::MarkdownView>(
             self.markdownViewHandle));
+    __weak id weakSelf = self;
+    self.displayLink = [CADisplayLink displayLinkWithTarget:weakSelf selector:@selector(onVSync:)];
+    [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
   }
   return self;
 }
@@ -91,6 +94,11 @@ MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
     [view removeFromSuperview];
   }
 }
+- (void)onVSync:(CADisplayLink *)sender{
+  auto* view = [self getMarkdownView];
+  auto time = sender.targetTimestamp;
+  view->OnNextFrame(time * 1000);
+}
 - (lynx::markdown::MarkdownView*)getMarkdownView {
   return static_cast<lynx::markdown::MarkdownView*>(
       self.markdownViewHandle->GetDrawable());
@@ -106,5 +114,20 @@ MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
   auto map = MarkdownValueConvert::ConvertMap(style);
   view->SetStyle(map->AsMap());
   _style = style;
+}
+- (void)setAnimationType:(ServalMarkdownAnimationType)animationType {
+  auto* view = [self getMarkdownView];
+  view->SetAnimationType(static_cast<lynx::markdown::MarkdownAnimationType>(animationType));
+  _animationType = animationType;
+}
+- (void)setAnimationVelocity:(float)animationVelocity {
+  _animationVelocity = animationVelocity;
+  auto* view = [self getMarkdownView];
+  view->SetAnimationVelocity(animationVelocity);
+}
+- (void)setInitialAnimationStep:(int)initialAnimationStep {
+  _initialAnimationStep = initialAnimationStep;
+  auto* view = [self getMarkdownView];
+  view->SetAnimationStep(initialAnimationStep);
 }
 @end

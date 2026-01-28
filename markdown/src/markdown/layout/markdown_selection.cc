@@ -258,11 +258,14 @@ void MarkdownSelection::GetPageRegionSelectionRectByCharPos(
     lynx::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
     int32_t char_pos_end, std::vector<RectF>* rect_ptr, PointF offset,
     RectType type, RectCoordinate coordinate) {
-  auto clip_rect = RectF::MakeLTRB(0, 0, std::numeric_limits<float>::max(),
-                                   std::numeric_limits<float>::max());
+  auto clip_rect = RectF::MakeLTRB(
+      -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+      std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
   if (region->scroll_x_) {
     offset.x_ += region->scroll_x_offset_;
-    clip_rect = region->scroll_x_view_rect_;
+    if (type == RectType::kSelection) {
+      clip_rect = region->scroll_x_view_rect_;
+    }
   }
   if (region->element_->GetType() == MarkdownElementType::kParagraph) {
     GetLayoutRegionSelectionRectByCharPos(
