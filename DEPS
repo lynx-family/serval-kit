@@ -10,7 +10,7 @@ deps = {
     "./tools_shared": {
         "type": "solution",
         "url": "https://github.com/lynx-family/tools-shared.git",
-        "commit": "f13686a7f3ea237475af97b106c894652b2c0ef2",
+        "commit": "a1f5807a5e89b52d4c015a946371bd29730a31c8",
         'deps_file': 'dependencies/DEPS',
         "ignore_in_git": True,
     },
@@ -23,7 +23,7 @@ deps = {
     "./markdown/third_party/lynx-textra": {
         'type': 'git',
         'url': 'https://github.com/lynx-family/lynx-textra.git',
-        'commit': '9d26418825ad2c7d6b8064fceef86b0e65f433ca',
+        'commit': '27d334449d6521f7809fc9e80713932213a8c264',
         'ignore_in_git': True,
     },
 }

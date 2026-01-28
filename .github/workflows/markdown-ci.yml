@@ -1,0 +1,99 @@
+name: Build Markdown and Run Static Check
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "markdown/**"
+      - ".github/workflows/markdown-ci.yml"
+
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: lynx-ubuntu-22.04-large
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Java SDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11
+          distribution: "zulu"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 9862592
+
+      - name: Install CMake
+        run: echo "y" | sdkmanager --install "cmake;3.18.1"
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+
+      - name: Build Demo
+        working-directory: markdown/example/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+
+      - name: Build Demo
+        run: |
+          source tools/envsetup.sh
+          pushd markdown/example/ios/ServalMarkdownDemo
+          bundle install
+          bundle exec pod install
+          xcodebuild -workspace ServalMarkdownDemo.xcworkspace -scheme ServalMarkdownDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+
+      
+  build-harmony:
+    name: Build HarmonyOS
+    runs-on: lynx-custom-container
+    container:
+      image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:bf493c3710de3c44bfa84caf402c0727b9310c42497f6e52580ad441ea640ef1
+      credentials:
+        username: lynx-family
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+
+      - name: Run Markdown Initial Env
+        shell: bash
+        run: |
+          source tools/envsetup.sh
+          chmod +x markdown/initial-markdown.sh
+          ./markdown/initial-markdown.sh
+
+      - name: Install dependencies and Build
+        shell: bash
+        run: |
+          source tools/envsetup.sh
+          pushd markdown/example/harmony
+          ohpm install
+          chmod +x ./scripts/build.py
+          python3 ./scripts/build.py --modules serval_markdown

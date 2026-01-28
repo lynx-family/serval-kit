@@ -12,5 +12,3 @@ def rootDir = { relativePath ->
 include ':app'
 include ':serval_markdown'
 project(':serval_markdown').projectDir = rootDir("platform/android/serval_markdown")
-include ':lynxtextra'
-project(':lynxtextra').projectDir = rootDir("third_party/lynx-textra/platform/android/lynxtextra")

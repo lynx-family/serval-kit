@@ -3,40 +3,37 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		EF1C9BD0046F39060DAB8C87 /* libPods-ServalMarkdownDemo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EF192C5F7091C539DE5FC06F /* libPods-ServalMarkdownDemo.a */; };
+		A1B2C3D4E5F60718293A4B5C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B5D /* AppDelegate.m */; };
+		A1B2C3D4E5F60718293A4B5D /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B5F /* SceneDelegate.m */; };
+		A1B2C3D4E5F60718293A4B5E /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B61 /* ViewController.m */; };
+		A1B2C3D4E5F60718293A4B5F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B62 /* main.m */; };
+		A1B2C3D4E5F60718293A4B60 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B64 /* Assets.xcassets */; };
+		A1B2C3D4E5F60718293A4B61 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B65 /* Main.storyboard */; };
+		A1B2C3D4E5F60718293A4B62 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F60718293A4B66 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		00244759583EA5EBBA34A866 /* Pods-ServalMarkdownDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalMarkdownDemo.release.xcconfig"; path = "Target Support Files/Pods-ServalMarkdownDemo/Pods-ServalMarkdownDemo.release.xcconfig"; sourceTree = "<group>"; };
 		27A62FB2B67D4016766C881D /* Pods-ServalMarkdownDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalMarkdownDemo.debug.xcconfig"; path = "Target Support Files/Pods-ServalMarkdownDemo/Pods-ServalMarkdownDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		2B745D292EFABCE800F32822 /* ServalMarkdownDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ServalMarkdownDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1B2C3D4E5F60718293A4B5C /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B5D /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B5E /* SceneDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B5F /* SceneDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B60 /* ViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B61 /* ViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B62 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B64 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B65 /* Main.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Main.storyboard; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		B1B2C3D4E5F60718293A4B66 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EF192C5F7091C539DE5FC06F /* libPods-ServalMarkdownDemo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ServalMarkdownDemo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		2B745D402EFABCEA00F32822 /* Exceptions for "ServalMarkdownDemo" folder in "ServalMarkdownDemo" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 2B745D282EFABCE800F32822 /* ServalMarkdownDemo */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		2B745D2B2EFABCE800F32822 /* ServalMarkdownDemo */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				2B745D402EFABCEA00F32822 /* Exceptions for "ServalMarkdownDemo" folder in "ServalMarkdownDemo" target */,
-			);
-			path = ServalMarkdownDemo;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2B745D262EFABCE800F32822 /* Frameworks */ = {
@@ -53,11 +50,29 @@
 		2B745D202EFABCE800F32822 = {
 			isa = PBXGroup;
 			children = (
-				2B745D2B2EFABCE800F32822 /* ServalMarkdownDemo */,
+				C1B2C3D4E5F60718293A4B5C /* ServalMarkdownDemo */,
 				2B745D2A2EFABCE800F32822 /* Products */,
 				E0EF0822FD161E5C478C96C7 /* Pods */,
 				3B3FEAA3B0CE1D1BCB7C90F0 /* Frameworks */,
 			);
+			sourceTree = "<group>";
+		};
+		C1B2C3D4E5F60718293A4B5C /* ServalMarkdownDemo */ = {
+			isa = PBXGroup;
+			children = (
+				B1B2C3D4E5F60718293A4B64 /* Assets.xcassets */,
+				B1B2C3D4E5F60718293A4B65 /* Main.storyboard */,
+				B1B2C3D4E5F60718293A4B66 /* LaunchScreen.storyboard */,
+				B1B2C3D4E5F60718293A4B5C /* AppDelegate.h */,
+				B1B2C3D4E5F60718293A4B5D /* AppDelegate.m */,
+				B1B2C3D4E5F60718293A4B5E /* SceneDelegate.h */,
+				B1B2C3D4E5F60718293A4B5F /* SceneDelegate.m */,
+				B1B2C3D4E5F60718293A4B60 /* ViewController.h */,
+				B1B2C3D4E5F60718293A4B61 /* ViewController.m */,
+				B1B2C3D4E5F60718293A4B62 /* main.m */,
+				B1B2C3D4E5F60718293A4B63 /* Info.plist */,
+			);
+			path = ServalMarkdownDemo;
 			sourceTree = "<group>";
 		};
 		2B745D2A2EFABCE800F32822 /* Products */ = {
@@ -101,9 +116,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				2B745D2B2EFABCE800F32822 /* ServalMarkdownDemo */,
-			);
 			name = ServalMarkdownDemo;
 			productName = ServalMarkdownDemo;
 			productReference = 2B745D292EFABCE800F32822 /* ServalMarkdownDemo.app */;
@@ -116,10 +128,10 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					2B745D282EFABCE800F32822 = {
-						CreatedOnToolsVersion = 16.0;
+						CreatedOnToolsVersion = 15.0;
 					};
 				};
 			};
@@ -132,7 +144,7 @@
 			);
 			mainGroup = 2B745D202EFABCE800F32822;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 50;
 			productRefGroup = 2B745D2A2EFABCE800F32822 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -147,6 +159,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F60718293A4B60 /* Assets.xcassets in Resources */,
+				A1B2C3D4E5F60718293A4B61 /* Main.storyboard in Resources */,
+				A1B2C3D4E5F60718293A4B62 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -182,6 +197,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F60718293A4B5C /* AppDelegate.m in Sources */,
+				A1B2C3D4E5F60718293A4B5D /* SceneDelegate.m in Sources */,
+				A1B2C3D4E5F60718293A4B5E /* ViewController.m in Sources */,
+				A1B2C3D4E5F60718293A4B5F /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

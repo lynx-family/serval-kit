@@ -2,8 +2,6 @@
 
 source "https://rubygems.org"
 
-git_source(:github) { |repo| "https://github.com/#{repo}.git" }
-
 # Common tools for iOS projects
 # - CocoaPods: iOS dependency management
 # - Fastlane: CI/release automation
@@ -11,5 +9,5 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 # - dotenv: load environment variables from .env
 # - cocoapods-deintegrate / cocoapods-clean: clean up Pod-related files
 
-gem "cocoapods", require: false
+gem "cocoapods"
 gem "xcodeproj"

@@ -1,6 +1,7 @@
+install! 'cocoapods', :deterministic_uuids => false, :integrate_targets => false, :warn_for_unused_master_specs_repo => false
 project 'ServalMarkdownDemo.xcodeproj'
 platform :ios, '12.0'
 target 'ServalMarkdownDemo' do
   pod 'ServalMarkdown', :path => '../../../'
-  pod 'LynxTextra', :path => '../../../third_party/lynx-textra'
+  pod 'LynxTextra', '~> 0.1.1-alpha'
 end

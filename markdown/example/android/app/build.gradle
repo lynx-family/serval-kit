@@ -54,13 +54,5 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 
     implementation project(':serval_markdown')
-    implementation project(':lynxtextra')
-}
-
-tasks.configureEach { task ->
-    if (task.name == 'generateJsonModelDebug') {
-        task.dependsOn(':lynxtextra:prefabDebugPackage')
-    } else if (task.name == 'generateJsonModelRelease') {
-        task.dependsOn(':lynxtextra:prefabReleasePackage')
-    }
+    implementation 'org.lynxsdk.lynx:lynxtextra:0.1.1'
 }

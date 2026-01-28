@@ -1,0 +1,195 @@
+name: markdown release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag"
+        required: false
+        type: string
+
+jobs:
+  get-version:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: Get Version
+        id: get_version
+        run: |-
+          if [ ${{ github.event_name }} == 'workflow_dispatch' ]; then
+            version=${{ github.event.inputs.tag }}
+          else
+            version=$(echo ${{ github.ref }} | awk -F "/" '{print $3}')
+          fi
+          if [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "Version is valid"
+            echo "VERSION=$version" >> $GITHUB_OUTPUT;
+          else
+            echo "Version is invalid"
+            exit 1
+          fi
+
+  release-android:
+    name: Release Android
+    needs: get-version
+    runs-on: lynx-ubuntu-22.04-large
+    steps:
+      - uses: actions/checkout@v3
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Setup Java SDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11
+          distribution: "zulu"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 9862592
+
+      - name: Install CMake
+        run: echo "y" | sdkmanager --install "cmake;3.18.1"
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+      
+      - name: Build AAR
+        working-directory: markdown/platform/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          ./gradlew publish \
+          -Pversion=${{ needs.get-version.outputs.version }} \
+          -Psigning.keyId=${{ secrets.SIGNING_KEY_ID }} \
+          -Psigning.password=${{ secrets.SIGNING_PASSWORD }} \
+          -Psigning.secretKey=${{ secrets.SIGNING_SECRET_KEY }}
+          ./gradlew zipArtifacts -Pversion=${{ needs.get-version.outputs.version }} getArtifactList
+          pushd build/
+          artifact_list=$(<artifact-list)
+          echo "artifact_list=$artifact_list" >> $GITHUB_OUTPUT;
+          popd
+        id: build_artifact
+
+      - name: Publish artifact to maven
+        uses: lynx-infra/maven-publish-action@8f547cf037360752cc9f195d04c2d8f327fee434
+        with:
+          portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
+          artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
+
+  release-ios:
+    name: Release iOS
+    needs: get-version
+    runs-on: lynx-darwin-14-medium
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+      
+      - name: Install Cocoapods Generate
+        run: |
+          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          bundle install --path .bundle
+      - name: Publish to CocoaPods Repo
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
+          POD_VERSION: ${{ needs.get-version.outputs.version }}
+          SERVAL_KIT_COMMIT_ID: ${{ github.sha }}
+        run: |-
+          export LANG=en_US.UTF-8
+          bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push markdown/ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
+
+  release-harmony:
+    name: Release Harmony
+    needs: get-version
+    runs-on: lynx-custom-container
+    container:
+      image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:bf493c3710de3c44bfa84caf402c0727b9310c42497f6e52580ad441ea640ef1
+      credentials:
+        username: lynx-family
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Install git-cliff
+        run: |
+          cargo install git-cliff --locked
+          git-cliff --version
+
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get latest tag
+        id: get-latest-tag
+        uses: ./.github/actions/get-latest-tag
+        with:
+          current-tag: ${{ needs.get-version.outputs.version }}
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+
+      - name: Run Markdown Initial Env
+        shell: bash
+        run: |
+          source tools/envsetup.sh
+          chmod +x markdown/initial-markdown.sh
+          ./markdown/initial-markdown.sh
+
+      - name: Generate Change Log
+        shell: bash
+        working-directory: .
+        run: |
+          LATEST_TAG="${{ steps.get-latest-tag.outputs.latest-tag }}"
+          COMMIT_RANGE=""
+          if [ -n "$LATEST_TAG" ]; then
+            COMMIT_ID=$(git rev-list -n 1 "$LATEST_TAG")
+            COMMIT_RANGE="$COMMIT_ID..HEAD"
+          else
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
+            COMMIT_RANGE="$FIRST_COMMIT..HEAD"
+          fi
+          git-cliff --config markdown/platform/harmony/serval_markdown/cliff.toml \
+          $COMMIT_RANGE | sed 's/<!-- version -->/${{ needs.get-version.outputs.version }}/g' > markdown/platform/harmony/serval_markdown/CHANGELOG.md
+          echo "CHANGELOG.md generated successfully"
+          cat markdown/platform/harmony/serval_markdown/CHANGELOG.md
+
+      - name: Install dependencies and Build
+        shell: bash
+        working-directory: .
+        run: |
+          source tools/envsetup.sh
+          pushd markdown/example/harmony && ohpm install
+          chmod +x ./scripts/build.py
+          ./scripts/build.py --modules serval_markdown --publish_har --version ${{ needs.get-version.outputs.version }}
+          popd
+
+      - name: Publish Harmony SDK
+        shell: bash
+        working-directory: .
+        run: |
+          export PUBLISH_KEY_PASSPHRASE=${{ secrets.HARMONY_PUBLISH_KEY_PASSPHRASE }}
+          cat << EOF > publish_key
+          ${{ secrets.HARMONY_PUBLISH_KEY }}
+          EOF
+          PROJECT_ROOT=$(pwd)
+          ohpm config set publish_registry https://ohpm.openharmony.cn/ohpm
+          pushd markdown/platform/harmony/serval_markdown/build/default/outputs/default/
+          ohpm publish serval_markdown.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key
+          popd

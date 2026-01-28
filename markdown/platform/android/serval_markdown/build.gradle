@@ -80,13 +80,5 @@ android {
 
 dependencies {
     implementation "androidx.appcompat:appcompat:1.0.0"
-    compileOnly(project(':lynxtextra'))
-}
-
-tasks.configureEach { task ->
-    if (task.name == 'generateJsonModelDebug') {
-        task.dependsOn(':lynxtextra:prefabDebugPackage')
-    } else if (task.name == 'generateJsonModelRelease') {
-        task.dependsOn(':lynxtextra:prefabReleasePackage')
-    }
+    compileOnly 'org.lynxsdk.lynx:lynxtextra:0.1.1'
 }
