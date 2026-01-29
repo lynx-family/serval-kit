@@ -1,22 +1,26 @@
-# Replace with the name of your library
 Pod::Spec.new do |s|
   s.name             = 'ServalMarkdown'
-  s.version          = '0.0.1'
+  s.version          = begin
+    raw_version = ENV['POD_VERSION'] || "0.0.1"
+    raw_version
+  end
   s.summary          = 'A library for parsing and rendering Markdown documents'
+  s.description      = <<-DESC
+    ServalMarkdown is an multiplatform library for parsing and rendering Markdown documents. 
+    It provides parsing, layout and styling for markdown rendering, with iOS, Android and Harmony platform support.
+  DESC
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
+  s.source           = { :git => 'https://github.com/lynx-family/serval-kit.git', }.tap do |source_hash|
+    source_hash[:commit] = ENV['SERVAL_KIT_COMMIT_ID']
+  end
+  s.license          = { :type => 'Apache 2.0', :file => "../LICENSE" }
+  s.author           = 'Lynx'
 
-  # Replace with the path to your library source directory
-  s.source                = { :git => 'git@github.com:lynx-family/serval-kit.git' }
+  s.ios.deployment_target    = "12.0"
+  s.requires_arc             = true
+  s.static_framework         = true
 
-  # Replace with the path to your library header files
-#   s.ios.public_header_files = 'path/to/headers/**/*.h'
-
-  s.license          = 'MIT'
-
-  s.author           = { 'kita-zhou' => '63698158+kita-zhou@users.noreply.github.com' }
-
-  s.platform         = :ios, '12.0'
-  s.ios.deployment_target = "12.0"
+  s.dependency 'LynxTextra', '~> 0.1.1-alpha'
 
   s.public_header_files = "include/markdown/platform/ios/**/*.h"
 
@@ -40,12 +44,6 @@ Pod::Spec.new do |s|
                     "third_party/base/src/string/string_utils.cc",
                     "third_party/base/include/string/string_utils.h"
 
-
-
-  s.description  = <<-DESC
-          markdown parser and render
-                       DESC
-
   s.pod_target_xcconfig = {
     "GCC_PREPROCESSOR_DEFINITIONS" => "OS_IOS=1",
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
@@ -57,9 +55,8 @@ Pod::Spec.new do |s|
   }
 
   s.xcconfig = {
-    "USER_HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/include\" \"$(PODS_TARGET_SRCROOT)/third_party/base\" \"$(PODS_TARGET_SRCROOT)/third_party/lynx-textra/public\"",
+    "USER_HEADER_SEARCH_PATHS" => '"$(PODS_TARGET_SRCROOT)/include" "$(PODS_TARGET_SRCROOT)/third_party/base" "$(PODS_TARGET_SRCROOT)/third_party/lynx-textra/public"',
     "OTHER_CPLUSPLUSFLAGS" => "-std=c++17 -stdlib=libc++"
   }
-  s.libraries = 'c++'
-
+  s.libraries = 'stdc++', 'c++'
 end

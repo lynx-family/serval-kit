@@ -2,6 +2,7 @@ checker-config:
   file-type-checker:
     binary-files-allow-list:
       - "markdown/example/android/gradle/wrapper/gradle-wrapper.jar"
+      - "markdown/platform/android/serval_markdown/gradle/wrapper/gradle-wrapper.jar"
 
   coding-style-checker:
     ignore-suffixes:

@@ -3,5 +3,4 @@ project 'ServalMarkdownDemo.xcodeproj'
 platform :ios, '12.0'
 target 'ServalMarkdownDemo' do
   pod 'ServalMarkdown', :path => '../../../'
-  pod 'LynxTextra', '~> 0.1.1-alpha'
 end

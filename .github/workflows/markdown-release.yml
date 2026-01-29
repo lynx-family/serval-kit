@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Get Version
         id: get_version
+        shell: bash
         run: |-
           if [ ${{ github.event_name }} == 'workflow_dispatch' ]; then
             version=${{ github.event.inputs.tag }}
@@ -62,7 +63,7 @@ jobs:
         uses: ./.github/actions/sync-deps
       
       - name: Build AAR
-        working-directory: markdown/platform/android
+        working-directory: markdown/platform/android/serval_markdown
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease
