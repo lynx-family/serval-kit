@@ -219,7 +219,7 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     mMarkdownView.setContent(mContent1);
     mMarkdownView.setStyle(generateMarkdownStyle());
     mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_TYPEWRITER);
-    mMarkdownView.setAnimationVelocity(10);
+    mMarkdownView.setAnimationVelocity(100);
     mMarkdownView.setInitialAnimationStep(4);
   }
 }

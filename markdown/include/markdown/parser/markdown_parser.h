@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_PARSER_H_
 #include <cstdint>
 #include <string>
+
 #include "markdown/element/markdown_element.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -22,7 +23,8 @@ class MarkdownParser {
   static void ParsePlainText(MarkdownDocument* document);
 
   static void SetTTStyleByMarkdownBaseStyle(
-      const MarkdownBaseStylePart& base_style_part, tttext::Style* style);
+      MarkdownDocument* document, const MarkdownBaseStylePart& base_style_part,
+      tttext::Style* style);
   static void SetParagraphStyle(MarkdownDocument* document,
                                 const MarkdownBaseStylePart& base_style_part,
                                 tttext::ParagraphStyle* paragraph_style,
@@ -39,24 +41,27 @@ class MarkdownParser {
       MarkdownTextDecorationLine line);
   static tttext::CharacterVerticalAlignment ConvertVerticalAlign(
       MarkdownVerticalAlign align);
-  static MarkdownInlineBorderDelegate* AppendInlineBorderLeft(
-      const MarkdownDocument* document, const MarkdownBaseStylePart& base,
-      const MarkdownBlockStylePart& block,
-      const MarkdownBorderStylePart& border,
-      MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
-      tttext::Style* style, uint32_t char_offset);
+  static void AppendInlineBorderLeft(const MarkdownBlockStylePart& block,
+                                     const MarkdownBorderStylePart& border,
+                                     MarkdownBackgroundStylePart* background,
+                                     tttext::Paragraph* para,
+                                     tttext::Style* style);
   static void AppendInlineBorderRight(MarkdownDocument* document,
-                                      MarkdownInlineBorderDelegate* left,
                                       const MarkdownBaseStylePart& base,
                                       const MarkdownBlockStylePart& block,
                                       const MarkdownBorderStylePart& border,
                                       MarkdownBackgroundStylePart* background,
                                       tttext::Paragraph* para,
-                                      uint32_t char_offset);
+                                      uint32_t char_offset,
+                                      uint32_t char_offset_end);
   static const MarkdownBaseStylePart& GetHNStyle(const MarkdownStyle& style,
                                                  int hn);
   static const MarkdownBlockStylePart& GetHNBlockStyle(
       const MarkdownStyle& style, int hn);
+  static tttext::WriteDirection ConvertWriteDirection(
+      MarkdownDirection direction);
+  static tttext::ParagraphHorizontalAlignment ConvertTextAlign(
+      MarkdownTextAlign align);
 };
 }  // namespace lynx::markdown
 

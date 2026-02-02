@@ -8,6 +8,8 @@
 #include <limits>
 #include <utility>
 
+#include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_parser.h"
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -15,13 +17,15 @@ namespace lynx {
 namespace markdown {
 
 MarkdownOrderedListMarkDelegate::MarkdownOrderedListMarkDelegate(
-    const std::string& content, const tttext::Style& base_style,
+    MarkdownDocument* document, const std::string& content,
+    const tttext::Style& base_style,
     const tttext::ParagraphStyle& paragraph_style,
     const MarkdownOrderedListNumberStyle& style)
     : style_(style) {
   para_ = tttext::Paragraph::Create();
   auto new_style = base_style;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(style.base_, &new_style);
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(document, style.base_,
+                                                &new_style);
   para_->SetParagraphStyle(&paragraph_style);
   para_->AddTextRun(&new_style, content.c_str());
 }
@@ -216,6 +220,76 @@ void CircleDelegate::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   painter->SetFillColor(color_);
   canvas->DrawCircle(x + radius_, y + radius_, radius_, painter.get());
 }
+void RoundRectImageWrapper::Draw(tttext::ICanvasHelper* canvas, float x,
+                                 float y) {
+  auto* markdown_canvas = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+  if (canvas == nullptr) {
+    return;
+  }
+  canvas->Save();
+  MarkdownPath path;
+  path.AddRoundRect({.rect_ = RectF::MakeLTRB(x, y, x + GetAdvance(),
+                                              y + GetDescent() - GetAscent()),
+                     .radius_x_ = radius_,
+                     .radius_y_ = radius_});
+  markdown_canvas->ClipPath(&path);
+  delegate_->Draw(canvas, x, y);
+  canvas->Restore();
+}
 
+void ImageWithCaption::Layout() {
+  image_->Layout();
+  if (!layout_) {
+    auto* layout = MarkdownPlatform::GetTextLayout();
+    region_ = std::make_unique<tttext::LayoutRegion>(
+        max_width_, std::numeric_limits<float>::max(),
+        tttext::LayoutMode::kAtMost, tttext::LayoutMode::kAtMost);
+    tttext::TTTextContext context;
+    context.SetLastLineCanOverflow(false);
+    layout->LayoutEx(caption_.get(), region_.get(), context);
+    auto content_width =
+        MarkdownPlatform::GetMdLayoutRegionWidth(region_.get());
+    auto content_height =
+        MarkdownPlatform::GetMdLayoutRegionHeight(region_.get());
+    region_ =
+        std::make_unique<tttext::LayoutRegion>(content_width, content_height);
+    tttext::TTTextContext context2;
+    layout->LayoutEx(caption_.get(), region_.get(), context2);
+    layout_ = true;
+  }
+  const auto content_width = region_->GetPageWidth();
+  const auto content_height = region_->GetPageHeight();
+  width_ = std::max(image_->GetAdvance(), content_width);
+  height_ = image_->GetDescent() - image_->GetAscent() + content_height;
+}
+void ImageWithCaption::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
+  float image_x_offset = x;
+  if (align_ == MarkdownTextAlign::kLeft) {
+  } else if (align_ == MarkdownTextAlign::kRight) {
+    image_x_offset += std::max(0.f, width_ - image_->GetAdvance());
+  } else {
+    image_x_offset += std::max(0.f, (width_ - image_->GetAdvance()) / 2);
+  }
+  const float image_y_offset =
+      y + (caption_position_ == MarkdownCaptionPosition::kBottom
+               ? 0
+               : region_->GetPageHeight());
+  image_->Draw(canvas, image_x_offset, image_y_offset);
+  float text_x_offset = x;
+  if (align_ == MarkdownTextAlign::kLeft) {
+  } else if (align_ == MarkdownTextAlign::kRight) {
+    text_x_offset += std::max(0.f, (width_ - region_->GetPageWidth()));
+  } else {
+    text_x_offset += std::max(0.f, (width_ - region_->GetPageWidth()) / 2);
+  }
+  const float text_y_offset =
+      y + (caption_position_ == MarkdownCaptionPosition::kBottom
+               ? image_->GetDescent() - image_->GetAscent()
+               : 0);
+  canvas->Translate(text_x_offset, text_y_offset);
+  tttext::LayoutDrawer drawer(canvas);
+  drawer.DrawLayoutPage(region_.get());
+  canvas->Translate(-text_x_offset, -text_y_offset);
+}
 }  // namespace markdown
 }  // namespace lynx

@@ -11,19 +11,20 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 
+class MarkdownResourceLoaderAndroid;
 class MarkdownRunDelegate final : public TTTextRunDelegate {
  public:
-  MarkdownRunDelegate(
-      int id, lynx::base::android::ScopedWeakGlobalJavaRef<jobject> manager)
-      : TTTextRunDelegate(id, 0, 0, 0), manager_(manager) {}
+  MarkdownRunDelegate(int id, MarkdownResourceLoaderAndroid* loader,
+                      float radius)
+      : TTTextRunDelegate(id, 0, 0, 0), loader_(loader), radius_(radius) {}
   ~MarkdownRunDelegate() override = default;
 
  public:
-  void Layout() override {
-    auto* env = MarkdownClassCache::GetInstance().GetCurrentJNIEnv();
-  }
+  void Layout() override {}
+  float GetRadius() const { return radius_; }
 
  private:
-  lynx::base::android::ScopedWeakGlobalJavaRef<jobject> manager_;
+  MarkdownResourceLoaderAndroid* loader_;
+  float radius_{0};
 };
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_RUN_DELEGATE_H_

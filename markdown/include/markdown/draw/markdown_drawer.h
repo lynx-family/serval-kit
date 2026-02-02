@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_DRAWER_H_
 
 #include <memory>
+
 #include "markdown/draw/markdown_canvas.h"
 #include "markdown/element/markdown_page.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -13,15 +14,15 @@
 namespace lynx {
 namespace markdown {
 class MarkdownTableRegion;
-
+class MarkdownTextAttachment;
 class MarkdownDrawer {
  public:
-  explicit MarkdownDrawer(MarkdownCanvas* canvas)
+  MarkdownDrawer(tttext::ICanvasHelper* canvas)
       : canvas_(canvas), painter_(nullptr) {}
   virtual ~MarkdownDrawer() = default;
 
   virtual void DrawPage(const MarkdownPage& page);
-  void DrawRegion(const MarkdownPage& page, uint32_t region_index);
+  virtual void DrawRegion(const MarkdownPage& page, uint32_t region_index);
   void DrawQuoteBorder(const MarkdownPage& page, uint32_t border_index);
 
  protected:
@@ -29,12 +30,24 @@ class MarkdownDrawer {
   void DrawBorder(const MarkdownPageRegionBorder& border);
   void DrawRegion(const MarkdownPageRegion& region,
                   tttext::LayoutDrawer* drawer);
+  void DrawTableBorder(const MarkdownTableRegion& table,
+                       const MarkdownElement& element);
+  void DrawTableBackground(const MarkdownTableRegion& table,
+                           const MarkdownElement& element);
+  void DrawCellBackground(const MarkdownTableRegion& table,
+                          const MarkdownElement& element);
   void DrawTable(const MarkdownTableRegion& table,
                  const MarkdownElement& element, tttext::LayoutDrawer* drawer);
   virtual void DrawTextRegion(tttext::LayoutRegion* page,
                               tttext::LayoutDrawer* drawer);
+  virtual void DrawAttachment(const MarkdownPage& page,
+                              MarkdownTextAttachment* attachment);
+  virtual void DrawAttachmentOnRegion(const MarkdownPage& page,
+                                      MarkdownTextAttachment* attachment,
+                                      int32_t region_char_start,
+                                      int32_t region_char_end);
 
-  MarkdownCanvas* canvas_;
+  tttext::ICanvasHelper* canvas_;
   std::unique_ptr<tttext::Painter> painter_;
   bool terminated_{false};
 };

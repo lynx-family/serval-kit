@@ -164,7 +164,10 @@ struct Margins {
   float right_{0};
   float bottom_{0};
 };
-
+bool IsUtf8StartByte(char byte);
+char32_t GetUnicodeFromUtf8String(const char* string, int32_t* char_len);
+bool IsEmptyChar(char32_t unicode);
+bool IsPunctuation(char32_t unicode);
 }  // namespace markdown
 }  // namespace lynx
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_DEFINITION_H_

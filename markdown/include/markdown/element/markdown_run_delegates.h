@@ -19,6 +19,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
+class MarkdownDocument;
 class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
  public:
   MarkdownUnorderedListMarkDelegate(
@@ -40,7 +41,7 @@ class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
     canvas->Translate(x, y);
     canvas->Translate(style_.block_.margin_left_, style_.block_.margin_top_);
     auto painter = canvas->CreatePainter();
-    painter->SetStrokeWidth(MarkdownStyleLengthValue::FromDp(1).GetPx());
+    painter->SetStrokeWidth(MarkdownScreenMetrics::DPToPx(1));
     switch (type_) {
       case MarkdownMarkType::kCircle:
         painter->SetFillColor(style_.marker_.color_);
@@ -72,7 +73,8 @@ class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
 
 class MarkdownOrderedListMarkDelegate : public tttext::RunDelegate {
  public:
-  MarkdownOrderedListMarkDelegate(const std::string& content,
+  MarkdownOrderedListMarkDelegate(MarkdownDocument* document,
+                                  const std::string& content,
                                   const tttext::Style& base_style,
                                   const tttext::ParagraphStyle& paragraph_style,
                                   const MarkdownOrderedListNumberStyle& style);
@@ -250,15 +252,7 @@ class RoundRectImageWrapper : public tttext::RunDelegate {
   float GetDescent() const override { return delegate_->GetDescent(); }
   float GetAdvance() const override { return delegate_->GetAdvance(); }
   void Layout() override { delegate_->Layout(); }
-  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
-    auto* markdown_canvas = static_cast<MarkdownCanvas*>(canvas);
-    markdown_canvas->Save();
-    markdown_canvas->ClipRoundRect(x, y, x + GetAdvance(),
-                                   y + GetDescent() - GetAscent(), radius_,
-                                   radius_, true);
-    delegate_->Draw(canvas, x, y);
-    markdown_canvas->Restore();
-  }
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
   float radius_;
@@ -280,7 +274,35 @@ class CircleDelegate : public tttext::RunDelegate {
   float radius_{0};
   uint32_t color_{0};
 };
+class ImageWithCaption final : public tttext::RunDelegate {
+ public:
+  ImageWithCaption(
+      std::shared_ptr<RunDelegate> image,
+      std::unique_ptr<tttext::Paragraph> caption, const float max_width,
+      const MarkdownCaptionPosition position = MarkdownCaptionPosition::kBottom,
+      const MarkdownTextAlign align = MarkdownTextAlign::kCenter)
+      : image_(std::move(image)),
+        caption_(std::move(caption)),
+        max_width_(max_width),
+        caption_position_(position),
+        align_(align) {}
+  void Layout() override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
+  float GetAscent() const override { return -height_; }
+  float GetDescent() const override { return 0; }
+  float GetAdvance() const override { return width_; }
 
+ private:
+  std::shared_ptr<RunDelegate> image_;
+  std::unique_ptr<tttext::Paragraph> caption_;
+  std::unique_ptr<tttext::LayoutRegion> region_;
+  float max_width_;
+  MarkdownCaptionPosition caption_position_;
+  MarkdownTextAlign align_;
+  float width_{};
+  float height_{};
+  bool layout_{false};
+};
 }  // namespace markdown
 }  // namespace lynx
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_RUN_DELEGATES_H_

@@ -6,6 +6,8 @@
  */
 // #include "config.h"
 
+#include "markdown.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +16,6 @@
 
 #include "cstring.h"
 #include "cstring_private.h"
-#include "markdown.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define strncasecmp _strnicmp
@@ -395,9 +396,7 @@ static int ishdr(Line* t, int* htyp, mkd_flag_t* flags) {
     return 1;
   }
 
-  /* And if not, maybe it's a SETEXT header instead
-   */
-  return issetext(t, htyp, flags);
+  return 0;
 }
 
 static inline int end_of_block(Line* t, mkd_flag_t* flags) {
@@ -519,6 +518,7 @@ static Line* headerblock(Line* p, int htyp, MMIOT* f) {
        * the leading and trailing `#`'s
        */
       CLIP(p->text, 0, p->dle);
+      p->markdown_offset += p->dle;
       for (i = 0;
            (T(p->text)[i] == T(p->text)[0]) && (i < S(p->text) - 1) && (i < 6);
            i++)
@@ -723,8 +723,7 @@ static Line* listitem(Line* p, int indent, mkd_flag_t* flags, linefn check,
 
     if ((q->white_space < indent) &&
         (ishr(q, flags) || islist(q, &z, flags, &z, &z, &z) ||
-         (check && (*check)(q))) &&
-        !issetext(q, &z, flags)) {
+         (check && (*check)(q)))) {
       q = t->next;
       t->next = 0;
       return q;
@@ -1020,9 +1019,9 @@ static int endoftextblock(Line* t, int toplevelblock, mkd_flag_t* flags) {
    *  nested levels.)
    */
   Line* end;
-  return /*toplevelblock ? 0 :*/ (
-      iscode(t) || isfencecode(t, &end, &z) || ishr(t, flags) ||
-      islist(t, &z, flags, &z, &z, &z) || isquote(t) || ishdr(t, &z, flags));
+  return (iscode(t) || isfencecode(t, &end, &z) || ishr(t, flags) ||
+          islist(t, &z, flags, &z, &z, &z) || isquote(t) ||
+          ishdr(t, &z, flags));
 }
 
 static Line* textblock(Line* t, int toplevel, mkd_flag_t* flags) {
@@ -1068,7 +1067,6 @@ static void compile(Line* ptr, int toplevel, MMIOT* f) {
     } else if ((list_class = islist(ptr, &indent, &(f->flags), &list_type,
                                     &ol_index, &extra_list_level))) {
       if (list_class == DL) {
-
       } else {
         if (list_type == OL) {
           f->cb->list_index(ol_index, f->cb->ud);

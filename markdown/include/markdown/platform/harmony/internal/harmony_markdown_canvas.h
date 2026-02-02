@@ -5,16 +5,20 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_MARKDOWN_CANVAS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_MARKDOWN_CANVAS_H_
 #include <native_drawing/drawing_types.h>
+
 #include "markdown/draw/markdown_canvas.h"
+#include "textra/platform/ark_graphics/ag_canvas_helper.h"
 namespace lynx::markdown {
-class HarmonyMarkdownCanvas : public MarkdownCanvas {
+class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
+                              public MarkdownCanvasExtend {
  public:
-  HarmonyMarkdownCanvas(tttext::ICanvasHelper* tttext_canvas,
-                        OH_Drawing_Canvas* canvas)
-      : MarkdownCanvas(tttext_canvas), canvas_(canvas) {}
+  explicit HarmonyMarkdownCanvas(OH_Drawing_Canvas* canvas)
+      : ttoffice::tttext::AGCanvasHelper(canvas), canvas_(canvas) {}
   ~HarmonyMarkdownCanvas() override = default;
-  void ClipRoundRect(float left, float top, float right, float bottom,
-                     float radiusX, float radiusY, bool doAntiAlias) override;
+  void ClipPath(MarkdownPath* path) override;
+  void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
+                          tttext::Painter* painter) override;
 
  private:
   OH_Drawing_Canvas* canvas_;

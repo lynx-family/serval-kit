@@ -5,3 +5,4 @@ __pycache__
 *.pyc
 
 svg/platform/harmony/servalsvg/.cxx/
+.idea

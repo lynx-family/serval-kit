@@ -87,7 +87,8 @@ RectF NativeServalMarkdownView::GetViewRectInScreen() {
       std::min(static_cast<float>(offset.y) + screen_h, size.height_);
   return RectF::MakeLTRB(left, top, right, bottom);
 }
-void* NativeServalMarkdownView::LoadFont(const char* family) {
+void* NativeServalMarkdownView::LoadFont(const char* family,
+                                         MarkdownFontWeight weight) {
   if (loader_ == nullptr)
     return nullptr;
   return loader_->LoadFont(family);
@@ -131,14 +132,11 @@ MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
   return InsertEtsView(loader_->LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
-std::shared_ptr<MarkdownDrawable>
-NativeServalMarkdownView::LoadBackgroundDrawable(
-    MarkdownBackgroundStylePart* background_style, float border_radius,
-    float font_size, float root_font_size) {
-  if (loader_ == nullptr)
-    return nullptr;
+std::unique_ptr<tttext::RunDelegate> NativeServalMarkdownView::LoadGradient(
+    const char* gradient, float font_size, float root_font_size) {
   return nullptr;
 }
+
 MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
     void* ud, int32_t id, float max_width, float max_height) {
   if (loader_ == nullptr) {

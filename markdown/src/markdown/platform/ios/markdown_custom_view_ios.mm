@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
-#include "markdown/platform/ios/internal/markdown_canvas.h"
+#include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 
 @interface MarkdownCustomViewImpl () {
   lynx::markdown::MarkdownCustomViewIOS* _markdownViewHandle;
@@ -117,7 +117,7 @@ const float kServalMarkdownMaxSize = 1e8;
 
 - (void)drawRect:(CGRect)rect {
   CGContextRef context = UIGraphicsGetCurrentContext();
-  MarkdownCanvas canvas(context);
+  MarkdownCanvasIOS canvas(context);
   self.markdownViewHandle->Draw(&canvas);
 }
 @end

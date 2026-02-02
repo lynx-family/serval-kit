@@ -10,6 +10,7 @@
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_selection.h"
+#include "markdown/parser/markdown_parser.h"
 #include "markdown/utils/markdown_platform.h"
 namespace lynx {
 namespace markdown {
@@ -40,18 +41,9 @@ std::pair<float, float> MarkdownLayout::Layout(float width, float height,
     document_->event_->OnTextOverflow(
         page_->regions_.back()->element_->GetTextOverflow());
   }
-  page_->SetInlineBorders(document_->inline_borders_);
   page_->SetElements(document_->para_vec_);
-  page_->SetTypewriterStepOffset(document_->typewriter_step_offset_);
-  for (auto& inline_border : document_->inline_borders_) {
-    auto rect_vec = MarkdownSelection::GetSelectionRectByCharPos(
-        page_.get(), inline_border.left_->GetCharOffset(),
-        inline_border.right_->GetCharOffset(),
-        inline_border.left_->GetRectType(),
-        MarkdownSelection::RectCoordinate::kRelative);
-    inline_border.left_->UpdateDrawRect(std::move(rect_vec));
-    inline_border.right_->SetEnable(false);
-  }
+  auto& attachments = document_->border_attachments_;
+  page_->SetBorderAttachments(std::move(attachments));
   if (document_->loader_ != nullptr &&
       !document_->GetStyle()
            .typewriter_cursor_.typewriter_cursor_.custom_cursor_.empty()) {
@@ -66,29 +58,21 @@ std::pair<float, float> MarkdownLayout::Layout(float width, float height,
     }
   }
 
-  // TODO(zhouchaoying): temporarily fix quote border, will be removed next
-  // commit
   for (auto quote_range : document_->quote_range_) {
-    if (quote_range.start_ < 0 || quote_range.end_ <= quote_range.start_ ||
+    if (quote_range.start_ < 0 ||
         quote_range.start_ >= static_cast<int>(page_->regions_.size()))
       continue;
     auto& start_para = page_->regions_[quote_range.start_];
-    float top;
-    if (start_para->border_ == nullptr) {
-      top = start_para->rect_.GetTop();
-    } else {
-      top = start_para->border_->rect_.GetTop();
-    }
-    if (quote_range.end_ > static_cast<int>(page_->regions_.size())) {
-      quote_range.end_ = static_cast<int>(page_->regions_.size());
-    }
+    if (start_para->border_ == nullptr)
+      continue;
+    auto top = start_para->border_->rect_.GetTop();
+    if (quote_range.end_ < 1 ||
+        quote_range.end_ > static_cast<int>(page_->regions_.size()))
+      continue;
     auto& end_para = page_->regions_[quote_range.end_ - 1];
-    float bottom;
-    if (end_para->border_ == nullptr) {
-      bottom = end_para->rect_.GetBottom();
-    } else {
-      bottom = end_para->border_->rect_.GetBottom();
-    }
+    if (end_para->border_ == nullptr)
+      continue;
+    auto bottom = end_para->border_->rect_.GetBottom();
     auto border_left = document_->style_.quote_.block_.margin_left_ +
                        document_->style_.quote_.border_.border_width_ / 2;
     auto border_right = max_width_ -
@@ -100,26 +84,12 @@ std::pair<float, float> MarkdownLayout::Layout(float width, float height,
     border->line_style_ = document_->style_.quote_border_line_;
     page_->quote_borders_.emplace_back(std::move(border));
   }
-  if (document_->page_ != nullptr) {
-    SwapScrollState(document_->GetPage().get(), page_.get());
+  if (!document_->inherited_scroll_state_.empty()) {
+    page_->ApplyScrollState(document_->inherited_scroll_state_);
+    document_->inherited_scroll_state_.clear();
   }
   document_->SetPage(page_);
   return std::make_pair(page_->GetLayoutWidth(), page_->GetLayoutHeight());
-}
-
-void MarkdownLayout::SwapScrollState(lynx::markdown::MarkdownPage* origin_page,
-                                     lynx::markdown::MarkdownPage* new_page) {
-  // keep scroll state after relayout
-  int32_t max_index =
-      std::min(origin_page->regions_.size(), new_page->regions_.size());
-  for (int i = 0; i < max_index; i++) {
-    auto* origin_region = origin_page->regions_[i].get();
-    auto* new_region = new_page->regions_[i].get();
-    if (origin_region->scroll_x_ && new_region->scroll_x_ &&
-        origin_region->element_->GetType() == new_region->element_->GetType()) {
-      new_region->scroll_x_offset_ = origin_region->scroll_x_offset_;
-    }
-  }
 }
 
 void MarkdownLayout::Layout(
@@ -147,7 +117,7 @@ void MarkdownLayout::Layout(
   float region_max_height =
       max_height_ - region_top - paragraph.GetBlockStyle().padding_bottom_;
   float border_width = paragraph.GetBorderStyle().border_width_;
-  float border_right_width = 0, border_bottom_width = 0;
+  float border_right_width = 0, border_bottom_width = 0, border_top_width = 0;
   if (border == MarkdownBorder::kLeft) {
     region_width -= border_width;
     region_left += border_width;
@@ -158,9 +128,11 @@ void MarkdownLayout::Layout(
     region_max_height -= border_width * 2;
     border_right_width = border_width;
     border_bottom_width = border_width;
+    border_top_width = border_width;
   } else if (border == MarkdownBorder::kTop) {
     region_top += border_width;
     region_max_height -= border_width;
+    border_top_width = border_width;
   }
   if (paragraph.GetBlockStyle().max_width_ > 0) {
     region_width = std::min(region_width, paragraph.GetBlockStyle().max_width_);
@@ -199,7 +171,8 @@ void MarkdownLayout::Layout(
                               border_right_width;
         border_right = std::max(content_right, view_right);
       }
-      float border_top = region_top - paragraph.GetBlockStyle().padding_top_;
+      float border_top = region_top - paragraph.GetBlockStyle().padding_top_ -
+                         border_top_width;
       float border_bottom = region_bottom +
                             paragraph.GetBlockStyle().padding_bottom_ +
                             border_bottom_width;
@@ -264,6 +237,16 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
                                   paragraph.GetTextOverflow(),
                                   &page_->full_filled_, last);
     if (region != nullptr) {
+      if (para_element->GetLastLineAlign() != MarkdownTextAlign::kUndefined) {
+        const auto align =
+            MarkdownParser::ConvertTextAlign(para_element->GetLastLineAlign());
+        for (uint32_t i = 0; i < region->GetLineCount(); i++) {
+          auto* line = region->GetLine(i);
+          if (line->IsLastLineOfParagraph()) {
+            line->ModifyHorizontalAlignment(align);
+          }
+        }
+      }
       region_bottom =
           region_top + MarkdownPlatform::GetMdLayoutRegionHeight(region.get());
       region_right =
@@ -284,9 +267,10 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
   } else if (paragraph.GetType() == MarkdownElementType::kTable) {
     auto table_element =
         reinterpret_cast<const MarkdownTableElement*>(&paragraph);
-    auto table = LayoutTable(table_element->GetTable(), region_width,
-                             region_max_height, max_lines,
-                             paragraph.GetTextOverflow(), &page_->full_filled_);
+    auto table =
+        LayoutTable(table_element->GetTable(), region_width, region_max_height,
+                    table_element->GetBlockStyle().min_width_, max_lines,
+                    paragraph.GetTextOverflow(), &page_->full_filled_);
     region_bottom = region_top + table->total_height_;
     region_right = region_left + table->total_width_;
     page_->line_count_ += table->GetRowCount();
@@ -314,7 +298,8 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
 
 std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
     lynx::markdown::MarkdownTable* table, float width, float height,
-    int max_lines, MarkdownTextOverflow overflow, bool* full_filled) {
+    float min_width, int max_lines, MarkdownTextOverflow overflow,
+    bool* full_filled) {
   if (table->Empty()) {
     return nullptr;
   }
@@ -355,8 +340,9 @@ std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
   // calc max region width
   uint32_t large_column_start_index = 0;
   auto& cell_block = table->cell_block_style_;
-  float rest_width =
-      width - (cell_block.padding_left_ + cell_block.padding_right_) * columns;
+  float row_empty_space =
+      (cell_block.padding_left_ + cell_block.padding_right_) * columns;
+  float rest_width = width - row_empty_space;
   for (; large_column_start_index < column_max_width.size();
        large_column_start_index++) {
     if (column_max_width[large_column_start_index] >
@@ -374,19 +360,30 @@ std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
   max_region_width = std::min(max_region_width, cell_max_width);
 
   // cal cell position and align region
+  float total_width = 0;
   column_max_width.swap(column_max_width_copy);
   for (int column = 0; column < columns; column++) {
     column_max_width[column] =
         std::min(max_region_width, column_max_width[column]);
+    total_width += column_max_width[column];
   }
 
+  // apply min width
+  min_width -= row_empty_space;
+  min_width = std::min(min_width, width - row_empty_space);
+  if (min_width > 0 && total_width < min_width) {
+    const float extra = (min_width - total_width) / columns;
+    for (int column = 0; column < columns; column++) {
+      column_max_width[column] += extra;
+    }
+  }
   // re-layout regions which width larger than max region width
   for (int row = 0; row < rows; row++) {
     for (int column = 0; column < columns; column++) {
       float column_width = column_max_width[column];
       auto& cell = table_region->GetCell(row, column);
       cell.region_ = LayoutParagraph(
-          table->GetCell(row, column).paragraph_.get(), column_width,
+          table->GetCell(row, column).paragraph_.get(), std::ceil(column_width),
           tttext::LayoutMode::kDefinite, std::numeric_limits<float>::max(), -1,
           overflow, nullptr, false);
     }
@@ -452,7 +449,6 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
   }
   tttext::TextLayout& text_layout = *MarkdownPlatform::GetTextLayout();
   tttext::TTTextContext context;
-  context.SetHarmonyShaperForceLowAPI(true);
   context.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
   auto region = std::make_unique<tttext::LayoutRegion>(
       width, height, width_mode, tttext::LayoutMode::kAtMost);
@@ -520,9 +516,8 @@ void MarkdownLayout::ForceAppendEllipsis(MarkdownPageRegion* region) {
         auto* last_line = para_region->region_->GetLine(
             para_region->region_->GetLineCount() - 1);
         last_line->StripByEllipsis(nullptr);
-        tttext::TTTextContext context;
-        context.SetHarmonyShaperForceLowAPI(true);
-        para_region->region_->UpdateLayoutedSize(last_line, context);
+        para_region->region_->UpdateLayoutedSize(last_line,
+                                                 tttext::TTTextContext());
         auto width_delta = MarkdownPlatform::GetMdLayoutRegionWidth(
                                para_region->region_.get()) -
                            width_before;

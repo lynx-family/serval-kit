@@ -120,8 +120,8 @@ class MarkdownDocument {
   }
   MarkdownTouchState OnTouchEvent(MarkdownTouchEventType type, PointF point);
   bool TouchPointCanScroll(PointF point, float safe_offset);
-  void AddInlineBorder(MarkdownInlineBorder inline_border) {
-    inline_borders_.emplace_back(inline_border);
+  void AddInlineBorder(std::unique_ptr<MarkdownTextAttachment> inline_border) {
+    border_attachments_.emplace_back(std::move(inline_border));
   }
   void AddInlineView(MarkdownInlineView inline_view) {
     inline_views_.emplace_back(std::move(inline_view));
@@ -142,9 +142,22 @@ class MarkdownDocument {
   PointF GetElementOrigin(int32_t char_index, bool is_block = false);
   void TrimParagraphSpaces() const;
 
+  int32_t MarkdownOffsetToCharOffset(int32_t markdown_offset);
+
+  const MarkdownTextAttachment* GetTextClickRangeByTouchPosition(
+      PointF position);
+  int32_t GetCharIndexByTouchPosition(PointF point);
+  int32_t GetRegionIndexByCharIndex(int32_t char_index);
+  std::vector<std::string> GetVisibleInlineViews(int32_t animation_step,
+                                                 bool content_complete);
+  Range GetChangedRegionsWhenAnimationUpdated(int32_t from_step,
+                                              int32_t to_step);
+  Range GetShowedRegions(float top, float bottom);
+  Range GetShowedExtraContents(float top, float bottom);
+  void InheritState(MarkdownDocument* old_document);
+
  private:
   void SetShapeRunAltString(uint32_t char_offset, std::string_view content);
-  void UpdateInlineBorderRects(MarkdownPage* page);
   PointF GetTruncationOrigin();
 
   Range GetCharRangeByViewRect(RectF view_rect);
@@ -162,13 +175,8 @@ class MarkdownDocument {
   std::shared_ptr<MarkdownPage> page_;
   std::vector<MarkdownInlineView> inline_views_;
 
-  std::vector<MarkdownInlineBorder> inline_borders_;
+  std::vector<std::unique_ptr<MarkdownTextAttachment>> border_attachments_;
   std::vector<std::pair<uint32_t, std::string>> shape_run_alt_strings_;
-  // for typewriter, <char offset, step offset>, has content but don't draw
-  // text, like image and '\r', '\n', step offset = content text count, draw
-  // text count > content count, like image alt text, step offset = content text
-  // count - draw text count
-  std::vector<std::pair<uint32_t, uint32_t>> typewriter_step_offset_;
 
   // TODO(zhouchaoying): temporarily fix quote border, will be removed next
   // commit
@@ -189,6 +197,10 @@ class MarkdownDocument {
   int32_t touch_down_region_index_{};
   float touch_down_region_origin_scroll_offset_{0};
   MarkdownTouchState touch_state_;
+
+  std::vector<std::pair<Range, Range>> markdown_index_to_char_index_;
+
+  std::vector<ScrollState> inherited_scroll_state_;
 
   friend class MarkdownLayout;
   friend class MarkdownParserDiscountImpl;

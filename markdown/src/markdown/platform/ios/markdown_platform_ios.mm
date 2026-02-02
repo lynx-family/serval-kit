@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <memory>
+#include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 #include "markdown/utils/markdown_platform.h"
 #import "textra/fontmgr_collection.h"
 #import "textra/platform/ios/ios_font_manager.h"
@@ -27,6 +28,10 @@ class TextLayoutManager {
 tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
   thread_local TextLayoutManager text_layout_mgr;
   return text_layout_mgr.GetLayout();
+}
+MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
+    tttext::ICanvasHelper* canvas) {
+  return static_cast<MarkdownCanvasIOS*>(canvas);
 }
 }  // namespace markdown
 }  // namespace lynx

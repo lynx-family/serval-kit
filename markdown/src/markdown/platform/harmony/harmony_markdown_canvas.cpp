@@ -8,13 +8,10 @@
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_round_rect.h>
 namespace lynx::markdown {
-void HarmonyMarkdownCanvas::ClipRoundRect(float left, float top, float right,
-                                          float bottom, float radiusX,
-                                          float radiusY, bool doAntiAlias) {
-  auto rect = OH_Drawing_RectCreate(left, top, right, bottom);
-  auto round_rect = OH_Drawing_RoundRectCreate(rect, radiusX, radiusY);
-  OH_Drawing_CanvasClipRoundRect(canvas_, round_rect, INTERSECT, doAntiAlias);
-  OH_Drawing_RectDestroy(rect);
-  OH_Drawing_RoundRectDestroy(round_rect);
-}
+void HarmonyMarkdownCanvas::ClipPath(MarkdownPath* path) {}
+void HarmonyMarkdownCanvas::DrawMarkdownPath(MarkdownPath* path,
+                                             tttext::Painter* painter) {}
+void HarmonyMarkdownCanvas::DrawDelegateOnPath(
+    tttext::RunDelegate* run_delegate, MarkdownPath* path,
+    tttext::Painter* painter) {}
 }  // namespace lynx::markdown

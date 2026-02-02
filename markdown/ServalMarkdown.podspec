@@ -42,7 +42,9 @@ Pod::Spec.new do |s|
                     "src/markdown/platform/ios/**/*.{h,m,mm,cc}",
                     "third_party/discount/discount_lite/*.{h,c}",
                     "third_party/base/src/string/string_utils.cc",
-                    "third_party/base/include/string/string_utils.h"
+                    "third_party/base/include/string/string_utils.h",
+                    "third_party/base/src/string/string_number_convert.cc",
+                    "third_party/base/include/string/string_number_convert.h"
 
   s.pod_target_xcconfig = {
     "GCC_PREPROCESSOR_DEFINITIONS" => "OS_IOS=1",

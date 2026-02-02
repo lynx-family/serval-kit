@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <memory>
+
+#include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
 #include "markdown/utils/markdown_platform.h"
 #include "textra/fontmgr_collection.h"
 #include "textra/platform_helper.h"
@@ -25,4 +27,9 @@ tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
   thread_local TextLayoutManager manager;
   return manager.GetTextLayout();
 }
+MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
+    tttext::ICanvasHelper* canvas) {
+  return static_cast<HarmonyMarkdownCanvas*>(canvas);
+}
+
 }  // namespace lynx::markdown

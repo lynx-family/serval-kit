@@ -47,16 +47,15 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   // end
   // MarkdownResourceLoader
-  void* LoadFont(const char* family) override;
+  void* LoadFont(const char* family, MarkdownFontWeight wieght) override;
   MarkdownPlatformView* LoadInlineView(const char* id_selector, float max_width,
                                        float max_height) override;
   MarkdownPlatformView* LoadImageView(const char* src, float desire_width,
                                       float desire_height, float max_width,
                                       float max_height,
                                       float border_radius) override;
-  std::shared_ptr<MarkdownDrawable> LoadBackgroundDrawable(
-      MarkdownBackgroundStylePart* background_style, float border_radius,
-      float font_size, float root_font_size) override;
+  std::unique_ptr<tttext::RunDelegate> LoadGradient(
+      const char* gradient, float font_size, float root_font_size) override;
   MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
                                             float max_width,
                                             float max_height) override;

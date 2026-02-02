@@ -7,9 +7,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import com.lynx.markdown.MarkdownViewHandle;
 
 public interface IDrawerCallback {
-  void drawRunDelegate(IRunDelegate delegate, Rect rect);
-  void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate, Path path,
-                             Paint paint);
+  void alignInlineView(MarkdownViewHandle view, Rect rect);
 }
