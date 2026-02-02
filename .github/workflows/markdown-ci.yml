@@ -93,5 +93,4 @@ jobs:
           source tools/envsetup.sh
           pushd markdown/example/harmony
           ohpm install
-          chmod +x ./scripts/build.py
-          python3 ./scripts/build.py --modules serval_markdown
+          hvigorw assembleApp --mode project -p product=default -p buildMode=debug --no-daemon
