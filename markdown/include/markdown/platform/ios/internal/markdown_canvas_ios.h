@@ -5,6 +5,7 @@
 #ifndef THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
 #define THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
 #include <vector>
+#include "markdown/draw/markdown_canvas.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/platform/ios/internal/markdown_canvas_callback.h"
 #include "markdown/utils/markdown_definition.h"
@@ -137,11 +138,11 @@ class MarkdownInlineView : public MarkdownRunDelegate {
   float baseline_shift_{0};
 };
 
-class MarkdownCanvas : public IOSCanvasBase {
+class MarkdownCanvasIOS : public IOSCanvasBase,
+                          public lynx::markdown::MarkdownCanvasExtend {
  public:
-  MarkdownCanvas() = default;
-  explicit MarkdownCanvas(CGContextRef context) : IOSCanvasBase(context) {}
-  ~MarkdownCanvas() override = default;
+  explicit MarkdownCanvasIOS(CGContextRef context);
+  ~MarkdownCanvasIOS() override = default;
 
   void SetCallback(id<MarkdownCanvasCallback> callback) {
     callback_ = callback;
@@ -152,13 +153,22 @@ class MarkdownCanvas : public IOSCanvasBase {
   void Restore() override;
   void Translate(float dx, float dy) override;
 
-  void DrawGlyphs(const ITypefaceHelper* font, uint32_t glyph_count,
-                  const uint16_t* glyphs, const char* text, uint32_t text_bytes,
-                  float ox, float oy, float* x, float* y,
-                  tttext::Painter* painter) override;
   void DrawRunDelegate(const tttext::RunDelegate* run_delegate, float left,
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
+
+  void ClipPath(lynx::markdown::MarkdownPath* path) override;
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
+                          lynx::markdown::MarkdownPath* path,
+                          tttext::Painter* painter) override;
+  void DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
+                        tttext::Painter* painter) override;
+
+ protected:
+  void AddPath(lynx::markdown::MarkdownPath* path, CGMutablePathRef result);
+  CGPathRef CreatePath(lynx::markdown::MarkdownPath* path);
+
+  CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter);
 
  private:
   id<MarkdownCanvasCallback> callback_{nil};

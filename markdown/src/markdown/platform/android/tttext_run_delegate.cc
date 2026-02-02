@@ -6,6 +6,8 @@
 
 #include <textra/i_canvas_helper.h>
 
+#include "markdown/platform/android/markdown_run_delegate.h"
+
 TTTextRunDelegate::TTTextRunDelegate(int id, float ascent, float descent,
                                      float advance)
     : id_(id), ascent_(ascent), descent_(descent), advance_(advance) {}

@@ -35,6 +35,7 @@ struct MarkdownContext {
   std::vector<int32_t> para_stack_;
   std::unique_ptr<tttext::Paragraph> current_paragraph_{nullptr};
   std::unique_ptr<MarkdownTable> current_table_{nullptr};
+  std::string extra_class_{};
   MarkdownBlockStylePart block_style_;
   MarkdownBorderStylePart border_style_;
   MarkdownBorder border_type_;
@@ -52,6 +53,7 @@ struct MarkdownContext {
   tttext::RulerType line_height_rule_{tttext::RulerType::kExact};
   uint32_t char_offset_{0};
   std::string_view markdown_source_{};
+  std::vector<int32_t> byte_index_to_char_index_;
   uint32_t markdown_start_{0};
   uint32_t markdown_end_{std::numeric_limits<uint32_t>::max()};
   uint32_t processed_markdown_length_{0};
@@ -59,13 +61,11 @@ struct MarkdownContext {
   float max_width_{-1};
   float indent_{0};
   Range markdown_source_range_{0, 0};
+  std::vector<int32_t> lines_offset_;
+  uint32_t line_index_{0};
 };
 
 class MarkdownParserDiscountImpl {
- private:
-  static constexpr auto LINE_THROUGH_WIDTH =
-      MarkdownStyleLengthValue::FromDp(1);
-
  public:
   void Parse(MarkdownDocument* document, void* ud);
   ~MarkdownParserDiscountImpl() = default;
@@ -111,10 +111,10 @@ class MarkdownParserDiscountImpl {
   void OnListExtraLevel(int level);
   void OnParagraphEnd();
   void HandleTableLines(line* line);
-  void ParseInlineSyntax(std::string_view content, tttext::Paragraph* para,
+  void ParseInlineSyntax(const std::string& content, tttext::Paragraph* para,
                          const tttext::Style& base_style,
                          bool* have_normal_text, uint32_t char_offset,
-                         uint32_t markdown_offset);
+                         uint32_t markdown_offset, bool check_paragraph_tag);
   void AppendNodeToParagraph(MarkdownInlineNode* node, tttext::Paragraph* para,
                              const tttext::Style& base_style,
                              uint32_t char_offset, uint32_t markdown_offset);
@@ -147,6 +147,19 @@ class MarkdownParserDiscountImpl {
                                  uint32_t char_offset,
                                  uint32_t markdown_offset);
 
+  void AppendInlineBorderLeft(const MarkdownBlockStylePart& block,
+                              const MarkdownBorderStylePart& border,
+                              MarkdownBackgroundStylePart* background,
+                              tttext::Paragraph* para,
+                              tttext::Style* style) const;
+  void AppendInlineBorderRight(const MarkdownBaseStylePart& base,
+                               const MarkdownBlockStylePart& block,
+                               const MarkdownBorderStylePart& border,
+                               MarkdownBackgroundStylePart* background,
+                               tttext::Paragraph* para,
+                               uint32_t char_offset_start,
+                               uint32_t char_offset_end) const;
+
   std::vector<std::string> Split(const std::string_view& content, char split);
   std::string_view TrimSpace(std::string_view origin);
   std::vector<tttext::ParagraphHorizontalAlignment> HandleTableAlign(
@@ -159,12 +172,11 @@ class MarkdownParserDiscountImpl {
   void AppendUnorderedListMark();
 
   static MarkdownSyntaxType ParagraphTypeToSyntaxType(ParagraphType type);
-  static Range ByteRangeToUTF16Range(std::string_view src, Range byte_range);
-
-  std::pair<float, float> ParseImageWidthAndHeight(
-      const std::string_view content);
+  int32_t MarkdownSourceByteIndexToCharIndex(int32_t byte_index) const;
   std::pair<uint32_t, uint32_t> GetTextLineByteRangeByMarkdownRange(
       uint32_t line_offset, uint32_t line_length);
+  static std::vector<int32_t> CalculateByteIndexToCharIndexMap(
+      std::string_view string);
 
   MarkdownContext context_{};
   MarkdownStyle style_{};
@@ -186,11 +198,9 @@ void MarkdownParserDiscountImpl::Parse(const char* src, int size,
                                        int32_t markdown_end, float width) {
   if (document_ == nullptr)
     return;
-  markdown_start =
-      static_cast<int32_t>(base::UTF8IndexToCIndex(src, size, markdown_start));
-  markdown_end =
-      static_cast<int32_t>(base::UTF8IndexToCIndex(src, size, markdown_end));
-  auto* doc = mkd_string(src, size, nullptr);
+  markdown_start = base::UTF8IndexToCIndex(src, size, markdown_start);
+  markdown_end = base::UTF8IndexToCIndex(src, size, markdown_end);
+  auto* doc = mkd_string(src, size, 0);
   doc->cb.ud = this;
   doc->cb.paragraph_start = &MarkdownParserDiscountImpl::OnParagraphStart;
   doc->cb.paragraph_end = &MarkdownParserDiscountImpl::OnParagraphEnd;
@@ -203,6 +213,8 @@ void MarkdownParserDiscountImpl::Parse(const char* src, int size,
   mkd_initialize();
   context_.char_offset_ = 0;
   context_.markdown_source_ = std::string_view(src, size);
+  context_.byte_index_to_char_index_ =
+      CalculateByteIndexToCharIndexMap(context_.markdown_source_);
   context_.markdown_start_ = markdown_start;
   context_.markdown_end_ = markdown_end;
   context_.max_width_ = width;
@@ -235,6 +247,7 @@ void MarkdownParserDiscountImpl::OnParagraphStart(int type) {
       MarkdownStyleInitializer::ResetBorderStyle(&context_.border_style_);
       context_.border_type_ = MarkdownBorder::kNone;
       context_.markdown_source_range_ = {0, 0};
+      context_.extra_class_ = {};
     }
     float quote_indent = 0;
     if (context_.quote_level_ > 0) {
@@ -271,6 +284,7 @@ void MarkdownParserDiscountImpl::OnParagraphStart(int type) {
         context_.block_style_.margin_left_ +=
             (context_.list_level_ - 1) * indent;
         AppendUnorderedListMark();
+        context_.indent_ += (context_.list_level_ - 1) * indent;
         context_.have_normal_text_ = true;
         if (context_.list_index_stack_.back() == context_.list_start_index_ &&
             context_.list_level_ == 1) {
@@ -291,6 +305,7 @@ void MarkdownParserDiscountImpl::OnParagraphStart(int type) {
         context_.block_style_.margin_left_ +=
             (context_.list_level_ - 1) * indent;
         AppendOrderedListNumber();
+        context_.indent_ += (context_.list_level_ - 1) * indent;
         context_.have_normal_text_ = true;
         if (context_.list_index_stack_.back() == context_.list_start_index_ &&
             context_.list_level_ == 1) {
@@ -312,13 +327,17 @@ void MarkdownParserDiscountImpl::OnParagraphStart(int type) {
       context_.block_style_.margin_left_ += quote_indent;
     } else if (type == HDR) {
       context_.block_style_ =
-          MarkdownParser::GetHNBlockStyle(style_, context_.hn_);
+          MarkdownParser::GetHNBlockStyle(document_->GetStyle(), context_.hn_);
       context_.block_style_.margin_left_ += quote_indent;
     } else {
       auto parent_type = context_.para_stack_[context_.para_stack_.size() - 2];
       if (parent_type == SOURCE) {
         // not in other block node
         context_.block_style_ = style_.normal_text_.block_;
+      } else if (context_.list_level_ > 0 &&
+                 (context_.current_paragraph_ == nullptr ||
+                  context_.current_paragraph_->GetRunCount() == 0)) {
+        context_.block_style_.margin_left_ += context_.indent_;
       }
     }
   }
@@ -403,8 +422,11 @@ void MarkdownParserDiscountImpl::OnParagraphEnd() {
     GenerateParagraph(type, para.get());
     para->SetMarkdownSourceType(
         ParagraphTypeToSyntaxType(static_cast<ParagraphType>(type)));
-    para->SetMarkdownSourceRange(ByteRangeToUTF16Range(
-        context_.markdown_source_, context_.markdown_source_range_));
+    para->SetMarkdownSourceRange(
+        Range{.start_ = MarkdownSourceByteIndexToCharIndex(
+                  context_.markdown_source_range_.start_),
+              .end_ = MarkdownSourceByteIndexToCharIndex(
+                  context_.markdown_source_range_.end_)});
     document_->para_vec_.emplace_back(std::move(para));
   } else if (context_.current_table_ != nullptr &&
              !context_.current_table_->Empty()) {
@@ -417,14 +439,6 @@ void MarkdownParserDiscountImpl::OnParagraphEnd() {
   }
   context_.current_paragraph_ = nullptr;
   context_.current_table_ = nullptr;
-}
-
-Range MarkdownParserDiscountImpl::ByteRangeToUTF16Range(
-    std::string_view src, lynx::markdown::Range byte_range) {
-  auto start = base::SizeOfUtf16(std::string(src.substr(0, byte_range.start_)));
-  auto length = base::SizeOfUtf16(std::string(
-      src.substr(byte_range.start_, byte_range.end_ - byte_range.start_)));
-  return {static_cast<int32_t>(start), static_cast<int32_t>(start + length)};
 }
 
 MarkdownSyntaxType MarkdownParserDiscountImpl::ParagraphTypeToSyntaxType(
@@ -506,14 +520,21 @@ void MarkdownParserDiscountImpl::OnParagraphText(line* text_line) {
       char* content = text_line->text.text + line_start;
       int len = line_end - line_start;
       tttext::Style run_style;
-      MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.code_block_.base_,
-                                                    &run_style);
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+          document_, style_.code_block_.base_, &run_style);
+      int32_t char_start =
+          context_.current_paragraph_->GetCharCount() + context_.char_offset_;
       context_.current_paragraph_->AddTextRun(&run_style, content, len);
+      int32_t char_end =
+          context_.current_paragraph_->GetCharCount() + context_.char_offset_;
+      auto markdown_start = text_line->markdown_offset + line_start;
+      auto markdown_end = text_line->markdown_offset + line_end;
+      document_->markdown_index_to_char_index_.emplace_back(
+          Range{MarkdownSourceByteIndexToCharIndex(markdown_start),
+                MarkdownSourceByteIndexToCharIndex(markdown_end)},
+          Range{char_start, char_end});
       text_line = text_line->next;
       if (text_line != text_end) {
-        document_->typewriter_step_offset_.emplace_back(std::make_pair(
-            context_.char_offset_ + context_.current_paragraph_->GetCharCount(),
-            1));
         context_.current_paragraph_->AddTextRun(&run_style, "\n");
       }
     }
@@ -530,8 +551,8 @@ void MarkdownParserDiscountImpl::OnParagraphText(line* text_line) {
     tttext::Style run_style;
     if (context_.hn_ <= 0 || context_.hn_ > 6) {
       if (context_.quote_level_ > 0) {
-        MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.quote_.base_,
-                                                      &run_style);
+        MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+            document_, style_.quote_.base_, &run_style);
       } else if (context_.list_level_ > 0) {
         int list_type =
             context_.para_stack_.size() < 3
@@ -554,19 +575,24 @@ void MarkdownParserDiscountImpl::OnParagraphText(line* text_line) {
         }
         if (list_type == OL) {
           MarkdownParser::SetTTStyleByMarkdownBaseStyle(
-              style_.ordered_list_.base_, &run_style);
+              document_, style_.ordered_list_.base_, &run_style);
         } else if (list_type == UL) {
           MarkdownParser::SetTTStyleByMarkdownBaseStyle(
-              style_.unordered_list_.base_, &run_style);
+              document_, style_.unordered_list_.base_, &run_style);
         }
       } else {
-        MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.normal_text_.base_,
-                                                      &run_style);
+        MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+            document_, style_.normal_text_.base_, &run_style);
       }
     } else {
       MarkdownParser::SetTTStyleByMarkdownBaseStyle(
-          MarkdownParser::GetHNStyle(style_, context_.hn_), &run_style);
+          document_, MarkdownParser::GetHNStyle(style_, context_.hn_),
+          &run_style);
     }
+    std::string content = "";
+    int32_t markdown_offset = text_line->markdown_offset;
+    context_.lines_offset_.emplace_back(0);
+    int32_t offset{0};
     while (text_line != text_end) {
       auto [line_start, line_end] = GetTextLineByteRangeByMarkdownRange(
           static_cast<uint32_t>(text_line->markdown_offset),
@@ -575,21 +601,23 @@ void MarkdownParserDiscountImpl::OnParagraphText(line* text_line) {
         text_line = text_line->next;
         continue;
       }
-      char* content = text_line->text.text;
-      ParseInlineSyntax(std::string_view(content, text_line->text.size),
-                        context_.current_paragraph_.get(), run_style,
-                        &context_.have_normal_text_, context_.char_offset_,
-                        static_cast<uint32_t>(text_line->markdown_offset));
-
+      content += std::string_view(text_line->text.text, text_line->text.size);
+      int32_t text_line_end_offset =
+          text_line->markdown_offset + text_line->text.size;
       text_line = text_line->next;
-      if (text_line != text_end &&
-          context_.current_paragraph_->GetCharCount() > 0) {
-        document_->typewriter_step_offset_.emplace_back(std::make_pair(
-            context_.char_offset_ + context_.current_paragraph_->GetCharCount(),
-            1));
-        context_.current_paragraph_->AddTextRun(&run_style, "\n");
+      if (text_line != text_end) {
+        if (!content.empty()) {
+          content += "\n";
+        }
+        offset += text_line->markdown_offset - text_line_end_offset - 1;
+        context_.lines_offset_.emplace_back(offset);
       }
     }
+    ParseInlineSyntax(content, context_.current_paragraph_.get(), run_style,
+                      &context_.have_normal_text_, context_.char_offset_,
+                      markdown_offset, true);
+    context_.lines_offset_.clear();
+    context_.line_index_ = 0;
   }
 }
 
@@ -637,6 +665,21 @@ void MarkdownParserDiscountImpl::GenerateParagraph(
         &context_.current_paragraph_->GetParagraphStyle(), para,
         context_.line_height_rule_);
   }
+  if (!context_.extra_class_.empty()) {
+    const auto style = style_.span_styles_.find(context_.extra_class_);
+    if (style != style_.span_styles_.end()) {
+      MarkdownParser::SetParagraphStyle(
+          document_, style->second.base_,
+          &context_.current_paragraph_->GetParagraphStyle(), para,
+          context_.line_height_rule_);
+      const auto& block = style->second.block_;
+      context_.block_style_.margin_top_ = block.margin_top_;
+      context_.block_style_.padding_top_ = block.padding_top_;
+      context_.block_style_.margin_bottom_ = block.margin_bottom_;
+      context_.block_style_.padding_bottom_ = block.padding_bottom_;
+    }
+    context_.extra_class_ = {};
+  }
   if (!context_.have_normal_text_) {
     context_.current_paragraph_->GetParagraphStyle().SetHorizontalAlign(
         tttext::ParagraphHorizontalAlignment::kCenter);
@@ -657,7 +700,12 @@ void MarkdownParserDiscountImpl::GenerateTable(
     lynx::markdown::MarkdownTableElement* table) {
   GenerateElement(table);
   context_.current_table_->SetCellStyle(style_.table_cell_.block_);
+  context_.current_table_->SetCellBackground(
+      style_.table_cell_.base_.background_color_);
   context_.current_table_->SetHeaderStyle(style_.table_header_.block_);
+  context_.current_table_->SetHeaderBackground(
+      style_.table_header_.base_.background_color_);
+  context_.current_table_->SetTableStyle(style_.table_.table_);
   table->SetCharCount(context_.current_table_->GetCharCount());
   context_.char_offset_ += context_.current_table_->GetCharCount();
   table->SetTable(std::move(context_.current_table_));
@@ -681,7 +729,7 @@ void MarkdownParserDiscountImpl::AppendUnorderedListMark() {
   tttext::Style style;
   style.SetVerticalAlignment(MarkdownParser::ConvertVerticalAlign(
       style_.unordered_list_marker_.align_.vertical_align_));
-  context_.current_paragraph_->AddGhostShapeRun(&style, std::move(mark));
+  context_.current_paragraph_->AddShapeRun(&style, std::move(mark), false);
 }
 
 void MarkdownParserDiscountImpl::AppendOrderedListNumber() {
@@ -694,7 +742,7 @@ void MarkdownParserDiscountImpl::AppendOrderedListNumber() {
   }
   tttext::Style number_style;
   MarkdownParser::SetTTStyleByMarkdownBaseStyle(
-      style_.ordered_list_number_.base_, &number_style);
+      document_, style_.ordered_list_number_.base_, &number_style);
   auto number_str = MarkdownParser::MarkdownNumberTypeToString(
                         number_type, context_.list_index_stack_.back()) +
                     ".";
@@ -732,33 +780,63 @@ void MarkdownParserDiscountImpl::HandleTableLines(line* text_line) {
   // remove align line
   line_count -= 1;
 
+  auto cell_base = style_.table_cell_.base_;
   tttext::ParagraphStyle paragraph_style;
   MarkdownParser::SetParagraphStyle(document_, style_.table_cell_.base_,
                                     &paragraph_style, nullptr,
                                     context_.line_height_rule_);
   tttext::Style run_style;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.table_cell_.base_,
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, cell_base,
                                                 &run_style);
   // header
+  auto* header_line = text_line;
   auto header_string =
       TrimSpace({text_line->text.text, (size_t)(text_line->text.size)});
   auto split = Split(header_string, '|');
   if (line_count > 0 && !split.empty()) {
-    context_.current_table_->Resize(line_count,
-                                    static_cast<int32_t>(split.size()));
+    context_.current_table_->Resize(line_count, split.size());
   }
   size_t col_count = split.size();
-  auto align_line = text_line->next;
+  text_line = text_line->next;
   // align
-  auto align = HandleTableAlign(
-      {align_line->text.text, static_cast<size_t>(align_line->text.size)});
+  auto align =
+      HandleTableAlign({text_line->text.text, (size_t)(text_line->text.size)});
   if (align.size() < split.size()) {
     align.resize(split.size(), tttext::ParagraphHorizontalAlignment::kLeft);
   }
+  text_line = text_line->next;
   // content
   uint32_t char_offset = 0;
-  int row_index = 0;
-  bool is_header = true;
+  for (size_t col = 0; col < col_count; col++) {
+    auto str = TrimSpace(split[col]);
+    if (str.empty()) {
+      continue;
+    }
+    auto para = tttext::Paragraph::Create();
+    auto header_style = run_style;
+    auto header_base = style_.table_header_.base_;
+    header_base.background_color_ = 0;
+    MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, header_base,
+                                                  &header_style);
+    para->SetParagraphStyle(&paragraph_style);
+    para->GetParagraphStyle().SetHorizontalAlign(align[col]);
+    ParseInlineSyntax(
+        std::string(str), para.get(), header_style, nullptr,
+        char_offset + context_.char_offset_,
+        str.data() - header_line->text.text + header_line->markdown_offset,
+        false);
+    uint32_t char_count = para->GetCharCount();
+    context_.current_table_->SetCell(
+        0, col,
+        MarkdownTableCell{
+            .paragraph_ = std::move(para),
+            .alignment_ = align[col],
+            .vertical_alignment_ = style_.table_header_.align_.vertical_align_,
+            .char_start_ = char_offset,
+            .char_count_ = char_count});
+    char_offset += char_count;
+  }
+  int row_index = 1;
   while (text_line != nullptr) {
     auto line_string =
         TrimSpace({text_line->text.text, (size_t)(text_line->text.size)});
@@ -769,42 +847,29 @@ void MarkdownParserDiscountImpl::HandleTableLines(line* text_line) {
       auto str = TrimSpace(split[col]);
       if (str.empty())
         continue;
-      auto element = std::make_unique<MarkdownParagraphElement>();
       auto para = tttext::Paragraph::Create();
-      MarkdownVerticalAlign vertical_align =
-          style_.table_cell_.align_.vertical_align_;
-      if (is_header) {
-        auto header_style = run_style;
-        MarkdownParser::SetTTStyleByMarkdownBaseStyle(
-            style_.table_header_.base_, &header_style);
-        para->SetParagraphStyle(&paragraph_style);
-        ParseInlineSyntax(str, para.get(), header_style, nullptr,
-                          char_offset + context_.char_offset_, 0);
-        vertical_align = style_.table_header_.align_.vertical_align_;
-      } else {
-        para->SetParagraphStyle(&paragraph_style);
-        ParseInlineSyntax(str, para.get(), run_style, nullptr,
-                          char_offset + context_.char_offset_, 0);
-      }
+      para->SetParagraphStyle(&paragraph_style);
       para->GetParagraphStyle().SetHorizontalAlign(align[col]);
+      ParseInlineSyntax(
+          std::string(str), para.get(), run_style, nullptr,
+          char_offset + context_.char_offset_,
+          str.data() - text_line->text.text + text_line->markdown_offset,
+          false);
       uint32_t char_count = para->GetCharCount();
       context_.current_table_->SetCell(
           row_index, col,
-          MarkdownTableCell{.paragraph_ = std::move(para),
-                            .alignment_ = align[col],
-                            .vertical_alignment_ = vertical_align,
-                            .char_start_ = char_offset,
-                            .char_count_ = char_count});
+          MarkdownTableCell{
+              .paragraph_ = std::move(para),
+              .alignment_ = align[col],
+              .vertical_alignment_ = style_.table_cell_.align_.vertical_align_,
+              .char_start_ = char_offset,
+              .char_count_ = char_count});
       char_offset += char_count;
     }
     row_index++;
     text_line = text_line->next;
-    if (is_header) {
-      text_line = text_line->next;
-      is_header = false;
-    }
   }
-  context_.current_table_->char_count_ = char_offset;
+  context_.current_table_->SetCharCount(char_offset);
 }
 
 std::vector<std::string> MarkdownParserDiscountImpl::Split(
@@ -887,9 +952,9 @@ void MarkdownParserDiscountImpl::OnListExtraLevel(int list_extra_level) {
 }
 
 void MarkdownParserDiscountImpl::ParseInlineSyntax(
-    std::string_view content, tttext::Paragraph* para,
+    const std::string& content, tttext::Paragraph* para,
     const tttext::Style& base_style, bool* have_normal_text,
-    uint32_t char_offset, uint32_t markdown_offset) {
+    uint32_t char_offset, uint32_t markdown_offset, bool check_paragraph_tag) {
   auto result = MarkdownInlineSyntaxParser::Parse(content);
   if (have_normal_text != nullptr) {
     for (auto& child : result->Children()) {
@@ -897,6 +962,15 @@ void MarkdownParserDiscountImpl::ParseInlineSyntax(
         *have_normal_text = true;
         break;
       }
+    }
+  }
+  if (check_paragraph_tag && result->Children().size() == 1 &&
+      result->Children().front()->GetSyntax() ==
+          MarkdownInlineSyntax::kInlineHtml) {
+    if (const auto* node = static_cast<MarkdownInlineHtmlTag*>(
+            result->Children().front().get());
+        node->GetTag() == "p" && !node->GetClass().empty()) {
+      context_.extra_class_ = node->GetClass();
     }
   }
   AppendNodeToParagraph(result.get(), para, base_style, char_offset,
@@ -908,7 +982,8 @@ void MarkdownParserDiscountImpl::AppendLinkToParagraph(
     const tttext::Style& base_style, uint32_t char_offset,
     uint32_t markdown_offset) {
   tttext::Style new_style = base_style;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.link_.base_, &new_style);
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, style_.link_.base_,
+                                                &new_style);
   uint32_t count_before = para->GetCharCount();
   AppendChildrenToParagraph(node, para, new_style, char_offset,
                             markdown_offset);
@@ -952,7 +1027,7 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
     std::string inline_view_id = is_inline_view
                                      ? url.substr(strlen(kInlineViewSchema))
                                      : url.substr(strlen(kBlockViewSchema));
-    if (!inline_view_id.empty() && loader_ != nullptr) {
+    if (inline_view_id.length() > 0 && loader_ != nullptr) {
       auto view = loader_->LoadInlineView(inline_view_id.c_str(), max_width,
                                           max_height);
       if (view != nullptr) {
@@ -970,8 +1045,6 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
             .view_ = view});
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
-        document_->typewriter_step_offset_.emplace_back(
-            char_offset + para->GetCharCount(), 1);
         para->AddShapeRun(&base_style, std::move(delegate), false);
       }
     }
@@ -987,24 +1060,43 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
     }
     bool need_alt_text = false;
     if (loader_ != nullptr) {
-      auto view =
+      auto delegate =
           loader_->LoadImageView(url.c_str(), width, height, max_width,
                                  max_height, style_.image_.image_.radius_);
-      if (view != nullptr) {
+      if (delegate == nullptr && !(style_.image_.image_.alt_image_.empty())) {
+        delegate = loader_->LoadImageView(
+            style_.image_.image_.alt_image_.c_str(), width, height, max_width,
+            max_height, style_.image_.image_.radius_);
+      }
+      if (delegate != nullptr) {
+        std::unique_ptr<tttext::RunDelegate> image =
+            std::make_unique<MarkdownViewDelegate>(
+                delegate, max_width, max_height,
+                style_.normal_text_.base_.font_size_);
+        if (!node->GetCaption().empty()) {
+          auto caption = tttext::Paragraph::Create();
+          auto style = base_style;
+          MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+              document_, style_.image_caption_.base_, &style);
+          MarkdownParser::SetParagraphStyle(
+              document_, style_.image_caption_.base_,
+              &(caption->GetParagraphStyle()), nullptr,
+              context_.line_height_rule_);
+          caption->AddTextRun(&style, node->GetCaption().data(),
+                              node->GetCaption().length());
+          image = std::make_unique<ImageWithCaption>(
+              std::move(image), std::move(caption), max_width,
+              style_.image_caption_.image_caption_.caption_position_,
+              style_.image_caption_.base_.text_align_);
+        }
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
-        document_->typewriter_step_offset_.emplace_back(
-            char_offset + para->GetCharCount(), 1);
         document_->AddImage(MarkdownImage{
             .url_ = url,
             .char_index_ =
                 static_cast<int32_t>(para->GetCharCount() + char_offset),
-            .view_ = view});
-        para->AddShapeRun(
-            &base_style,
-            std::make_unique<MarkdownViewDelegate>(view, max_width, max_height,
-                                                   base_style.GetTextSize()),
-            false);
+            .view_ = delegate});
+        para->AddShapeRun(&base_style, std::move(image), false);
       } else {
         need_alt_text = style_.image_.image_.enable_alt_text_;
       }
@@ -1033,8 +1125,6 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
       context_.enable_split_render_ = true;
       document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                       node->GetAltText());
-      document_->typewriter_step_offset_.emplace_back(
-          char_offset + para->GetCharCount(), 1 - alt_text->GetCharCount());
       para->AddShapeRun(&base_style,
                         std::make_unique<MarkdownTextDelegate>(
                             std::move(alt_text), width, height),
@@ -1051,18 +1141,18 @@ void MarkdownParserDiscountImpl::AppendInlineCode(
   if (node->Children().empty())
     return;
   auto new_style = base_style;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.inline_code_.base_,
-                                                &new_style);
-  MarkdownInlineBorderDelegate* left_delegate_ptr =
-      MarkdownParser::AppendInlineBorderLeft(
-          document_, style_.inline_code_.base_, style_.inline_code_.block_,
-          style_.inline_code_.border_, nullptr, para, &new_style, char_offset);
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+      document_, style_.inline_code_.base_, &new_style);
+  MarkdownParser::AppendInlineBorderLeft(style_.inline_code_.block_,
+                                         style_.inline_code_.border_, nullptr,
+                                         para, &new_style);
+  auto char_start = char_offset + para->GetCharCount();
   AppendChildrenToParagraph(node, para, new_style, char_offset,
                             markdown_offset);
+  auto char_end = char_offset + para->GetCharCount();
   MarkdownParser::AppendInlineBorderRight(
-      document_, left_delegate_ptr, style_.inline_code_.base_,
-      style_.inline_code_.block_, style_.inline_code_.border_, nullptr, para,
-      char_offset);
+      document_, style_.inline_code_.base_, style_.inline_code_.block_,
+      style_.inline_code_.border_, nullptr, para, char_start, char_end);
 }
 
 void MarkdownParserDiscountImpl::AppendRawText(MarkdownInlineNode* node,
@@ -1070,6 +1160,11 @@ void MarkdownParserDiscountImpl::AppendRawText(MarkdownInlineNode* node,
                                                const tttext::Style& base_style,
                                                uint32_t char_offset,
                                                uint32_t markdown_offset) {
+  if (node->GetSyntax() == MarkdownInlineSyntax::kBreakLine) {
+    para->AddTextRun(&base_style, "\n");
+    context_.line_index_++;
+    return;
+  }
   int32_t piece_start = 0;
   int32_t piece_end = node->GetText().length();
   if (context_.enable_split_render_) {
@@ -1085,9 +1180,30 @@ void MarkdownParserDiscountImpl::AppendRawText(MarkdownInlineNode* node,
   }
   if (piece_start == piece_end)
     return;
-  auto piece_str =
-      std::string(node->GetText().substr(piece_start, piece_end - piece_start));
+  std::string piece_str;
+  if (node->GetSyntax() == MarkdownInlineSyntax::kHtmlEntity) {
+    piece_str = static_cast<MarkdownHtmlEntityNode*>(node)->GetEntity();
+    piece_end = piece_start + 1;
+  } else {
+    piece_str = std::string(
+        node->GetText().substr(piece_start, piece_end - piece_start));
+  }
+  uint32_t char_start = para->GetCharCount();
   para->AddTextRun(&base_style, piece_str.c_str());
+  uint32_t char_end = para->GetCharCount();
+  int32_t markdown_start = markdown_offset + piece_start;
+  int32_t markdown_end = markdown_offset + piece_end;
+  if (context_.line_index_ > 0 &&
+      context_.line_index_ < context_.lines_offset_.size()) {
+    const auto offset = context_.lines_offset_[context_.line_index_];
+    markdown_start += offset;
+    markdown_end += offset;
+  }
+  document_->markdown_index_to_char_index_.emplace_back(
+      Range{MarkdownSourceByteIndexToCharIndex(markdown_start),
+            MarkdownSourceByteIndexToCharIndex(markdown_end)},
+      Range{static_cast<int32_t>(char_start + char_offset),
+            static_cast<int32_t>(char_end + char_offset)});
 }
 
 void MarkdownParserDiscountImpl::AppendInlineHtml(
@@ -1098,18 +1214,18 @@ void MarkdownParserDiscountImpl::AppendInlineHtml(
   if (node->GetTag() == "br") {
     para->AddTextRun(&base_style, "\n");
   } else if (node->GetTag() == "mark") {
-    MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.mark_.base_,
+    MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, style_.mark_.base_,
                                                   &new_style);
-    MarkdownInlineBorderDelegate* left_delegate_ptr =
-        MarkdownParser::AppendInlineBorderLeft(
-            document_, style_.mark_.base_, style_.mark_.block_,
-            style_.mark_.border_, &style_.mark_.background_, para, &new_style,
-            char_offset);
+    MarkdownParser::AppendInlineBorderLeft(
+        style_.mark_.block_, style_.mark_.border_, &style_.mark_.background_,
+        para, &new_style);
+    auto start = char_offset + para->GetCharCount();
     AppendChildrenToParagraph(node, para, new_style, char_offset,
                               markdown_offset);
+    auto end = char_offset + para->GetCharCount();
     MarkdownParser::AppendInlineBorderRight(
-        document_, left_delegate_ptr, style_.mark_.base_, style_.mark_.block_,
-        style_.mark_.border_, &style_.mark_.background_, para, char_offset);
+        document_, style_.mark_.base_, style_.mark_.block_,
+        style_.mark_.border_, &style_.mark_.background_, para, start, end);
   } else if (node->GetTag() == "span") {
     const auto cls = std::string(node->GetClass());
     const auto iter = style_.span_styles_.find(cls);
@@ -1118,19 +1234,19 @@ void MarkdownParserDiscountImpl::AppendInlineHtml(
                                 markdown_offset);
     } else {
       auto& span_style = iter->second;
-      MarkdownParser::SetTTStyleByMarkdownBaseStyle(span_style.base_,
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, span_style.base_,
                                                     &new_style);
       uint32_t count_before = para->GetCharCount();
-      MarkdownInlineBorderDelegate* left_delegate_ptr =
-          MarkdownParser::AppendInlineBorderLeft(
-              document_, span_style.base_, span_style.block_,
-              span_style.border_, &span_style.background_, para, &new_style,
-              char_offset);
+      MarkdownParser::AppendInlineBorderLeft(
+          span_style.block_, span_style.border_, &span_style.background_, para,
+          &new_style);
+      auto start = char_offset + para->GetCharCount();
       AppendChildrenToParagraph(node, para, new_style, char_offset,
                                 markdown_offset);
+      auto end = char_offset + para->GetCharCount();
       MarkdownParser::AppendInlineBorderRight(
-          document_, left_delegate_ptr, span_style.base_, span_style.block_,
-          span_style.border_, &span_style.background_, para, char_offset);
+          document_, span_style.base_, span_style.block_, span_style.border_,
+          &span_style.background_, para, start, end);
       uint32_t count_after = para->GetCharCount();
       tttext::Style decoration_style;
       MarkdownParser::SetDecorationStyle(span_style.decoration_,
@@ -1138,6 +1254,9 @@ void MarkdownParserDiscountImpl::AppendInlineHtml(
       para->ApplyStyleInRange(decoration_style, count_before,
                               count_after - count_before);
     }
+  } else {
+    AppendChildrenToParagraph(node, para, new_style, char_offset,
+                              markdown_offset);
   }
 }
 
@@ -1149,19 +1268,19 @@ void MarkdownParserDiscountImpl::AppendDoubleBraces(
   context_.block_style_.margin_top_ += style_.double_braces_.block_.margin_top_;
   context_.block_style_.margin_bottom_ +=
       style_.double_braces_.block_.margin_bottom_;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(style_.double_braces_.base_,
-                                                &new_style);
-  MarkdownInlineBorderDelegate* left_delegate_ptr =
-      MarkdownParser::AppendInlineBorderLeft(
-          document_, style_.double_braces_.base_, style_.double_braces_.block_,
-          style_.double_braces_.border_, &style_.double_braces_.background_,
-          para, &new_style, char_offset);
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+      document_, style_.double_braces_.base_, &new_style);
+  MarkdownParser::AppendInlineBorderLeft(
+      style_.double_braces_.block_, style_.double_braces_.border_,
+      &style_.double_braces_.background_, para, &new_style);
+  auto start = para->GetCharCount() + char_offset;
   AppendChildrenToParagraph(node, para, new_style, char_offset,
                             markdown_offset);
+  auto end = char_offset + para->GetCharCount();
   MarkdownParser::AppendInlineBorderRight(
-      document_, left_delegate_ptr, style_.double_braces_.base_,
-      style_.double_braces_.block_, style_.double_braces_.border_,
-      &style_.double_braces_.background_, para, char_offset);
+      document_, style_.double_braces_.base_, style_.double_braces_.block_,
+      style_.double_braces_.border_, &style_.double_braces_.background_, para,
+      start, end);
 }
 
 void MarkdownParserDiscountImpl::AppendDoubleSquareBracket(
@@ -1170,13 +1289,12 @@ void MarkdownParserDiscountImpl::AppendDoubleSquareBracket(
     uint32_t markdown_offset) {
   auto new_style = base_style;
   const auto& ref_style = style_.ref_;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(ref_style.base_, &new_style);
+  MarkdownParser::SetTTStyleByMarkdownBaseStyle(document_, ref_style.base_,
+                                                &new_style);
   new_style.SetBackgroundColor(tttext::TTColor(0));
   auto new_para = tttext::Paragraph::Create();
   AppendChildrenToParagraph(node, new_para.get(), new_style, char_offset,
                             markdown_offset);
-  document_->typewriter_step_offset_.emplace_back(
-      char_offset + para->GetCharCount(), 1 - new_para->GetCharCount());
   auto delegate = std::make_unique<MarkdownRefDelegate>(
       std::move(new_para), style_.ref_, base_style.GetTextSize());
   para->AddGhostShapeRun(&new_style, std::move(delegate));
@@ -1192,7 +1310,9 @@ void MarkdownParserDiscountImpl::AppendNodeToParagraph(
       return;
     }
   }
-  if (node->GetSyntax() == MarkdownInlineSyntax::kRawText) {
+  if (node->GetSyntax() == MarkdownInlineSyntax::kRawText ||
+      node->GetSyntax() == MarkdownInlineSyntax::kHtmlEntity ||
+      node->GetSyntax() == MarkdownInlineSyntax::kBreakLine) {
     AppendRawText(node, para, base_style, char_offset, markdown_offset);
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kImg) {
     AppendImgToParagraph(reinterpret_cast<MarkdownImageNode*>(node), para,
@@ -1213,12 +1333,16 @@ void MarkdownParserDiscountImpl::AppendNodeToParagraph(
   } else {
     tttext::Style new_style = base_style;
     if (node->GetSyntax() == MarkdownInlineSyntax::kBold) {
-      new_style.SetBold(true);
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+          document_, style_.bold_.base_, &new_style);
     } else if (node->GetSyntax() == MarkdownInlineSyntax::kBoldItalic) {
-      new_style.SetBold(true);
-      new_style.SetItalic(true);
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+          document_, style_.bold_.base_, &new_style);
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+          document_, style_.italic_.base_, &new_style);
     } else if (node->GetSyntax() == MarkdownInlineSyntax::kItalic) {
-      new_style.SetItalic(true);
+      MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+          document_, style_.italic_.base_, &new_style);
     } else if (node->GetSyntax() == MarkdownInlineSyntax::kDelete) {
       new_style.SetDecorationType(tttext::DecorationType::kLineThrough);
       new_style.SetDecorationStyle(tttext::LineType::kSolid);
@@ -1239,6 +1363,32 @@ void MarkdownParserDiscountImpl::AppendChildrenToParagraph(
         child.get(), para, base_style, char_offset,
         markdown_offset + child->GetText().data() - node->GetText().data());
   }
+}
+
+int32_t MarkdownParserDiscountImpl::MarkdownSourceByteIndexToCharIndex(
+    int32_t byte_index) const {
+  if (byte_index <= 0)
+    return 0;
+  const auto& map = context_.byte_index_to_char_index_;
+  if (static_cast<size_t>(byte_index) >= map.size())
+    return map.back();
+  return map[byte_index];
+}
+
+std::vector<int32_t>
+MarkdownParserDiscountImpl::CalculateByteIndexToCharIndexMap(
+    const std::string_view string) {
+  int32_t char_index = 0;
+  std::vector<int32_t> result;
+  result.reserve(string.size() + 1);
+  for (const auto c : string) {
+    result.emplace_back(char_index);
+    if (IsUtf8StartByte(c)) {
+      char_index++;
+    }
+  }
+  result.emplace_back(char_index);
+  return result;
 }
 
 void MarkdownParserDiscount::Parse(MarkdownDocument* document, void* ud) {

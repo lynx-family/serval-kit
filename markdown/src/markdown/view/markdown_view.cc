@@ -188,14 +188,9 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
     MarkdownLayout layout(&document_);
     layout.SetPaddings(paddings_);
     layout.Layout(spec.width_, spec.height_, -1);
-    auto& cursor_style = document_.GetStyle().typewriter_cursor_;
-    MarkdownTypewriterDrawer drawer(
-        nullptr, std::numeric_limits<int32_t>::max(),
-        document_.GetResourceLoader(), cursor_style, false, nullptr);
     auto page = document_.GetPage();
     if (page != nullptr) {
-      drawer.DrawPage(*page);
-      max_animation_step_ = drawer.GetDrawGlyphCount();
+      max_animation_step_ = MarkdownSelection::GetPageCharCount(page.get());
       measured_width_ = page->GetLayoutWidth();
       measured_height_ = page->GetLayoutHeight();
     }
@@ -214,14 +209,16 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
     } else {
       custom_typewriter_cursor_ = nullptr;
     }
-    MarkdownTypewriterDrawer drawer(nullptr, current_animation_step_,
-                                    document_.GetResourceLoader(), cursor_style,
-                                    false, nullptr);
     auto page = document_.GetPage();
-    if (page != nullptr) {
-      drawer.DrawPage(*page);
-    }
-    if (!drawer.PageDrawCompleted()) {
+    MarkdownViewDelegate cursor(custom_typewriter_cursor_,
+                                document_.GetMaxWidth(),
+                                document_.GetMaxHeight());
+    MarkdownCharTypewriterDrawer drawer(
+        nullptr, current_animation_step_, document_.GetResourceLoader(),
+        cursor_style, false,
+        (custom_typewriter_cursor_ == nullptr) ? nullptr : &cursor);
+    drawer.CalculateCursorPosition(page.get());
+    if (current_animation_step_ < max_animation_step_) {
       measured_height_ = drawer.GetMaxDrawHeight();
     }
     custom_cursor_position_ = drawer.GetCursorPosition();
@@ -241,6 +238,11 @@ void MarkdownView::Align() {
     auto pos = document_.GetElementOrigin(image.char_index_);
     image.view_->Align(pos.x_, pos.y_);
   }
+  if (custom_typewriter_cursor_ != nullptr &&
+      custom_cursor_position_ != PointF{0, 0}) {
+    custom_typewriter_cursor_->Align(custom_cursor_position_.x_,
+                                     custom_cursor_position_.y_);
+  }
   TraceEventEnd();
 }
 void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
@@ -248,7 +250,7 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
   TraceEventBegin("MarkdownView::Draw");
   SendDrawStart();
   if (animation_type_ == MarkdownAnimationType::kNone) {
-    MarkdownDrawer drawer(static_cast<MarkdownCanvas*>(canvas));
+    MarkdownDrawer drawer(canvas);
     auto page = document_.GetPage();
     if (page != nullptr) {
       drawer.DrawPage(*page);
@@ -258,19 +260,13 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
     MarkdownViewDelegate cursor(custom_typewriter_cursor_,
                                 document_.GetMaxWidth(),
                                 document_.GetMaxHeight());
-    MarkdownTypewriterDrawer drawer(
-        static_cast<MarkdownCanvas*>(canvas), current_animation_step_,
-        document_.GetResourceLoader(), document_.GetStyle().typewriter_cursor_,
-        false, custom_typewriter_cursor_ == nullptr ? nullptr : &cursor);
+    MarkdownCharTypewriterDrawer drawer(
+        canvas, current_animation_step_, document_.GetResourceLoader(),
+        document_.GetStyle().typewriter_cursor_, false,
+        custom_typewriter_cursor_ == nullptr ? nullptr : &cursor);
     auto page = document_.GetPage();
     if (page != nullptr) {
       drawer.DrawPage(*page);
-    }
-    custom_cursor_position_ = drawer.GetCursorPosition();
-    if (custom_typewriter_cursor_ != nullptr &&
-        custom_cursor_position_ != PointF{0, 0}) {
-      custom_typewriter_cursor_->Align(custom_cursor_position_.x_,
-                                       custom_cursor_position_.y_);
     }
     if (current_animation_step_ >= max_animation_step_) {
       SendDrawEnd();

@@ -24,10 +24,9 @@ class MarkdownResourceLoader {
   virtual MarkdownPlatformView* LoadInlineView(const char* id_selector,
                                                float max_width,
                                                float max_height) = 0;
-  virtual void* LoadFont(const char* family) = 0;
-  virtual std::shared_ptr<MarkdownDrawable> LoadBackgroundDrawable(
-      MarkdownBackgroundStylePart* background_style, float border_radius,
-      float font_size, float root_font_size) {
+  virtual void* LoadFont(const char* family, MarkdownFontWeight weight) = 0;
+  virtual std::unique_ptr<tttext::RunDelegate> LoadGradient(
+      const char* gradient, float font_size, float root_font_size) {
     return nullptr;
   }
   virtual MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,

@@ -7,6 +7,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
+class MarkdownCanvasExtend;
 class MarkdownPlatform {
  public:
   static tttext::TextLayout* GetTextLayout();
@@ -20,6 +21,8 @@ class MarkdownPlatform {
                ? region->GetPageHeight()
                : region->GetLayoutedHeight();
   }
+  static MarkdownCanvasExtend* GetMarkdownCanvasExtend(
+      tttext::ICanvasHelper* canvas);
 };
 }  // namespace markdown
 }  // namespace lynx

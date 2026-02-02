@@ -188,9 +188,8 @@ void MarkdownDocument::ClearForParse() {
   inline_views_.clear();
   links_.clear();
   para_vec_.clear();
-  inline_borders_.clear();
+  border_attachments_.clear();
   shape_run_alt_strings_.clear();
-  typewriter_step_offset_.clear();
   quote_range_.clear();
   images_.clear();
 }
@@ -329,7 +328,6 @@ MarkdownTouchState MarkdownDocument::OnTouchEvent(
         x_offset = std::max(min_offset, x_offset);
         if (x_offset != touch_down_region->scroll_x_offset_) {
           touch_down_region->scroll_x_offset_ = x_offset;
-          UpdateInlineBorderRects(page.get());
           touch_state_ = MarkdownTouchState::kOnScroll;
         }
       }
@@ -338,17 +336,6 @@ MarkdownTouchState MarkdownDocument::OnTouchEvent(
     touch_down_ = false;
   }
   return touch_state_;
-}
-
-void MarkdownDocument::UpdateInlineBorderRects(MarkdownPage* page) {
-  for (auto& inline_border : inline_borders_) {
-    auto rect_vec = MarkdownSelection::GetSelectionRectByCharPos(
-        page, inline_border.left_->GetCharOffset(),
-        inline_border.right_->GetCharOffset(),
-        inline_border.left_->GetRectType(),
-        MarkdownSelection::RectCoordinate::kRelative);
-    inline_border.left_->UpdateDrawRect(std::move(rect_vec));
-  }
 }
 
 void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
@@ -372,8 +359,181 @@ void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
     auto paragraph =
         static_cast<MarkdownParagraphElement*>(para.get())->GetParagraph();
     tttext::Style run_style;
-    MarkdownParser::SetTTStyleByMarkdownBaseStyle(style, &run_style);
+    MarkdownParser::SetTTStyleByMarkdownBaseStyle(this, style, &run_style);
     paragraph->ApplyStyleInRange(run_style, start, count);
+  }
+}
+
+int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
+  auto iter =
+      std::lower_bound(markdown_index_to_char_index_.begin(),
+                       markdown_index_to_char_index_.end(), markdown_offset,
+                       [](const std::pair<Range, Range>& pair, int32_t offset) {
+                         return pair.first.end_ <= offset;
+                       });
+  if (iter == markdown_index_to_char_index_.end()) {
+    return markdown_index_to_char_index_.back().second.end_;
+  }
+  if (markdown_offset < iter->first.start_) {
+    return iter->second.start_;
+  }
+  if (markdown_offset > iter->first.end_) {
+    return iter->second.end_;
+  }
+  return iter->second.start_ + (markdown_offset - iter->first.start_);
+}
+
+int32_t MarkdownDocument::GetCharIndexByTouchPosition(
+    lynx::markdown::PointF point) {
+  auto page = GetPage();
+  if (page == nullptr || page->regions_.empty()) {
+    return -1;
+  }
+  auto touch_range = MarkdownSelection::GetCharRangeByPoint(
+      page.get(), point, MarkdownSelection::CharRangeType::kChar);
+  return touch_range.start_;
+}
+
+const MarkdownTextAttachment*
+MarkdownDocument::GetTextClickRangeByTouchPosition(
+    lynx::markdown::PointF position) {
+  auto page = GetPage();
+  const auto& attachments = page->GetTextAttachments();
+  if (attachments.empty())
+    return nullptr;
+  auto index = GetCharIndexByTouchPosition(position);
+  for (const auto& range : attachments) {
+    if (!range->id_.empty() && index >= range->start_index_ &&
+        index < range->end_index_) {
+      return range.get();
+    }
+  }
+  return nullptr;
+}
+
+int32_t MarkdownDocument::GetRegionIndexByCharIndex(int32_t char_index) {
+  auto page = GetPage();
+  if (page == nullptr || char_index < 0) {
+    return -1;
+  }
+  for (uint32_t i = 0; i < page->regions_.size(); i++) {
+    auto& region = page->regions_[i];
+    auto& element = region->element_;
+    if (element->GetCharStart() <= static_cast<uint32_t>(char_index) &&
+        (element->GetCharCount() + element->GetCharStart() >
+         static_cast<uint32_t>(char_index))) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+std::vector<std::string> MarkdownDocument::GetVisibleInlineViews(
+    int32_t animation_step, bool content_complete) {
+  std::vector<std::string> result;
+  auto page = GetPage();
+  if (page == nullptr || page->regions_.empty()) {
+    return result;
+  }
+  int32_t char_count = MarkdownSelection::GetPageCharCount(page.get());
+  animation_step = std::min(animation_step, char_count);
+  for (auto& inline_view : inline_views_) {
+    auto& id = inline_view.id_;
+    int32_t index = inline_view.char_index_;
+    if (index < animation_step) {
+      result.emplace_back(id);
+    }
+  }
+  auto& cursor_id = style_.typewriter_cursor_.typewriter_cursor_.custom_cursor_;
+  if (!cursor_id.empty()) {
+    if (!content_complete || animation_step < char_count) {
+      result.emplace_back(cursor_id);
+    }
+  }
+  if (animation_step >= char_count && !para_vec_.empty() &&
+      (static_cast<uint32_t>(char_count) <
+       para_vec_.back()->GetCharStart() + para_vec_.back()->GetCharCount()) &&
+      (truncation_delegate_ != nullptr)) {
+    result.emplace_back(style_.truncation_.truncation_.content_);
+  }
+  return result;
+}
+
+Range MarkdownDocument::GetChangedRegionsWhenAnimationUpdated(int32_t from_step,
+                                                              int32_t to_step) {
+  auto page = GetPage();
+  if (page == nullptr || page->regions_.empty()) {
+    return {0, 0};
+  }
+  if (from_step > to_step) {
+    std::swap(from_step, to_step);
+  }
+  int32_t char_count = -1;
+  for (auto& attachment : page->GetTextAttachments()) {
+    char_count = std::min(attachment->start_index_, char_count);
+    char_count = std::min(attachment->end_index_, char_count);
+  }
+  from_step += char_count + 1;
+  from_step = std::max(0, from_step);
+  auto start = GetRegionIndexByCharIndex(from_step);
+  auto end = GetRegionIndexByCharIndex(to_step);
+  return {.start_ = start, .end_ = end};
+}
+
+Range MarkdownDocument::GetShowedRegions(float top, float bottom) {
+  auto page = GetPage();
+  if (page == nullptr || page->regions_.empty()) {
+    return {0, 0};
+  }
+  if (top > bottom) {
+    std::swap(top, bottom);
+  }
+  int32_t start = MarkdownSelection::FindClosestRegionIndex(page.get(), top);
+  if (start > 0) {
+    auto start_rect = page->GetRegionRect(start);
+    if (start_rect.GetTop() > top) {
+      start -= 1;
+    }
+  }
+  int32_t end = MarkdownSelection::FindClosestRegionIndex(page.get(), bottom);
+  if (end + 1 < static_cast<int32_t>(page->GetRegionCount())) {
+    auto end_rect = page->GetRegionRect(end);
+    if (end_rect.GetBottom() < bottom) {
+      end += 1;
+    }
+  }
+  return {start, end};
+}
+
+Range MarkdownDocument::GetShowedExtraContents(float top, float bottom) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return {0, 0};
+  }
+  auto count = page->GetExtraBorderCount();
+  int start = 0;
+  int end = count - 1;
+  for (auto i = 0u; i < count; i++) {
+    auto rect = page->GetExtraBorder(i)->rect_;
+    if (rect.GetBottom() > top) {
+      start = i;
+      break;
+    }
+  }
+  for (uint32_t i = start; i < count; i++) {
+    auto rect = page->GetExtraBorder(i)->rect_;
+    if (rect.GetTop() > bottom) {
+      end = i - 1;
+      break;
+    }
+  }
+  return {start, end};
+}
+
+void MarkdownDocument::InheritState(
+    lynx::markdown::MarkdownDocument* old_document) {
+  if (old_document != nullptr && old_document->page_ != nullptr) {
+    inherited_scroll_state_ = old_document->page_->GetScrollState();
   }
 }
 

@@ -3,7 +3,9 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "markdown/parser/markdown_parser.h"
+
 #include <unordered_map>
+
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
@@ -71,12 +73,12 @@ void MarkdownParser::ParsePlainText(MarkdownDocument* document) {
   uint32_t char_count = 0;
   for (auto line : lines) {
     auto para = tttext::Paragraph::Create();
-    auto style = document->GetStyle().normal_text_;
+    auto& style = document->GetStyle().normal_text_;
     tttext::ParagraphStyle paragraph_style;
     tttext::Style run_style;
     SetParagraphStyle(document, style.base_, &paragraph_style, nullptr,
                       tttext::RulerType::kExact);
-    SetTTStyleByMarkdownBaseStyle(style.base_, &run_style);
+    SetTTStyleByMarkdownBaseStyle(document, style.base_, &run_style);
     paragraph_style.SetDefaultStyle(run_style);
     para->SetParagraphStyle(&paragraph_style);
     para->AddTextRun(&run_style, line.data(), line.length());
@@ -98,8 +100,12 @@ void MarkdownParser::SetParagraphStyle(
     MarkdownDocument* document, const MarkdownBaseStylePart& base_style_part,
     tttext::ParagraphStyle* style, MarkdownElement* element,
     tttext::RulerType line_height_rule) {
-  style->SetLineHeightInPx(base_style_part.line_height_, line_height_rule);
-  style->SetLineSpaceAfterPx(base_style_part.line_space_);
+  if (base_style_part.line_height_ > 0) {
+    style->SetLineHeightInPx(base_style_part.line_height_, line_height_rule);
+  }
+  if (base_style_part.line_space_ >= 0) {
+    style->SetLineSpaceAfterPx(base_style_part.line_space_);
+  }
   style->AllowBreakAroundPunctuation(
       document->GetAllowBreakAroundPunctuation());
   if (base_style_part.text_overflow_ == MarkdownTextOverflow::kEllipsis) {
@@ -114,19 +120,43 @@ void MarkdownParser::SetParagraphStyle(
   }
   if (element != nullptr) {
     element->SetTextOverflow(base_style_part.text_overflow_);
-    element->SetSpaceAfter(base_style_part.paragraph_space_);
+    if (base_style_part.paragraph_space_ >= 0) {
+      element->SetSpaceAfter(base_style_part.paragraph_space_);
+    }
+    if (base_style_part.last_line_alignment_ != MarkdownTextAlign::kUndefined) {
+      element->SetLastLineAlign(base_style_part.last_line_alignment_);
+    }
+  }
+  if (base_style_part.direction_ != MarkdownDirection::kNormal) {
+    style->SetWriteDirection(ConvertWriteDirection(base_style_part.direction_));
+  }
+  if (base_style_part.text_align_ != MarkdownTextAlign::kUndefined) {
+    style->SetHorizontalAlign(ConvertTextAlign(base_style_part.text_align_));
+  }
+  if (base_style_part.text_indent_ > 0) {
+    style->SetFirstLineIndentInPx(base_style_part.text_indent_);
   }
   tttext::Style default_style = style->GetDefaultStyle();
-  SetTTStyleByMarkdownBaseStyle(base_style_part, &default_style);
+  SetTTStyleByMarkdownBaseStyle(document, base_style_part, &default_style);
   style->SetDefaultStyle(default_style);
 }
 
 void MarkdownParser::SetTTStyleByMarkdownBaseStyle(
+    MarkdownDocument* document,
     const lynx::markdown::MarkdownBaseStylePart& base_style_part,
     tttext::Style* style) {
-  if (base_style_part.font_ != MarkdownStyleInitializer::FONT_UNDEFINED) {
+  auto loader = document->GetResourceLoader();
+  if (loader != nullptr &&
+      (!base_style_part.font_.empty() ||
+       (base_style_part.font_weight_ != MarkdownFontWeight::kNormal &&
+        base_style_part.font_weight_ != MarkdownFontWeight::kBold))) {
+    auto font = loader->LoadFont(base_style_part.font_.c_str(),
+                                 base_style_part.font_weight_);
     style->SetFontDescriptor(
-        {{}, tttext::FontStyle::Normal(), base_style_part.font_});
+        {{}, tttext::FontStyle::Normal(), reinterpret_cast<uint64_t>(font)});
+  }
+  if (base_style_part.font_style_ != MarkdownFontStyle::kUndefined) {
+    style->SetItalic(base_style_part.font_style_ == MarkdownFontStyle::kItalic);
   }
   if (base_style_part.font_size_ >= 0) {
     style->SetTextSize(base_style_part.font_size_);
@@ -248,45 +278,69 @@ std::string MarkdownParser::MarkdownNumberTypeToString(MarkdownNumberType type,
   return std::to_string(index);
 }
 
-MarkdownInlineBorderDelegate* MarkdownParser::AppendInlineBorderLeft(
-    const MarkdownDocument* document, const MarkdownBaseStylePart& base,
+void MarkdownParser::AppendInlineBorderLeft(
     const MarkdownBlockStylePart& block, const MarkdownBorderStylePart& border,
     MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
-    tttext::Style* style, uint32_t char_offset) {
-  MarkdownInlineBorderDelegate* left_delegate_ptr = nullptr;
-  if (border.border_radius_ != 0 ||
+    tttext::Style* style) {
+  float left_empty =
+      block.margin_left_ + block.padding_left_ + border.border_width_;
+  if (left_empty != 0) {
+    auto left_delegate =
+        std::make_unique<MarkdownEmptySpaceDelegate>(left_empty);
+    para->AddGhostShapeRun(nullptr, std::move(left_delegate));
+  }
+  if (block.padding_left_ > 0 || block.padding_right_ > 0 ||
       (background != nullptr && !background->background_image_.empty())) {
     style->SetBackgroundColor(tttext::TTColor());
-    auto left_delegate = std::make_unique<MarkdownInlineBorderDelegate>(
-        InlineBorderDirection::kLeft, border, block, base.background_color_,
-        char_offset + para->GetCharCount());
-    if (background != nullptr && !background->background_image_.empty()) {
-      auto drawable = document->GetResourceLoader()->LoadBackgroundDrawable(
-          background, border.border_radius_, base.font_size_, base.font_size_);
-      left_delegate->SetBackgroundDrawable(std::move(drawable));
-      left_delegate->SetRectType(MarkdownSelection::RectType::kSelection);
-    }
-    left_delegate_ptr = left_delegate.get();
-    para->AddGhostShapeRun(style, std::move(left_delegate));
   }
-  return left_delegate_ptr;
 }
 
 void MarkdownParser::AppendInlineBorderRight(
-    MarkdownDocument* document, MarkdownInlineBorderDelegate* left,
-    const MarkdownBaseStylePart& base, const MarkdownBlockStylePart& block,
-    const MarkdownBorderStylePart& border,
+    MarkdownDocument* document, const MarkdownBaseStylePart& base,
+    const MarkdownBlockStylePart& block, const MarkdownBorderStylePart& border,
     MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
-    uint32_t char_offset) {
-  if (left != nullptr) {
-    MarkdownInlineBorderDelegate* right_delegate_ptr = nullptr;
-    auto right_delegate = std::make_unique<MarkdownInlineBorderDelegate>(
-        InlineBorderDirection::kRight, border, block, base.background_color_,
-        char_offset + para->GetCharCount());
-    right_delegate_ptr = right_delegate.get();
+    uint32_t char_offset, uint32_t char_offset_end) {
+  auto* loader = document->GetResourceLoader();
+  auto& style = document->GetStyle();
+  float right_empty =
+      block.margin_right_ + block.padding_right_ + border.border_width_;
+  if (right_empty != 0) {
+    auto right_delegate =
+        std::make_unique<MarkdownEmptySpaceDelegate>(right_empty);
     para->AddGhostShapeRun(nullptr, std::move(right_delegate));
-    document->AddInlineBorder(
-        MarkdownInlineBorder{.left_ = left, .right_ = right_delegate_ptr});
+  }
+  if (char_offset_end <= char_offset) {
+    return;
+  }
+  if (block.padding_left_ > 0 || block.padding_right_ > 0 ||
+      (background != nullptr && !background->background_image_.empty())) {
+    auto attachment = std::make_unique<MarkdownTextAttachment>();
+    attachment->start_index_ = char_offset;
+    attachment->end_index_ = char_offset_end;
+    attachment->rect_.left_ = std::make_unique<MarkdownLengthValue>(
+        -block.padding_left_, StyleValuePattern::kPx);
+    attachment->rect_.right_ = std::make_unique<MarkdownCalculateValue>(
+        std::make_unique<MarkdownLengthValue>(100, StyleValuePattern::kPercent),
+        OperatorType::kAdd,
+        std::make_unique<MarkdownLengthValue>(block.padding_right_,
+                                              StyleValuePattern::kPx));
+    if (background != nullptr && !background->background_image_.empty() &&
+        loader != nullptr) {
+      attachment->rect_.gradient_ = loader->LoadGradient(
+          background->background_image_.c_str(), base.font_size_,
+          style.normal_text_.base_.font_size_);
+    }
+    if (attachment->rect_.gradient_ == nullptr) {
+      attachment->rect_.color_ = base.background_color_;
+    }
+    attachment->rect_.radius_ = std::make_unique<MarkdownLengthValue>(
+        border.border_radius_, StyleValuePattern::kPx);
+    if (border.border_width_ > 0) {
+      attachment->rect_.stroke_color_ = border.border_color_;
+      attachment->rect_.stroke_width_ = std::make_unique<MarkdownLengthValue>(
+          border.border_width_, StyleValuePattern::kPx);
+    }
+    document->AddInlineBorder(std::move(attachment));
   }
 }
 
@@ -329,5 +383,29 @@ const MarkdownBlockStylePart& MarkdownParser::GetHNBlockStyle(
       return style.normal_text_.block_;
   }
 }
-
+tttext::WriteDirection MarkdownParser::ConvertWriteDirection(
+    MarkdownDirection direction) {
+  switch (direction) {
+    case MarkdownDirection::kLtr:
+      return tttext::WriteDirection::kLTR;
+    case MarkdownDirection::kRtl:
+      return tttext::WriteDirection::kRTL;
+    default:
+      return tttext::WriteDirection::kAuto;
+  }
+}
+tttext::ParagraphHorizontalAlignment MarkdownParser::ConvertTextAlign(
+    MarkdownTextAlign align) {
+  switch (align) {
+    default:
+    case MarkdownTextAlign::kLeft:
+      return tttext::ParagraphHorizontalAlignment::kLeft;
+    case MarkdownTextAlign::kCenter:
+      return tttext::ParagraphHorizontalAlignment::kCenter;
+    case MarkdownTextAlign::kRight:
+      return tttext::ParagraphHorizontalAlignment::kRight;
+    case MarkdownTextAlign::kJustify:
+      return tttext::ParagraphHorizontalAlignment::kJustify;
+  }
+}
 }  // namespace lynx::markdown

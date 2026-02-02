@@ -40,6 +40,9 @@ enum class MarkdownStyleTag {
   kUnorderedListMarker = 25,
   kSpan = 26,
   kOrderedListNumber = 27,
+  kImageCaption = 28,
+  kBold = 29,
+  kItalic = 30,
 };
 enum class MarkdownStyleOp {
   kRangeEnd = 0,
@@ -98,6 +101,19 @@ enum class MarkdownStyleOp {
   kEnableAltText = 53,
   kWordBreak = 54,
   kDirection = 55,
+  kAltImage = 56,
+  kTextAlign = 57,
+  kCaptionPosition = 58,
+  kMaxHeight = 59,
+  kMinWidth = 60,
+  kMinHeight = 61,
+  kTableBorder = 62,
+  kTableBackground = 63,
+  kAltColor = 64,
+  kLineType = 65,
+  kTextIndent = 66,
+  kLastLineAlignment = 67,
+  kTableSplit = 68,
 };
 enum class MarkdownBorderType {
   kNone = 0,
@@ -132,6 +148,15 @@ enum class MarkdownVerticalAlign {
 enum class MarkdownFontWeight {
   kNormal = 0,
   kBold = 1,
+  k100 = 2,
+  k200 = 3,
+  k300 = 4,
+  k400 = 5,
+  k500 = 6,
+  k600 = 7,
+  k700 = 8,
+  k800 = 9,
+  k900 = 10,
 };
 enum class MarkdownTruncationType {
   kText = 0,
@@ -160,10 +185,51 @@ enum class MarkdownDirection {
   kLtr = 1,
   kRtl = 2,
 };
+enum class MarkdownTextAlign {
+  kUndefined = 0,
+  kLeft = 1,
+  kCenter = 2,
+  kRight = 3,
+  kJustify = 4,
+};
+enum class MarkdownCaptionPosition {
+  kBottom = 0,
+  kTop = 1,
+};
+enum class MarkdownTableBorder {
+  kNone = 0,
+  kFullRect = 1,
+  kUnderline = 2,
+};
+enum class MarkdownTableBackground {
+  kNone = 0,
+  kSolid = 1,
+  kChessBoard = 2,
+};
+enum class MarkdownLineType {
+  kNone = 0,
+  kSolid = 1,
+  kDouble = 2,
+  kDotted = 3,
+  kDashed = 4,
+  kWavy = 5,
+};
+enum class MarkdownTableSplit {
+  kNone = 0,
+  kVertical = 1,
+  kHorizontal = 2,
+  kAll = 3,
+};
+enum class MarkdownFontStyle {
+  kUndefined = 0,
+  kNormal = 1,
+  kItalic = 2,
+};
 struct MarkdownBaseStylePart {
-  uint64_t font_;
+  std::string font_;
   float font_size_;
   MarkdownFontWeight font_weight_;
+  MarkdownFontStyle font_style_;
   float line_height_;
   float paragraph_space_;
   uint32_t color_;
@@ -173,6 +239,9 @@ struct MarkdownBaseStylePart {
   float line_space_;
   MarkdownWordBreak word_break_;
   MarkdownDirection direction_;
+  MarkdownTextAlign text_align_;
+  float text_indent_;
+  MarkdownTextAlign last_line_alignment_;
 };
 struct MarkdownBlockStylePart {
   float margin_top_;
@@ -184,6 +253,9 @@ struct MarkdownBlockStylePart {
   float padding_left_;
   float padding_right_;
   float max_width_;
+  float max_height_;
+  float min_width_;
+  float min_height_;
 };
 struct MarkdownBorderStylePart {
   MarkdownBorderType border_type_;
@@ -202,7 +274,7 @@ struct MarkdownIndentStylePart {
 };
 struct MarkdownOrderedListStylePart {
   MarkdownNumberType number_type_;
-  uint64_t number_font_;
+  std::string number_font_;
   float number_font_size_;
   uint32_t number_color_;
   float number_margin_right_;
@@ -242,6 +314,7 @@ struct MarkdownLineStylePart {
   uint32_t color_;
   float radius_;
   float shrink_;
+  MarkdownLineType line_type_;
 };
 struct MarkdownMarkerStylePart {
   MarkdownMarkType mark_type_;
@@ -249,10 +322,21 @@ struct MarkdownMarkerStylePart {
 };
 struct MarkdownImageStylePart {
   bool enable_alt_text_;
+  std::string alt_image_;
   float radius_;
 };
 struct MarkdownAlignStylePart {
   MarkdownVerticalAlign vertical_align_;
+};
+struct MarkdownImageCaptionStylePart {
+  MarkdownCaptionPosition caption_position_;
+};
+struct MarkdownTableStylePart {
+  MarkdownTableBorder table_border_;
+  MarkdownTableBackground table_background_;
+  uint32_t background_color_;
+  uint32_t alt_color_;
+  MarkdownTableSplit table_split_;
 };
 struct MarkdownNormalTextStyle {
   MarkdownBaseStylePart base_;
@@ -324,6 +408,7 @@ struct MarkdownTableStyle {
   MarkdownBlockStylePart block_;
   MarkdownBorderStylePart border_;
   MarkdownScrollStylePart scroll_;
+  MarkdownTableStylePart table_;
 };
 struct MarkdownTableCellStyle {
   MarkdownBaseStylePart base_;
@@ -386,6 +471,16 @@ struct MarkdownOrderedListNumberStyle {
   MarkdownBaseStylePart base_;
   MarkdownBlockStylePart block_;
 };
+struct MarkdownImageCaptionStyle {
+  MarkdownBaseStylePart base_;
+  MarkdownImageCaptionStylePart image_caption_;
+};
+struct MarkdownBoldStyle {
+  MarkdownBaseStylePart base_;
+};
+struct MarkdownItalicStyle {
+  MarkdownBaseStylePart base_;
+};
 struct MarkdownStyle {
   MarkdownNormalTextStyle normal_text_;
   MarkdownH1Style h1_;
@@ -415,6 +510,9 @@ struct MarkdownStyle {
   MarkdownUnorderedListMarkerStyle unordered_list_marker_;
   std::unordered_map<std::string, MarkdownSpanStyle> span_styles_;
   MarkdownOrderedListNumberStyle ordered_list_number_;
+  MarkdownImageCaptionStyle image_caption_;
+  MarkdownBoldStyle bold_;
+  MarkdownItalicStyle italic_;
 };
 // AUTO GEN END
 }  // namespace markdown

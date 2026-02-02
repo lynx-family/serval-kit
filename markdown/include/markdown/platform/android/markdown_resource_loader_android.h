@@ -23,15 +23,17 @@ class MarkdownResourceLoaderAndroid
   }
 
  public:
-  void* LoadFont(const char* family) override { return nullptr; }
+  void* LoadFont(const char* family,
+                 lynx::markdown::MarkdownFontWeight weight) override {
+    return nullptr;
+  }
   lynx::markdown::MarkdownPlatformView* LoadImageView(
       const char* src, float desire_width, float desire_height, float max_width,
       float max_height, float border_radius) override {
     return nullptr;
   }
-  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadBackgroundDrawable(
-      lynx::markdown::MarkdownBackgroundStylePart* background_style,
-      float border_radius, float font_size, float root_font_size) override {
+  std::unique_ptr<tttext::RunDelegate> LoadGradient(
+      const char* gradient, float font_size, float root_font_size) override {
     return nullptr;
   }
   lynx::markdown::MarkdownPlatformView* LoadInlineView(

@@ -7,6 +7,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/utils/markdown_definition.h"
@@ -35,7 +36,7 @@ enum class MarkdownSyntaxType : uint8_t {
 
 class MarkdownElement {
  public:
-  explicit MarkdownElement(MarkdownElementType type)
+  MarkdownElement(MarkdownElementType type)
       : space_after_(0), overflow_(), char_start_(0), char_count_(0) {
     MarkdownStyleInitializer::ResetBlockStyle(&block_style_);
     MarkdownStyleInitializer::ResetBorderStyle(&border_style_);
@@ -76,11 +77,13 @@ class MarkdownElement {
   }
   bool ScrollX() const { return scroll_x_; }
   void SetScrollX(bool scroll) { scroll_x_ = scroll; }
+  MarkdownTextAlign GetLastLineAlign() const { return last_line_align_; }
+  void SetLastLineAlign(MarkdownTextAlign align) { last_line_align_ = align; }
 
  protected:
   MarkdownElementType type_;
-  MarkdownBlockStylePart block_style_{};
-  MarkdownBorderStylePart border_style_{};
+  MarkdownBlockStylePart block_style_;
+  MarkdownBorderStylePart border_style_;
   MarkdownBorder border_type_;
   float space_after_;
   MarkdownTextOverflow overflow_;
@@ -89,6 +92,7 @@ class MarkdownElement {
   MarkdownSyntaxType markdown_source_type_{MarkdownSyntaxType::kUndefined};
   Range markdown_source_range_{0, 0};
   bool scroll_x_{false};
+  MarkdownTextAlign last_line_align_{MarkdownTextAlign::kUndefined};
 };
 
 class MarkdownBlockElement : public MarkdownElement {

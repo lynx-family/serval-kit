@@ -52,7 +52,7 @@ Range MarkdownSelection::GetCharRangeByPoint(
         FindCellLineAndCharIndex(table, line_index, char_index, point);
     auto& cell = content->GetTable()->GetCell(line_index, char_index);
     auto& region_cell = table->table_->GetCell(line_index, char_index);
-    if (cell.paragraph_ == nullptr || region_cell.region_ == nullptr) {
+    if (cell.paragraph_ == nullptr) {
       range.start_ = static_cast<int32_t>(cell.char_start_);
       range.end_ = range.start_ + 1;
     } else {
@@ -236,24 +236,6 @@ int MarkdownSelection::GetPageCharCount(const MarkdownPage* page) {
   return last_element->GetCharStart() + char_count;
 }
 
-uint32_t MarkdownSelection::TypewriterStepToChar(const MarkdownPage* page,
-                                                 uint32_t typewriter_step) {
-  uint32_t typewriter_char_end = typewriter_step;
-  for (auto [char_offset, step_offset] : page->GetTypewriterStepOffset()) {
-    if (typewriter_char_end >= char_offset) {
-      typewriter_char_end += step_offset;
-      if (typewriter_char_end <= char_offset) {
-        typewriter_char_end = char_offset + 1;
-        break;
-      }
-    } else {
-      break;
-    }
-  }
-
-  return typewriter_char_end;
-}
-
 void MarkdownSelection::GetPageRegionSelectionRectByCharPos(
     lynx::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
     int32_t char_pos_end, std::vector<RectF>* rect_ptr, PointF offset,
@@ -309,7 +291,7 @@ void MarkdownSelection::GetLayoutRegionSelectionRectByCharPos(
       int32_t char_end = std::min(char_pos_end, (int32_t)line->GetEndCharPos());
       line->GetBoundingRectByCharRange(rect, char_start, char_end);
       if (width > 0 && height > 0) {
-        if (type == RectType::kSelection) {
+        if (type == RectType::kSelection || type == RectType::kLineBounding) {
           rect_vec.emplace_back(ClipRect(
               RectF::MakeLTRB(left + offset.x_, line->GetLineTop() + offset.y_,
                               left + width + offset.x_,
@@ -405,11 +387,13 @@ void MarkdownSelection::GetLayoutRegionContentByCharPos(
     int32_t char_offset, bool need_add_space) {
   if (region != nullptr && !region->IsEmpty()) {
     auto& para = *(region->GetLine(0)->GetParagraph());
+    auto last_char_index =
+        region->GetLine(region->GetLineCount() - 1)->GetEndCharPos();
     char_pos_start = std::max(0, char_pos_start);
-    char_pos_end = std::min(char_pos_end, (int32_t)para.GetCharCount());
+    char_pos_end =
+        std::min(char_pos_end, static_cast<int32_t>(last_char_index));
     int32_t char_count = char_pos_end - char_pos_start;
-    auto piece =
-        para.GetContentString(char_pos_start, char_pos_end - char_pos_start);
+    auto piece = para.GetContentString(char_pos_start, char_count);
 
     std::string piece_content;
     int32_t current_position = 0;
@@ -472,7 +456,7 @@ void MarkdownSelection::GetTableContentByCharPos(
 
 std::vector<MarkdownSelectionRegion>
 MarkdownSelection::GetSelectionRegionsByCharRange(
-    lynx::markdown::MarkdownPage* page, int32_t char_pos_start,
+    const lynx::markdown::MarkdownPage* page, int32_t char_pos_start,
     int32_t char_pos_end) {
   auto iter_begin = std::lower_bound(
       page->regions_.begin(), page->regions_.end(), char_pos_start,
@@ -492,6 +476,10 @@ MarkdownSelection::GetSelectionRegionsByCharRange(
         char_pos_end) {
       break;
     }
+    float x_offset = 0;
+    if (page_region->scroll_x_) {
+      x_offset = page_region->scroll_x_offset_;
+    }
     if (page_region->element_->GetType() == MarkdownElementType::kParagraph) {
       MarkdownSelectionRegion region;
       region.region_ =
@@ -499,8 +487,8 @@ MarkdownSelection::GetSelectionRegionsByCharRange(
               ->region_.get();
       region.char_pos_offset_ = page_region->element_->GetCharStart();
       region.char_count_ = page_region->element_->GetCharCount();
-      region.offset_ =
-          PointF{page_region->rect_.GetLeft(), page_region->rect_.GetTop()};
+      region.offset_ = PointF{page_region->rect_.GetLeft() + x_offset,
+                              page_region->rect_.GetTop()};
       selection_regions.emplace_back(std::move(region));
     } else if (page_region->element_->GetType() ==
                MarkdownElementType::kTable) {
@@ -510,26 +498,29 @@ MarkdownSelection::GetSelectionRegionsByCharRange(
       auto* content =
           reinterpret_cast<MarkdownTableElement*>(page_region->element_.get())
               ->GetTable();
+      auto table_char_start = page_region->element_->GetCharStart();
+      int32_t pos_start_in_table = char_pos_start - table_char_start;
+      int32_t pos_end_in_table = char_pos_end - table_char_start;
       for (int row = 0; row < table->GetRowCount(); row++) {
         for (int col = 0; col < table->GetColumnCount(); col++) {
           auto& cell = content->GetCell(row, col);
           auto& region_cell = table->GetCell(row, col);
           if (region_cell.region_ != nullptr) {
-            if (static_cast<int32_t>(cell.char_start_) >= char_pos_end) {
+            if (static_cast<int32_t>(cell.char_start_) >= pos_end_in_table) {
               break;
             } else if (static_cast<int32_t>(cell.char_start_ +
                                             cell.char_count_) <=
-                       char_pos_start) {
+                       pos_start_in_table) {
               continue;
             } else {
               MarkdownSelectionRegion region;
               region.region_ = region_cell.region_.get();
-              region.char_pos_offset_ = cell.char_start_;
+              region.char_pos_offset_ = cell.char_start_ + table_char_start;
               region.char_count_ = cell.char_count_;
               region.offset_ = PointF{region_cell.cell_rect_.GetLeft(),
                                       region_cell.cell_rect_.GetTop()} +
                                region_cell.region_offset_ +
-                               PointF{page_region->rect_.GetLeft(),
+                               PointF{page_region->rect_.GetLeft() + x_offset,
                                       page_region->rect_.GetTop()};
               selection_regions.emplace_back(std::move(region));
             }

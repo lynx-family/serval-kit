@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_REGION_H_
 #include <memory>
 #include <vector>
+
 #include "markdown/element/markdown_element.h"
 #include "markdown/element/markdown_paragraph.h"
 
@@ -18,11 +19,6 @@ struct MarkdownPageRegionBorder {
 struct MarkdownQuoteBorder {
   RectF rect_;
   MarkdownQuoteBorderLineStyle line_style_;
-};
-class MarkdownInlineBorderDelegate;
-struct MarkdownInlineBorder {
-  MarkdownInlineBorderDelegate* left_;
-  MarkdownInlineBorderDelegate* right_;
 };
 class MarkdownPageRegion {
  public:

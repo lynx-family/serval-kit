@@ -22,6 +22,8 @@ enum class MarkdownInlineSyntax : uint8_t {
   kInlineHtml,
   kEscape,
   kRawText,
+  kHtmlEntity,
+  kBreakLine,
 };
 class MarkdownInlineNode {
  public:
@@ -50,6 +52,23 @@ class MarkdownRawTextNode : public MarkdownInlineNode {
   explicit MarkdownRawTextNode(std::string_view text)
       : MarkdownInlineNode(MarkdownInlineSyntax::kRawText, text) {}
   ~MarkdownRawTextNode() override = default;
+};
+class MarkdownHtmlEntityNode : public MarkdownInlineNode {
+ public:
+  explicit MarkdownHtmlEntityNode(std::string_view text, std::string&& entity)
+      : MarkdownInlineNode(MarkdownInlineSyntax::kHtmlEntity, text),
+        entity_(entity) {}
+  ~MarkdownHtmlEntityNode() override = default;
+  const std::string& GetEntity() const { return entity_; }
+
+ private:
+  std::string entity_;
+};
+class MarkdownBreakLineNode : public MarkdownInlineNode {
+ public:
+  explicit MarkdownBreakLineNode(std::string_view text)
+      : MarkdownInlineNode(MarkdownInlineSyntax::kBreakLine, text) {}
+  ~MarkdownBreakLineNode() override = default;
 };
 class MarkdownLinkNode : public MarkdownInlineNode {
  public:
@@ -82,10 +101,13 @@ class MarkdownImageNode : public MarkdownInlineNode {
   void SetHeight(float height) { height_ = height; }
   void SetAltText(std::string_view text) { alt_text_ = text; }
   std::string_view GetAltText() const { return alt_text_; }
+  void SetCaption(std::string_view caption) { caption_ = caption; }
+  std::string_view GetCaption() const { return caption_; }
 
  private:
   std::string_view url_;
   std::string_view alt_text_;
+  std::string_view caption_;
   float width_{-1};
   float height_{-1};
 };

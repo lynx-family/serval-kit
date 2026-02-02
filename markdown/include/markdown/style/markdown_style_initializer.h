@@ -5,24 +5,17 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_INITIALIZER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_INITIALIZER_H_
 #include <limits>
+
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
+#include "markdown/utils/markdown_screen_metrics.h"
 namespace lynx {
 namespace markdown {
 class MarkdownStyleInitializer {
  public:
+  static float Dp(float dp) { return MarkdownScreenMetrics::DPToPx(dp); }
   static void InitialNormalText(MarkdownNormalTextStyle* style) {
-    style->base_.font_size_ = DEFAULT_TEXT_FONT_SIZE.GetPx();
-    style->base_.font_ = DEFAULT_TEXT_FONT;
-    style->base_.font_weight_ = DEFAULT_FONT_WEIGHT;
-    style->base_.background_color_ = DEFAULT_TEXT_BACKGROUND_COLOR;
-    style->base_.color_ = DEFAULT_TEXT_COLOR;
-    style->base_.line_height_ = DEFAULT_TEXT_LINE_HEIGHT.GetPx();
-    style->base_.paragraph_space_ = DEFAULT_TEXT_PARAGRAPH_SPACE.GetPx();
-    style->base_.text_overflow_ = DEFAULT_TEXT_OVERFLOW;
-    style->base_.text_maxline_ = DEFAULT_PARAGRAPH_MAXLINE;
-    style->base_.line_space_ = DEFAULT_LINE_SPACE.GetPx();
-    style->base_.word_break_ = MarkdownWordBreak::kNormal;
+    ResetBaseStyle(&style->base_);
     ResetBlockStyle(&style->block_);
   }
   static void InitialOtherStyleByNormalTextStyle(MarkdownStyle* style) {
@@ -40,12 +33,19 @@ class MarkdownStyleInitializer {
     InitialUnorderedListStyle(style);
     InitialRefStyle(style);
     InitialTableStyle(style);
+    InitialTableCellStyle(style);
     InitialSplitStyle(style);
     InitialTypewriterCursorStyle(style);
     InitialDoubleBracesStyle(style);
     InitialMarkStyle(style);
     InitialTruncationStyle(style);
     InitialListItemStyle(style);
+    InitialTableHeaderStyle(style);
+    InitialImageStyle(style);
+    InitialQuoteBorderLineStyle(style);
+    InitialUnorderedListMarkerStyle(style);
+    InitialOrderedListNumberStyle(style);
+    InitialImageCaptionStyle(style);
   }
   static void InitialNormalTextStyle(MarkdownStyle* style) {
     InitialNormalText(&style->normal_text_);
@@ -122,58 +122,53 @@ class MarkdownStyleInitializer {
     style->inline_code_.base_.background_color_ =
         DEFAULT_INLINE_CODE_BACKGROUND_COLOR;
     style->inline_code_.border_.border_radius_ =
-        DEFAULT_INLINE_CODE_BORDER_RADIUS.GetPx();
+        Dp(DEFAULT_INLINE_CODE_BORDER_RADIUS);
   }
 
   static void InitialCodeBlockStyle(MarkdownStyle* style) {
     style->code_block_.base_ = style->normal_text_.base_;
-    style->code_block_.base_.font_size_ = DEFAULT_CODE_BLOCK_FONT_SIZE.GetPx();
-    style->code_block_.base_.line_height_ =
-        DEFAULT_CODE_BLOCK_LINE_HEIGHT.GetPx();
+    style->code_block_.base_.font_size_ = Dp(DEFAULT_CODE_BLOCK_FONT_SIZE);
+    style->code_block_.base_.line_height_ = Dp(DEFAULT_CODE_BLOCK_LINE_HEIGHT);
     style->code_block_.base_.color_ = DEFAULT_CODE_BLOCK_COLOR;
     style->code_block_.base_.text_overflow_ = DEFAULT_CODE_BLOCK_OVERFLOW;
     ResetBlockStyle(&style->code_block_.block_);
     ResetBorderStyle(&style->code_block_.border_);
-    style->code_block_.block_.margin_top_ = DEFAULT_CODE_BLOCK_MARGIN.GetPx();
-    style->code_block_.block_.margin_bottom_ =
-        DEFAULT_CODE_BLOCK_MARGIN.GetPx();
+    style->code_block_.block_.margin_top_ = Dp(DEFAULT_CODE_BLOCK_MARGIN);
+    style->code_block_.block_.margin_bottom_ = Dp(DEFAULT_CODE_BLOCK_MARGIN);
     style->code_block_.block_.margin_left_ = 0;
     style->code_block_.block_.margin_right_ = 0;
-    style->code_block_.block_.padding_top_ = DEFAULT_CODE_BLOCK_PADDING.GetPx();
-    style->code_block_.block_.padding_bottom_ =
-        DEFAULT_CODE_BLOCK_PADDING.GetPx();
-    style->code_block_.block_.padding_left_ =
-        DEFAULT_CODE_BLOCK_PADDING.GetPx();
-    style->code_block_.block_.padding_right_ =
-        DEFAULT_CODE_BLOCK_PADDING.GetPx();
+    style->code_block_.block_.padding_top_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_bottom_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_left_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_right_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
     style->code_block_.border_.border_type_ = DEFAULT_CODE_BLOCK_BORDER_TYPE;
     style->code_block_.border_.border_radius_ =
-        DEFAULT_CODE_BLOCK_BORDER_RADIUS.GetPx();
+        Dp(DEFAULT_CODE_BLOCK_BORDER_RADIUS);
     style->code_block_.border_.border_color_ = DEFAULT_CODE_BLOCK_BORDER_COLOR;
     style->code_block_.border_.border_width_ =
-        DEFAULT_CODE_BLOCK_BORDER_WIDTH.GetPx();
+        Dp(DEFAULT_CODE_BLOCK_BORDER_WIDTH);
     style->code_block_.scroll_.scroll_x_ = false;
   }
 
   static void InitialQuoteStyle(MarkdownStyle* style) {
     style->quote_.base_ = style->normal_text_.base_;
     ResetBlockStyle(&style->quote_.block_);
-    style->quote_.block_.padding_left_ = DEFAULT_QUOTE_PADDING_LEFT.GetPx();
-    style->quote_.block_.margin_left_ = DEFAULT_QUOTE_MARGIN_LEFT.GetPx();
-    style->quote_.block_.margin_top_ = DEFAULT_QUOTE_MARGIN_TOP.GetPx();
-    style->quote_.block_.margin_bottom_ = DEFAULT_QUOTE_MARGIN_BOTTOM.GetPx();
+    style->quote_.block_.padding_left_ = Dp(DEFAULT_QUOTE_PADDING_LEFT);
+    style->quote_.block_.margin_left_ = Dp(DEFAULT_QUOTE_MARGIN_LEFT);
+    style->quote_.block_.margin_top_ = Dp(DEFAULT_QUOTE_MARGIN_TOP);
+    style->quote_.block_.margin_bottom_ = Dp(DEFAULT_QUOTE_MARGIN_BOTTOM);
     style->quote_.border_.border_type_ = DEFAULT_QUOTE_BORDER_TYPE;
     style->quote_.border_.border_color_ = DEFAULT_QUOTE_BORDER_COLOR;
-    style->quote_.border_.border_width_ = DEFAULT_QUOTE_BORDER_WIDTH.GetPx();
+    style->quote_.border_.border_width_ = Dp(DEFAULT_QUOTE_BORDER_WIDTH);
     style->quote_.border_.border_radius_ = 0;
-    style->quote_.indent_.indent_ = DEFAULT_QUOTE_INDENT.GetPx();
+    style->quote_.indent_.indent_ = Dp(DEFAULT_QUOTE_INDENT);
   }
 
   static void InitialOrderedListStyle(MarkdownStyle* style) {
     ResetBlockStyle(&style->ordered_list_.block_);
     style->ordered_list_.base_ = style->normal_text_.base_;
     style->ordered_list_.base_.paragraph_space_ =
-        DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE.GetPx();
+        Dp(DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE);
     style->ordered_list_.ordered_list_.number_font_ =
         style->ordered_list_.base_.font_;
     style->ordered_list_.ordered_list_.number_font_size_ =
@@ -183,35 +178,35 @@ class MarkdownStyleInitializer {
     style->ordered_list_.ordered_list_.number_type_ =
         DEFAULT_ORDERED_LIST_NUMBER_TYPE;
     style->ordered_list_.ordered_list_.number_margin_right_ =
-        DEFAULT_ORDERED_LIST_NUMBER_MARGIN.GetPx();
-    style->ordered_list_.indent_.indent_ = DEFAULT_ORDERED_LIST_INDENT.GetPx();
+        Dp(DEFAULT_ORDERED_LIST_NUMBER_MARGIN);
+    style->ordered_list_.indent_.indent_ = Dp(DEFAULT_ORDERED_LIST_INDENT);
   }
 
   static void InitialUnorderedListStyle(MarkdownStyle* style) {
     ResetBlockStyle(&style->unordered_list_.block_);
     style->unordered_list_.base_ = style->normal_text_.base_;
     style->unordered_list_.base_.paragraph_space_ =
-        DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE.GetPx();
+        Dp(DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE);
     style->unordered_list_.unordered_list_.mark_color_ =
         DEFAULT_UNORDERED_LIST_MARK_COLOR;
     style->unordered_list_.unordered_list_.mark_margin_right_ =
-        DEFAULT_UNORDERED_LIST_MARK_MARGIN.GetPx();
+        Dp(DEFAULT_UNORDERED_LIST_MARK_MARGIN);
     style->unordered_list_.unordered_list_.mark_type_ =
         DEFAULT_UNORDERED_LIST_MARK_TYPE;
     style->unordered_list_.unordered_list_.mark_size_ =
-        DEFAULT_UNORDERED_LIST_MARK_SIZE.GetPx();
+        Dp(DEFAULT_UNORDERED_LIST_MARK_SIZE);
     style->unordered_list_.indent_.indent_ = DEFAULT_UNORDERED_LIST_INDENT;
   }
 
   static void InitialRefStyle(MarkdownStyle* style) {
     style->ref_.base_ = style->normal_text_.base_;
-    style->ref_.base_.font_size_ = DEFAULT_REF_FONT_SIZE.GetPx();
+    style->ref_.base_.font_size_ = Dp(DEFAULT_REF_FONT_SIZE);
     style->ref_.ref_.background_type_ = DEFAULT_REF_BACKGROUND_TYPE;
     style->ref_.base_.color_ = DEFAULT_REF_COLOR;
     style->ref_.base_.background_color_ = DEFAULT_REF_BACKGROUND_COLOR;
     ResetBlockStyle(&(style->ref_.block_));
-    style->ref_.block_.margin_left_ = DEFAULT_REF_MARGIN.GetPx();
-    style->ref_.block_.margin_right_ = DEFAULT_REF_MARGIN.GetPx();
+    style->ref_.block_.margin_left_ = Dp(DEFAULT_REF_MARGIN);
+    style->ref_.block_.margin_right_ = Dp(DEFAULT_REF_MARGIN);
   }
 
   static void InitialTableStyle(MarkdownStyle* style) {
@@ -220,22 +215,23 @@ class MarkdownStyleInitializer {
     ResetBlockStyle(&(style->table_cell_.block_));
     style->table_.block_.margin_bottom_ =
         style->normal_text_.base_.paragraph_space_;
-    style->table_.border_.border_radius_ = DEFAULT_TABLE_BORDER_RADIUS.GetPx();
+    style->table_.border_.border_radius_ = Dp(DEFAULT_TABLE_BORDER_RADIUS);
     style->table_.border_.border_color_ = DEFAULT_TABLE_BORDER_COLOR;
-    style->table_.border_.border_width_ = DEFAULT_TABLE_BORDER_WIDTH.GetPx();
+    style->table_.border_.border_width_ = Dp(DEFAULT_TABLE_BORDER_WIDTH);
     style->table_.scroll_.scroll_x_ = false;
+    style->table_.table_.alt_color_ = 0;
+    style->table_.table_.table_background_ = MarkdownTableBackground::kNone;
+    style->table_.table_.table_border_ = MarkdownTableBorder::kFullRect;
+    style->table_.table_.table_split_ = MarkdownTableSplit::kAll;
   }
 
   static void InitialTableCellStyle(MarkdownStyle* style) {
     style->table_cell_.base_ = style->normal_text_.base_;
     style->table_cell_.base_.text_overflow_ = DEFAULT_TABLE_OVERFLOW;
-    style->table_cell_.block_.padding_left_ =
-        DEFAULT_TABLE_CELL_PADDING.GetPx();
-    style->table_cell_.block_.padding_right_ =
-        DEFAULT_TABLE_CELL_PADDING.GetPx();
-    style->table_cell_.block_.padding_top_ = DEFAULT_TABLE_CELL_PADDING.GetPx();
-    style->table_cell_.block_.padding_bottom_ =
-        DEFAULT_TABLE_CELL_PADDING.GetPx();
+    style->table_cell_.block_.padding_left_ = Dp(DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_right_ = Dp(DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_top_ = Dp(DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_bottom_ = Dp(DEFAULT_TABLE_CELL_PADDING);
     style->table_cell_.align_.vertical_align_ = DEFAULT_CELL_ALIGN;
   }
 
@@ -243,7 +239,7 @@ class MarkdownStyleInitializer {
     ResetBorderStyle(&style->split_.border_);
     ResetBlockStyle(&style->split_.block_);
     style->split_.border_.border_color_ = DEFAULT_SPLIT_COLOR;
-    style->split_.border_.border_width_ = DEFAULT_SPLIT_WIDTH.GetPx();
+    style->split_.border_.border_width_ = Dp(DEFAULT_SPLIT_WIDTH);
     style->split_.border_.border_type_ = DEFAULT_SPLIT_BORDER_TYPE;
   }
 
@@ -285,6 +281,7 @@ class MarkdownStyleInitializer {
     style->image_.size_.width_ = SIZE_UNDEFINED;
     style->image_.size_.height_ = SIZE_UNDEFINED;
     style->image_.image_.enable_alt_text_ = true;
+    style->image_.image_.radius_ = 0;
     ResetBlockStyle(&(style->image_.block_));
   }
 
@@ -295,6 +292,7 @@ class MarkdownStyleInitializer {
         style->quote_.border_.border_color_;
     style->quote_border_line_.line_.radius_ = 0;
     style->quote_border_line_.line_.shrink_ = 0;
+    style->quote_border_line_.line_.line_type_ = DEFAULT_QUOTE_LINE_TYPE;
   }
 
   static void InitialUnorderedListMarkerStyle(MarkdownStyle* style) {
@@ -312,12 +310,41 @@ class MarkdownStyleInitializer {
   }
 
   static void ResetBaseStyle(MarkdownBaseStylePart* base) {
-    base->font_ = FONT_UNDEFINED;
+    base->font_size_ = Dp(DEFAULT_TEXT_FONT_SIZE);
+    base->font_ = DEFAULT_TEXT_FONT;
+    base->font_weight_ = DEFAULT_FONT_WEIGHT;
+    base->font_style_ = MarkdownFontStyle::kUndefined;
+    base->background_color_ = DEFAULT_TEXT_BACKGROUND_COLOR;
+    base->color_ = DEFAULT_TEXT_COLOR;
+    base->line_height_ = Dp(DEFAULT_TEXT_LINE_HEIGHT);
+    base->paragraph_space_ = Dp(DEFAULT_TEXT_PARAGRAPH_SPACE);
+    base->text_overflow_ = DEFAULT_TEXT_OVERFLOW;
+    base->text_maxline_ = DEFAULT_PARAGRAPH_MAXLINE;
+    base->line_space_ = Dp(DEFAULT_LINE_SPACE);
+    base->word_break_ = MarkdownWordBreak::kNormal;
+    base->direction_ = MarkdownDirection::kNormal;
+    base->text_align_ = MarkdownTextAlign::kUndefined;
+    base->text_indent_ = 0;
+    base->last_line_alignment_ = MarkdownTextAlign::kUndefined;
+  }
+
+  static void ClearBaseStyle(MarkdownBaseStylePart* base) {
+    base->font_ = "";
     base->font_size_ = SIZE_UNDEFINED;
     base->color_ = COLOR_UNDEFINED;
     base->background_color_ = COLOR_UNDEFINED;
     base->font_weight_ = DEFAULT_FONT_WEIGHT;
+    base->font_style_ = MarkdownFontStyle::kUndefined;
     base->word_break_ = MarkdownWordBreak::kNormal;
+    base->line_height_ = SIZE_UNDEFINED;
+    base->paragraph_space_ = SIZE_UNDEFINED;
+    base->text_overflow_ = DEFAULT_TEXT_OVERFLOW;
+    base->text_maxline_ = DEFAULT_PARAGRAPH_MAXLINE;
+    base->line_space_ = SIZE_UNDEFINED;
+    base->direction_ = MarkdownDirection::kNormal;
+    base->text_align_ = MarkdownTextAlign::kUndefined;
+    base->text_indent_ = 0;
+    base->last_line_alignment_ = MarkdownTextAlign::kUndefined;
   }
 
   static void InitializeSpanStyle(MarkdownSpanStyle* style) {
@@ -325,7 +352,7 @@ class MarkdownStyleInitializer {
     ResetBorderStyle(&style->border_);
     ResetDecorationStyle(&style->decoration_);
     style->align_.vertical_align_ = MarkdownVerticalAlign::kBaseline;
-    ResetBaseStyle(&style->base_);
+    ClearBaseStyle(&(style->base_));
   }
 
   static void InitialOrderedListNumberStyle(MarkdownStyle* style) {
@@ -340,19 +367,30 @@ class MarkdownStyleInitializer {
     style->ordered_list_number_.block_.margin_right_ =
         style->ordered_list_.ordered_list_.number_margin_right_;
   }
+  static void InitialImageCaptionStyle(MarkdownStyle* style) {
+    style->image_caption_.base_ = style->normal_text_.base_;
+    style->image_caption_.image_caption_.caption_position_ =
+        MarkdownCaptionPosition::kBottom;
+    style->image_caption_.base_.text_align_ = DEFAULT_IMAGE_CAPTION_ALIGN;
+  }
+  static void InitialBoldStyle(MarkdownStyle* style) {
+    ClearBaseStyle(&(style->bold_.base_));
+    style->bold_.base_.font_weight_ = MarkdownFontWeight::kBold;
+  }
+  static void InitialItalicStyle(MarkdownStyle* style) {
+    ClearBaseStyle(&(style->italic_.base_));
+    style->italic_.base_.font_style_ = MarkdownFontStyle::kItalic;
+  }
 
  public:
-  constexpr static auto DEFAULT_TEXT_FONT_SIZE =
-      MarkdownStyleLengthValue::FromDp(17);
-  constexpr static uint64_t DEFAULT_TEXT_FONT = 0;
+  constexpr static float DEFAULT_TEXT_FONT_SIZE = 17;
+  constexpr static const char* DEFAULT_TEXT_FONT = "";
   constexpr static MarkdownFontWeight DEFAULT_FONT_WEIGHT =
       MarkdownFontWeight::kNormal;
   constexpr static uint32_t DEFAULT_TEXT_COLOR = 0xff000000;
   constexpr static uint32_t DEFAULT_TEXT_BACKGROUND_COLOR = 0;
-  constexpr static auto DEFAULT_TEXT_LINE_HEIGHT =
-      MarkdownStyleLengthValue::FromDp(30);
-  constexpr static auto DEFAULT_TEXT_PARAGRAPH_SPACE =
-      MarkdownStyleLengthValue::FromDp(12);
+  constexpr static float DEFAULT_TEXT_LINE_HEIGHT = 30;
+  constexpr static float DEFAULT_TEXT_PARAGRAPH_SPACE = 12;
   constexpr static MarkdownTextOverflow DEFAULT_TEXT_OVERFLOW =
       MarkdownTextOverflow::kEllipsis;
   constexpr static float DEFAULT_H1_SCALE = 2.3;
@@ -362,81 +400,56 @@ class MarkdownStyleInitializer {
   constexpr static float DEFAULT_H5_SCALE = 1.3;
   constexpr static float DEFAULT_H6_SCALE = 1.0;
   constexpr static uint32_t DEFAULT_INLINE_CODE_BACKGROUND_COLOR = 0xFFd3d3d3;
-  constexpr static auto DEFAULT_CODE_BLOCK_FONT_SIZE =
-      MarkdownStyleLengthValue::FromDp(14);
-  constexpr static auto DEFAULT_CODE_BLOCK_LINE_HEIGHT =
-      MarkdownStyleLengthValue::FromDp(22);
-  constexpr static auto DEFAULT_CODE_BLOCK_MARGIN =
-      MarkdownStyleLengthValue::FromDp(12);
-  constexpr static auto DEFAULT_CODE_BLOCK_PADDING =
-      MarkdownStyleLengthValue::FromDp(12);
+  constexpr static float DEFAULT_CODE_BLOCK_FONT_SIZE = 14;
+  constexpr static float DEFAULT_CODE_BLOCK_LINE_HEIGHT = 22;
+  constexpr static float DEFAULT_CODE_BLOCK_MARGIN = 12;
+  constexpr static float DEFAULT_CODE_BLOCK_PADDING = 12;
   constexpr static uint32_t DEFAULT_CODE_BLOCK_COLOR = 0xbf161823;
   constexpr static MarkdownBorderType DEFAULT_CODE_BLOCK_BORDER_TYPE =
       MarkdownBorderType::kSolid;
-  constexpr static auto DEFAULT_CODE_BLOCK_BORDER_RADIUS =
-      MarkdownStyleLengthValue::FromDp(7);
+  constexpr static float DEFAULT_CODE_BLOCK_BORDER_RADIUS = 7;
   constexpr static uint32_t DEFAULT_CODE_BLOCK_BORDER_COLOR = 0xffe8e8e8;
-  constexpr static auto DEFAULT_CODE_BLOCK_BORDER_WIDTH =
-      MarkdownStyleLengthValue::FromDp(1);
+  constexpr static float DEFAULT_CODE_BLOCK_BORDER_WIDTH = 1;
   constexpr static MarkdownTextOverflow DEFAULT_CODE_BLOCK_OVERFLOW =
       MarkdownTextOverflow::kClip;
-  constexpr static auto DEFAULT_QUOTE_MARGIN_LEFT =
-      MarkdownStyleLengthValue::FromDp(8);
-  constexpr static auto DEFAULT_QUOTE_MARGIN_TOP =
-      MarkdownStyleLengthValue::FromDp(5);
-  constexpr static auto DEFAULT_QUOTE_MARGIN_BOTTOM =
-      MarkdownStyleLengthValue::FromDp(5);
-  constexpr static auto DEFAULT_QUOTE_PADDING_LEFT =
-      MarkdownStyleLengthValue::FromDp(8);
+  constexpr static float DEFAULT_QUOTE_MARGIN_LEFT = 8;
+  constexpr static float DEFAULT_QUOTE_MARGIN_TOP = 5;
+  constexpr static float DEFAULT_QUOTE_MARGIN_BOTTOM = 5;
+  constexpr static float DEFAULT_QUOTE_PADDING_LEFT = 8;
   constexpr static MarkdownBorderType DEFAULT_QUOTE_BORDER_TYPE =
       MarkdownBorderType::kSolid;
   constexpr static uint32_t DEFAULT_QUOTE_BORDER_COLOR = 0xffd0c6ff;
-  constexpr static auto DEFAULT_QUOTE_BORDER_WIDTH =
-      MarkdownStyleLengthValue::FromDp(2);
-  constexpr static auto DEFAULT_QUOTE_INDENT =
-      MarkdownStyleLengthValue::FromDp(18);
+  constexpr static float DEFAULT_QUOTE_BORDER_WIDTH = 2;
+  constexpr static float DEFAULT_QUOTE_INDENT = 18;
   constexpr static MarkdownNumberType DEFAULT_ORDERED_LIST_NUMBER_TYPE =
       MarkdownNumberType::kNumber;
-  constexpr static auto DEFAULT_ORDERED_LIST_NUMBER_MARGIN =
-      MarkdownStyleLengthValue::FromDp(4);
-  constexpr static auto DEFAULT_ORDERED_LIST_INDENT =
-      MarkdownStyleLengthValue::FromDp(20);
-  constexpr static auto DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE =
-      MarkdownStyleLengthValue::FromDp(6);
+  constexpr static float DEFAULT_ORDERED_LIST_NUMBER_MARGIN = 4;
+  constexpr static float DEFAULT_ORDERED_LIST_INDENT = 20;
+  constexpr static float DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE = 6;
   constexpr static MarkdownMarkType DEFAULT_UNORDERED_LIST_MARK_TYPE =
       MarkdownMarkType::kMixed;
-  constexpr static auto DEFAULT_UNORDERED_LIST_MARK_MARGIN =
-      MarkdownStyleLengthValue::FromDp(4);
+  constexpr static float DEFAULT_UNORDERED_LIST_MARK_MARGIN = 4;
   constexpr static float DEFAULT_UNORDERED_LIST_INDENT = -1;
-  constexpr static auto DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE =
-      MarkdownStyleLengthValue::FromDp(6);
+  constexpr static float DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE = 6;
   constexpr static uint32_t DEFAULT_UNORDERED_LIST_MARK_COLOR = 0xffd0c6ff;
-  constexpr static auto DEFAULT_UNORDERED_LIST_MARK_SIZE =
-      MarkdownStyleLengthValue::FromDp(4);
-  constexpr static auto DEFAULT_REF_FONT_SIZE =
-      MarkdownStyleLengthValue::FromDp(10);
+  constexpr static float DEFAULT_UNORDERED_LIST_MARK_SIZE = 4;
+  constexpr static float DEFAULT_REF_FONT_SIZE = 10;
   constexpr static MarkdownBackgroundType DEFAULT_REF_BACKGROUND_TYPE =
       MarkdownBackgroundType::kCapsule;
   constexpr static uint32_t DEFAULT_REF_COLOR = 0xff6100ff;
   constexpr static uint32_t DEFAULT_REF_BACKGROUND_COLOR = 0xfff6f4ff;
-  constexpr static auto DEFAULT_REF_MARGIN =
-      MarkdownStyleLengthValue::FromDp(2);
-  constexpr static auto DEFAULT_TABLE_CELL_PADDING =
-      MarkdownStyleLengthValue::FromDp(5);
+  constexpr static float DEFAULT_REF_MARGIN = 2;
+  constexpr static float DEFAULT_TABLE_CELL_PADDING = 5;
   constexpr static uint32_t DEFAULT_SPLIT_COLOR = 0xff000000;
-  constexpr static auto DEFAULT_SPLIT_WIDTH =
-      MarkdownStyleLengthValue::FromDp(1);
+  constexpr static float DEFAULT_SPLIT_WIDTH = 1;
   constexpr static MarkdownBorderType DEFAULT_SPLIT_BORDER_TYPE =
       MarkdownBorderType::kSolid;
   constexpr static uint32_t DEFAULT_TABLE_BORDER_COLOR = 0xff000000;
-  constexpr static auto DEFAULT_TABLE_BORDER_WIDTH =
-      MarkdownStyleLengthValue::FromDp(1);
+  constexpr static float DEFAULT_TABLE_BORDER_WIDTH = 1;
   constexpr static MarkdownTextOverflow DEFAULT_TABLE_OVERFLOW =
       MarkdownTextOverflow::kClip;
-  constexpr static auto DEFAULT_TABLE_BORDER_RADIUS =
-      MarkdownStyleLengthValue::FromDp(7);
-  constexpr static auto DEFAULT_INLINE_CODE_BORDER_RADIUS =
-      MarkdownStyleLengthValue::FromDp(2);
+  constexpr static float DEFAULT_TABLE_BORDER_RADIUS = 7;
+  constexpr static float DEFAULT_INLINE_CODE_BORDER_RADIUS = 2;
   constexpr static MarkdownVerticalAlign DEFAULT_TYPEWRITER_VERTICAL_ALIGN =
       MarkdownVerticalAlign::kBaseline;
   constexpr static float FONT_SIZE_UNDEFINED = -1;
@@ -444,16 +457,23 @@ class MarkdownStyleInitializer {
       MarkdownTruncationType::kText;
   constexpr static auto DEFAULT_TRUNCATION_CONTENT = "…";
   constexpr static int32_t DEFAULT_PARAGRAPH_MAXLINE = -1;
-  constexpr static auto DEFAULT_LINE_SPACE =
-      MarkdownStyleLengthValue::FromDp(0);
+  constexpr static float DEFAULT_LINE_SPACE = 0;
   constexpr static float SIZE_UNDEFINED = -1;
   constexpr static MarkdownVerticalAlign DEFAULT_CELL_ALIGN =
       MarkdownVerticalAlign::kCenter;
   constexpr static MarkdownVerticalAlign DEFAULT_MARKER_ALIGN =
       MarkdownVerticalAlign::kCenter;
   constexpr static uint32_t COLOR_UNDEFINED = 1;
-  constexpr static uint64_t FONT_UNDEFINED =
-      std::numeric_limits<uint64_t>::max();
+  // Empty string means "use platform default".
+  constexpr static const char* FONT_UNDEFINED = "";
+  constexpr static MarkdownTableBorder DEFAULT_TABLE_BORDER =
+      MarkdownTableBorder::kFullRect;
+  constexpr static MarkdownTableBackground DEFAULT_TABLE_BACKGROUND =
+      MarkdownTableBackground::kNone;
+  constexpr static MarkdownLineType DEFAULT_QUOTE_LINE_TYPE =
+      MarkdownLineType::kSolid;
+  constexpr static MarkdownTextAlign DEFAULT_IMAGE_CAPTION_ALIGN =
+      MarkdownTextAlign::kCenter;
 };
 }  // namespace markdown
 }  // namespace lynx
