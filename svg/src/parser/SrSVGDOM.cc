@@ -54,13 +54,15 @@ void pre_parse_inherit_attribute(const element::SrSVGNode* parentNode,
   node->inherit_fill_opacity_ = parentNode->fill_opacity_;
   node->inherit_stroke_opacity_ = parentNode->stroke_opacity_;
   node->inherit_stroke_width_ = parentNode->stroke_width_;
-  node->inherit_clip_path_ = parentNode->clip_path_;
-  node->inherit_color_ = parentNode->color_;
 }
 
 void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,
                              element::SrSVGNodeBase* child_node) {
-  child_node->inherit_color_ = parent_node->color_;
+  if (parent_node->color_) {
+    child_node->inherit_color_ = parent_node->color_;
+  } else {
+    child_node->inherit_color_ = parent_node->inherit_color_;
+  }
 }
 
 element::SrSVGNodeBase* construct_svg_node(

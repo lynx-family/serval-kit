@@ -336,23 +336,40 @@ void SrSkityCanvas::Restore() {
 
 void SrSkityCanvas::DrawLine(const char*, float x1, float y1, float x2,
                              float y2, const SrSVGRenderState& render_state) {
-  canvas_->DrawLine(x1, y1, x2, y2,
-                    ConvertToPaint(render_state, {x1, y1, x2, y2}));
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawLine(x1, y1, x2, y2,
+                      ConvertToPaint(render_state, {x1, y1, x2, y2}, true));
+  }
 }
 
 void SrSkityCanvas::DrawRect(const char* id, float x, float y, float rx,
                              float ry, float width, float height,
                              const SrSVGRenderState& render_state) {
-  canvas_->DrawRoundRect(
-      {x, y, x + width, y + height}, rx, ry,
-      ConvertToPaint(render_state, {x, y, x + width, y + height}));
+  ::skity::Rect rect = {x, y, x + width, y + height};
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawRoundRect(rect, rx, ry,
+                           ConvertToPaint(render_state, rect, false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawRoundRect(rect, rx, ry,
+                           ConvertToPaint(render_state, rect, true));
+  }
 }
 
 void SrSkityCanvas::DrawCircle(const char*, float cx, float cy, float r,
                                const SrSVGRenderState& render_state) {
-  canvas_->DrawCircle(
-      cx, cy, r,
-      ConvertToPaint(render_state, {cx - r, cy - r, cx + r, cy + r}));
+  ::skity::Rect rect = {cx - r, cy - r, cx + r, cy + r};
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawCircle(cx, cy, r, ConvertToPaint(render_state, rect, false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawCircle(cx, cy, r, ConvertToPaint(render_state, rect, true));
+  }
 }
 
 void SrSkityCanvas::DrawPolygon(const char*, float* points, uint32_t n_points,
@@ -365,7 +382,22 @@ void SrSkityCanvas::DrawPolygon(const char*, float* points, uint32_t n_points,
     path.LineTo(points[2 * i], points[2 * i + 1]);
   }
   path.Close();
-  canvas_->DrawPath(path, ConvertToPaint(render_state, path.GetBounds()));
+  if (render_state.fill_rule == SR_SVG_EO_FILL) {
+    path.SetFillType(::skity::Path::PathFillType::kEvenOdd);
+  } else {
+    path.SetFillType(::skity::Path::PathFillType::kWinding);
+  }
+
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), true));
+  }
 }
 
 void SrSkityCanvas::DrawPolyline(const char*, float* points, uint32_t n_points,
@@ -377,20 +409,38 @@ void SrSkityCanvas::DrawPolyline(const char*, float* points, uint32_t n_points,
   for (uint32_t i = 1; i < n_points; ++i) {
     path.LineTo(points[2 * i], points[2 * i + 1]);
   }
-  path.Close();
-  ::skity::Paint paint = ConvertToPaint(render_state, path.GetBounds());
-  paint.SetStyle(::skity::Paint::kStroke_Style);
-  canvas_->DrawPath(path, paint);
+
+  if (render_state.fill_rule == SR_SVG_EO_FILL) {
+    path.SetFillType(::skity::Path::PathFillType::kEvenOdd);
+  } else {
+    path.SetFillType(::skity::Path::PathFillType::kWinding);
+  }
+
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), true));
+  }
 }
 
 void SrSkityCanvas::DrawEllipse(const char*, float center_x, float center_y,
                                 float radius_x, float radius_y,
                                 const SrSVGRenderState& render_state) {
-  canvas_->DrawOval(
-      {center_x - radius_x, center_y - radius_y, center_x + radius_x,
-       center_y + radius_y},
-      ConvertToPaint(render_state, {center_x - radius_x, center_y - radius_y,
-                                    center_x + radius_x, center_y + radius_y}));
+  ::skity::Rect rect = {center_x - radius_x, center_y - radius_y,
+                        center_x + radius_x, center_y + radius_y};
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawOval(rect, ConvertToPaint(render_state, rect, false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawOval(rect, ConvertToPaint(render_state, rect, true));
+  }
 }
 
 void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
@@ -454,7 +504,22 @@ void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
         break;
     }
   }
-  canvas_->DrawPath(path, ConvertToPaint(render_state, path.GetBounds()));
+  if (render_state.fill_rule == SR_SVG_EO_FILL) {
+    path.SetFillType(::skity::Path::PathFillType::kEvenOdd);
+  } else {
+    path.SetFillType(::skity::Path::PathFillType::kWinding);
+  }
+
+  if (render_state.fill &&
+      render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), false));
+  }
+  if (render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE) {
+    canvas_->DrawPath(path,
+                      ConvertToPaint(render_state, path.GetBounds(), true));
+  }
   canvas_->Restore();
 }
 
@@ -630,23 +695,30 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
 }
 
 ::skity::Paint SrSkityCanvas::ConvertToPaint(
-    const SrSVGRenderState& render_state, ::skity::Rect bound) {
+    const SrSVGRenderState& render_state, ::skity::Rect bound, bool is_stroke) {
   ::skity::Paint paint;
-  bool has_fill = render_state.fill &&
-                  render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE;
-  bool has_stroke =
-      render_state.stroke &&
-      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE;
-  paint.SetStyle(has_fill && has_stroke ? ::skity::Paint::kStrokeAndFill_Style
-                 : has_fill             ? ::skity::Paint::kFill_Style
-                                        : ::skity::Paint::kStroke_Style);
-  paint.SetAlpha(render_state.opacity * 255);
-  paint.SetStrokeWidth(render_state.stroke_width);
+  paint.SetStyle(is_stroke ? ::skity::Paint::kStroke_Style
+                           : ::skity::Paint::kFill_Style);
+  float alpha = render_state.opacity;
+  alpha *= is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
+  paint.SetAlpha(alpha * 255);
+  if (is_stroke) {
+    paint.SetStrokeWidth(render_state.stroke_width);
+  }
 
   auto do_paint = [&](SrSVGPaint* sr_paint) {
     if (sr_paint) {
       if (sr_paint->type == SrSVGPaintType::SERVAL_PAINT_COLOR) {
-        paint.SetFillColor(sr_paint->content.color.color);
+        uint32_t color = sr_paint->content.color.color;
+        uint32_t color_alpha = (color >> 24) & 0xFF;
+        color_alpha = static_cast<uint32_t>(color_alpha * alpha);
+        color = (color & 0x00FFFFFF) | (color_alpha << 24);
+
+        if (is_stroke) {
+          paint.SetStrokeColor(color);
+        } else {
+          paint.SetFillColor(color);
+        }
       } else if (sr_paint->type == SrSVGPaintType::SERVAL_PAINT_IRI) {
         do {
           auto ret_l = lg_models_.find(sr_paint->content.iri);
@@ -666,27 +738,31 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
       }
     }
   };
-  do_paint(render_state.fill);
-  do_paint(render_state.stroke);
 
-  if (render_state.stroke_state) {
-    paint.SetStrokeCap(
-        (::skity::Paint::Cap)render_state.stroke_state->stroke_line_cap);
-    paint.SetStrokeJoin(
-        (::skity::Paint::Join)render_state.stroke_state->stroke_line_join);
-    paint.SetStrokeMiter(render_state.stroke_state->stroke_miter_limit);
-    if (render_state.stroke_state->dash_array &&
-        render_state.stroke_state->dash_array_length > 0) {
-      std::vector<float> pattern;
-      for (size_t i = 0; i < render_state.stroke_state->dash_array_length;
-           ++i) {
-        pattern.emplace_back(render_state.stroke_state->dash_array[i]);
+  if (is_stroke) {
+    do_paint(render_state.stroke);
+    if (render_state.stroke_state) {
+      paint.SetStrokeCap(
+          (::skity::Paint::Cap)render_state.stroke_state->stroke_line_cap);
+      paint.SetStrokeJoin(
+          (::skity::Paint::Join)render_state.stroke_state->stroke_line_join);
+      paint.SetStrokeMiter(render_state.stroke_state->stroke_miter_limit);
+      if (render_state.stroke_state->dash_array &&
+          render_state.stroke_state->dash_array_length > 0) {
+        std::vector<float> pattern;
+        for (size_t i = 0; i < render_state.stroke_state->dash_array_length;
+             ++i) {
+          pattern.emplace_back(render_state.stroke_state->dash_array[i]);
+        }
+        paint.SetPathEffect(::skity::PathEffect::MakeDashPathEffect(
+            pattern.data(), pattern.size(),
+            render_state.stroke_state->stroke_dash_offset));
       }
-      paint.SetPathEffect(::skity::PathEffect::MakeDashPathEffect(
-          pattern.data(), pattern.size(),
-          render_state.stroke_state->stroke_dash_offset));
     }
+  } else {
+    do_paint(render_state.fill);
   }
+
   return paint;
 }
 
@@ -744,7 +820,7 @@ std::shared_ptr<::skity::Data> SrSkityCanvas::GetSrSvgDrawImageWithData(
     return nullptr;
   }
   SrSkityCanvas sr_canvas(canvas.get(), image_callback);
-  SrSVGBox view_port{0.f, 0.f, 374, 125};
+  SrSVGBox view_port{0.f, 0.f, width, height};
   svg_dom->Render(&sr_canvas, view_port);
 
   return ::skity::Data::MakeWithCopy(bitmap.GetPixelAddr(),

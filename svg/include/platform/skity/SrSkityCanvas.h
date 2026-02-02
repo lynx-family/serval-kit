@@ -127,7 +127,7 @@ class SrSkityCanvas : public canvas::SrCanvas {
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,
-                                ::skity::Rect bound);
+                                ::skity::Rect bound, bool is_stroke);
 
  private:
   ::skity::Canvas* canvas_{nullptr};
