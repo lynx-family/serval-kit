@@ -94,7 +94,8 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,
                                                          jobject thiz,
                                                          jlong instance,
                                                          jbyteArray buffer) {
-  if (buffer == nullptr || instance == 0) return;
+  if (buffer == nullptr || instance == 0)
+    return;
   auto view = ConvertView(instance);
   auto length = env->GetArrayLength(buffer);
   auto array = env->GetByteArrayElements(buffer, nullptr);
@@ -102,7 +103,8 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,
   MarkdownBufferReader reader(stream);
   auto result = reader.ReadValue();
   env->ReleaseByteArrayElements(buffer, array, 0);
-  if (result->GetType() != lynx::markdown::ValueType::kMap) return;
+  if (result->GetType() != lynx::markdown::ValueType::kMap)
+    return;
   view->GetMarkdownView()->SetStyle(result->AsMap());
 }
 extern "C" JNIEXPORT void JNICALL
@@ -110,7 +112,8 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
                                                         jobject thiz,
                                                         jlong instance,
                                                         jlong time) {
-  if (instance == 0) return;
+  if (instance == 0)
+    return;
   auto view = ConvertView(instance);
   view->GetMarkdownView()->OnNextFrame(time);
 }
@@ -118,7 +121,8 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberConfig(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jdouble value) {
-  if (instance == 0) return;
+  if (instance == 0)
+    return;
   auto* view = ConvertView(instance);
   auto config_key = static_cast<ConfigKey>(key);
   switch (config_key) {

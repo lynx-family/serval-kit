@@ -131,7 +131,8 @@ void HarmonyView::EnableTapEvent(bool enable, ArkUI_GesturePriority priority) {
       tap_ = api->createTapGestureWithDistanceThreshold(1, 1, 1);
       auto tap_callback = [](ArkUI_GestureEvent* event, void* ud) {
         auto* view = reinterpret_cast<HarmonyView*>(ud);
-        if (view->tap_gesture_listener_ == nullptr) return;
+        if (view->tap_gesture_listener_ == nullptr)
+          return;
         auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
         auto x = OH_ArkUI_PointerEvent_GetX(input_event);
         auto y = OH_ArkUI_PointerEvent_GetY(input_event);
@@ -163,7 +164,8 @@ void HarmonyView::EnableLongPressEvent(bool enable,
       long_press_ = api->createLongPressGesture(1, false, 500);
       auto long_press_callback = [](ArkUI_GestureEvent* event, void* ud) {
         auto* view = reinterpret_cast<HarmonyView*>(ud);
-        if (view->long_press_gesture_listener_ == nullptr) return;
+        if (view->long_press_gesture_listener_ == nullptr)
+          return;
         auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
         auto x = OH_ArkUI_PointerEvent_GetX(input_event);
         auto y = OH_ArkUI_PointerEvent_GetY(input_event);
@@ -195,7 +197,8 @@ void HarmonyView::EnablePanEvent(bool enable,
       pan_ = api->createPanGesture(1, direction, 5);
       auto pan_callback = [](ArkUI_GestureEvent* event, void* ud) {
         auto* view = reinterpret_cast<HarmonyView*>(ud);
-        if (view->pan_gesture_listener_ == nullptr) return;
+        if (view->pan_gesture_listener_ == nullptr)
+          return;
         auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
         auto x = OH_ArkUI_PointerEvent_GetX(input_event);
         auto y = OH_ArkUI_PointerEvent_GetY(input_event);
@@ -343,7 +346,9 @@ SizeF HarmonyView::Measure(MeasureSpec spec) {
   OH_ArkUI_LayoutConstraint_Dispose(constraint);
   return GetMeasuredSize();
 }
-void HarmonyView::Align(float left, float top) { Layout(left, top); }
+void HarmonyView::Align(float left, float top) {
+  Layout(left, top);
+}
 void HarmonyView::Draw(tttext::ICanvasHelper* canvas) {}
 SizeF HarmonyView::GetMeasuredSize() {
   auto size = GetMeasuredIntSize();
@@ -362,7 +367,9 @@ EtsViewHolder::EtsViewHolder(ArkUI_NodeHandle child) : child_(child) {
   RequestCustomLayout();
   RequestCustomMeasure();
 }
-EtsViewHolder::~EtsViewHolder() { api_->removeChild(handle_, child_); }
+EtsViewHolder::~EtsViewHolder() {
+  api_->removeChild(handle_, child_);
+}
 void EtsViewHolder::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   api_->measureNode(child_, constraint);
   auto child_size = api_->getMeasuredSize(child_);

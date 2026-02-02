@@ -23,18 +23,21 @@
   [self.view addSubview:self.markdown];
   self.markdown.translatesAutoresizingMaskIntoConstraints = NO;
   [NSLayoutConstraint activateConstraints:@[
-    [self.markdown.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor
-                                                constant:16.0],
+    [self.markdown.leadingAnchor
+        constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor
+                       constant:16.0],
     [self.markdown.trailingAnchor
         constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor
                        constant:-16.0],
-    [self.markdown.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor
-                                            constant:24.0],
+    [self.markdown.topAnchor
+        constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor
+                       constant:24.0],
   ]];
   [self.markdown setContentHuggingPriority:UILayoutPriorityRequired
                                    forAxis:UILayoutConstraintAxisVertical];
-  [self.markdown setContentCompressionResistancePriority:UILayoutPriorityRequired
-                                                 forAxis:UILayoutConstraintAxisVertical];
+  [self.markdown
+      setContentCompressionResistancePriority:UILayoutPriorityRequired
+                                      forAxis:UILayoutConstraintAxisVertical];
   [self.markdown requestMeasure];
   self.view.backgroundColor = [UIColor whiteColor];
   [self.view setNeedsLayout];

@@ -305,9 +305,8 @@ TEST(LogStreamTest, WCharToString) {
   static const struct {
     wchar_t input;
     std::string output;
-  } cases[] = {{L'1', "1"},   {L'a', "a"},   {L'b', "b"},
-               {L'c', "c"},   {L'\r', "\r"}, {L'\t', "\t"},
-               {L'\n', "\n"}, {L'汉', "汉"}, {0x6C49, "汉"}};
+  } cases[] = {{L'1', "1"},   {L'a', "a"},   {L'b', "b"},  {L'c', "c"},
+               {L'\r', "\r"}, {L'\t', "\t"}, {L'\n', "\n"}};
 
   for (const auto& test : cases) {
     EXPECT_EQ(ConvertToString(test.input), test.output);

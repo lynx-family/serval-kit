@@ -7,18 +7,22 @@ namespace lynx::markdown {
 
 MarkdownPlatformViewIOS::MarkdownPlatformViewIOS(UIView* view) : view_(view) {}
 
-void MarkdownPlatformViewIOS::RequestDraw() { [view_ setNeedsDisplay]; }
+void MarkdownPlatformViewIOS::RequestDraw() {
+  [view_ setNeedsDisplay];
+}
 PointF MarkdownPlatformViewIOS::GetAlignedPosition() {
   if (view_ == nil) {
     return {0, 0};
   }
-  return {static_cast<float>(view_.frame.origin.x), static_cast<float>(view_.frame.origin.y)};
+  return {static_cast<float>(view_.frame.origin.x),
+          static_cast<float>(view_.frame.origin.y)};
 }
 SizeF MarkdownPlatformViewIOS::GetMeasuredSize() {
   if (view_ == nil) {
     return {0, 0};
   }
-  return {static_cast<float>(view_.frame.size.width), static_cast<float>(view_.frame.size.height)};
+  return {static_cast<float>(view_.frame.size.width),
+          static_cast<float>(view_.frame.size.height)};
 }
 
 void MarkdownPlatformViewIOS::SetMeasuredSize(SizeF size) {
@@ -37,5 +41,7 @@ void MarkdownPlatformViewIOS::SetAlignPosition(PointF position) {
   new_frame.origin = CGPointMake(position.x_, position.y_);
   view_.frame = new_frame;
 }
-void MarkdownPlatformViewIOS::SetVisibility(bool visible) { view_.hidden = !visible; }
+void MarkdownPlatformViewIOS::SetVisibility(bool visible) {
+  view_.hidden = !visible;
+}
 }  // namespace lynx::markdown

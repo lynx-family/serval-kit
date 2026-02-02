@@ -61,7 +61,7 @@ jobs:
 
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
-      
+
       - name: Build AAR
         working-directory: markdown/platform/android/serval_markdown
         run: |
@@ -94,7 +94,7 @@ jobs:
 
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
-      
+
       - name: Install Cocoapods Generate
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk

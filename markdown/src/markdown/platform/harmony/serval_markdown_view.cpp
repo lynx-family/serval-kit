@@ -88,7 +88,8 @@ RectF NativeServalMarkdownView::GetViewRectInScreen() {
   return RectF::MakeLTRB(left, top, right, bottom);
 }
 void* NativeServalMarkdownView::LoadFont(const char* family) {
-  if (loader_ == nullptr) return nullptr;
+  if (loader_ == nullptr)
+    return nullptr;
   return loader_->LoadFont(family);
 }
 void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
@@ -117,14 +118,16 @@ MarkdownPlatformView* NativeServalMarkdownView::InsertEtsView(
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadInlineView(
     const char* id_selector, float max_width, float max_height) {
-  if (loader_ == nullptr) return nullptr;
+  if (loader_ == nullptr)
+    return nullptr;
   return InsertEtsView(
       loader_->LoadInlineView(id_selector, max_width, max_height));
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
     const char* src, float desire_width, float desire_height, float max_width,
     float max_height, float border_radius) {
-  if (loader_ == nullptr) return nullptr;
+  if (loader_ == nullptr)
+    return nullptr;
   return InsertEtsView(loader_->LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
@@ -132,7 +135,8 @@ std::shared_ptr<MarkdownDrawable>
 NativeServalMarkdownView::LoadBackgroundDrawable(
     MarkdownBackgroundStylePart* background_style, float border_radius,
     float font_size, float root_font_size) {
-  if (loader_ == nullptr) return nullptr;
+  if (loader_ == nullptr)
+    return nullptr;
   return nullptr;
 }
 MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(

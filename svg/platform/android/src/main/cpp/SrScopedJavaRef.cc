@@ -71,4 +71,3 @@ void JavaRef::ResetNewGlobalRef(JNIEnv* env, jobject j_obj) {
 }  // namespace android
 }  // namespace svg
 }  // namespace serval
-

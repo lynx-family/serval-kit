@@ -32,4 +32,3 @@ void SrAndroidPath::Transform(const float (&xform)[6]) {
 }  // namespace android
 }  // namespace svg
 }  // namespace serval
-

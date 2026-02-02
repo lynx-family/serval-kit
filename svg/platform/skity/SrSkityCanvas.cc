@@ -632,10 +632,14 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
 ::skity::Paint SrSkityCanvas::ConvertToPaint(
     const SrSVGRenderState& render_state, ::skity::Rect bound) {
   ::skity::Paint paint;
-  paint.SetStyle(render_state.fill && render_state.stroke
-                     ? ::skity::Paint::kStrokeAndFill_Style
-                 : render_state.fill ? ::skity::Paint::kFill_Style
-                                     : ::skity::Paint::kStroke_Style);
+  bool has_fill = render_state.fill &&
+                  render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_NONE;
+  bool has_stroke =
+      render_state.stroke &&
+      render_state.stroke->type != SrSVGPaintType::SERVAL_PAINT_NONE;
+  paint.SetStyle(has_fill && has_stroke ? ::skity::Paint::kStrokeAndFill_Style
+                 : has_fill             ? ::skity::Paint::kFill_Style
+                                        : ::skity::Paint::kStroke_Style);
   paint.SetAlpha(render_state.opacity * 255);
   paint.SetStrokeWidth(render_state.stroke_width);
 

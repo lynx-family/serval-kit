@@ -212,34 +212,37 @@ TEST(MarkdownInlineParserTest, Stars) {
          Root({Italic("*", {RawText("italic")}), RawText("normal text")}));
   Expect("normal text*italic*",
          Root({RawText("normal text"), Italic("*", {RawText("italic")})}));
-  Expect("***bold italic***", Root({BoldItalic("*", {RawText("bold italic")})}));
+  Expect("***bold italic***",
+         Root({BoldItalic("*", {RawText("bold italic")})}));
   Expect("normal text*italic*normal text", Root({
-                                       RawText("normal text"),
-                                       Italic("*",
-                                              {
-                                                  RawText("italic"),
-                                              }),
-                                       RawText("normal text"),
-                                   }));
+                                               RawText("normal text"),
+                                               Italic("*",
+                                                      {
+                                                          RawText("italic"),
+                                                      }),
+                                               RawText("normal text"),
+                                           }));
   Expect("normal text**bold**normal text", Root({
-                                         RawText("normal text"),
-                                         Bold("*", {RawText("bold")}),
-                                         RawText("normal text"),
-                                     }));
+                                               RawText("normal text"),
+                                               Bold("*", {RawText("bold")}),
+                                               RawText("normal text"),
+                                           }));
   Expect("normal text**italic*normal text",
          Root({RawText("normal text*"), Italic("*", {RawText("italic")}),
                RawText("normal text")}));
   Expect("normal text*italic**normal text",
          Root({RawText("normal text"), Italic("*", {RawText("italic")}),
                RawText("*normal text")}));
-  Expect("normal text***bold italic*bold**normal text",
-         Root({RawText("normal text"),
-               Bold("*", {Italic("*", {RawText("bold italic")}), RawText("bold")}),
-               RawText("normal text")}));
+  Expect(
+      "normal text***bold italic*bold**normal text",
+      Root({RawText("normal text"),
+            Bold("*", {Italic("*", {RawText("bold italic")}), RawText("bold")}),
+            RawText("normal text")}));
 }
 
 TEST(MarkdownInlineParserTest, Underlines) {
-  Expect("___bold italic___", Root({BoldItalic("_", {RawText("bold italic")})}));
+  Expect("___bold italic___",
+         Root({BoldItalic("_", {RawText("bold italic")})}));
   Expect("__bold__", Root({Bold("_", {RawText("bold")})}));
   Expect("_italic_", Root({Italic("_", {RawText("italic")})}));
 }

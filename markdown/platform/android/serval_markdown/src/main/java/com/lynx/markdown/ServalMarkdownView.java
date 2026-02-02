@@ -17,7 +17,8 @@ import com.lynx.markdown.tttext.IRunDelegate;
 import com.lynx.markdown.tttext.JavaResourceManager;
 import java.io.IOException;
 import java.util.HashMap;
-public class ServalMarkdownView extends CustomDrawView implements IDrawerCallback {
+public class ServalMarkdownView
+    extends CustomDrawView implements IDrawerCallback {
   protected long mInstance = 0;
   public ServalMarkdownView(Context context) {
     super(context);
@@ -40,15 +41,9 @@ public class ServalMarkdownView extends CustomDrawView implements IDrawerCallbac
     view.mDrawerCallback = mDrawerCallback;
     return view;
   }
-  public void removeSubView(View view) {
-    removeView(view);
-  }
-  public void removeAllSubviews() {
-    removeAllViews();
-  }
-  public float[] getRectInScreen() {
-    return null;
-  }
+  public void removeSubView(View view) { removeView(view); }
+  public void removeAllSubviews() { removeAllViews(); }
+  public float[] getRectInScreen() { return null; }
 
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
@@ -65,13 +60,16 @@ public class ServalMarkdownView extends CustomDrawView implements IDrawerCallbac
   }
 
   public void setAnimationType(int animationType) {
-    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_TYPE, animationType);
+    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_TYPE,
+                          animationType);
   }
   public void setAnimationVelocity(float velocity) {
-    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_VELOCITY, velocity);
+    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_VELOCITY,
+                          velocity);
   }
   public void setInitialAnimationStep(int initialStep) {
-    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_INITIAL_STEP, initialStep);
+    nativeSetNumberConfig(
+        mInstance, Constants.CONFIG_KEY_ANIMATION_INITIAL_STEP, initialStep);
   }
 
   protected void updateDisplayMetrics() {
@@ -93,11 +91,15 @@ public class ServalMarkdownView extends CustomDrawView implements IDrawerCallbac
   private native void nativeSetDensity(float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnVSync(long instance, long time);
-  private native void nativeSetNumberConfig(long instance, int key, double value);
-  private native void nativeSetStringConfig(long instance, int key, String value);
-  private native void nativeSetValueConfig(long instance, int key, byte[] config);
+  private native void nativeSetNumberConfig(long instance, int key,
+                                            double value);
+  private native void nativeSetStringConfig(long instance, int key,
+                                            String value);
+  private native void nativeSetValueConfig(long instance, int key,
+                                           byte[] config);
   @Override
   public void drawRunDelegate(IRunDelegate delegate, Rect rect) {}
   @Override
-  public void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate, Path path, Paint paint) {}
+  public void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate,
+                                    Path path, Paint paint) {}
 }
