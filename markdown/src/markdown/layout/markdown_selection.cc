@@ -286,7 +286,8 @@ void MarkdownSelection::GetLayoutRegionSelectionRectByCharPos(
     tttext::LayoutRegion* region, int32_t char_pos_start, int32_t char_pos_end,
     std::vector<RectF>* rect_ptr, PointF offset, RectType type,
     RectCoordinate coordinate, RectF clip_rect) {
-  if (region == nullptr || region->IsEmpty()) return;
+  if (region == nullptr || region->IsEmpty())
+    return;
   auto& rect_vec = *rect_ptr;
   if (coordinate == RectCoordinate::kRelative) {
     clip_rect = RectF::MakeLTWH(clip_rect.GetLeft() - offset.x_,

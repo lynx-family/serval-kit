@@ -18,7 +18,8 @@ public class CustomDrawView extends ViewGroup {
   }
 
   @Override
-  protected void onLayout(boolean b, int left, int top, int right, int bottom) {}
+  protected void onLayout(boolean b, int left, int top, int right, int bottom) {
+  }
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
@@ -31,7 +32,8 @@ public class CustomDrawView extends ViewGroup {
     int wMode = MeasureSpec.getMode(widthMeasureSpec);
     int height = MeasureSpec.getSize(heightMeasureSpec);
     int hMode = MeasureSpec.getMode(heightMeasureSpec);
-    long size = CustomDrawable.measure(mDrawable, width, Constants.ConvertLayoutMode(wMode), height,
+    long size = CustomDrawable.measure(
+        mDrawable, width, Constants.ConvertLayoutMode(wMode), height,
         Constants.ConvertLayoutMode(hMode));
     int resultWidth = MarkdownValuePack.unpackPairFirst(size);
     int resultHeight = MarkdownValuePack.unpackPairSecond(size);
@@ -39,10 +41,6 @@ public class CustomDrawView extends ViewGroup {
     invalidate();
   }
 
-  public void attachDrawable(long instance) {
-    mDrawable = instance;
-  }
-  public long getDrawable() {
-    return mDrawable;
-  }
+  public void attachDrawable(long instance) { mDrawable = instance; }
+  public long getDrawable() { return mDrawable; }
 }

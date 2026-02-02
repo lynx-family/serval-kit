@@ -279,9 +279,13 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
   TraceEventEnd();
 }
 
-float MarkdownView::GetWidth() const { return measured_width_; }
+float MarkdownView::GetWidth() const {
+  return measured_width_;
+}
 
-float MarkdownView::GetHeight() const { return measured_height_; }
+float MarkdownView::GetHeight() const {
+  return measured_height_;
+}
 
 void MarkdownView::HideAllSubviews() {}
 
@@ -294,8 +298,12 @@ void MarkdownView::NeedsMeasure() {
   needs_measure_ = true;
   view_->RequestMeasure();
 }
-void MarkdownView::NeedsAlign() const { view_->RequestAlign(); }
-void MarkdownView::NeedsDraw() const { view_->RequestDraw(); }
+void MarkdownView::NeedsAlign() const {
+  view_->RequestAlign();
+}
+void MarkdownView::NeedsDraw() const {
+  view_->RequestDraw();
+}
 void MarkdownView::OnNextFrame(int64_t timestamp) {
   UpdateAnimationStep(timestamp);
   UpdateExposure();
@@ -360,7 +368,8 @@ void MarkdownView::RecalculateSelectionPosition() {
   is_adjust_start_pos_ = false;
   is_adjust_end_pos_ = false;
   handle_pan_before_motion_ = {0, 0};
-  if (selection_highlight_rects_.empty()) return;
+  if (selection_highlight_rects_.empty())
+    return;
   const auto& rect_before = selection_highlight_rects_.front();
   select_start_position_ =
       PointF{rect_before.GetLeft(),
@@ -417,7 +426,8 @@ void MarkdownView::UpdateSelectionRects(SelectionState state) {
 
 int32_t MarkdownView::GetCharIndexByPosition(PointF position) {
   auto page = document_.GetPage();
-  if (!page) return -1;
+  if (!page)
+    return -1;
   auto [start, end] = MarkdownSelection::GetCharRangeByPoint(
       page.get(), position, MarkdownSelection::CharRangeType::kChar);
   return start;
@@ -620,14 +630,16 @@ const std::vector<RectF>& MarkdownView::GetSelectedLineBoundingRect() {
 Range MarkdownView::GetCharRangeByPosition(
     PointF position, MarkdownSelection::CharRangeType char_range_type) {
   auto page = document_.GetPage();
-  if (page == nullptr) return {};
+  if (page == nullptr)
+    return {};
   return MarkdownSelection::GetCharRangeByPoint(page.get(), position,
                                                 char_range_type);
 }
 
 RectF MarkdownView::GetTextBoundingRect(Range range) {
   auto page = document_.GetPage();
-  if (page == nullptr) return {};
+  if (page == nullptr)
+    return {};
   return MarkdownSelection::GetSelectionClosedRectByCharPos(
       page.get(), range.start_, range.end_);
 }
@@ -638,7 +650,8 @@ std::string MarkdownView::GetParsedContent(Range char_range) {
 
 std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) {
   auto page = document_.GetPage();
-  if (page == nullptr) return {};
+  if (page == nullptr)
+    return {};
   return MarkdownSelection::GetSelectionRectByCharPos(page.get(), range.start_,
                                                       range.end_);
 }

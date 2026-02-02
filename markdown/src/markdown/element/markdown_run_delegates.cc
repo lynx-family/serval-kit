@@ -65,7 +65,8 @@ void MarkdownOrderedListMarkDelegate::Draw(tttext::ICanvasHelper* canvas,
 }
 
 void MarkdownRefDelegate::Layout() {
-  if (layout_) return;
+  if (layout_)
+    return;
   paragraph_->GetParagraphStyle().SetHorizontalAlign(
       tttext::ParagraphHorizontalAlignment::kLeft);
   auto* layout = MarkdownPlatform::GetTextLayout();

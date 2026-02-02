@@ -100,4 +100,3 @@ void SrAndroidParagraphFactory::Reset() {
 }  // namespace canvas
 }  // namespace svg
 }  // namespace serval
-

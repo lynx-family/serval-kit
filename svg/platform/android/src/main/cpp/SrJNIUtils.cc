@@ -93,4 +93,3 @@ bool ClearException(JNIEnv* env) {
 }  // namespace android
 }  // namespace svg
 }  // namespace serval
-

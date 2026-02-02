@@ -40,4 +40,3 @@ void SrAndroidParagraph::Draw(SrCanvas* canvas, float x, float y) {
 }  // namespace canvas
 }  // namespace svg
 }  // namespace serval
-

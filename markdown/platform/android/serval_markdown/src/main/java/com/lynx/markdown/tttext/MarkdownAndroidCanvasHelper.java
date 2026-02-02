@@ -32,8 +32,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected JavaResourceManager mResourceManager;
   IDrawerCallback mDrawerCallback;
 
-  public MarkdownAndroidCanvasHelper(
-      Canvas canvas, JavaResourceManager manager, IDrawerCallback drawer) {
+  public MarkdownAndroidCanvasHelper(Canvas canvas, JavaResourceManager manager,
+                                     IDrawerCallback drawer) {
     super(TTText.mFontManager);
     canvas_ = canvas;
     mResourceManager = manager;
@@ -73,13 +73,15 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     canvas_.clipPath(path);
   }
 
-  protected void drawMarkdownPath(BBufferInputStream stream) throws IOException {
+  protected void drawMarkdownPath(BBufferInputStream stream)
+      throws IOException {
     Path path = readPath(stream);
     Paint p = readPaint(stream, paint_);
     canvas_.drawPath(path, p);
   }
 
-  protected void drawDelegateOnPath(BBufferInputStream stream) throws IOException {
+  protected void drawDelegateOnPath(BBufferInputStream stream)
+      throws IOException {
     int id = stream.readInt();
     Path path = readPath(stream);
     Paint paint = readPaint(stream, paint_);
@@ -150,7 +152,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     float radiusX = TTTextUtils.Dp2Px(stream.readFloat());
     float radiusY = TTTextUtils.Dp2Px(stream.readFloat());
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      path.addRoundRect(left, top, right, bottom, radiusX, radiusY, Path.Direction.CW);
+      path.addRoundRect(left, top, right, bottom, radiusX, radiusY,
+                        Path.Direction.CW);
     }
   }
   protected void moveTo(Path path, BBufferInputStream stream) {
@@ -190,7 +193,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     if (mDrawerCallback == null)
       return;
     mDrawerCallback.drawRunDelegate(
-        mResourceManager.getRunDelegate(id), new Rect((int) dl, (int) dt, (int) dr, (int) db));
+        mResourceManager.getRunDelegate(id),
+        new Rect((int)dl, (int)dt, (int)dr, (int)db));
   }
 
   Path mPath;
@@ -203,7 +207,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     return mPath;
   }
 
-  protected Paint readPaint(BBufferInputStream stream, Paint painter) throws IOException {
+  protected Paint readPaint(BBufferInputStream stream, Paint painter)
+      throws IOException {
     painter.setAntiAlias(true);
     painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
     color_ = stream.readInt();

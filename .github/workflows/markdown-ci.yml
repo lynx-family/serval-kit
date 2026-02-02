@@ -7,7 +7,6 @@ on:
       - "markdown/**"
       - ".github/workflows/markdown-ci.yml"
 
-
 jobs:
   build-android:
     name: Build Android
@@ -51,7 +50,7 @@ jobs:
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
-        
+
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
 
@@ -63,7 +62,6 @@ jobs:
           bundle exec pod install
           xcodebuild -workspace ServalMarkdownDemo.xcworkspace -scheme ServalMarkdownDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-      
   build-harmony:
     name: Build HarmonyOS
     runs-on: lynx-custom-container

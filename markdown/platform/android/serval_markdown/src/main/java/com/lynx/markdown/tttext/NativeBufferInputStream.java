@@ -15,9 +15,7 @@ public class NativeBufferInputStream extends DataInputStream {
    *
    * @param in the specified input stream
    */
-  public NativeBufferInputStream(InputStream in) {
-    super(in);
-  }
+  public NativeBufferInputStream(InputStream in) { super(in); }
 
   public String readCString() throws IOException {
     int tag_l = readInt();

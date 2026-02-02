@@ -563,4 +563,3 @@ void SrAndroidCanvas::ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) {
 }  // namespace android
 }  // namespace svg
 }  // namespace serval
-

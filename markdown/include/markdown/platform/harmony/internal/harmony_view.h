@@ -106,9 +106,12 @@ class HarmonyView : public MarkdownPlatformView {
     children_.emplace_back(std::move(child));
   }
   std::unique_ptr<HarmonyView> RemoveChild(HarmonyView* child) {
-    auto pred = [child](const auto& ptr) { return ptr.get() == child; };
+    auto pred = [child](const auto& ptr) {
+      return ptr.get() == child;
+    };
     auto find = std::find_if(children_.begin(), children_.end(), pred);
-    if (find == children_.end()) return nullptr;
+    if (find == children_.end())
+      return nullptr;
     auto content = std::move(*find);
     children_.erase(find);
     api_->removeChild(handle_, child->GetHandle());

@@ -18,4 +18,3 @@ void Log(SrLogger* sr_logger, const SrSvgLogLevel& level) {
 }  // namespace log
 }  // namespace svg
 }  // namespace serval
-

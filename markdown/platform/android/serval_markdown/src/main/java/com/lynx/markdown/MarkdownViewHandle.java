@@ -6,24 +6,16 @@ package com.lynx.markdown;
 import android.view.View;
 public class MarkdownViewHandle {
   private final View mView;
-  public MarkdownViewHandle(View view) {
-    mView = view;
-  }
-  View getView() {
-    return mView;
-  }
-  public void requestMeasure() {
-    mView.requestLayout();
-  }
-  public void requestAlign() {
-    mView.requestLayout();
-  }
-  public void requestDraw() {
-    mView.invalidate();
-  }
+  public MarkdownViewHandle(View view) { mView = view; }
+  View getView() { return mView; }
+  public void requestMeasure() { mView.requestLayout(); }
+  public void requestAlign() { mView.requestLayout(); }
+  public void requestDraw() { mView.invalidate(); }
   public long measure(int width, int widthMode, int height, int heightMode) {
-    int widthSpec = getMeasureSpec(width, Constants.ConvertToMeasureMode(widthMode));
-    int heightSpec = getMeasureSpec(height, Constants.ConvertToMeasureMode(heightMode));
+    int widthSpec =
+        getMeasureSpec(width, Constants.ConvertToMeasureMode(widthMode));
+    int heightSpec =
+        getMeasureSpec(height, Constants.ConvertToMeasureMode(heightMode));
     mView.measure(widthSpec, heightSpec);
     int resultWidth = mView.getMeasuredWidth();
     int resultHeight = mView.getMeasuredHeight();
@@ -61,28 +53,29 @@ public class MarkdownViewHandle {
   }
   public void attachDrawable(long instance) {
     if (mView instanceof CustomDrawView) {
-      ((CustomDrawView) mView).attachDrawable(instance);
+      ((CustomDrawView)mView).attachDrawable(instance);
     }
   }
   public MarkdownViewHandle createCustomDrawView() {
     if (mView instanceof ServalMarkdownView) {
-      return new MarkdownViewHandle(((ServalMarkdownView) mView).createCustomView());
+      return new MarkdownViewHandle(
+          ((ServalMarkdownView)mView).createCustomView());
     }
     return null;
   }
   public void removeSubview(MarkdownViewHandle handle) {
     if (mView instanceof ServalMarkdownView) {
-      ((ServalMarkdownView) mView).removeSubView(handle.getView());
+      ((ServalMarkdownView)mView).removeSubView(handle.getView());
     }
   }
   public void removeAllSubviews() {
     if (mView instanceof ServalMarkdownView) {
-      ((ServalMarkdownView) mView).removeAllSubviews();
+      ((ServalMarkdownView)mView).removeAllSubviews();
     }
   }
   public float[] getRectInScreen() {
     if (mView instanceof ServalMarkdownView) {
-      return ((ServalMarkdownView) mView).getRectInScreen();
+      return ((ServalMarkdownView)mView).getRectInScreen();
     }
     return null;
   }

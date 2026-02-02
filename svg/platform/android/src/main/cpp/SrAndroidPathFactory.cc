@@ -298,4 +298,3 @@ void SrAndroidPathFactory::ApplyTransform(const SrAndroidPath& path,
 }  // namespace android
 }  // namespace svg
 }  // namespace serval
-
