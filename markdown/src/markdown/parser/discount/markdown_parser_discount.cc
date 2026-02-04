@@ -14,10 +14,10 @@
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/markdown_resource_loader.h"
 #include "markdown/parser/discount/markdown_inline_node.h"
 #include "markdown/parser/discount/markdown_inline_parser.h"
 #include "markdown/parser/markdown_parser.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
@@ -1028,21 +1028,19 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
                                      ? url.substr(strlen(kInlineViewSchema))
                                      : url.substr(strlen(kBlockViewSchema));
     if (inline_view_id.length() > 0 && loader_ != nullptr) {
-      auto view = loader_->LoadInlineView(inline_view_id.c_str(), max_width,
-                                          max_height);
-      if (view != nullptr) {
-        auto delegate =
-            is_block_view
-                ? std::make_unique<MarkdownBlockViewDelegate>(view, max_width,
-                                                              max_height)
-                : std::make_unique<MarkdownViewDelegate>(
-                      view, max_width, max_height, base_style.GetTextSize());
+      auto delegate = loader_->LoadInlineView(inline_view_id.c_str(), max_width,
+                                              max_height);
+      if (delegate != nullptr) {
         document_->AddInlineView(MarkdownInlineView{
             .id_ = inline_view_id,
             .char_index_ =
                 static_cast<int32_t>(char_offset + para->GetCharCount()),
             .is_block_view_ = is_block_view,
-            .view_ = view});
+            .view_ = delegate.get()});
+        if (is_block_view) {
+          delegate = std::make_unique<BlockViewWrapper>(
+              context_.max_width_, indent, std::move(delegate));
+        }
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
         para->AddShapeRun(&base_style, std::move(delegate), false);
@@ -1061,18 +1059,19 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
     bool need_alt_text = false;
     if (loader_ != nullptr) {
       auto delegate =
-          loader_->LoadImageView(url.c_str(), width, height, max_width,
-                                 max_height, style_.image_.image_.radius_);
+          loader_->LoadImage(url.c_str(), width, height, max_width, max_height,
+                             style_.image_.image_.radius_);
       if (delegate == nullptr && !(style_.image_.image_.alt_image_.empty())) {
-        delegate = loader_->LoadImageView(
-            style_.image_.image_.alt_image_.c_str(), width, height, max_width,
-            max_height, style_.image_.image_.radius_);
+        delegate = loader_->LoadImage(style_.image_.image_.alt_image_.c_str(),
+                                      width, height, max_width, max_height,
+                                      style_.image_.image_.radius_);
       }
       if (delegate != nullptr) {
-        std::unique_ptr<tttext::RunDelegate> image =
-            std::make_unique<MarkdownViewDelegate>(
-                delegate, max_width, max_height,
-                style_.normal_text_.base_.font_size_);
+        document_->AddImage(MarkdownImage{
+            .url_ = url,
+            .char_index_ =
+                static_cast<int32_t>(para->GetCharCount() + char_offset),
+            .image_ = delegate.get()});
         if (!node->GetCaption().empty()) {
           auto caption = tttext::Paragraph::Create();
           auto style = base_style;
@@ -1084,19 +1083,14 @@ void MarkdownParserDiscountImpl::AppendImgToParagraph(
               context_.line_height_rule_);
           caption->AddTextRun(&style, node->GetCaption().data(),
                               node->GetCaption().length());
-          image = std::make_unique<ImageWithCaption>(
-              std::move(image), std::move(caption), max_width,
+          delegate = std::make_unique<ImageWithCaption>(
+              std::move(delegate), std::move(caption), max_width,
               style_.image_caption_.image_caption_.caption_position_,
               style_.image_caption_.base_.text_align_);
         }
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
-        document_->AddImage(MarkdownImage{
-            .url_ = url,
-            .char_index_ =
-                static_cast<int32_t>(para->GetCharCount() + char_offset),
-            .view_ = delegate});
-        para->AddShapeRun(&base_style, std::move(image), false);
+        para->AddShapeRun(&base_style, std::move(delegate), false);
       } else {
         need_alt_text = style_.image_.image_.enable_alt_text_;
       }

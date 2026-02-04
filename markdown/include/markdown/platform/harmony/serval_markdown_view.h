@@ -17,7 +17,7 @@
 namespace lynx::markdown {
 class NativeServalMarkdownView final : public HarmonyCustomView,
                                        public MarkdownViewContainerHandle,
-                                       public MarkdownResourceLoader,
+                                       public MarkdownPlatformLoader,
                                        public HarmonyVSyncCallback {
  public:
   static void InitEnv(napi_env env);
@@ -54,8 +54,6 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
                                       float desire_height, float max_width,
                                       float max_height,
                                       float border_radius) override;
-  std::unique_ptr<tttext::RunDelegate> LoadGradient(
-      const char* gradient, float font_size, float root_font_size) override;
   MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
                                             float max_width,
                                             float max_height) override;

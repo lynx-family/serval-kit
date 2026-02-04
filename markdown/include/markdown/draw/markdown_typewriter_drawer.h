@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "markdown/draw/markdown_drawer.h"
-#include "markdown/markdown_resource_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 

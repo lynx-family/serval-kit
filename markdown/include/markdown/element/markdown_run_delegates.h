@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "markdown/draw/markdown_canvas.h"
-#include "markdown/element/markdown_drawable.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"

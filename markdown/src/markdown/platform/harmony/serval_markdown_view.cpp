@@ -16,7 +16,6 @@
 #include "markdown/draw/markdown_drawer.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_layout.h"
-#include "markdown/markdown_resource_loader.h"
 #include "markdown/parser/markdown_parser.h"
 #include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
@@ -32,7 +31,7 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
 }
 NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   AttachDrawable(std::make_unique<MarkdownView>(this));
-  GetMarkdownView()->SetResourceLoader(this);
+  GetMarkdownView()->SetPlatformLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);
   EnableLongPressEvent(true, NORMAL);
@@ -132,10 +131,6 @@ MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
   return InsertEtsView(loader_->LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
-std::unique_ptr<tttext::RunDelegate> NativeServalMarkdownView::LoadGradient(
-    const char* gradient, float font_size, float root_font_size) {
-  return nullptr;
-}
 
 MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
     void* ud, int32_t id, float max_width, float max_height) {
@@ -229,6 +224,7 @@ MarkdownPlatformView* NativeServalMarkdownView::CreateCustomSubView() {
 }
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   HarmonyCustomView::OnLayout(offset_x, offset_y);
-  GetMarkdownView()->Align();
+  GetMarkdownView()->Align(static_cast<float>(offset_x),
+                           static_cast<float>(offset_y));
 }
 }  // namespace lynx::markdown

@@ -47,11 +47,9 @@ std::pair<float, float> MarkdownLayout::Layout(float width, float height,
   if (document_->loader_ != nullptr &&
       !document_->GetStyle()
            .typewriter_cursor_.typewriter_cursor_.custom_cursor_.empty()) {
-    auto custom_typewriter_cursor = std::make_unique<MarkdownViewDelegate>(
-        document_->loader_->LoadInlineView(
-            document_->style_.typewriter_cursor_.typewriter_cursor_
-                .custom_cursor_.c_str(),
-            width, height),
+    auto custom_typewriter_cursor = document_->loader_->LoadInlineView(
+        document_->style_.typewriter_cursor_.typewriter_cursor_.custom_cursor_
+            .c_str(),
         width, height);
     if (custom_typewriter_cursor != nullptr) {
       page_->SetCustomTypewriterCursor(std::move(custom_typewriter_cursor));

@@ -138,7 +138,7 @@ SizeF MarkdownCustomViewIOS::Measure(MeasureSpec spec) {
 }
 void MarkdownCustomViewIOS::Align(float left, float top) {
   SetAlignPosition({left, top});
-  drawable_->Align();
+  drawable_->Align(left, top);
 }
 void MarkdownCustomViewIOS::Draw(tttext::ICanvasHelper* cavas) {
   drawable_->Draw(cavas, 0, 0);

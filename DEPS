@@ -14,12 +14,6 @@ deps = {
         'deps_file': 'dependencies/DEPS',
         "ignore_in_git": True,
     },
-    "./markdown/third_party/googletest": {
-        'type': 'git',
-        'url': 'https://github.com/google/googletest',
-        'commit': '4a00a24fff3cf82254de382437bf840cab1d3993',
-        'ignore_in_git': True,
-    },
     "./markdown/third_party/lynx-textra": {
         'type': 'git',
         'url': 'https://github.com/lynx-family/lynx-textra.git',

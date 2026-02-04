@@ -9,13 +9,13 @@
 
 #include "base/include/platform/android/jni_convert_helper.h"
 #include "base/include/platform/android/jni_utils.h"
-#include "markdown/markdown_resource_loader.h"
+#include "markdown/markdown_platform_loader.h"
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
 #include "markdown/platform/android/tttext_run_delegate.h"
 
 class MarkdownResourceLoaderAndroid
-    : public lynx::markdown::MarkdownResourceLoader {
+    : public lynx::markdown::MarkdownPlatformLoader {
  public:
   explicit MarkdownResourceLoaderAndroid(jobject loader) {
     loader_ = lynx::base::android::ScopedWeakGlobalJavaRef<jobject>(
@@ -30,10 +30,6 @@ class MarkdownResourceLoaderAndroid
   lynx::markdown::MarkdownPlatformView* LoadImageView(
       const char* src, float desire_width, float desire_height, float max_width,
       float max_height, float border_radius) override {
-    return nullptr;
-  }
-  std::unique_ptr<tttext::RunDelegate> LoadGradient(
-      const char* gradient, float font_size, float root_font_size) override {
     return nullptr;
   }
   lynx::markdown::MarkdownPlatformView* LoadInlineView(

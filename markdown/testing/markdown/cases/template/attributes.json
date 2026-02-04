@@ -1,0 +1,70 @@
+{
+  "width": 500,
+  "height": 1e6,
+  "animation-type": "none",
+  "use-char-based-drawer": false,
+  "initial-animation-step": 0,
+  "content-complete": true,
+  "generate": true,
+  "style": {
+    "normalText": {
+      "linespace": 0,
+      "marginBottom": 10
+    },
+    "codeBlock": {
+      "marginBottom": 10,
+      "maxWidth": 500,
+      "scrollX": true
+    },
+    "quote": {
+      "marginTop": 15,
+      "marginBottom": 15,
+      "paragraphSpace": 20,
+      "borderColor": "14161823"
+    },
+    "table": {
+      "marginBottom": 10,
+      "scrollX": true
+    },
+    "tableCell": {
+      "fontSize": 15,
+      "maxWidth": 200
+    },
+    "inlineCode": {
+      "borderRadius": 4,
+      "paddingLeft": 4,
+      "paddingRight": 4
+    },
+    "unorderedList": {
+      "markMarginRight": 10,
+      "paragraphSpace": 10
+    },
+    "orderedList": {
+      "paragraphSpace": 10
+    },
+    "h2": {
+      "fontWeight": "normal"
+    },
+    "doubleBraces": {
+      "backgroundImage": "linear-gradient(0deg, #e4ddff 0%, rgba(241, 240, 255, 0) 30%)",
+      "fontWeight": "bold",
+      "marginBottom": 20,
+      "fontSize": -1
+    },
+    "mark": {
+      "backgroundImage": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)",
+      "fontSize": -1
+    },
+    "link": {
+      "color": "0000ff",
+      "textDecorationLine": "underline",
+      "textDecorationStyle": "dashed",
+      "textDecorationColor": "ff0000",
+      "textDecorationThickness": 1
+    },
+    "imageCaption": {
+      "fontSize": 10,
+      "color": "808080"
+    }
+  }
+}
