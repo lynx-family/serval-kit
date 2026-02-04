@@ -202,10 +202,8 @@ void MarkdownDocument::UpdateTruncation(float width) {
     truncation_delegate_ = nullptr;
   } else if (style_.truncation_.truncation_.truncation_type_ ==
              MarkdownTruncationType::kView) {
-    truncation_delegate_ = std::make_unique<MarkdownViewDelegate>(
-        loader_->LoadInlineView(style_.truncation_.truncation_.content_.c_str(),
-                                width, 1e5),
-        width, 1e5);
+    truncation_delegate_ = loader_->LoadInlineView(
+        style_.truncation_.truncation_.content_.c_str(), width, 1e5);
     truncation_text_.clear();
   }
 }

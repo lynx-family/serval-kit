@@ -6,7 +6,7 @@
 #include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_document.h"
-#include "markdown/markdown_resource_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
 namespace lynx::markdown {

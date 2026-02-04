@@ -54,8 +54,8 @@ class RectF {
   bool InterSects(float left, float top, float right, float bottom) const;
   bool InterSects(const RectF& rect) const;
   bool IsEmpty() const;
-  bool operator==(const RectF& rect);
-  bool operator!=(const RectF& rect) { return !operator==(rect); }
+  bool operator==(const RectF& rect) const;
+  bool operator!=(const RectF& rect) const { return !operator==(rect); }
   void operator=(const RectF& rect) {
     x_ = rect.x_;
     y_ = rect.y_;
@@ -149,6 +149,12 @@ struct MeasureSpec {
   tttext::LayoutMode width_mode_{tttext::LayoutMode::kIndefinite};
   float height_{LAYOUT_MAX_SIZE};
   tttext::LayoutMode height_mode_{tttext::LayoutMode::kIndefinite};
+};
+
+struct MeasureResult {
+  float width_{0};
+  float height_{0};
+  float baseline_{0};
 };
 
 struct Paddings {

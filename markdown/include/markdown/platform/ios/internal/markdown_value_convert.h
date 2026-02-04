@@ -3,7 +3,6 @@
 // LICENSE file in the root directory of this source tree.
 #ifndef THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_VALUE_CONVERT_H_
 #define THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_VALUE_CONVERT_H_
-#include "markdown/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
 class MarkdownValueConvert {
  public:

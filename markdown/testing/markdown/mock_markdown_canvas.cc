@@ -4,6 +4,9 @@
 #include "testing/markdown/mock_markdown_canvas.h"
 
 #include "base/include/string/string_utils.h"
+#include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_document.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
@@ -46,10 +49,9 @@ rapidjson::Value MockMarkdownCanvas::MakePainter(tttext::Painter* painter) {
   value.SetObject();
   if (painter == nullptr)
     return value;
-  value.AddMember("fill_style", FillStyleToString(painter->GetFillStyle()),
-                  allocator);
   value.AddMember("stroke_width", painter->GetStrokeWidth(), allocator);
-  value.AddMember("color", painter->GetColor(), allocator);
+  value.AddMember("fill_color", painter->GetFillColor(), allocator);
+  value.AddMember("stroke_color", painter->GetStrokeColor(), allocator);
   value.AddMember("text_size", painter->GetTextSize(), allocator);
   value.AddMember("bold", painter->IsBold(), allocator);
   value.AddMember("italic", painter->IsItalic(), allocator);
@@ -68,13 +70,13 @@ rapidjson::Value MockMarkdownCanvas::MakePoints(float* x, float* y,
 rapidjson::Value MockMarkdownCanvas::MakeFont(uint32_t id) {
   auto& allocator = result_.GetAllocator();
   rapidjson::Value value;
-  value.SetString(resource_loader_->family_cache_[id].c_str(), allocator);
+  value.SetString(resource_loader_->family_cache_[id], allocator);
   return value;
 }
 
 std::string MockMarkdownCanvas::GetResult() const {
   rapidjson::StringBuffer s;
-  rapidjson::Writer writer(s);
+  rapidjson::PrettyWriter writer(s);
   result_.Accept(writer);
   return s.GetString();
 }
@@ -165,8 +167,8 @@ void MockMarkdownCanvas::DrawGlyphs(const tttext::ITypefaceHelper* font,
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "glyphs", result_.GetAllocator());
-  const auto t =
-      base::Utf16ToUtf8(reinterpret_cast<const char16_t*>(glyphs), glyph_count);
+  const auto t = base::U16StringToU8(std::u16string_view(
+      reinterpret_cast<const char16_t*>(glyphs), glyph_count));
   op.AddMember("text", t, result_.GetAllocator());
   op.AddMember("font", MakeFont(font->GetUniqueId()), result_.GetAllocator());
   op.AddMember("origin", MakePoint(origin_x, origin_y), result_.GetAllocator());
@@ -192,6 +194,7 @@ void MockMarkdownCanvas::DrawImage(const char* src, float left, float top,
 }
 void MockMarkdownCanvas::DrawView(const char* src, float left, float top,
                                   float right, float bottom) {
+  document_->GetInlineViewOrigin(src);
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "view", result_.GetAllocator());
@@ -200,17 +203,6 @@ void MockMarkdownCanvas::DrawView(const char* src, float left, float top,
                result_.GetAllocator());
   result_.PushBack(op, result_.GetAllocator());
 }
-void MockMarkdownCanvas::DrawBackground(const char* content, float left,
-                                        float top, float right, float bottom) {
-  rapidjson::Value op;
-  op.SetObject();
-  op.AddMember("op", "background", result_.GetAllocator());
-  op.AddMember("content", std::string(content), result_.GetAllocator());
-  op.AddMember("rect", MakeRect(left, top, right, bottom),
-               result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
-}
-
 void MockMarkdownCanvas::DrawImageRect(
     const char* src, float src_left, float src_top, float src_right,
     float src_bottom, float dst_left, float dst_top, float dst_right,
@@ -226,17 +218,120 @@ void MockMarkdownCanvas::DrawRoundRect(float left, float top, float right,
                result_.GetAllocator());
   result_.PushBack(op, result_.GetAllocator());
 }
-void MockMarkdownCanvas::ClipRoundRect(float left, float top, float right,
-                                       float bottom, float radiusX,
-                                       float radiusY, bool doAntiAlias) {
+
+void MockMarkdownCanvas::ClipPath(MarkdownPath* path) {
   rapidjson::Value op;
   op.SetObject();
-  op.AddMember("op", "clip round rect", result_.GetAllocator());
-  op.AddMember("radiusX", radiusX, result_.GetAllocator());
-  op.AddMember("radiusY", radiusY, result_.GetAllocator());
-  op.AddMember("rect", MakeRect(left, top, right, bottom),
-               result_.GetAllocator());
+  op.AddMember("op", "clip path", result_.GetAllocator());
+  op.AddMember("path", MakePath(path), result_.GetAllocator());
   result_.PushBack(op, result_.GetAllocator());
 }
 
+void MockMarkdownCanvas::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
+                                            MarkdownPath* path,
+                                            tttext::Painter* painter) {
+  ClipPath(path);
+  auto type = static_cast<MockDelegate*>(run_delegate)->type_;
+  if (type == MockDelegateType::kGradient) {
+    auto gradient = static_cast<MockGradient*>(run_delegate);
+    rapidjson::Value op;
+    op.SetObject();
+    op.AddMember("op", "gradient", result_.GetAllocator());
+    op.AddMember("gradient", std::string(gradient->gradient_),
+                 result_.GetAllocator());
+    result_.PushBack(op, result_.GetAllocator());
+  } else {
+    run_delegate->Draw(this, 0, 0);
+  }
+}
+
+void MockMarkdownCanvas::DrawMarkdownPath(MarkdownPath* path,
+                                          tttext::Painter* painter) {
+  rapidjson::Value op;
+  op.SetObject();
+  op.AddMember("op", "draw path", result_.GetAllocator());
+  op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
+  op.AddMember("path", MakePath(path), result_.GetAllocator());
+  result_.PushBack(op, result_.GetAllocator());
+}
+
+rapidjson::Value MockMarkdownCanvas::MakePath(MarkdownPath* path) {
+  rapidjson::Value p;
+  p.SetArray();
+  for (auto& op : path->path_ops_) {
+    rapidjson::Value o;
+    o.SetObject();
+    switch (op.op_) {
+      case MarkdownPath::kArc: {
+        o.AddMember("type", "arc", result_.GetAllocator());
+        auto& arc = op.data_.arc_;
+        o.AddMember("center", MakePoint(arc.center_.x_, arc.center_.y_),
+                    result_.GetAllocator());
+        o.AddMember("radius", arc.radius_, result_.GetAllocator());
+        o.AddMember("start", arc.start_angle_, result_.GetAllocator());
+        o.AddMember("end", arc.end_angle_, result_.GetAllocator());
+      } break;
+      case MarkdownPath::kOval: {
+        o.AddMember("type", "oval", result_.GetAllocator());
+        auto& rect = op.data_.rect_;
+        o.AddMember("rect",
+                    MakeRect(rect.GetLeft(), rect.GetTop(), rect.GetRight(),
+                             rect.GetBottom()),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kRect: {
+        o.AddMember("type", "rect", result_.GetAllocator());
+        auto& rect = op.data_.rect_;
+        o.AddMember("rect",
+                    MakeRect(rect.GetLeft(), rect.GetTop(), rect.GetRight(),
+                             rect.GetBottom()),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kRoundRect: {
+        o.AddMember("type", "round rect", result_.GetAllocator());
+        auto& rect = op.data_.round_rect_;
+        o.AddMember("rect",
+                    MakeRect(rect.rect_.GetLeft(), rect.rect_.GetTop(),
+                             rect.rect_.GetRight(), rect.rect_.GetBottom()),
+                    result_.GetAllocator());
+        o.AddMember("radius", MakePoint(rect.radius_x_, rect.radius_y_),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kMoveTo: {
+        o.AddMember("type", "move", result_.GetAllocator());
+        auto& point = op.data_.point_;
+        o.AddMember("point", MakePoint(point.x_, point.y_),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kLineTo: {
+        o.AddMember("type", "line", result_.GetAllocator());
+        auto& point = op.data_.point_;
+        o.AddMember("point", MakePoint(point.x_, point.y_),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kCubicTo: {
+        o.AddMember("type", "cubic", result_.GetAllocator());
+        auto& cubic = op.data_.cubic_;
+        o.AddMember("c1", MakePoint(cubic.control_1_.x_, cubic.control_1_.y_),
+                    result_.GetAllocator());
+        o.AddMember("c2", MakePoint(cubic.control_2_.x_, cubic.control_2_.y_),
+                    result_.GetAllocator());
+        o.AddMember("end", MakePoint(cubic.end_.x_, cubic.end_.y_),
+                    result_.GetAllocator());
+      } break;
+      case MarkdownPath::kQuadTo: {
+        o.AddMember("type", "quad", result_.GetAllocator());
+        auto& quad = op.data_.quad_;
+        o.AddMember("control", MakePoint(quad.control_.x_, quad.control_.y_),
+                    result_.GetAllocator());
+        o.AddMember("end", MakePoint(quad.end_.x_, quad.end_.y_),
+                    result_.GetAllocator());
+      } break;
+      default:
+        break;
+    }
+    p.PushBack(o, result_.GetAllocator());
+  }
+  return p;
+}
 }  // namespace lynx::markdown::testing

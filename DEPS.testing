@@ -1,0 +1,21 @@
+import os
+import platform
+
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+system = platform.system().lower()
+
+deps = {
+    "./markdown/third_party/rapidjson": {
+        'type': 'git',
+        'url': 'https://github.com/Tencent/rapidjson.git',
+        'commit': '24b5e7a8b27f42fa16b96fc70aade9106cf7102f',
+        'ignore_in_git': True,
+    },
+    "./markdown/third_party/googletest": {
+        'type': 'git',
+        'url': 'https://github.com/google/googletest',
+        'commit': '4a00a24fff3cf82254de382437bf840cab1d3993',
+        'ignore_in_git': True,
+    },
+}

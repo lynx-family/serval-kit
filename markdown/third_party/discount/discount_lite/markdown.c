@@ -1286,7 +1286,8 @@ Document* __mkd_new_Document(void) {
   Document* ret = (Document*)calloc(sizeof(Document), 1);
 
   if (ret) {
-    if (ret->ctx = (MMIOT*)calloc(sizeof(MMIOT), 1)) {
+    ret->ctx = (MMIOT*)calloc(sizeof(MMIOT), 1);
+    if (ret->ctx) {
       ret->magic = VALID_DOCUMENT;
       return ret;
     }

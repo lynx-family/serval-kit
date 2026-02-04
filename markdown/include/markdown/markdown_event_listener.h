@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EVENT_LISTENER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EVENT_LISTENER_H_
 
-#include "markdown/markdown_resource_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/view/markdown_selection_view.h"
 

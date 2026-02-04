@@ -29,6 +29,10 @@ void MarkdownViewDelegate::Draw(tttext::ICanvasHelper* canvas, float left,
   view_->SetVisibility(true);
 }
 
+void MarkdownViewDelegate::Align(float x, float y) {
+  view_->Align(x, y);
+}
+
 void MarkdownBlockViewDelegate::Draw(tttext::ICanvasHelper* canvas, float left,
                                      float top, float right, float bottom) {
   view_->SetVisibility(true);

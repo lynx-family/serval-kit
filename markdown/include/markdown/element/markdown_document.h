@@ -15,7 +15,7 @@
 #include "markdown/element/markdown_page.h"
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/markdown_event_listener.h"
-#include "markdown/markdown_resource_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -44,13 +44,13 @@ struct MarkdownLink {
 struct MarkdownImage {
   std::string url_;
   int32_t char_index_;
-  MarkdownPlatformView* view_;
+  tttext::RunDelegate* image_;
 };
 struct MarkdownInlineView {
   std::string id_;
   int32_t char_index_;
   bool is_block_view_;
-  MarkdownPlatformView* view_;
+  tttext::RunDelegate* view_;
 };
 class MarkdownDocument {
  public:
