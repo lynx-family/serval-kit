@@ -8,7 +8,7 @@
 #include "markdown/draw/markdown_typewriter_drawer.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/parser/markdown_parser.h"
+#include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
@@ -99,7 +99,7 @@ class MarkdownParserUnittest {
           Range{0, std::numeric_limits<int32_t>::max()});
       document_->SetMaxSize(width_, height_);
       document_->SetMaxLines(-1);
-      MarkdownParser::Parse("", document_.get(), nullptr);
+      MarkdownParserImpl::ParseMarkdown("", document_.get(), nullptr);
     }
   }
   void Layout() const {
@@ -395,7 +395,7 @@ TEST(MarkdownParserUnittest, ContentRangeCrash) {
   unittest.document_->SetMarkdownContent(unittest.markdown_);
   unittest.document_->SetMarkdownContentRange({15, 25});
   unittest.document_->SetMaxSize(500, 1e5);
-  MarkdownParser::Parse("", unittest.document_.get(), nullptr);
+  MarkdownParserImpl::ParseMarkdown("", unittest.document_.get(), nullptr);
 }
 TEST(MarkdownParserUnittest, GetLinkByTouchPosition) {
   MarkdownParserUnittest unittest;

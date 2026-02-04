@@ -6,8 +6,8 @@
 #include <string_view>
 
 #include "gtest/gtest.h"
-#include "markdown/parser/discount/markdown_inline_node.h"
-#include "markdown/parser/discount/markdown_inline_parser.h"
+#include "markdown/parser/embed/markdown_inline_node.h"
+#include "markdown/parser/embed/markdown_inline_parser.h"
 namespace lynx::markdown::testing {
 struct InlineNodeDescriptor {
   std::string content_;

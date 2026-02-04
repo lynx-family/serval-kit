@@ -8,7 +8,7 @@
 #include "markdown/draw/markdown_typewriter_drawer.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/parser/discount/markdown_parser_discount.h"
+#include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_float_comparison.h"
 #include "markdown/utils/markdown_trace.h"
@@ -171,9 +171,9 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
     auto before_views = GetInlineViews();
     ClearForParse();
     if (source_type_ == SourceType::kMarkdown) {
-      MarkdownParser::Parse(parser_type_, &document_, parser_ud_);
+      MarkdownParserImpl::ParseMarkdown(parser_type_, &document_, parser_ud_);
     } else if (source_type_ == SourceType::kPlainText) {
-      MarkdownParser::ParsePlainText(&document_);
+      MarkdownParserImpl::ParsePlainText(&document_);
     }
     auto after_views = GetInlineViews();
     RemoveUnusedViews(before_views, after_views);

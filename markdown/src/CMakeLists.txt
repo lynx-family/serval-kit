@@ -10,7 +10,7 @@ file(GLOB MARKDOWN_SOURCES
         ${MARKDOWN_DIR}/element/*.cc
         ${MARKDOWN_DIR}/layout/*.cc
         ${MARKDOWN_DIR}/parser/*.cc
-        ${MARKDOWN_DIR}/parser/discount/*.cc
+        ${MARKDOWN_DIR}/parser/embed/*.cc
         ${MARKDOWN_DIR}/style/*.cc
         ${MARKDOWN_DIR}/utils/*.cc
         ${MARKDOWN_DIR}/view/*.cc

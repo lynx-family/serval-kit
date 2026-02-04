@@ -18,7 +18,6 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
-class MarkdownDocument;
 class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
  public:
   MarkdownUnorderedListMarkDelegate(
@@ -70,30 +69,6 @@ class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
   MarkdownUnorderedListMarkerStyle style_;
 };
 
-class MarkdownOrderedListMarkDelegate : public tttext::RunDelegate {
- public:
-  MarkdownOrderedListMarkDelegate(MarkdownDocument* document,
-                                  const std::string& content,
-                                  const tttext::Style& base_style,
-                                  const tttext::ParagraphStyle& paragraph_style,
-                                  const MarkdownOrderedListNumberStyle& style);
-  ~MarkdownOrderedListMarkDelegate() override = default;
-  float GetAscent() const override { return ascent_; }
-  float GetDescent() const override { return descent_; }
-  float GetAdvance() const override { return advance_; }
-  void Layout() override;
-  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-
- private:
-  bool layout_{false};
-  float ascent_{0};
-  float descent_{0};
-  float advance_{0};
-  std::unique_ptr<tttext::Paragraph> para_;
-  std::unique_ptr<tttext::LayoutRegion> page_;
-  MarkdownOrderedListNumberStyle style_{};
-};
-
 class MarkdownEmptySpaceDelegate : public tttext::RunDelegate {
  public:
   explicit MarkdownEmptySpaceDelegate(float space) : width_(space) {}
@@ -111,8 +86,8 @@ class MarkdownRefDelegate : public tttext::RunDelegate {
   MarkdownRefDelegate(std::unique_ptr<tttext::Paragraph> paragraph,
                       MarkdownRefStyle style, float base_text_size)
       : paragraph_(std::move(paragraph)),
-        style_(style),
-        base_text_height_(base_text_size * 0.9) {}
+        style_(std::move(style)),
+        base_text_height_(base_text_size * 0.9f) {}
   ~MarkdownRefDelegate() override = default;
   float GetAscent() const override { return -base_text_height_; }
   float GetDescent() const override { return height_ - base_text_height_; }
@@ -127,9 +102,9 @@ class MarkdownRefDelegate : public tttext::RunDelegate {
   std::unique_ptr<tttext::Paragraph> paragraph_;
   std::unique_ptr<tttext::LayoutRegion> page_;
   bool layout_{false};
-  float width_;
-  float height_;
-  float base_line_;
+  float width_{};
+  float height_{};
+  float base_line_{};
   MarkdownRefStyle style_;
   float base_text_height_;
 };
@@ -138,42 +113,40 @@ class MarkdownTextDelegate : public tttext::RunDelegate {
  public:
   MarkdownTextDelegate(std::unique_ptr<tttext::Paragraph> text, float width,
                        float height)
-      : text_(std::move(text)), width_(width), height_(height) {}
-
-  float GetAscent() const override {
-    return height_ > 0
-               ? -height_
-               : (page_->GetLineCount() > 0 ? -page_->GetLine(0)->GetMaxAscent()
-                                            : 0);
+      : text_(std::move(text)), width_(width), height_(height) {
+    MarkdownStyleInitializer::ResetBlockStyle(&block_style_);
   }
+  MarkdownTextDelegate(std::unique_ptr<tttext::Paragraph> text,
+                       MarkdownBlockStylePart block, float width, float height)
+      : text_(std::move(text)),
+        width_(width),
+        height_(height),
+        block_style_(block) {}
 
-  float GetDescent() const override {
-    return (height_ > 0 || page_->GetLineCount() == 0)
-               ? 0
-               : page_->GetLine(0)->GetMaxDescent();
-  }
-
-  float GetAdvance() const override {
-    return width_ > 0 ? width_
-                      : MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
-  }
+  float GetAscent() const override { return ascent_; }
+  float GetDescent() const override { return descent_; }
+  float GetAdvance() const override { return advance_; }
 
   void Layout() override;
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
+  bool layout_{false};
+  float ascent_{0};
+  float descent_{0};
+  float advance_{0};
   std::unique_ptr<tttext::Paragraph> text_;
   std::unique_ptr<tttext::LayoutRegion> page_;
   float width_;
   float height_;
+  MarkdownBlockStylePart block_style_{};
 };
 
 enum class InlineBorderDirection {
   kLeft,
   kRight,
 };
-
 class MarkdownInlineBorderDelegate : public tttext::RunDelegate {
  public:
   MarkdownInlineBorderDelegate(InlineBorderDirection direction,

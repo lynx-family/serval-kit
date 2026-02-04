@@ -104,7 +104,7 @@ class MarkdownTable : public MarkdownTableMatrix<MarkdownTableCell> {
   uint32_t char_count_{0};
   friend class MarkdownLayout;
   friend class MarkdownSelection;
-  friend class MarkdownParser;
+  friend class MarkdownParserEmbed;
 };
 
 class MarkdownTableElement : public MarkdownElement {
