@@ -203,7 +203,7 @@ class MarkdownDocument {
   std::vector<ScrollState> inherited_scroll_state_;
 
   friend class MarkdownLayout;
-  friend class MarkdownParserDiscountImpl;
+  friend class MarkdownParserEmbed;
 };
 
 }  // namespace markdown

@@ -2,11 +2,11 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "markdown/parser/discount/markdown_inline_parser.h"
+#include "markdown/parser/embed/markdown_inline_parser.h"
 
 #include "base/include/string/string_number_convert.h"
 #include "base/include/string/string_utils.h"
-#include "markdown/parser/discount/markdown_inline_node.h"
+#include "markdown/parser/embed/markdown_inline_node.h"
 #include "markdown/utils/markdown_definition.h"
 namespace lynx::markdown {
 enum class TokenType : uint8_t {

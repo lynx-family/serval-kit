@@ -7,7 +7,7 @@
 #include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/parser/markdown_parser.h"
+#include "markdown/parser/embed/markdown_parser_embed.h"
 namespace lynx {
 namespace markdown {
 const MarkdownLink* MarkdownDocument::GetLinkByTouchPosition(PointF point) {
@@ -357,7 +357,7 @@ void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
     auto paragraph =
         static_cast<MarkdownParagraphElement*>(para.get())->GetParagraph();
     tttext::Style run_style;
-    MarkdownParser::SetTTStyleByMarkdownBaseStyle(this, style, &run_style);
+    MarkdownParserEmbed::SetTTStyleByMarkdownBaseStyle(this, style, &run_style);
     paragraph->ApplyStyleInRange(run_style, start, count);
   }
 }

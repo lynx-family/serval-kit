@@ -15,59 +15,6 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
-
-MarkdownOrderedListMarkDelegate::MarkdownOrderedListMarkDelegate(
-    MarkdownDocument* document, const std::string& content,
-    const tttext::Style& base_style,
-    const tttext::ParagraphStyle& paragraph_style,
-    const MarkdownOrderedListNumberStyle& style)
-    : style_(style) {
-  para_ = tttext::Paragraph::Create();
-  auto new_style = base_style;
-  MarkdownParser::SetTTStyleByMarkdownBaseStyle(document, style.base_,
-                                                &new_style);
-  para_->SetParagraphStyle(&paragraph_style);
-  para_->AddTextRun(&new_style, content.c_str());
-}
-
-void MarkdownOrderedListMarkDelegate::Layout() {
-  if (layout_) {
-    return;
-  }
-  auto* layout = MarkdownPlatform::GetTextLayout();
-  page_ = std::make_unique<tttext::LayoutRegion>(
-      std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
-      tttext::LayoutMode::kAtMost, tttext::LayoutMode::kAtMost);
-  tttext::TTTextContext context;
-  context.SetHarmonyShaperForceLowAPI(true);
-  layout->Layout(para_.get(), page_.get(), context);
-  const float text_width =
-      MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
-  const float text_height =
-      MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
-  const float text_base_line = page_->GetLine(0)->GetLineBaseLine();
-  const float left = style_.block_.margin_left_;
-  const float top = style_.block_.margin_top_;
-  const float right = style_.block_.margin_right_;
-  const float bottom = style_.block_.margin_bottom_;
-  advance_ = text_width + left + right;
-  ascent_ = -(text_base_line + top);
-  descent_ = (text_height - text_base_line) + bottom;
-  layout_ = true;
-}
-
-void MarkdownOrderedListMarkDelegate::Draw(tttext::ICanvasHelper* canvas,
-                                           float x, float y) {
-  const float left = style_.block_.margin_left_;
-  const float top = style_.block_.margin_top_;
-  auto painter = canvas->CreatePainter();
-  canvas->Save();
-  canvas->Translate(x + left, y + top);
-  tttext::LayoutDrawer drawer(canvas);
-  drawer.DrawLayoutPage(page_.get());
-  canvas->Restore();
-}
-
 void MarkdownRefDelegate::Layout() {
   if (layout_)
     return;
@@ -127,6 +74,9 @@ void lynx::markdown::MarkdownRefDelegate::Draw(tttext::ICanvasHelper* canvas,
 }
 
 void MarkdownTextDelegate::Layout() {
+  if (layout_) {
+    return;
+  }
   auto* layout = MarkdownPlatform::GetTextLayout();
   page_ = std::make_unique<tttext::LayoutRegion>(
       width_ > 0 ? width_ : std::numeric_limits<float>::max(),
@@ -137,11 +87,17 @@ void MarkdownTextDelegate::Layout() {
   context.SetLastLineCanOverflow(false);
   layout->LayoutEx(text_.get(), page_.get(), context);
   context.Reset();
-  auto content_width = MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
-  auto content_height = MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
-  page_ = std::make_unique<tttext::LayoutRegion>(content_width, content_height);
-  tttext::TTTextContext context2;
-  layout->LayoutEx(text_.get(), page_.get(), context2);
+  auto text_width = MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
+  auto text_height = MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
+  const float text_base_line = page_->GetLine(0)->GetLineBaseLine();
+  const float left = block_style_.margin_left_;
+  const float top = block_style_.margin_top_;
+  const float right = block_style_.margin_right_;
+  const float bottom = block_style_.margin_bottom_;
+  advance_ = text_width + left + right;
+  ascent_ = -(text_base_line + top);
+  descent_ = (text_height - text_base_line) + bottom;
+  layout_ = true;
 }
 
 void MarkdownTextDelegate::Draw(tttext::ICanvasHelper* canvas, float x,

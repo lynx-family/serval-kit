@@ -10,7 +10,7 @@
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/parser/markdown_parser.h"
+#include "markdown/parser/embed/markdown_parser_embed.h"
 #include "markdown/utils/markdown_platform.h"
 namespace lynx {
 namespace markdown {
@@ -236,8 +236,8 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
                                   &page_->full_filled_, last);
     if (region != nullptr) {
       if (para_element->GetLastLineAlign() != MarkdownTextAlign::kUndefined) {
-        const auto align =
-            MarkdownParser::ConvertTextAlign(para_element->GetLastLineAlign());
+        const auto align = MarkdownParserEmbed::ConvertTextAlign(
+            para_element->GetLastLineAlign());
         for (uint32_t i = 0; i < region->GetLineCount(); i++) {
           auto* line = region->GetLine(i);
           if (line->IsLastLineOfParagraph()) {
