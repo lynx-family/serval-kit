@@ -134,18 +134,19 @@ class MarkdownParserEmbed {
                                  uint32_t char_offset,
                                  uint32_t markdown_offset);
 
-  void AppendInlineBorderLeft(const MarkdownBlockStylePart& block,
-                              const MarkdownBorderStylePart& border,
-                              MarkdownBackgroundStylePart* background,
-                              tttext::Paragraph* para,
-                              tttext::Style* style) const;
-  void AppendInlineBorderRight(const MarkdownBaseStylePart& base,
-                               const MarkdownBlockStylePart& block,
-                               const MarkdownBorderStylePart& border,
-                               MarkdownBackgroundStylePart* background,
-                               tttext::Paragraph* para,
-                               uint32_t char_offset_start,
-                               uint32_t char_offset_end) const;
+  static void AppendInlineBorderLeft(const MarkdownBlockStylePart& block,
+                                     const MarkdownBorderStylePart& border,
+                                     MarkdownBackgroundStylePart* background,
+                                     tttext::Paragraph* para,
+                                     tttext::Style* style);
+  static void AppendInlineBorderRight(MarkdownDocument* document,
+                                      const MarkdownBaseStylePart& base,
+                                      const MarkdownBlockStylePart& block,
+                                      const MarkdownBorderStylePart& border,
+                                      MarkdownBackgroundStylePart* background,
+                                      tttext::Paragraph* para,
+                                      uint32_t char_offset_start,
+                                      uint32_t char_offset_end);
 
   std::vector<std::string_view> Split(const std::string_view& content,
                                       char split);
@@ -155,20 +156,29 @@ class MarkdownParserEmbed {
   void SetParagraphStyle(const MarkdownBaseStylePart& base_style_part,
                          tttext::ParagraphStyle* paragraph_style,
                          MarkdownElement* element);
+  static void SetParagraphStyle(MarkdownDocument* document,
+                                const MarkdownBaseStylePart& base_style_part,
+                                tttext::ParagraphStyle* paragraph_style,
+                                MarkdownElement* element,
+                                tttext::RulerType line_height_rule);
   void SetTTStyleByMarkdownBaseStyle(
       const MarkdownBaseStylePart& base_style_part, tttext::Style* style);
   static void SetTTStyleByMarkdownBaseStyle(
       MarkdownDocument* document, const MarkdownBaseStylePart& base_style_part,
       tttext::Style* style);
-  void SetDecorationStyle(
+  static void SetDecorationStyle(
       const MarkdownDecorationStylePart& decoration_style_part,
       tttext::Style* style);
-  std::string MarkdownNumberTypeToString(MarkdownNumberType type, int index);
-  tttext::LineType ConvertDecorationStyle(MarkdownTextDecorationStyle type);
-  tttext::DecorationType ConvertDecorationLine(MarkdownTextDecorationLine line);
-  tttext::CharacterVerticalAlignment ConvertVerticalAlign(
+  static std::string MarkdownNumberTypeToString(MarkdownNumberType type,
+                                                int index);
+  static tttext::LineType ConvertDecorationStyle(
+      MarkdownTextDecorationStyle type);
+  static tttext::DecorationType ConvertDecorationLine(
+      MarkdownTextDecorationLine line);
+  static tttext::CharacterVerticalAlignment ConvertVerticalAlign(
       MarkdownVerticalAlign align);
-  tttext::WriteDirection ConvertWriteDirection(MarkdownDirection direction);
+  static tttext::WriteDirection ConvertWriteDirection(
+      MarkdownDirection direction);
   static tttext::ParagraphHorizontalAlignment ConvertTextAlign(
       MarkdownTextAlign align);
 
@@ -178,8 +188,10 @@ class MarkdownParserEmbed {
   void AppendOrderedListNumber();
   void AppendUnorderedListMark();
 
-  const MarkdownBaseStylePart& GetHNStyle(int hn);
-  const MarkdownBlockStylePart& GetHNBlockStyle(int hn);
+  static const MarkdownBaseStylePart& GetHNStyle(const MarkdownStyle& style,
+                                                 int hn);
+  static const MarkdownBlockStylePart& GetHNBlockStyle(
+      const MarkdownStyle& style, int hn);
   std::pair<uint32_t, uint32_t> GetTextLineByteRangeByMarkdownRange(
       uint32_t line_offset, uint32_t line_length);
   int32_t MarkdownSourceByteIndexToCharIndex(int32_t byte_index) const;
@@ -192,6 +204,7 @@ class MarkdownParserEmbed {
   MarkdownDocument* document_{nullptr};
   friend class MarkdownLayout;
   friend class MarkdownDocument;
+  friend class MarkdownConverter;
 };
 }  // namespace markdown
 }  // namespace lynx

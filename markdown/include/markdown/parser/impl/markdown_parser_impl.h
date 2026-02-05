@@ -15,10 +15,7 @@ class MarkdownParserImpl {
   static void ParsePlainText(MarkdownDocument* document);
 
  protected:
-  explicit MarkdownParserImpl(MarkdownDocument* document);
-  void ConvertDomTree(MarkdownDomNode* root);
-
-  MarkdownDocument* document_{nullptr};
+  static void ConvertDomTree(MarkdownDocument* document, MarkdownDomNode* root);
 };
 }  // namespace lynx::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_

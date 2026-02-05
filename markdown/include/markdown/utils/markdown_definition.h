@@ -170,6 +170,12 @@ struct Margins {
   float right_{0};
   float bottom_{0};
 };
+
+struct MarkdownHtmlAttribute {
+  std::string name;
+  std::string value;
+};
+
 bool IsUtf8StartByte(char byte);
 char32_t GetUnicodeFromUtf8String(const char* string, int32_t* char_len);
 bool IsEmptyChar(char32_t unicode);
