@@ -49,35 +49,37 @@ class MarkdownDomNode : public MarkdownNode {
   ~MarkdownDomNode() override = default;
   Range GetSourceRange() const { return source_range_; }
   void SetSourceRange(Range range) { source_range_ = range; }
+  MarkdownDomType GetType() const { return type_; }
 
  protected:
   MarkdownDomType type_;
   Range source_range_;
 };
-class MarkdownHeader final : public MarkdownDomNode {
+class MarkdownDomHeader final : public MarkdownDomNode {
  public:
-  explicit MarkdownHeader() : MarkdownDomNode(MarkdownDomType::kHeader) {}
-  ~MarkdownHeader() override = default;
+  explicit MarkdownDomHeader() : MarkdownDomNode(MarkdownDomType::kHeader) {}
+  ~MarkdownDomHeader() override = default;
   int32_t GetHN() const { return hn_; }
   void SetHN(const int32_t hn) { hn_ = hn; }
 
  protected:
   int32_t hn_{0};
 };
-class MarkdownCodeBlock final : public MarkdownDomNode {
+class MarkdownDomCodeBlock final : public MarkdownDomNode {
  public:
-  explicit MarkdownCodeBlock() : MarkdownDomNode(MarkdownDomType::kCodeBlock) {}
-  ~MarkdownCodeBlock() override = default;
+  explicit MarkdownDomCodeBlock()
+      : MarkdownDomNode(MarkdownDomType::kCodeBlock) {}
+  ~MarkdownDomCodeBlock() override = default;
   const std::string& GetLanguage() { return language_; }
   void SetLanguage(std::string_view language) { language_ = language; }
 
  protected:
   std::string language_;
 };
-class MarkdownList final : public MarkdownDomNode {
+class MarkdownDomList final : public MarkdownDomNode {
  public:
-  explicit MarkdownList(MarkdownDomType type) : MarkdownDomNode(type) {}
-  ~MarkdownList() override = default;
+  explicit MarkdownDomList(MarkdownDomType type) : MarkdownDomNode(type) {}
+  ~MarkdownDomList() override = default;
   int32_t GetStart() const { return start_; }
   void SetStart(const int32_t start) { start_ = start; }
   char GetDelimiter() const { return delimiter_; }
@@ -93,10 +95,10 @@ class MarkdownList final : public MarkdownDomNode {
   int32_t extra_level_{0};
   bool checked_{false};
 };
-class MarkdownTable final : public MarkdownDomNode {
+class MarkdownDomTable final : public MarkdownDomNode {
  public:
-  explicit MarkdownTable() : MarkdownDomNode(MarkdownDomType::kTable) {}
-  ~MarkdownTable() override = default;
+  explicit MarkdownDomTable() : MarkdownDomNode(MarkdownDomType::kTable) {}
+  ~MarkdownDomTable() override = default;
   const std::vector<MarkdownTextAlign>& GetAligns() const { return aligns_; }
   void SetAligns(std::vector<MarkdownTextAlign> aligns) {
     aligns_ = std::move(aligns);
@@ -105,10 +107,10 @@ class MarkdownTable final : public MarkdownDomNode {
  protected:
   std::vector<MarkdownTextAlign> aligns_;
 };
-class MarkdownLink final : public MarkdownDomNode {
+class MarkdownDomLink final : public MarkdownDomNode {
  public:
-  explicit MarkdownLink() : MarkdownDomNode(MarkdownDomType::kLink) {}
-  ~MarkdownLink() override = default;
+  explicit MarkdownDomLink() : MarkdownDomNode(MarkdownDomType::kLink) {}
+  ~MarkdownDomLink() override = default;
   const std::string& GetUrl() const { return url_; }
   void SetUrl(std::string_view url) { url_ = url; }
   const std::string& GetTitle() const { return title_; }
@@ -118,10 +120,10 @@ class MarkdownLink final : public MarkdownDomNode {
   std::string url_;
   std::string title_;
 };
-class MarkdownImage final : public MarkdownDomNode {
+class MarkdownDomImage final : public MarkdownDomNode {
  public:
-  explicit MarkdownImage() : MarkdownDomNode(MarkdownDomType::kImage) {}
-  ~MarkdownImage() override = default;
+  explicit MarkdownDomImage() : MarkdownDomNode(MarkdownDomType::kImage) {}
+  ~MarkdownDomImage() override = default;
   std::string_view GetUrl() const { return url_; }
   void SetUrl(std::string_view url) { url_ = url; }
   float GetWidth() const { return width_; }
@@ -140,24 +142,20 @@ class MarkdownImage final : public MarkdownDomNode {
   float width_{0};
   float height_{0};
 };
-class MarkdownRawText final : public MarkdownDomNode {
+class MarkdownDomRawText final : public MarkdownDomNode {
  public:
-  explicit MarkdownRawText(MarkdownDomType type) : MarkdownDomNode(type) {}
-  ~MarkdownRawText() override = default;
+  explicit MarkdownDomRawText(MarkdownDomType type) : MarkdownDomNode(type) {}
+  ~MarkdownDomRawText() override = default;
   const std::string& GetText() const { return text_; }
   void SetText(std::string_view text) { text_ = text; }
 
  protected:
   std::string text_;
 };
-struct MarkdownHtmlAttribute {
-  std::string name;
-  std::string value;
-};
-class MarkdownHtmlNode final : public MarkdownDomNode {
+class MarkdownDomHtmlNode final : public MarkdownDomNode {
  public:
-  MarkdownHtmlNode() : MarkdownDomNode(MarkdownDomType::kInlineHtml) {}
-  ~MarkdownHtmlNode() override = default;
+  MarkdownDomHtmlNode() : MarkdownDomNode(MarkdownDomType::kInlineHtml) {}
+  ~MarkdownDomHtmlNode() override = default;
   const std::string& GetTag() const { return tag_; }
   void SetTag(const std::string_view tag) { tag_ = tag; }
   void AddAttribute(std::string_view name, std::string_view value) {
@@ -183,10 +181,10 @@ class MarkdownHtmlNode final : public MarkdownDomNode {
   std::string tag_;
   std::vector<MarkdownHtmlAttribute> attributes_;
 };
-class MarkdownPlaceHolder final : public MarkdownDomNode {
+class MarkdownDomPlaceHolder final : public MarkdownDomNode {
  public:
-  MarkdownPlaceHolder() : MarkdownDomNode(MarkdownDomType::kPlaceHolder) {}
-  ~MarkdownPlaceHolder() override = default;
+  MarkdownDomPlaceHolder() : MarkdownDomNode(MarkdownDomType::kPlaceHolder) {}
+  ~MarkdownDomPlaceHolder() override = default;
   void SetData(void* data) { ud_ = data; }
   void* GetData() const { return ud_; }
 

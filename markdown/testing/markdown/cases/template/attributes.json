@@ -5,7 +5,6 @@
   "use-char-based-drawer": false,
   "initial-animation-step": 0,
   "content-complete": true,
-  "generate": true,
   "style": {
     "normalText": {
       "linespace": 0,

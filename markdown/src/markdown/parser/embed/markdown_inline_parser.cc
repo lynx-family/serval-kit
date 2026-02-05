@@ -141,8 +141,8 @@ class MarkdownHtmlParser {
     } else if (state_ == State::kParseAttributeValue) {
       auto value =
           std::string_view(content_begin_, processing_ - content_begin_);
-      attributes_.emplace_back(
-          MarkdownHtmlAttribute{.name_ = name_, .value_ = value});
+      attributes_.emplace_back(MarkdownHtmlAttribute{
+          .name = std::string(name_), .value = std::string(value)});
       state_ = State::kWaitForAttributeName;
     }
   }
@@ -193,8 +193,8 @@ class MarkdownHtmlParser {
       auto quote_end = rest.find(*processing_, 1);
       if (quote_end != std::string_view::npos) {
         auto value = rest.substr(1, quote_end - 1);
-        attributes_.emplace_back(
-            MarkdownHtmlAttribute{.name_ = name_, .value_ = value});
+        attributes_.emplace_back(MarkdownHtmlAttribute{
+            .name = std::string(name_), .value = std::string(value)});
         state_ = State::kWaitForAttributeName;
         processing_ += quote_end + 1;
         content_begin_ = processing_;

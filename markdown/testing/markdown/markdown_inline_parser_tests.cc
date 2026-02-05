@@ -214,8 +214,8 @@ InlineNodeDescriptor HtmlTag(std::string tag,
                              std::vector<InlineNodeDescriptor> children) {
   std::string text = "<" + tag;
   for (auto& attr : attrs) {
-    text += " " + std::string(attr.name_) + "=" + '"' +
-            std::string(attr.value_) + '"';
+    text += " " + std::string(attr.name) + "=" + '"' + std::string(attr.value) +
+            '"';
   }
   text += ">" + MergeContent(children) + "</" + tag + ">";
   return InlineNodeDescriptor{
@@ -429,8 +429,8 @@ void ExpectNode(MarkdownInlineNode* node, const InlineNodeDescriptor& desc) {
       auto& attrs = desc.attributes_.value();
       EXPECT_EQ(attrs.size(), tag->GetAttributes().size());
       for (uint32_t i = 0; i < attrs.size(); i++) {
-        EXPECT_EQ(attrs[i].name_, tag->GetAttributes()[i].name_);
-        EXPECT_EQ(attrs[i].value_, tag->GetAttributes()[i].value_);
+        EXPECT_EQ(attrs[i].name, tag->GetAttributes()[i].name);
+        EXPECT_EQ(attrs[i].value, tag->GetAttributes()[i].value);
       }
     }
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kHtmlEntity) {

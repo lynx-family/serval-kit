@@ -181,7 +181,7 @@ void MarkdownParserEmbed::OnParagraphStart(int type) {
       context_.border_type_ = MarkdownBorder::kNone;
       context_.block_style_.margin_left_ += quote_indent;
     } else if (type == HDR) {
-      context_.block_style_ = GetHNBlockStyle(context_.hn_);
+      context_.block_style_ = GetHNBlockStyle(style_, context_.hn_);
       context_.block_style_.margin_left_ += quote_indent;
     } else {
       auto parent_type = context_.para_stack_[context_.para_stack_.size() - 2];
@@ -331,20 +331,27 @@ void MarkdownParserEmbed::OnParagraphEnd() {
 void MarkdownParserEmbed::SetParagraphStyle(
     const lynx::markdown::MarkdownBaseStylePart& base_style_part,
     tttext::ParagraphStyle* style, MarkdownElement* element) {
+  SetParagraphStyle(document_, base_style_part, style, element,
+                    context_.line_height_rule_);
+}
+
+void MarkdownParserEmbed::SetParagraphStyle(
+    MarkdownDocument* document, const MarkdownBaseStylePart& base_style_part,
+    tttext::ParagraphStyle* style, MarkdownElement* element,
+    tttext::RulerType line_height_rule) {
   if (base_style_part.line_height_ > 0) {
-    style->SetLineHeightInPx(base_style_part.line_height_,
-                             context_.line_height_rule_);
+    style->SetLineHeightInPx(base_style_part.line_height_, line_height_rule);
   }
   if (base_style_part.line_space_ >= 0) {
     style->SetLineSpaceAfterPx(base_style_part.line_space_);
   }
   style->AllowBreakAroundPunctuation(
-      document_->GetAllowBreakAroundPunctuation());
+      document->GetAllowBreakAroundPunctuation());
   if (base_style_part.text_overflow_ == MarkdownTextOverflow::kEllipsis) {
-    if (!document_->GetTruncationText().empty()) {
-      style->SetEllipsis(std::u16string(document_->GetTruncationText()));
-    } else if (document_->GetTruncationDelegate() != nullptr) {
-      style->SetEllipsis(document_->GetTruncationDelegate());
+    if (!document->GetTruncationText().empty()) {
+      style->SetEllipsis(std::u16string(document->GetTruncationText()));
+    } else if (document->GetTruncationDelegate() != nullptr) {
+      style->SetEllipsis(document->GetTruncationDelegate());
     }
   }
   if (base_style_part.text_maxline_ > 0) {
@@ -369,7 +376,7 @@ void MarkdownParserEmbed::SetParagraphStyle(
     style->SetFirstLineIndentInPx(base_style_part.text_indent_);
   }
   tttext::Style default_style = style->GetDefaultStyle();
-  SetTTStyleByMarkdownBaseStyle(base_style_part, &default_style);
+  SetTTStyleByMarkdownBaseStyle(document, base_style_part, &default_style);
   style->SetDefaultStyle(default_style);
 }
 
@@ -626,7 +633,8 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
         SetTTStyleByMarkdownBaseStyle(style_.normal_text_.base_, &run_style);
       }
     } else {
-      SetTTStyleByMarkdownBaseStyle(GetHNStyle(context_.hn_), &run_style);
+      SetTTStyleByMarkdownBaseStyle(GetHNStyle(style_, context_.hn_),
+                                    &run_style);
     }
     std::string content = "";
     int32_t markdown_offset = text_line->markdown_offset;
@@ -688,7 +696,7 @@ void MarkdownParserEmbed::GenerateParagraph(
     SetParagraphStyle(style_.code_block_.base_,
                       &context_.current_paragraph_->GetParagraphStyle(), para);
   } else if (context_.hn_ > 0) {
-    SetParagraphStyle(GetHNStyle(context_.hn_),
+    SetParagraphStyle(GetHNStyle(style_, context_.hn_),
                       &context_.current_paragraph_->GetParagraphStyle(), para);
   } else {
     SetParagraphStyle(style_.normal_text_.base_,
@@ -896,41 +904,43 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
   context_.current_table_->char_count_ = char_offset;
 }
 
-const MarkdownBaseStylePart& MarkdownParserEmbed::GetHNStyle(int hn) {
+const MarkdownBaseStylePart& MarkdownParserEmbed::GetHNStyle(
+    const MarkdownStyle& style, int hn) {
   switch (hn) {
     case 1:
-      return style_.h1_.base_;
+      return style.h1_.base_;
     case 2:
-      return style_.h2_.base_;
+      return style.h2_.base_;
     case 3:
-      return style_.h3_.base_;
+      return style.h3_.base_;
     case 4:
-      return style_.h4_.base_;
+      return style.h4_.base_;
     case 5:
-      return style_.h5_.base_;
+      return style.h5_.base_;
     case 6:
-      return style_.h6_.base_;
+      return style.h6_.base_;
     default:
-      return style_.normal_text_.base_;
+      return style.normal_text_.base_;
   }
 }
 
-const MarkdownBlockStylePart& MarkdownParserEmbed::GetHNBlockStyle(int hn) {
+const MarkdownBlockStylePart& MarkdownParserEmbed::GetHNBlockStyle(
+    const MarkdownStyle& style, int hn) {
   switch (hn) {
     case 1:
-      return style_.h1_.block_;
+      return style.h1_.block_;
     case 2:
-      return style_.h2_.block_;
+      return style.h2_.block_;
     case 3:
-      return style_.h3_.block_;
+      return style.h3_.block_;
     case 4:
-      return style_.h4_.block_;
+      return style.h4_.block_;
     case 5:
-      return style_.h5_.block_;
+      return style.h5_.block_;
     case 6:
-      return style_.h6_.block_;
+      return style.h6_.block_;
     default:
-      return style_.normal_text_.block_;
+      return style.normal_text_.block_;
   }
 }
 
@@ -1191,7 +1201,7 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
 void MarkdownParserEmbed::AppendInlineBorderLeft(
     const MarkdownBlockStylePart& block, const MarkdownBorderStylePart& border,
     MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
-    tttext::Style* style) const {
+    tttext::Style* style) {
   float left_empty =
       block.margin_left_ + block.padding_left_ + border.border_width_;
   if (left_empty != 0) {
@@ -1206,10 +1216,11 @@ void MarkdownParserEmbed::AppendInlineBorderLeft(
 }
 
 void MarkdownParserEmbed::AppendInlineBorderRight(
-    const MarkdownBaseStylePart& base, const MarkdownBlockStylePart& block,
-    const MarkdownBorderStylePart& border,
+    MarkdownDocument* document, const MarkdownBaseStylePart& base,
+    const MarkdownBlockStylePart& block, const MarkdownBorderStylePart& border,
     MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
-    uint32_t char_offset, uint32_t char_offset_end) const {
+    uint32_t char_offset, uint32_t char_offset_end) {
+  auto* loader = document->GetResourceLoader();
   float right_empty =
       block.margin_right_ + block.padding_right_ + border.border_width_;
   if (right_empty != 0) {
@@ -1233,10 +1244,10 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
         std::make_unique<MarkdownLengthValue>(block.padding_right_,
                                               StyleValuePattern::kPx));
     if (background != nullptr && !background->background_image_.empty() &&
-        loader_ != nullptr) {
-      attachment->rect_.gradient_ = loader_->LoadGradient(
+        loader != nullptr) {
+      attachment->rect_.gradient_ = loader->LoadGradient(
           background->background_image_.c_str(), base.font_size_,
-          style_.normal_text_.base_.font_size_);
+          document->GetStyle().normal_text_.base_.font_size_);
     }
     if (attachment->rect_.gradient_ == nullptr) {
       attachment->rect_.color_ = base.background_color_;
@@ -1248,7 +1259,7 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
       attachment->rect_.stroke_width_ = std::make_unique<MarkdownLengthValue>(
           border.border_width_, StyleValuePattern::kPx);
     }
-    document_->border_attachments_.emplace_back(std::move(attachment));
+    document->border_attachments_.emplace_back(std::move(attachment));
   }
 }
 
@@ -1268,9 +1279,9 @@ void MarkdownParserEmbed::AppendInlineCode(MarkdownInlineNode* node,
   AppendChildrenToParagraph(node, para, new_style, char_offset,
                             markdown_offset);
   auto char_end = char_offset + para->GetCharCount();
-  AppendInlineBorderRight(style_.inline_code_.base_, style_.inline_code_.block_,
-                          style_.inline_code_.border_, nullptr, para,
-                          char_start, char_end);
+  AppendInlineBorderRight(
+      document_, style_.inline_code_.base_, style_.inline_code_.block_,
+      style_.inline_code_.border_, nullptr, para, char_start, char_end);
 }
 
 void MarkdownParserEmbed::AppendRawText(MarkdownInlineNode* node,
@@ -1340,7 +1351,7 @@ void MarkdownParserEmbed::AppendInlineHtml(MarkdownInlineHtmlTag* node,
     AppendChildrenToParagraph(node, para, new_style, char_offset,
                               markdown_offset);
     auto end = char_offset + para->GetCharCount();
-    AppendInlineBorderRight(style_.mark_.base_, style_.mark_.block_,
+    AppendInlineBorderRight(document_, style_.mark_.base_, style_.mark_.block_,
                             style_.mark_.border_, &style_.mark_.background_,
                             para, start, end);
   } else if (node->GetTag() == "span") {
@@ -1359,7 +1370,7 @@ void MarkdownParserEmbed::AppendInlineHtml(MarkdownInlineHtmlTag* node,
       AppendChildrenToParagraph(node, para, new_style, char_offset,
                                 markdown_offset);
       auto end = char_offset + para->GetCharCount();
-      AppendInlineBorderRight(span_style.base_, span_style.block_,
+      AppendInlineBorderRight(document_, span_style.base_, span_style.block_,
                               span_style.border_, &span_style.background_, para,
                               start, end);
       uint32_t count_after = para->GetCharCount();
@@ -1391,7 +1402,7 @@ void MarkdownParserEmbed::AppendDoubleBraces(MarkdownInlineNode* node,
   AppendChildrenToParagraph(node, para, new_style, char_offset,
                             markdown_offset);
   auto end = char_offset + para->GetCharCount();
-  AppendInlineBorderRight(style_.double_braces_.base_,
+  AppendInlineBorderRight(document_, style_.double_braces_.base_,
                           style_.double_braces_.block_,
                           style_.double_braces_.border_,
                           &style_.double_braces_.background_, para, start, end);
