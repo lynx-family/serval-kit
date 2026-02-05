@@ -53,6 +53,7 @@ void MarkdownParserImpl::ParseMarkdown(const std::string& parser_name,
     if (parser != nullptr) {
       auto* dom = parser->Parse(document->GetMarkdownContent(), ud);
       ConvertDomTree(document, dom);
+      parser->Release(dom);
       return;
     }
   }

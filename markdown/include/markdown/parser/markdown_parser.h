@@ -12,6 +12,7 @@ class MarkdownParser {
  public:
   virtual ~MarkdownParser() = default;
   virtual MarkdownDomNode* Parse(std::string_view source, void* ud) = 0;
+  virtual void Release(MarkdownDomNode* node) = 0;
   static void RegisterParser(const std::string& name, MarkdownParser* parser);
 };
 }  // namespace lynx::markdown
