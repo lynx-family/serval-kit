@@ -17,43 +17,43 @@
 #include "markdown/parser/markdown_dom_node.h"
 namespace lynx::markdown {
 
-class ParserMap {
+class ParserProviderMap {
  public:
-  ParserMap() = default;
-  MarkdownParser* GetParser(const std::string& name) {
+  ParserProviderMap() = default;
+  MarkdownParserProvider* GetParserProvider(const std::string& name) {
     const auto iter = parser_map_.find(name);
     if (iter == parser_map_.end() || iter->second == nullptr) {
       return nullptr;
     }
     return iter->second;
   }
-  void RegisterParser(const std::string& name, MarkdownParser* parser) {
+  void RegisterParser(const std::string& name, MarkdownParserProvider* parser) {
     if (parser == nullptr || name.empty()) {
       return;
     }
     parser_map_[name] = parser;
   }
-  std::unordered_map<std::string, MarkdownParser*> parser_map_;
+  std::unordered_map<std::string, MarkdownParserProvider*> parser_map_;
 };
 
-ParserMap& GetParserMap() {
-  static ParserMap parser_map;
+ParserProviderMap& GetParserMap() {
+  static ParserProviderMap parser_map;
   return parser_map;
 }
 
-void MarkdownParser::RegisterParser(const std::string& name,
-                                    MarkdownParser* parser) {
+void MarkdownParserProvider::RegisterParserProvider(
+    const std::string& name, MarkdownParserProvider* parser) {
   GetParserMap().RegisterParser(name, parser);
 }
 
 void MarkdownParserImpl::ParseMarkdown(const std::string& parser_name,
                                        MarkdownDocument* document, void* ud) {
   if (!parser_name.empty()) {
-    const auto parser = GetParserMap().GetParser(parser_name);
-    if (parser != nullptr) {
+    if (const auto provider = GetParserMap().GetParserProvider(parser_name);
+        provider != nullptr) {
+      const auto parser = provider->CreateParser();
       auto* dom = parser->Parse(document->GetMarkdownContent(), ud);
       ConvertDomTree(document, dom);
-      parser->Release(dom);
       return;
     }
   }
