@@ -11,13 +11,15 @@
 
 #include <memory>
 
+#include "markdown/draw/markdown_canvas.h"
 #include "markdown/utils/markdown_definition.h"
 enum class MarkdownCanvasOpExtend : int8_t {
   kClipPath,
   kDrawPath,
   kDrawDelegateOnPath,
 };
-class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper {
+class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
+                                 public lynx::markdown::MarkdownCanvasExtend {
   static constexpr int8_t kCanvasOPExtend = -1;
 
  public:
@@ -28,7 +30,18 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper {
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
 
+  void ClipPath(lynx::markdown::MarkdownPath* path) override;
+
+  void DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
+                        tttext::Painter* painter) override;
+
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
+                          lynx::markdown::MarkdownPath* path,
+                          tttext::Painter* painter) override;
+
  public:
+  void WritePaint(tttext::Painter* painter);
+  void WritePath(lynx::markdown::MarkdownPath* path);
   void WritePoint(lynx::markdown::PointF point) {
     stream_->WriteFloat(point.x_);
     stream_->WriteFloat(point.y_);

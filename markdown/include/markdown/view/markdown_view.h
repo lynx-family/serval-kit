@@ -15,6 +15,8 @@
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
+#include "markdown/markdown_platform_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_selection_view.h"
@@ -24,12 +26,13 @@ enum class MarkdownAnimationType {
   kTypewriter,
 };
 enum class SourceType { kPlainText, kMarkdown };
-class MarkdownView final : public MarkdownDrawable {
+class MarkdownView final : public MarkdownDrawable,
+                           public MarkdownResourceLoader {
  public:
   explicit MarkdownView(MarkdownPlatformView* view);
   ~MarkdownView() override;
-  void SetResourceLoader(MarkdownResourceLoader* loader);
-  MarkdownResourceLoader* GetResourceLoader();
+  void SetPlatformLoader(MarkdownPlatformLoader* loader);
+  MarkdownPlatformLoader* GetPlatformLoader();
   void SetEventListener(MarkdownEventListener* listener);
   void SetExposureListener(MarkdownExposureListener* listener);
   void SetContent(std::string_view content);
@@ -75,7 +78,7 @@ class MarkdownView final : public MarkdownDrawable {
             float bottom) override;
   float GetWidth() const override;
   float GetHeight() const override;
-  void Align() override;
+  void Align(float x, float y) override;
 
   float GetMeasureWidth() const { return measured_width_; }
   float GetMeasureHeight() const { return measured_height_; }
@@ -90,6 +93,17 @@ class MarkdownView final : public MarkdownDrawable {
   void OnLongPress(PointF position, GestureEventType event);
   void OnTap(PointF position, GestureEventType event);
   void OnPan(PointF position, PointF motion, GestureEventType event);
+
+  std::unique_ptr<tttext::RunDelegate> LoadReplacementView(
+      void* ud, int32_t id, float max_width, float max_height) override;
+  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
+  std::unique_ptr<tttext::RunDelegate> LoadImage(
+      const char* src, float desire_width, float desire_height, float max_width,
+      float max_height, float border_radius) override;
+  std::unique_ptr<tttext::RunDelegate> LoadInlineView(
+      const char* id_selector, float max_width, float max_height) override;
+  std::unique_ptr<tttext::RunDelegate> LoadGradient(
+      const char* gradient, float font_size, float root_font_size) override;
 
  protected:
   int32_t GetCharCount();
@@ -144,6 +158,7 @@ class MarkdownView final : public MarkdownDrawable {
 
   MarkdownDocument document_;
   MarkdownExposureListener* exposure_listener_{nullptr};
+  MarkdownPlatformLoader* platform_loader_{nullptr};
 
   std::string parser_type_{};
   SourceType source_type_{SourceType::kMarkdown};

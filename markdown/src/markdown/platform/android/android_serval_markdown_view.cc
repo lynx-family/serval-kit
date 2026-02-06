@@ -9,6 +9,6 @@ AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view) {
   AttachDrawable(std::make_unique<lynx::markdown::MarkdownView>(this));
   auto* markdown_view = GetMarkdownView();
-  markdown_view->SetResourceLoader(resource_loader_android_.get());
+  markdown_view->SetPlatformLoader(resource_loader_android_.get());
   markdown_view->SetEventListener(event_android_.get());
 }

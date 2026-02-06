@@ -6,8 +6,8 @@
 #include <string_view>
 
 #include "gtest/gtest.h"
-#include "markdown/parser/discount/markdown_inline_node.h"
-#include "markdown/parser/discount/markdown_inline_parser.h"
+#include "markdown/parser/embed/markdown_inline_node.h"
+#include "markdown/parser/embed/markdown_inline_parser.h"
 namespace lynx::markdown::testing {
 struct InlineNodeDescriptor {
   std::string content_;
@@ -16,7 +16,9 @@ struct InlineNodeDescriptor {
   std::optional<float> width_;
   std::optional<float> height_;
   std::optional<std::string> tag_;
+  std::optional<std::string> caption_;
   std::optional<std::vector<MarkdownHtmlAttribute>> attributes_;
+  std::optional<std::string> entity_;
   std::vector<InlineNodeDescriptor> children_;
 };
 
@@ -111,6 +113,21 @@ InlineNodeDescriptor Image(std::string url, float width, float height,
                               .children_ = std::move(children)};
 }
 
+InlineNodeDescriptor Image(std::string url, float width, float height,
+                           std::string caption,
+                           std::vector<InlineNodeDescriptor> children) {
+  auto text = "![" + MergeContent(children) + "](" + url +
+              " width=" + std::to_string(width) +
+              " height=" + std::to_string(height) + ")";
+  return InlineNodeDescriptor{.content_ = text,
+                              .syntax_ = MarkdownInlineSyntax::kImg,
+                              .url_ = url,
+                              .width_ = width,
+                              .height_ = height,
+                              .caption_ = caption,
+                              .children_ = std::move(children)};
+}
+
 InlineNodeDescriptor Image(std::string url, std::string extra, float width,
                            float height,
                            std::vector<InlineNodeDescriptor> children) {
@@ -120,6 +137,19 @@ InlineNodeDescriptor Image(std::string url, std::string extra, float width,
                               .url_ = url,
                               .width_ = width,
                               .height_ = height,
+                              .children_ = std::move(children)};
+}
+
+InlineNodeDescriptor Image(std::string url, std::string extra, float width,
+                           float height, std::string caption,
+                           std::vector<InlineNodeDescriptor> children) {
+  auto text = "![" + MergeContent(children) + "](" + url + extra + ")";
+  return InlineNodeDescriptor{.content_ = text,
+                              .syntax_ = MarkdownInlineSyntax::kImg,
+                              .url_ = url,
+                              .width_ = width,
+                              .height_ = height,
+                              .caption_ = caption,
                               .children_ = std::move(children)};
 }
 
@@ -184,8 +214,8 @@ InlineNodeDescriptor HtmlTag(std::string tag,
                              std::vector<InlineNodeDescriptor> children) {
   std::string text = "<" + tag;
   for (auto& attr : attrs) {
-    text += " " + std::string(attr.name_) + "=" + '"' +
-            std::string(attr.value_) + '"';
+    text += " " + std::string(attr.name) + "=" + '"' + std::string(attr.value) +
+            '"';
   }
   text += ">" + MergeContent(children) + "</" + tag + ">";
   return InlineNodeDescriptor{
@@ -203,6 +233,15 @@ InlineNodeDescriptor HtmlTagSelfClose(std::string tag) {
       .content_ = text,
       .syntax_ = MarkdownInlineSyntax::kInlineHtml,
       .tag_ = tag,
+  };
+}
+
+InlineNodeDescriptor HtmlEntity(const std::string& raw_text,
+                                std::string entity) {
+  return InlineNodeDescriptor{
+      .content_ = raw_text,
+      .syntax_ = MarkdownInlineSyntax::kHtmlEntity,
+      .entity_ = entity,
   };
 }
 
@@ -248,12 +287,13 @@ TEST(MarkdownInlineParserTest, Underlines) {
 }
 
 TEST(MarkdownInlineParserTest, InlineCode) {
-  Expect("`code block`", Root({InlineCode(1, "code block")}));
-  Expect("``code block`", Root({RawText("``code block`")}));
-  Expect("``code block``", Root({InlineCode(2, "code block")}));
-  Expect("``code block```", Root({RawText("``code block```")}));
-  Expect("```code block```", Root({InlineCode(3, "code block")}));
-  Expect("```code`block````123```", Root({InlineCode(3, "code`block````123")}));
+  Expect("`code`", Root({InlineCode(1, "code")}));
+  Expect("``code`", Root({RawText("``code`")}));
+  Expect("``code``", Root({InlineCode(2, "code")}));
+  Expect("``code```", Root({RawText("``code```")}));
+  Expect("```code```", Root({InlineCode(3, "code")}));
+  Expect("```co`de``block````123```",
+         Root({InlineCode(3, "co`de``block````123")}));
 }
 
 TEST(MarkdownInlineParserTest, Image) {
@@ -273,6 +313,26 @@ TEST(MarkdownInlineParserTest, Image) {
       Root({Image("url", " width=30 height=40", 30, 40,
                   {Italic("*", {Bold("*", {RawText("1234")}), RawText("56")}),
                    RawText("78")})}));
+  Expect("![](url)", Root({Image("url", "", -1, -1, "", {})}));
+  Expect("![](url 'caption')",
+         Root({Image("url", " 'caption'", -1, -1, "caption", {})}));
+  Expect("![](url 'caption with space')",
+         Root({Image("url", " 'caption with space'", -1, -1,
+                     "caption with space", {})}));
+  Expect("![](url 'caption with space and quote\"')",
+         Root({Image("url", " 'caption with space and quote\"'", -1, -1,
+                     "caption with space and quote\"", {})}));
+  Expect("![](url \"caption with space and quote\\\"\")",
+         Root({Image("url", " \"caption with space and quote\\\"\"", -1, -1,
+                     "caption with space and quote\\\"", {})}));
+  Expect("![](url width=100 'caption')",
+         Root({Image("url", " width=100 'caption'", 100, -1, "caption", {})}));
+  Expect("![](url width=100 height=100 'caption')",
+         Root({Image("url", " width=100 height=100 'caption'", 100, 100,
+                     "caption", {})}));
+  Expect("![](url width=100 'caption' height=100)",
+         Root({Image("url", " width=100 'caption' height=100", 100, 100,
+                     "caption", {})}));
 }
 
 TEST(MarkdownInlineParserTest, Link) {
@@ -290,7 +350,7 @@ TEST(MarkdownInlineParserTest, DoubleSquareBracket) {
          Root({RawText("["), DoubleSquareBracket({RawText("12345")}),
                RawText("]")}));
   Expect("*[[12345*]]",
-         Root({Italic("*", {RawText("[[12345")}), RawText("]]")}));
+         Root({RawText("*"), DoubleSquareBracket({RawText("12345*")})}));
   Expect("[[*12*345]]", Root({DoubleSquareBracket(
                             {Italic("*", {RawText("12")}), RawText("345")})}));
 }
@@ -325,6 +385,19 @@ TEST(MarkdownInlineParserTest, InlineHtml) {
                         RawText("789")})}));
 }
 
+TEST(MarkdownInlineParserTest, HtmlEntity) {
+  Expect("&lt;", Root({HtmlEntity("&lt;", "<")}));
+  Expect("&gt;", Root({HtmlEntity("&gt;", ">")}));
+  Expect("&none;", Root({RawText("&none;")}));
+  Expect("1234&lt;5678",
+         Root({RawText("1234"), HtmlEntity("&lt;", "<"), RawText("5678")}));
+  Expect("&#64;", Root({HtmlEntity("&#64;", "\u0040")}));
+  Expect("&#65535;", Root({HtmlEntity("&#65535;", "\uffff")}));
+  Expect("&#x10ffff;", Root({HtmlEntity("&#x10ffff;", "\U0010ffff")}));
+  Expect("&#x110000;", Root({RawText("&#x110000;")}));
+  Expect("&#64a;", Root({RawText("&#64a;")}));
+}
+
 void ExpectNode(MarkdownInlineNode* node, const InlineNodeDescriptor& desc) {
   EXPECT_EQ(node->GetText(), desc.content_);
   EXPECT_EQ(node->GetSyntax(), desc.syntax_);
@@ -338,6 +411,9 @@ void ExpectNode(MarkdownInlineNode* node, const InlineNodeDescriptor& desc) {
     }
     if (desc.height_.has_value()) {
       EXPECT_EQ(img->GetHeight(), desc.height_.value());
+    }
+    if (desc.caption_.has_value()) {
+      EXPECT_EQ(img->GetCaption(), desc.caption_.value());
     }
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kLink) {
     auto* link = reinterpret_cast<MarkdownLinkNode*>(node);
@@ -353,9 +429,14 @@ void ExpectNode(MarkdownInlineNode* node, const InlineNodeDescriptor& desc) {
       auto& attrs = desc.attributes_.value();
       EXPECT_EQ(attrs.size(), tag->GetAttributes().size());
       for (uint32_t i = 0; i < attrs.size(); i++) {
-        EXPECT_EQ(attrs[i].name_, tag->GetAttributes()[i].name_);
-        EXPECT_EQ(attrs[i].value_, tag->GetAttributes()[i].value_);
+        EXPECT_EQ(attrs[i].name, tag->GetAttributes()[i].name);
+        EXPECT_EQ(attrs[i].value, tag->GetAttributes()[i].value);
       }
+    }
+  } else if (node->GetSyntax() == MarkdownInlineSyntax::kHtmlEntity) {
+    const auto* entity = reinterpret_cast<MarkdownHtmlEntityNode*>(node);
+    if (desc.entity_.has_value()) {
+      EXPECT_EQ(entity->GetEntity(), desc.entity_.value());
     }
   }
   EXPECT_EQ(node->Children().size(), desc.children_.size());

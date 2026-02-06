@@ -3,7 +3,10 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/style/markdown_style_reader.h"
 
-#include "markdown/markdown_resource_loader.h"
+#include "base/include/string/string_utils.h"
+#include "markdown/element/markdown_attachments.h"
+#include "markdown/element/markdown_document.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
 namespace lynx::markdown {
@@ -76,6 +79,12 @@ class MarkdownStyleReaderImpl {
         return "span";
       case MarkdownStyleTag::kOrderedListNumber:
         return "orderedListNumber";
+      case MarkdownStyleTag::kImageCaption:
+        return "imageCaption";
+      case MarkdownStyleTag::kBold:
+        return "bold";
+      case MarkdownStyleTag::kItalic:
+        return "italic";
     }
     return "";
   }
@@ -193,6 +202,32 @@ class MarkdownStyleReaderImpl {
         return "wordBreak";
       case MarkdownStyleOp::kDirection:
         return "direction";
+      case MarkdownStyleOp::kAltImage:
+        return "altImage";
+      case MarkdownStyleOp::kTextAlign:
+        return "textAlign";
+      case MarkdownStyleOp::kCaptionPosition:
+        return "captionPosition";
+      case MarkdownStyleOp::kMaxHeight:
+        return "maxHeight";
+      case MarkdownStyleOp::kMinWidth:
+        return "minWidth";
+      case MarkdownStyleOp::kMinHeight:
+        return "minHeight";
+      case MarkdownStyleOp::kTableBorder:
+        return "tableBorder";
+      case MarkdownStyleOp::kTableBackground:
+        return "tableBackground";
+      case MarkdownStyleOp::kAltColor:
+        return "altColor";
+      case MarkdownStyleOp::kLineType:
+        return "lineType";
+      case MarkdownStyleOp::kTextIndent:
+        return "textIndent";
+      case MarkdownStyleOp::kLastLineAlignment:
+        return "lastLineAlignment";
+      case MarkdownStyleOp::kTableSplit:
+        return "tableSplit";
     }
     return "";
   }
@@ -391,6 +426,24 @@ class MarkdownStyleReaderImpl {
         return "normal";
       case MarkdownFontWeight::kBold:
         return "bold";
+      case MarkdownFontWeight::k100:
+        return "100";
+      case MarkdownFontWeight::k200:
+        return "200";
+      case MarkdownFontWeight::k300:
+        return "300";
+      case MarkdownFontWeight::k400:
+        return "400";
+      case MarkdownFontWeight::k500:
+        return "500";
+      case MarkdownFontWeight::k600:
+        return "600";
+      case MarkdownFontWeight::k700:
+        return "700";
+      case MarkdownFontWeight::k800:
+        return "800";
+      case MarkdownFontWeight::k900:
+        return "900";
     }
     return "";
   }
@@ -404,6 +457,15 @@ class MarkdownStyleReaderImpl {
         for (auto item : {
                  MarkdownFontWeight::kNormal,
                  MarkdownFontWeight::kBold,
+                 MarkdownFontWeight::k100,
+                 MarkdownFontWeight::k200,
+                 MarkdownFontWeight::k300,
+                 MarkdownFontWeight::k400,
+                 MarkdownFontWeight::k500,
+                 MarkdownFontWeight::k600,
+                 MarkdownFontWeight::k700,
+                 MarkdownFontWeight::k800,
+                 MarkdownFontWeight::k900,
              }) {
           if (value->AsString() == ToString(item)) {
             *result = item;
@@ -577,6 +639,240 @@ class MarkdownStyleReaderImpl {
       }
     }
   }
+  constexpr const char* ToString(MarkdownTextAlign value) {
+    switch (value) {
+      case MarkdownTextAlign::kUndefined:
+        return "undefined";
+      case MarkdownTextAlign::kLeft:
+        return "left";
+      case MarkdownTextAlign::kCenter:
+        return "center";
+      case MarkdownTextAlign::kRight:
+        return "right";
+      case MarkdownTextAlign::kJustify:
+        return "justify";
+    }
+    return "";
+  }
+
+  void ReadMarkdownTextAlignValue(const ValueMap& map, const std::string& key,
+                                  MarkdownTextAlign* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownTextAlign::kUndefined,
+                 MarkdownTextAlign::kLeft,
+                 MarkdownTextAlign::kCenter,
+                 MarkdownTextAlign::kRight,
+                 MarkdownTextAlign::kJustify,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownCaptionPosition value) {
+    switch (value) {
+      case MarkdownCaptionPosition::kBottom:
+        return "bottom";
+      case MarkdownCaptionPosition::kTop:
+        return "top";
+    }
+    return "";
+  }
+
+  void ReadMarkdownCaptionPositionValue(const ValueMap& map,
+                                        const std::string& key,
+                                        MarkdownCaptionPosition* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownCaptionPosition::kBottom,
+                 MarkdownCaptionPosition::kTop,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownTableBorder value) {
+    switch (value) {
+      case MarkdownTableBorder::kNone:
+        return "none";
+      case MarkdownTableBorder::kFullRect:
+        return "full-rect";
+      case MarkdownTableBorder::kUnderline:
+        return "underline";
+    }
+    return "";
+  }
+
+  void ReadMarkdownTableBorderValue(const ValueMap& map, const std::string& key,
+                                    MarkdownTableBorder* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownTableBorder::kNone,
+                 MarkdownTableBorder::kFullRect,
+                 MarkdownTableBorder::kUnderline,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownTableBackground value) {
+    switch (value) {
+      case MarkdownTableBackground::kNone:
+        return "none";
+      case MarkdownTableBackground::kSolid:
+        return "solid";
+      case MarkdownTableBackground::kChessBoard:
+        return "chess-board";
+    }
+    return "";
+  }
+
+  void ReadMarkdownTableBackgroundValue(const ValueMap& map,
+                                        const std::string& key,
+                                        MarkdownTableBackground* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownTableBackground::kNone,
+                 MarkdownTableBackground::kSolid,
+                 MarkdownTableBackground::kChessBoard,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownLineType value) {
+    switch (value) {
+      case MarkdownLineType::kNone:
+        return "none";
+      case MarkdownLineType::kSolid:
+        return "solid";
+      case MarkdownLineType::kDouble:
+        return "double";
+      case MarkdownLineType::kDotted:
+        return "dotted";
+      case MarkdownLineType::kDashed:
+        return "dashed";
+      case MarkdownLineType::kWavy:
+        return "wavy";
+    }
+    return "";
+  }
+
+  void ReadMarkdownLineTypeValue(const ValueMap& map, const std::string& key,
+                                 MarkdownLineType* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownLineType::kNone,
+                 MarkdownLineType::kSolid,
+                 MarkdownLineType::kDouble,
+                 MarkdownLineType::kDotted,
+                 MarkdownLineType::kDashed,
+                 MarkdownLineType::kWavy,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownTableSplit value) {
+    switch (value) {
+      case MarkdownTableSplit::kNone:
+        return "none";
+      case MarkdownTableSplit::kVertical:
+        return "vertical";
+      case MarkdownTableSplit::kHorizontal:
+        return "horizontal";
+      case MarkdownTableSplit::kAll:
+        return "all";
+    }
+    return "";
+  }
+
+  void ReadMarkdownTableSplitValue(const ValueMap& map, const std::string& key,
+                                   MarkdownTableSplit* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownTableSplit::kNone,
+                 MarkdownTableSplit::kVertical,
+                 MarkdownTableSplit::kHorizontal,
+                 MarkdownTableSplit::kAll,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+  constexpr const char* ToString(MarkdownFontStyle value) {
+    switch (value) {
+      case MarkdownFontStyle::kUndefined:
+        return "undefined";
+      case MarkdownFontStyle::kNormal:
+        return "normal";
+      case MarkdownFontStyle::kItalic:
+        return "italic";
+    }
+    return "";
+  }
+
+  void ReadMarkdownFontStyleValue(const ValueMap& map, const std::string& key,
+                                  MarkdownFontStyle* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 MarkdownFontStyle::kUndefined,
+                 MarkdownFontStyle::kNormal,
+                 MarkdownFontStyle::kItalic,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
   void ReadMarkdownBaseStylePart(const ValueMap& map,
                                  MarkdownBaseStylePart* style) {
     ReadFontValue(map, ToString(MarkdownStyleOp::kFont), &style->font_);
@@ -584,6 +880,8 @@ class MarkdownStyleReaderImpl {
                     &style->font_size_);
     ReadMarkdownFontWeightValue(map, ToString(MarkdownStyleOp::kFontWeight),
                                 &style->font_weight_);
+    ReadMarkdownFontStyleValue(map, ToString(MarkdownStyleOp::kFontStyle),
+                               &style->font_style_);
     ReadLengthValue(map, ToString(MarkdownStyleOp::kLineHeight),
                     &style->line_height_);
     ReadLengthValue(map, ToString(MarkdownStyleOp::kParagraphSpace),
@@ -601,6 +899,13 @@ class MarkdownStyleReaderImpl {
                                &style->word_break_);
     ReadMarkdownDirectionValue(map, ToString(MarkdownStyleOp::kDirection),
                                &style->direction_);
+    ReadMarkdownTextAlignValue(map, ToString(MarkdownStyleOp::kTextAlign),
+                               &style->text_align_);
+    ReadLengthValue(map, ToString(MarkdownStyleOp::kTextIndent),
+                    &style->text_indent_);
+    ReadMarkdownTextAlignValue(map,
+                               ToString(MarkdownStyleOp::kLastLineAlignment),
+                               &style->last_line_alignment_);
   }
   void ReadMarkdownBlockStylePart(const ValueMap& map,
                                   MarkdownBlockStylePart* style) {
@@ -622,6 +927,12 @@ class MarkdownStyleReaderImpl {
                     &style->padding_right_);
     ReadLengthValue(map, ToString(MarkdownStyleOp::kMaxWidth),
                     &style->max_width_);
+    ReadLengthValue(map, ToString(MarkdownStyleOp::kMaxHeight),
+                    &style->max_height_);
+    ReadLengthValue(map, ToString(MarkdownStyleOp::kMinWidth),
+                    &style->min_width_);
+    ReadLengthValue(map, ToString(MarkdownStyleOp::kMinHeight),
+                    &style->min_height_);
   }
   void ReadMarkdownBorderStylePart(const ValueMap& map,
                                    MarkdownBorderStylePart* style) {
@@ -722,6 +1033,8 @@ class MarkdownStyleReaderImpl {
     ReadColorValue(map, ToString(MarkdownStyleOp::kColor), &style->color_);
     ReadLengthValue(map, ToString(MarkdownStyleOp::kRadius), &style->radius_);
     ReadLengthValue(map, ToString(MarkdownStyleOp::kShrink), &style->shrink_);
+    ReadMarkdownLineTypeValue(map, ToString(MarkdownStyleOp::kLineType),
+                              &style->line_type_);
   }
   void ReadMarkdownMarkerStylePart(const ValueMap& map,
                                    MarkdownMarkerStylePart* style) {
@@ -733,13 +1046,35 @@ class MarkdownStyleReaderImpl {
                                   MarkdownImageStylePart* style) {
     ReadBoolValue(map, ToString(MarkdownStyleOp::kEnableAltText),
                   &style->enable_alt_text_);
-    ReadLengthValue(map, ToString(MarkdownStyleOp::kRadius), &style->radius_);
+    ReadStringValue(map, ToString(MarkdownStyleOp::kAltImage),
+                    &style->alt_image_);
+    ReadFloatValue(map, ToString(MarkdownStyleOp::kRadius), &style->radius_);
   }
   void ReadMarkdownAlignStylePart(const ValueMap& map,
                                   MarkdownAlignStylePart* style) {
     ReadMarkdownVerticalAlignValue(map,
                                    ToString(MarkdownStyleOp::kVerticalAlign),
                                    &style->vertical_align_);
+  }
+  void ReadMarkdownImageCaptionStylePart(const ValueMap& map,
+                                         MarkdownImageCaptionStylePart* style) {
+    ReadMarkdownCaptionPositionValue(
+        map, ToString(MarkdownStyleOp::kCaptionPosition),
+        &style->caption_position_);
+  }
+  void ReadMarkdownTableStylePart(const ValueMap& map,
+                                  MarkdownTableStylePart* style) {
+    ReadMarkdownTableBorderValue(map, ToString(MarkdownStyleOp::kTableBorder),
+                                 &style->table_border_);
+    ReadMarkdownTableBackgroundValue(
+        map, ToString(MarkdownStyleOp::kTableBackground),
+        &style->table_background_);
+    ReadColorValue(map, ToString(MarkdownStyleOp::kBackgroundColor),
+                   &style->background_color_);
+    ReadColorValue(map, ToString(MarkdownStyleOp::kAltColor),
+                   &style->alt_color_);
+    ReadMarkdownTableSplitValue(map, ToString(MarkdownStyleOp::kTableSplit),
+                                &style->table_split_);
   }
   void ReadMarkdownNormalTextStyle(const ValueMap& map,
                                    MarkdownNormalTextStyle* style) {
@@ -816,6 +1151,7 @@ class MarkdownStyleReaderImpl {
     ReadMarkdownBlockStylePart(map, &style->block_);
     ReadMarkdownBorderStylePart(map, &style->border_);
     ReadMarkdownScrollStylePart(map, &style->scroll_);
+    ReadMarkdownTableStylePart(map, &style->table_);
   }
   void ReadMarkdownTableCellStyle(const ValueMap& map,
                                   MarkdownTableCellStyle* style) {
@@ -886,6 +1222,18 @@ class MarkdownStyleReaderImpl {
       const ValueMap& map, MarkdownOrderedListNumberStyle* style) {
     ReadMarkdownBaseStylePart(map, &style->base_);
     ReadMarkdownBlockStylePart(map, &style->block_);
+  }
+  void ReadMarkdownImageCaptionStyle(const ValueMap& map,
+                                     MarkdownImageCaptionStyle* style) {
+    ReadMarkdownBaseStylePart(map, &style->base_);
+    ReadMarkdownImageCaptionStylePart(map, &style->image_caption_);
+  }
+  void ReadMarkdownBoldStyle(const ValueMap& map, MarkdownBoldStyle* style) {
+    ReadMarkdownBaseStylePart(map, &style->base_);
+  }
+  void ReadMarkdownItalicStyle(const ValueMap& map,
+                               MarkdownItalicStyle* style) {
+    ReadMarkdownBaseStylePart(map, &style->base_);
   }
   void ReadMarkdownStyle(const ValueMap& map, MarkdownStyle* style) {
     auto value = map.find(ToString(MarkdownStyleTag::kNormalText));
@@ -1042,16 +1390,30 @@ class MarkdownStyleReaderImpl {
       ReadMarkdownOrderedListNumberStyle(value->second->AsMap(),
                                          &(style->ordered_list_number_));
     }
+    value = map.find(ToString(MarkdownStyleTag::kImageCaption));
+    MarkdownStyleInitializer::InitialImageCaptionStyle(style);
+    if (value != map.end() && value->second->GetType() == ValueType::kMap) {
+      ReadMarkdownImageCaptionStyle(value->second->AsMap(),
+                                    &(style->image_caption_));
+    }
+    value = map.find(ToString(MarkdownStyleTag::kBold));
+    MarkdownStyleInitializer::InitialBoldStyle(style);
+    if (value != map.end() && value->second->GetType() == ValueType::kMap) {
+      ReadMarkdownBoldStyle(value->second->AsMap(), &(style->bold_));
+    }
+    value = map.find(ToString(MarkdownStyleTag::kItalic));
+    MarkdownStyleInitializer::InitialItalicStyle(style);
+    if (value != map.end() && value->second->GetType() == ValueType::kMap) {
+      ReadMarkdownItalicStyle(value->second->AsMap(), &(style->italic_));
+    }
   }
   // AUTO GEN END
   void ReadFontValue(const ValueMap& map, const std::string& key,
-                     uint64_t* result) {
+                     std::string* result) {
     auto it = map.find(key);
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
-        std::string_view font_str = it->second->AsString().c_str();
-        *result =
-            reinterpret_cast<uint64_t>(loader_->LoadFont(font_str.data()));
+        *result = it->second->AsString();
       }
     }
   }
@@ -1092,8 +1454,7 @@ class MarkdownStyleReaderImpl {
                        float* result) {
     auto it = map.find(key);
     if (it != map.end()) {
-      *result =
-          MarkdownStyleLengthValue::FromDp(it->second->GetDouble()).GetPx();
+      *result = MarkdownLengthValue::FromDp(it->second->GetDouble()).GetPx();
     }
   }
   void ReadStringValue(const ValueMap& map, const std::string& key,
@@ -1110,6 +1471,152 @@ class MarkdownStyleReaderImpl {
       *result = it->second->GetBool();
     }
   }
+
+  void ReadMarkdownLengthValue(const ValueMap& map, const std::string& key,
+                               std::unique_ptr<MarkdownStyleValue>* result) {
+    auto it = map.find(key);
+    if (it != map.end()) {
+      if (it->second->GetType() == ValueType::kString) {
+        *result = MarkdownStyleValue::ParseValue(it->second->AsString());
+      } else if (it->second->GetType() == ValueType::kDouble) {
+        *result = std::make_unique<MarkdownLengthValue>(it->second->GetDouble(),
+                                                        StyleValuePattern::kPx);
+      }
+    }
+  }
+
+  void ReadGradientValue(const ValueMap& map, const std::string& key,
+                         std::unique_ptr<tttext::RunDelegate>* result) {
+    auto it = map.find(key);
+    if (it != map.end()) {
+      if (it->second->GetType() == ValueType::kString) {
+        const auto& str = it->second->AsString();
+        if (base::BeginsWith(str, "linear-gradient(") ||
+            base::BeginsWith(str, "radial-gradient(")) {
+          *result = loader_->LoadGradient(str.c_str(), 1, 1);
+        } else {
+          *result = nullptr;
+        }
+      }
+    }
+  }
+
+  constexpr const char* ToString(CharIndexType index_type) {
+    switch (index_type) {
+      case CharIndexType::kParsedContent:
+        return "char";
+      case CharIndexType::kSource:
+        return "source";
+    }
+    return "";
+  }
+
+  void ReadCharIndexType(const ValueMap& map, const std::string& key,
+                         CharIndexType* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 CharIndexType::kParsedContent,
+                 CharIndexType::kSource,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  constexpr const char* ToString(AttachmentLayer layer) {
+    switch (layer) {
+      case AttachmentLayer::kBackground:
+        return "background";
+      case AttachmentLayer::kForeGround:
+        return "foreground";
+    }
+    return "";
+  }
+
+  void ReadAttachmentLayerType(const ValueMap& map, const std::string& key,
+                               AttachmentLayer* result) {
+    auto find = map.find(key);
+    if (find != map.end()) {
+      auto* value = find->second.get();
+      if (value->GetType() == ValueType::kString) {
+        for (auto item : {
+                 AttachmentLayer::kBackground,
+                 AttachmentLayer::kForeGround,
+             }) {
+          if (value->AsString() == ToString(item)) {
+            *result = item;
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  void ReadMarkdownAttachment(const ValueMap& map,
+                              MarkdownTextAttachment* attachment) {
+    ReadIntValue(map, "startIndex", &(attachment->start_index_));
+    ReadIntValue(map, "endIndex", &(attachment->end_index_));
+    ReadCharIndexType(map, "indexType", &(attachment->index_type_));
+    ReadAttachmentLayerType(map, "layer", &(attachment->attachment_layer_));
+    ReadStringValue(map, "id", &(attachment->id_));
+    ReadBoolValue(map, "clickable", &(attachment->clickable_));
+    auto find = map.find("style");
+    if (find != map.end() && find->second->GetType() == ValueType::kMap) {
+      ReadMarkdownAttachmentStyle(find->second->AsMap(), attachment);
+    }
+  }
+
+  void ReadMarkdownAttachmentStyle(const ValueMap& map,
+                                   MarkdownTextAttachment* attachment) {
+    ReadMarkdownLengthValue(map, "left", &(attachment->rect_.left_));
+    ReadMarkdownLengthValue(map, "top", &(attachment->rect_.top_));
+    ReadMarkdownLengthValue(map, "right", &(attachment->rect_.right_));
+    ReadMarkdownLengthValue(map, "bottom", &(attachment->rect_.bottom_));
+    ReadMarkdownLengthValue(map, "radius", &(attachment->rect_.radius_));
+    ReadGradientValue(map, "color", &(attachment->rect_.gradient_));
+    if (attachment->rect_.gradient_ == nullptr) {
+      ReadColorValue(map, "color", &(attachment->rect_.color_));
+    }
+    auto find = map.find("borderLeft");
+    if (find != map.end() && find->second->GetType() == ValueType::kMap) {
+      ReadMarkdownAttachmentLineStyle(find->second->AsMap(),
+                                      &(attachment->border_left_));
+    }
+    find = map.find("borderTop");
+    if (find != map.end() && find->second->GetType() == ValueType::kMap) {
+      ReadMarkdownAttachmentLineStyle(find->second->AsMap(),
+                                      &(attachment->border_top_));
+    }
+    find = map.find("borderRight");
+    if (find != map.end() && find->second->GetType() == ValueType::kMap) {
+      ReadMarkdownAttachmentLineStyle(find->second->AsMap(),
+                                      &(attachment->border_right_));
+    }
+    find = map.find("borderBottom");
+    if (find != map.end() && find->second->GetType() == ValueType::kMap) {
+      ReadMarkdownAttachmentLineStyle(find->second->AsMap(),
+                                      &(attachment->border_bottom_));
+    }
+  }
+
+  void ReadMarkdownAttachmentLineStyle(const ValueMap& map,
+                                       MarkdownAttachmentLineStyle* line) {
+    ReadMarkdownLineTypeValue(map, "lineType", &(line->line_type_));
+    ReadMarkdownLengthValue(map, "width", &(line->width_));
+    ReadGradientValue(map, "color", &(line->gradient_));
+    if (line->gradient_ == nullptr) {
+      ReadColorValue(map, "color", &(line->color_));
+    }
+    ReadMarkdownLengthValue(map, "elementSize", &(line->element_size_));
+    ReadMarkdownLengthValue(map, "emptySize", &(line->empty_size_));
+  }
 };
 MarkdownStyle MarkdownStyleReader::ReadStyle(
     const lynx::markdown::ValueMap& map, MarkdownResourceLoader* loader) {
@@ -1118,15 +1625,38 @@ MarkdownStyle MarkdownStyleReader::ReadStyle(
   impl.ReadMarkdownStyle(map, &style);
   return style;
 }
+std::vector<std::unique_ptr<MarkdownTextAttachment>>
+MarkdownStyleReader::ReadTextAttachments(Value* array,
+                                         MarkdownDocument* document) {
+  if (array->GetType() != ValueType::kArray) {
+    return {};
+  }
+  std::vector<std::unique_ptr<MarkdownTextAttachment>> attachments;
+  auto& values = array->AsArray();
+  for (auto& value : values) {
+    if (value->GetType() == ValueType::kMap) {
+      MarkdownStyleReaderImpl impl(document->GetResourceLoader());
+      auto attachment = std::make_unique<MarkdownTextAttachment>();
+      impl.ReadMarkdownAttachment(value->AsMap(), attachment.get());
+      if (attachment->index_type_ == CharIndexType::kSource) {
+        attachment->start_index_ =
+            document->MarkdownOffsetToCharOffset(attachment->start_index_);
+        attachment->end_index_ =
+            document->MarkdownOffsetToCharOffset(attachment->end_index_);
+      }
+      attachments.emplace_back(std::move(attachment));
+    }
+  }
+  return attachments;
+}
 MarkdownBaseStylePart MarkdownStyleReader::ReadBaseStyle(
     const ValueMap& map, MarkdownResourceLoader* loader) {
   MarkdownStyleReaderImpl impl(loader);
-  MarkdownBaseStylePart base_style_part{};
-  MarkdownStyleInitializer::ResetBaseStyle(&base_style_part);
+  MarkdownBaseStylePart base_style_part;
   impl.ReadMarkdownBaseStylePart(map, &base_style_part);
   return base_style_part;
 }
-uint32_t MarkdownStyleReader::ReadColor(std::string_view color) {
+uint32_t MarkdownStyleReader::ReadColor(const std::string& color) {
   return MarkdownStyleReaderImpl::ConvertColor(color);
 }
 

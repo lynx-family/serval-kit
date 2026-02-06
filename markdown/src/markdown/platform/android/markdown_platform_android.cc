@@ -28,6 +28,10 @@ tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
   thread_local TextLayoutManager text_layout_mgr;
   return text_layout_mgr.GetLayout();
 }
+MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
+    tttext::ICanvasHelper* canvas) {
+  return nullptr;
+}
 MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
     lynx::markdown::MarkdownViewContainerHandle* handle,
     lynx::markdown::SelectionHandleType type, float size, float margin,

@@ -92,6 +92,8 @@ class MarkdownViewDelegate : public MarkdownDrawable {
   SizeF Measure(MeasureSpec spec) override;
   void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
             float bottom) override;
+  void Align(float x, float y) override;
+  MarkdownPlatformView* GetPlatformView() const { return view_; }
 
  protected:
   MarkdownPlatformView* view_;

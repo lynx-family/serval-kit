@@ -418,13 +418,11 @@ void HarmonyCustomView::OnDraw(ArkUI_DrawContext* context) {
   }
   auto draw_canvas = reinterpret_cast<OH_Drawing_Canvas*>(
       OH_ArkUI_DrawContext_GetCanvas(context));
-  auto canvas = tttext::PlatformHelper::CreateCanvasHelper(
-      tttext::PlatformType::kSystem, draw_canvas);
+  HarmonyMarkdownCanvas canvas(draw_canvas);
   auto size = GetMeasuredIntSize();
-  canvas->ClipRect(0, 0, static_cast<float>(size.width),
-                   static_cast<float>(size.height), true);
-  HarmonyMarkdownCanvas markdown_canvas(canvas.get(), draw_canvas);
-  drawable_->Draw(&markdown_canvas, 0, 0, static_cast<float>(size.width),
+  canvas.ClipRect(0, 0, static_cast<float>(size.width),
+                  static_cast<float>(size.height), true);
+  drawable_->Draw(&canvas, 0, 0, static_cast<float>(size.width),
                   static_cast<float>(size.height));
 }
 }  // namespace lynx::markdown

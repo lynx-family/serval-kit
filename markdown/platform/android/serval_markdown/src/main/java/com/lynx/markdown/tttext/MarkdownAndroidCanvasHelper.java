@@ -6,6 +6,7 @@ package com.lynx.markdown.tttext;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.os.Build;
 import com.lynx.textra.BBufferInputStream;
@@ -14,6 +15,7 @@ import com.lynx.textra.TTText;
 import com.lynx.textra.TTTextDefinition;
 import com.lynx.textra.TTTextUtils;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected static final int CANVAS_OP_EXTEND = -1;
@@ -29,16 +31,22 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected static final int PATH_TYPE_CUBIC_TO = 6;
   protected static final int PATH_TYPE_QUAD_TO = 7;
 
-  protected JavaResourceManager mResourceManager;
-  IDrawerCallback mDrawerCallback;
+  protected JavaResourceManager resource_manager_;
+  protected ArrayList<PointF> mTranslateStack = new ArrayList<>();
+  protected float mTranslateX;
+  protected float mTranslateY;
+
+  IDrawerCallback drawer_callback_;
 
   public MarkdownAndroidCanvasHelper(Canvas canvas, JavaResourceManager manager,
                                      IDrawerCallback drawer) {
     super(TTText.mFontManager);
     canvas_ = canvas;
-    mResourceManager = manager;
-    mDrawerCallback = drawer;
+    resource_manager_ = manager;
+    drawer_callback_ = drawer;
   }
+
+  public void setCanvas(Canvas canvas) { canvas_ = canvas; }
 
   public void drawBuffer(byte[] input) {
     BBufferInputStream inputStream = new BBufferInputStream(input);
@@ -56,6 +64,34 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       e.printStackTrace();
     }
   }
+
+  @Override
+  protected void save() {
+    super.save();
+    mTranslateStack.add(new PointF(mTranslateX, mTranslateY));
+  }
+
+  @Override
+  protected void restore() {
+    super.restore();
+    PointF translate = mTranslateStack.get(mTranslateStack.size() - 1);
+    mTranslateX = translate.x;
+    mTranslateY = translate.y;
+    mTranslateStack.remove(mTranslateStack.size() - 1);
+  }
+
+  @Override
+  protected void translate(BBufferInputStream stream) throws IOException {
+    float x = TTTextUtils.Dp2Px(stream.readFloat());
+    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    canvas_.translate(x, y);
+    mTranslateX += x;
+    mTranslateY += y;
+  }
+
+  public float getTranslateX() { return mTranslateX; }
+
+  public float getTranslateY() { return mTranslateY; }
 
   protected void drawExtendOp(BBufferInputStream stream) throws IOException {
     int op = stream.readByte();
@@ -84,12 +120,28 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       throws IOException {
     int id = stream.readInt();
     Path path = readPath(stream);
-    Paint paint = readPaint(stream, paint_);
-    if (mDrawerCallback == null) {
+    Paint p = readPaint(stream, paint_);
+    if (drawer_callback_ == null) {
       return;
     }
-    mDrawerCallback.drawRunDelegateOnPath(
-        canvas_, mResourceManager.getRunDelegate(id), path, paint);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id), path,
+                            p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id),
+                              path, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id),
+                              path, p);
+      }
+    }
   }
 
   protected Path readPath(BBufferInputStream stream) throws IOException {
@@ -190,11 +242,22 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     float dt = TTTextUtils.Dp2Px(stream.readFloat());
     float dr = TTTextUtils.Dp2Px(stream.readFloat());
     float db = TTTextUtils.Dp2Px(stream.readFloat());
-    if (mDrawerCallback == null)
+    float radius = TTTextUtils.Dp2Px(stream.readFloat());
+    if (drawer_callback_ == null)
       return;
-    mDrawerCallback.drawRunDelegate(
-        mResourceManager.getRunDelegate(id),
-        new Rect((int)dl, (int)dt, (int)dr, (int)db));
+    if (radius > 0) {
+      canvas_.save();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        Path path = new Path();
+        path.addRoundRect(dl, dt, dr, db, radius, radius, Path.Direction.CW);
+        canvas_.clipPath(path);
+      }
+    }
+    drawRunDelegate(canvas_, resource_manager_.getRunDelegate(id),
+                    new Rect((int)dl, (int)dt, (int)dr, (int)db));
+    if (radius > 0) {
+      canvas_.restore();
+    }
   }
 
   Path mPath;
@@ -212,26 +275,19 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     painter.setAntiAlias(true);
     painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
     color_ = stream.readInt();
-    painter.setColor(color_);
+    stroke_color_ = stream.readInt();
     text_size_ = TTTextUtils.Dp2Px(stream.readFloat());
     painter.setTextSize(text_size_);
     int flag = stream.readByte();
-    switch (flag & 0x3) {
-      case 0:
-        painter.setStyle(Paint.Style.FILL);
-        break;
-      case 1:
-        painter.setStyle(Paint.Style.STROKE);
-        break;
-      case 2:
-        painter.setStyle(Paint.Style.FILL_AND_STROKE);
-        break;
-      case 3:
-        break;
-    }
     is_bold_ = (flag & (1 << 2)) > 0;
     is_italic_ = (flag & (1 << 3)) > 0;
     is_underline_ = (flag & (1 << 4)) > 0;
     return painter;
   }
+
+  public void drawRunDelegate(Canvas canvas, IRunDelegate delegate, Rect rect) {
+  }
+
+  public void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate,
+                                    Path path, Paint paint) {}
 }

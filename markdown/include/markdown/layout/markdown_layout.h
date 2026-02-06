@@ -34,14 +34,12 @@ class MarkdownLayout {
       float max_height, float region_left, float region_top, bool last);
   void ForceAppendEllipsis(MarkdownPageRegion* region);
   static std::unique_ptr<MarkdownTableRegion> LayoutTable(
-      MarkdownTable* table, float width, float height, int max_lines,
-      MarkdownTextOverflow overflow, bool* full_filled);
+      MarkdownTable* table, float width, float height, float min_width,
+      int max_lines, MarkdownTextOverflow overflow, bool* full_filled);
   static std::unique_ptr<tttext::LayoutRegion> LayoutParagraph(
       tttext::Paragraph* paragraph, float width, tttext::LayoutMode width_mode,
       float height, int max_lines, MarkdownTextOverflow overflow,
       bool* full_filled, bool last);
-  static void SwapScrollState(MarkdownPage* origin_page,
-                              MarkdownPage* new_page);
 
  private:
   Paddings paddings_{};

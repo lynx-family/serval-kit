@@ -9,16 +9,19 @@
 #include <vector>
 
 #include "markdown/draw/markdown_canvas.h"
+#include "markdown/element/markdown_document.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 namespace lynx::markdown::testing {
 class MockMarkdownResourceLoader;
-class MockMarkdownCanvas : public MarkdownCanvas {
+class MockMarkdownCanvas final : public tttext::ICanvasHelper,
+                                 public MarkdownCanvasExtend {
  public:
-  explicit MockMarkdownCanvas(MockMarkdownResourceLoader* resource_loader)
-      : MarkdownCanvas(nullptr), resource_loader_(resource_loader) {
+  explicit MockMarkdownCanvas(MockMarkdownResourceLoader* resource_loader,
+                              MarkdownDocument* document)
+      : resource_loader_(resource_loader), document_(document) {
     result_.SetArray();
   }
   ~MockMarkdownCanvas() override = default;
@@ -69,17 +72,16 @@ class MockMarkdownCanvas : public MarkdownCanvas {
                  float bottom, tttext::Painter* painter) override;
   void DrawView(const char* src, float left, float top, float right,
                 float bottom);
-  void DrawBackground(const char* content, float left, float top, float right,
-                      float bottom);
   void DrawImageRect(const char* src, float src_left, float src_top,
                      float src_right, float src_bottom, float dst_left,
                      float dst_top, float dst_right, float dst_bottom,
                      tttext::Painter* painter, bool srcRectPercent) override;
   void DrawRoundRect(float left, float top, float right, float bottom,
                      float radius, tttext::Painter* painter) override;
-
-  void ClipRoundRect(float left, float top, float right, float bottom,
-                     float radiusX, float radiusY, bool doAntiAlias) override;
+  void ClipPath(MarkdownPath* path) override;
+  void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
+                          tttext::Painter* painter) override;
 
   std::string GetResult() const;
   const rapidjson::Document& GetJson() const { return result_; }
@@ -90,12 +92,14 @@ class MockMarkdownCanvas : public MarkdownCanvas {
   rapidjson::Value MakePoints(float* x, float* y, uint32_t count);
   rapidjson::Value MakePainter(tttext::Painter* painter);
   rapidjson::Value MakeFont(uint32_t id);
+  rapidjson::Value MakePath(MarkdownPath* path);
 
   struct Context {
     PointF translate_{0, 0};
   };
 
   MockMarkdownResourceLoader* resource_loader_;
+  MarkdownDocument* document_;
   Context context_;
   std::vector<Context> context_stack_;
 

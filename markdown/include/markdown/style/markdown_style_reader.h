@@ -8,13 +8,17 @@
 #include "markdown/utils/markdown_value.h"
 namespace lynx::markdown {
 class MarkdownResourceLoader;
+class MarkdownTextAttachment;
+class MarkdownDocument;
 class MarkdownStyleReader {
  public:
   static MarkdownStyle ReadStyle(const ValueMap& map,
                                  MarkdownResourceLoader* loader);
+  static std::vector<std::unique_ptr<MarkdownTextAttachment>>
+  ReadTextAttachments(Value* array, MarkdownDocument* document);
   static MarkdownBaseStylePart ReadBaseStyle(const ValueMap& map,
                                              MarkdownResourceLoader* loader);
-  static uint32_t ReadColor(std::string_view color);
+  static uint32_t ReadColor(const std::string& color);
 };
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_READER_H_

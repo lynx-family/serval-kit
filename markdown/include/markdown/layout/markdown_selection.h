@@ -4,11 +4,11 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_LAYOUT_MARKDOWN_SELECTION_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_LAYOUT_MARKDOWN_SELECTION_H_
-#include <vector>
-
 #include <algorithm>
 #include <string>
 #include <utility>
+#include <vector>
+
 #include "markdown/element/markdown_page.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/utils/markdown_definition.h"
@@ -22,10 +22,9 @@ struct MarkdownSelectionRegion {
   int32_t char_count_;
   PointF offset_;
 };
-
 class MarkdownSelection {
  public:
-  enum class RectType { kSelection, kCharBounding };
+  enum class RectType { kSelection, kLineBounding, kCharBounding };
   enum class RectCoordinate { kAbsolute, kRelative };
   enum class CharRangeType { kChar, kWord, kSentence, kParagraph };
 
@@ -52,9 +51,9 @@ class MarkdownSelection {
       std::vector<std::pair<uint32_t, std::string>>*
           inline_element_alt_strings);
   static int GetPageCharCount(const MarkdownPage* page);
-  static uint32_t TypewriterStepToChar(const MarkdownPage* page,
-                                       uint32_t typewriter_step);
   static int FindClosestRegionIndex(const MarkdownPage* page, float y);
+  static std::vector<MarkdownSelectionRegion> GetSelectionRegionsByCharRange(
+      const MarkdownPage* page, int32_t char_pos_start, int32_t char_pos_end);
 
  private:
   static inline std::vector<std::string_view> SentenceEndPattens() {
@@ -149,9 +148,6 @@ class MarkdownSelection {
       int32_t char_pos_end, std::string* content,
       std::vector<std::pair<uint32_t, std::string>>* inline_element_alt_strings,
       int32_t char_offset);
-
-  static std::vector<MarkdownSelectionRegion> GetSelectionRegionsByCharRange(
-      MarkdownPage* page, int32_t char_pos_start, int32_t char_pos_end);
 
   static Range GetSentenceOfChar(tttext::Paragraph* paragraph,
                                  int32_t char_pos);

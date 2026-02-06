@@ -10,166 +10,21 @@
 namespace lynx {
 namespace markdown {
 
-MarkdownTypewriterDrawer::MarkdownTypewriterDrawer(
-    MarkdownCanvas* canvas, int32_t max_glyph_count,
-    MarkdownResourceLoader* loader, const MarkdownTypewriterCursorStyle& style,
-    bool draw_cursor_if_complete, tttext::RunDelegate* custom_typewriter_cursor)
-    : MarkdownCanvas(nullptr),
-      MarkdownDrawer(nullptr),
-      origin_canvas_(canvas),
-      loader_(loader),
-      style_(&style),
-      max_glyph_count_(max_glyph_count),
-      draw_cursor_if_complete_(draw_cursor_if_complete),
-      custom_typewriter_cursor_(custom_typewriter_cursor) {
-  if (max_glyph_count >= 0 || canvas == nullptr) {
-    canvas_ = this;
-  } else {
-    canvas_ = origin_canvas_;
-  }
-  painter_ = CreatePainter();
-}
-
-void MarkdownTypewriterDrawer::DrawPage(
-    const lynx::markdown::MarkdownPage& page) {
-  page_ = &page;
-  std::vector<MarkdownInlineBorderDelegate*> split_borders;
-  if (origin_canvas_ != nullptr) {
-    // TODO(zhouchaoying): refactor these code, ensure typewriter step == char
-    // count to avoid convert typewriter step to char count, char count  = step
-    // + run delegates place holder(=1) - run delegates char count
-    uint32_t typewriter_char_end = max_glyph_count_;
-    for (auto [char_offset, step_offset] : page_->GetTypewriterStepOffset()) {
-      if (typewriter_char_end >= char_offset) {
-        typewriter_char_end += step_offset;
-        if (typewriter_char_end <= char_offset) {
-          typewriter_char_end = char_offset + 1;
-          break;
-        }
-      } else {
-        break;
-      }
-    }
-    for (auto& inline_border : page_->GetInlineBorders()) {
-      if (inline_border.left_->GetCharOffset() <= typewriter_char_end + 1 &&
-          inline_border.right_->GetCharOffset() > typewriter_char_end) {
-        // inline border split by typewriter
-        if (typewriter_char_end > inline_border.left_->GetCharOffset()) {
-          auto rect_vec = MarkdownSelection::GetSelectionRectByCharPos(
-              page_, inline_border.left_->GetCharOffset(), typewriter_char_end,
-              inline_border.left_->GetRectType(),
-              MarkdownSelection::RectCoordinate::kAbsolute);
-          inline_border.left_->DrawOnRects(origin_canvas_, 0, 0, rect_vec);
-        }
-        inline_border.left_->SetEnable(false);
-        split_borders.emplace_back(inline_border.left_);
-      }
-    }
-  }
-  MarkdownDrawer::DrawPage(page);
-  if (origin_canvas_ != nullptr) {
-    for (auto& inline_border : split_borders) {
-      inline_border->SetEnable(true);
-    }
-  }
-  if (!terminated_) {
-    if (typewriter_cursor_ == nullptr && last_draw_region_ != nullptr) {
-      // page draw complete, draw cursor on last region
-      if (last_draw_region_->GetLineCount() == 0) {
-        cursor_position_ = {0, 0};
-        typewriter_cursor_ = LoadTypewriterCursor(painter_.get());
-      } else {
-        auto* cursor_line =
-            last_draw_region_->GetLine(last_draw_region_->GetLineCount() - 1);
-        cursor_position_ = {cursor_line->GetLineRight(),
-                            cursor_line->GetLineBaseLine()};
-        typewriter_cursor_ = LoadTypewriterCursor(painter_.get());
-        cursor_position_ = CalculateCursorPosition(
-            cursor_line, cursor_position_, region_offset_, typewriter_cursor_);
-      }
-      cursor_position_ += region_offset_;
-      if (draw_cursor_if_complete_) {
-        if (origin_canvas_ != nullptr) {
-          origin_canvas_->Save();
-          origin_canvas_->Translate(cursor_position_.x_, cursor_position_.y_);
-          typewriter_cursor_->Draw(
-              origin_canvas_, cursor_position_.x_,
-              cursor_position_.y_ + typewriter_cursor_->GetAscent());
-          origin_canvas_->Restore();
-        }
-        max_draw_height_ = std::max(
-            max_draw_height_,
-            std::max(page.GetLayoutHeight(),
-                     cursor_position_.y_ + typewriter_cursor_->GetDescent() -
-                         typewriter_cursor_->GetAscent()));
-      }
-    }
-    page_completed_ = true;
-  }
-}
-
-void MarkdownTypewriterDrawer::DrawTextRegion(tttext::LayoutRegion* page,
-                                              tttext::LayoutDrawer* drawer) {
-  if (page != nullptr && (!terminated_ || typewriter_cursor_ == nullptr)) {
-    // need draw next region or need draw cursor
-    drawer->DrawLayoutPage(page);
-    last_draw_region_ = page;
-    region_offset_ = translate_offset_;
-    if (terminated_ && typewriter_cursor_ != nullptr) {
-      // adjust cursor position
-      tttext::TextLine* cursor_line = nullptr;
-      auto relative_position = cursor_position_ - region_offset_;
-      for (uint32_t i = 0; i < page->GetLineCount(); i++) {
-        auto* line = page->GetLine(i);
-        if (line->GetLineTop() <= relative_position.y_ &&
-            line->GetLineBottom() >= relative_position.y_) {
-          cursor_line = line;
-          break;
-        }
-      }
-      relative_position = CalculateCursorPosition(
-          cursor_line, relative_position, region_offset_, typewriter_cursor_);
-      cursor_position_ = relative_position + region_offset_;
-      if (origin_canvas_ != nullptr) {
-        origin_canvas_->Save();
-        typewriter_cursor_->Draw(origin_canvas_, relative_position.x_,
-                                 relative_position.y_);
-        origin_canvas_->Restore();
-      }
-      if (cursor_line != nullptr) {
-        max_draw_height_ = std::max(
-            max_draw_height_, cursor_line->GetLineBottom() + region_offset_.y_);
-      }
-      max_draw_height_ =
-          std::max(max_draw_height_, cursor_position_.y_ +
-                                         typewriter_cursor_->GetDescent() -
-                                         typewriter_cursor_->GetAscent());
-    } else {
-      max_draw_height_ = std::max(
-          max_draw_height_,
-          region_offset_.y_ + MarkdownPlatform::GetMdLayoutRegionHeight(page));
-    }
-  }
-}
-
-PointF MarkdownTypewriterDrawer::CalculateCursorPosition(
+PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
     tttext::TextLine* cursor_line, lynx::markdown::PointF cursor_position,
-    PointF region_offset, tttext::RunDelegate* cursor) {
+    PointF region_offset, tttext::RunDelegate* cursor, float page_width,
+    MarkdownVerticalAlign align) {
   cursor->Layout();
   auto cursor_width = cursor->GetAdvance();
   auto cursor_ascent = -cursor->GetAscent();
   auto cursor_descent = cursor->GetDescent();
   if (cursor_line != nullptr) {
-    if (cursor_width + cursor_position.x_ + region_offset.x_ >
-        page_->GetMaxWidth()) {
+    if (cursor_width + cursor_position.x_ + region_offset.x_ > page_width) {
       // cursor need move to next line
       cursor_position.x_ = 0;
       cursor_position.y_ = cursor_line->GetLineBottom() + cursor_ascent;
     } else {
       // apply vertical align
-      MarkdownVerticalAlign align =
-          style_ == nullptr ? MarkdownVerticalAlign::kBaseline
-                            : style_->typewriter_cursor_.vertical_align_;
       switch (align) {
         case MarkdownVerticalAlign::kTop:
           cursor_position.y_ = cursor_line->GetLineTop() + cursor_ascent;
@@ -194,69 +49,188 @@ PointF MarkdownTypewriterDrawer::CalculateCursorPosition(
   return cursor_position;
 }
 
-void MarkdownTypewriterDrawer::DrawGlyphs(const tttext::ITypefaceHelper* font,
-                                          uint32_t glyph_count,
-                                          const uint16_t* glyphs,
-                                          const char* text, uint32_t text_bytes,
-                                          float origin_x, float origin_y,
-                                          float* x, float* y,
-                                          tttext::Painter* painter) {
-  if (!terminated_) {
-    if (max_glyph_count_ < 0 ||
-        max_glyph_count_ >=
-            draw_glyph_count_ + static_cast<int32_t>(glyph_count)) {
-      if (origin_canvas_ != nullptr) {
-        origin_canvas_->DrawGlyphs(font, glyph_count, glyphs, text, text_bytes,
-                                   origin_x, origin_y, x, y, painter);
-      }
-      draw_glyph_count_ += glyph_count;
-    } else {
-      uint32_t current_draw_max_count = max_glyph_count_ - draw_glyph_count_;
-      if (origin_canvas_ != nullptr) {
-        auto max_draw_glyph_count = std::min(
-            base::UTF8IndexToCIndex(text, text_bytes, current_draw_max_count),
-            (size_t)text_bytes);
-        origin_canvas_->DrawGlyphs(font, current_draw_max_count, glyphs, text,
-                                   max_draw_glyph_count, origin_x, origin_y, x,
-                                   y, painter);
-      }
-      typewriter_cursor_ = LoadTypewriterCursor(painter);
-      cursor_position_ =
-          translate_offset_ +
-          PointF{*(x + current_draw_max_count) + origin_x, origin_y};
-      draw_glyph_count_ = max_glyph_count_;
-      terminated_ = true;
-    }
-    last_draw_font_ = font;
-  } else if (typewriter_cursor_ == nullptr) {
-    typewriter_cursor_ = LoadTypewriterCursor(painter);
-    cursor_position_ = translate_offset_ + PointF{*x + origin_x, origin_y};
-  }
-}
-
-tttext::RunDelegate* MarkdownTypewriterDrawer::LoadTypewriterCursor(
-    tttext::Painter* painter) {
-  if (custom_typewriter_cursor_ != nullptr) {
-    return custom_typewriter_cursor_;
-  }
-
-  if (!style_->typewriter_cursor_.custom_cursor_.empty() ||
-      painter == nullptr) {
-    default_typewriter_cursor_ =
-        std::make_unique<MarkdownEmptySpaceDelegate>(0);
-    return default_typewriter_cursor_.get();
-  }
-
+std::unique_ptr<tttext::RunDelegate>
+MarkdownCharTypewriterDrawer::CreateEllipsis(float text_size, uint32_t color) {
   auto paragraph = tttext::Paragraph::Create();
   tttext::Style style;
   style.SetFontDescriptor(
       tttext::FontDescriptor{{}, tttext::FontStyle::Normal(), 0});
-  style.SetTextSize(painter->GetTextSize());
-  style.SetForegroundColor(tttext::TTColor(painter->GetFillColor()));
+  style.SetTextSize(text_size);
+  style.SetForegroundColor(tttext::TTColor(color));
   paragraph->AddTextRun(&style, "…");
-  default_typewriter_cursor_ =
-      std::make_unique<MarkdownTextDelegate>(std::move(paragraph), -1, -1);
+  return std::make_unique<MarkdownTextDelegate>(std::move(paragraph), -1, -1);
+}
+
+MarkdownCharTypewriterDrawer::MarkdownCharTypewriterDrawer(
+    tttext::ICanvasHelper* canvas, int32_t max_char_count,
+    MarkdownResourceLoader* loader, const MarkdownTypewriterCursorStyle& style,
+    bool draw_cursor_if_complete, tttext::RunDelegate* custom_typewriter_cursor)
+    : MarkdownDrawer(canvas),
+      style_(&style),
+      max_char_count_(max_char_count),
+      draw_cursor_if_complete_(draw_cursor_if_complete),
+      custom_typewriter_cursor_(custom_typewriter_cursor) {}
+
+void MarkdownCharTypewriterDrawer::DrawPage(const MarkdownPage& page) {
+  page_ = &page;
+  MarkdownDrawer::DrawPage(page);
+  DrawTypewriterCursor();
+}
+
+void MarkdownCharTypewriterDrawer::DrawTypewriterCursor() {
+  cursor_position_ = CalculateCursorPosition(page_);
+  bool typewriter_complete =
+      max_char_count_ >= MarkdownSelection::GetPageCharCount(page_);
+  if (typewriter_cursor_ != nullptr &&
+      (!typewriter_complete || draw_cursor_if_complete_)) {
+    canvas_->Save();
+    typewriter_cursor_->Draw(canvas_, cursor_position_.x_, cursor_position_.y_);
+    canvas_->Restore();
+  }
+}
+
+void MarkdownCharTypewriterDrawer::DrawTextRegion(
+    tttext::LayoutRegion* page, tttext::LayoutDrawer* drawer) {
+  if (page == nullptr || terminated_)
+    return;
+  for (uint32_t i = 0; i < page->GetLineCount(); i++) {
+    auto* line = page->GetLine(i);
+    const auto char_count =
+        std::min(max_char_count_ - draw_char_count_,
+                 static_cast<int32_t>(line->GetCharCount()));
+    drawer->DrawTextLine(line, 0, char_count);
+    draw_char_count_ += char_count;
+    if (draw_char_count_ == max_char_count_) {
+      terminated_ = true;
+      return;
+    }
+  }
+}
+
+void MarkdownCharTypewriterDrawer::DrawRegion(const MarkdownPage& page,
+                                              uint32_t region_index) {
+  if (region_index >= page.GetRegionCount())
+    return;
+  page_ = &page;
+  const auto* region = page.GetRegion(region_index);
+  const int32_t char_start = region->element_->GetCharStart();
+  const int32_t char_end = char_start + region->element_->GetCharCount();
+  if (char_start >= max_char_count_)
+    return;
+  draw_char_count_ = char_start;
+  MarkdownDrawer::DrawRegion(page, region_index);
+  if (char_end >= max_char_count_) {
+    canvas_->Save();
+    DrawTypewriterCursor();
+    canvas_->Restore();
+  }
+}
+
+PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
+    const MarkdownPage* page) {
+  page_ = page;
+  auto max_char_count = max_char_count_;
+  auto page_char_count = MarkdownSelection::GetPageCharCount(page);
+  max_char_count = std::min(page_char_count, max_char_count) - 1;
+  auto region_infos = MarkdownSelection::GetSelectionRegionsByCharRange(
+      page, max_char_count, max_char_count + 1);
+  if (region_infos.empty()) {
+    return {0, 0};
+  }
+  auto& region_info = region_infos.back();
+  auto* region = region_info.region_;
+  if (region->GetLineCount() == 0) {
+    max_draw_height_ = region_info.offset_.y_;
+    return region_info.offset_;
+  }
+  auto char_index_in_region = max_char_count - region_info.char_pos_offset_;
+  tttext::TextLine* line = nullptr;
+  for (uint32_t i = 0; i < region->GetLineCount(); i++) {
+    line = region->GetLine(i);
+    if (static_cast<int32_t>(line->GetEndCharPos()) > char_index_in_region) {
+      break;
+    }
+  }
+  max_draw_height_ = region_info.offset_.y_ + line->GetLineBottom();
+  float bounding_rect[4];
+  line->GetCharBoundingRect(bounding_rect, char_index_in_region);
+  auto [left, top, width, height] = bounding_rect;
+  typewriter_cursor_ =
+      LoadTypewriterCursor((height > 0 ? height : line->GetLineHeight()) / 1.2,
+                           tttext::TTColor::BLACK);
+  auto cursor_x = left + width;
+  auto cursor_y = line->GetLineBaseLine();
+  auto cursor_position = CalculateCursorPosition(
+      line, {cursor_x, cursor_y}, region_info.offset_, typewriter_cursor_,
+      page_->GetMaxWidth(),
+      style_ != nullptr ? style_->typewriter_cursor_.vertical_align_
+                        : MarkdownVerticalAlign::kBaseline);
+  cursor_position += region_info.offset_;
+  max_draw_height_ = std::max(
+      max_draw_height_, cursor_position.y_ + typewriter_cursor_->GetDescent() -
+                            typewriter_cursor_->GetAscent());
+  return cursor_position;
+}
+
+tttext::RunDelegate* MarkdownCharTypewriterDrawer::LoadTypewriterCursor(
+    float size, uint32_t color) {
+  if (custom_typewriter_cursor_ != nullptr) {
+    return custom_typewriter_cursor_;
+  }
+
+  if (!style_->typewriter_cursor_.custom_cursor_.empty()) {
+    default_typewriter_cursor_ =
+        std::make_unique<MarkdownEmptySpaceDelegate>(0);
+    return default_typewriter_cursor_.get();
+  }
+  default_typewriter_cursor_ = CreateEllipsis(size, color);
   return default_typewriter_cursor_.get();
+}
+
+void MarkdownCharTypewriterDrawer::DrawAttachment(
+    const MarkdownPage& page, MarkdownTextAttachment* attachment) {
+  DrawAttachmentOnRegion(page, attachment, 0,
+                         std::numeric_limits<int32_t>::max());
+}
+
+void MarkdownCharTypewriterDrawer::DrawAttachmentOnRegion(
+    const MarkdownPage& page, MarkdownTextAttachment* attachment,
+    int32_t region_char_start, int32_t region_char_end) {
+  int32_t start_index = attachment->start_index_;
+  int32_t end_index = attachment->end_index_;
+  if (start_index < 0) {
+    start_index = max_char_count_ + 1 + start_index;
+    start_index = std::max(0, start_index);
+  }
+  if (end_index < 0) {
+    end_index = max_char_count_ + 1 + end_index;
+    end_index = std::max(0, end_index);
+  }
+  if (start_index >= end_index) {
+    return;
+  }
+  if (region_char_start > end_index || region_char_end <= start_index) {
+    return;
+  }
+  if (max_char_count_ <= start_index) {
+    return;
+  }
+  const auto rects_origin = MarkdownSelection::GetSelectionRectByCharPos(
+      &page, start_index, end_index,
+      MarkdownSelection::RectType::kLineBounding);
+  float total_width = 0;
+  for (auto& r : rects_origin) {
+    total_width += r.GetWidth();
+  }
+  if (max_char_count_ < end_index) {
+    end_index = max_char_count_;
+    const auto rects = MarkdownSelection::GetSelectionRectByCharPos(
+        &page, start_index, end_index,
+        MarkdownSelection::RectType::kLineBounding);
+    attachment->DrawOnMultiLines(canvas_, rects, total_width);
+  } else {
+    attachment->DrawOnMultiLines(canvas_, rects_origin, total_width);
+  }
 }
 
 }  // namespace markdown

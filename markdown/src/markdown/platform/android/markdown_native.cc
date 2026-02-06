@@ -56,15 +56,12 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeCreateInstance(JNIEnv* env,
                                                                jobject thiz,
                                                                jobject handle) {
   auto view = new AndroidServalMarkdownView(env, handle);
-  auto resource_loader = new MarkdownResourceLoaderAndroid(nullptr);
-  view->GetMarkdownView()->SetResourceLoader(resource_loader);
   return reinterpret_cast<jlong>(view);
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeDestroyInstance(
     JNIEnv* env, jobject thiz, jlong instance) {
   auto* view = ConvertView(instance);
-  delete view->GetMarkdownView()->GetResourceLoader();
   delete ConvertView(instance);
 }
 extern "C" JNIEXPORT void JNICALL

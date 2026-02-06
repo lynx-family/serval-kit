@@ -98,8 +98,5 @@ public class ServalMarkdownView
   private native void nativeSetValueConfig(long instance, int key,
                                            byte[] config);
   @Override
-  public void drawRunDelegate(IRunDelegate delegate, Rect rect) {}
-  @Override
-  public void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate,
-                                    Path path, Paint paint) {}
+  public void alignInlineView(MarkdownViewHandle view, Rect rect) {}
 }

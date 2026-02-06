@@ -5,3 +5,8 @@ __pycache__
 *.pyc
 
 svg/platform/harmony/servalsvg/.cxx/
+.idea
+build
+.vscode
+check_style.xml
+.cache

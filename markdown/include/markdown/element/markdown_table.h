@@ -81,18 +81,30 @@ class MarkdownTable : public MarkdownTableMatrix<MarkdownTableCell> {
   void SetCellStyle(const MarkdownBlockStylePart& cell_block_style) {
     cell_block_style_ = cell_block_style;
   }
+  void SetCellBackground(const uint32_t color) { cell_background_ = color; }
+  uint32_t GetCellBackground() const { return cell_background_; }
   void SetHeaderStyle(const MarkdownBlockStylePart& header_block_style) {
     header_block_style_ = header_block_style;
   }
+  void SetHeaderBackground(const uint32_t color) { header_background_ = color; }
+  uint32_t GetHeaderBackground() const { return header_background_; }
+  void SetTableStyle(const MarkdownTableStylePart& table_style_part) {
+    table_style_ = table_style_part;
+  }
+  const MarkdownTableStylePart& GetTableStyle() const { return table_style_; }
   uint32_t GetCharCount() const { return char_count_; }
+  void SetCharCount(uint32_t char_count) { char_count_ = char_count; }
 
  private:
   MarkdownBlockStylePart cell_block_style_{};
+  uint32_t cell_background_{0};
   MarkdownBlockStylePart header_block_style_{};
+  uint32_t header_background_{0};
+  MarkdownTableStylePart table_style_{};
   uint32_t char_count_{0};
   friend class MarkdownLayout;
   friend class MarkdownSelection;
-  friend class MarkdownParserDiscountImpl;
+  friend class MarkdownParserEmbed;
 };
 
 class MarkdownTableElement : public MarkdownElement {

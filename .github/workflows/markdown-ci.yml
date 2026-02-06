@@ -1,4 +1,4 @@
-name: Build Markdown and Run Static Check
+name: Build Markdown and Run Unit Test
 
 on:
   pull_request:
@@ -8,6 +8,30 @@ on:
       - ".github/workflows/markdown-ci.yml"
 
 jobs:
+  run-markdown-tests:
+    name: Run Markdown Unit Tests
+    runs-on: macos-14
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/sync-deps
+        with:
+          target: testing
+
+      - name: Build and Run Tests
+        run: |
+          source tools/envsetup.sh
+          cmake -S markdown -B markdown/build
+          cmake --build markdown/build -j --target markdown_tests
+          ./markdown/build/testing/markdown/markdown_tests
+
   build-android:
     name: Build Android
     runs-on: lynx-ubuntu-22.04-large
