@@ -7,6 +7,15 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx::markdown {
+
+struct MeasureSpec {
+  static constexpr float LAYOUT_MAX_SIZE = 1e5;
+  float width_{LAYOUT_MAX_SIZE};
+  tttext::LayoutMode width_mode_{tttext::LayoutMode::kIndefinite};
+  float height_{LAYOUT_MAX_SIZE};
+  tttext::LayoutMode height_mode_{tttext::LayoutMode::kIndefinite};
+};
+
 class MarkdownDrawable : public tttext::RunDelegate {
  public:
   MarkdownDrawable() = default;

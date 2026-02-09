@@ -6,8 +6,8 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_DEFINITION_H_
 #include <algorithm>
 #include <cmath>
+#include <string>
 
-#include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
 class RectF {
@@ -141,14 +141,6 @@ class SizeF {
  public:
   float width_{0};
   float height_{0};
-};
-
-struct MeasureSpec {
-  static constexpr float LAYOUT_MAX_SIZE = 1e5;
-  float width_{LAYOUT_MAX_SIZE};
-  tttext::LayoutMode width_mode_{tttext::LayoutMode::kIndefinite};
-  float height_{LAYOUT_MAX_SIZE};
-  tttext::LayoutMode height_mode_{tttext::LayoutMode::kIndefinite};
 };
 
 struct MeasureResult {

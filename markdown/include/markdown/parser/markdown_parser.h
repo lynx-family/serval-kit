@@ -6,14 +6,15 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_PARSER_H_
 
 #include <string>
+#include "markdown/utils/markdown_marco.h"
 namespace lynx::markdown {
 class MarkdownDomNode;
-class MarkdownParser {
+class L_EXPORT MarkdownParser {
  public:
   virtual ~MarkdownParser() = default;
   virtual MarkdownDomNode* Parse(std::string_view source, void* ud) = 0;
 };
-class MarkdownParserProvider {
+class L_EXPORT MarkdownParserProvider {
  public:
   virtual ~MarkdownParserProvider() = default;
   virtual std::unique_ptr<MarkdownParser> CreateParser() = 0;
