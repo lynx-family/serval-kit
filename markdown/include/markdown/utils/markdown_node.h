@@ -5,8 +5,9 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
 #include <cstdint>
+#include "markdown/utils/markdown_marco.h"
 namespace lynx::markdown {
-class MarkdownNode {
+class L_EXPORT MarkdownNode {
  public:
   MarkdownNode() = default;
   virtual ~MarkdownNode() = default;
