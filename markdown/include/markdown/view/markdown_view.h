@@ -32,21 +32,30 @@ class MarkdownView final : public MarkdownDrawable,
   explicit MarkdownView(MarkdownPlatformView* view);
   ~MarkdownView() override;
   void SetPlatformLoader(MarkdownPlatformLoader* loader);
-  MarkdownPlatformLoader* GetPlatformLoader();
+  MarkdownPlatformLoader* GetPlatformLoader() const;
   void SetEventListener(MarkdownEventListener* listener);
   void SetExposureListener(MarkdownExposureListener* listener);
+
   void SetContent(std::string_view content);
+  void SetContentID(std::string_view id);
+  void SetContentComplete(bool complete);
+  void SetContentRange(Range range);
+  void SetParserType(std::string_view parser_type, void* parser_ud = nullptr);
+  void SetSourceType(SourceType type);
 
   void SetStyle(const ValueMap& style_map);
   void ApplyStyleInRange(const ValueMap& style_map, int32_t char_start,
                          int32_t char_end);
   void SetTextMaxLines(int32_t max_lines);
+  void SetEnableBreakAroundPunctuation(bool allow);
+  void SetTextAttachments(std::unique_ptr<Value> attachments);
+
   void SetAnimationStep(int32_t animation_step);
   void SetAnimationType(MarkdownAnimationType type);
   void SetAnimationVelocity(float velocity);
+  void SetInitialAnimationStep(int32_t step);
   void SetTypewriterDynamicHeight(bool enable);
-  void SetParserType(std::string_view parser_type, void* parser_ud = nullptr);
-  void SetSourceType(SourceType type);
+  void SetHeightTransitionDuration(float duration);
 
   void SetEnableSelection(bool enable_selection);
   void SetSelectionHandleSize(float size);
@@ -107,7 +116,8 @@ class MarkdownView final : public MarkdownDrawable,
 
  protected:
   int32_t GetCharCount();
-  void UpdateAnimationStep(int64_t timestamp);
+  void UpdateAnimationStep();
+  void UpdateTransitionHeight() const;
   void UpdateExposure();
 
   void ClearForParse();
@@ -115,10 +125,10 @@ class MarkdownView final : public MarkdownDrawable,
   void HideAllSubviews();
   std::set<MarkdownPlatformView*> GetInlineViews();
   void RemoveUnusedViews(const std::set<MarkdownPlatformView*>& before,
-                         const std::set<MarkdownPlatformView*>& after);
+                         const std::set<MarkdownPlatformView*>& after) const;
 
  protected:
-  void SendParseEnd();
+  void SendParseEnd() const;
   void SendDrawStart();
   void SendDrawEnd();
   void SendAnimationStep(int32_t animation_step, int32_t max_animation_step);
@@ -156,9 +166,27 @@ class MarkdownView final : public MarkdownDrawable,
   MarkdownPlatformView* view_{nullptr};
   MarkdownViewContainerHandle* handle_{nullptr};
 
+  std::string content_;
+  std::string content_id_;
+  Range content_range_{0, std::numeric_limits<int32_t>::max()};
+  bool content_complete_{true};
+
+  MarkdownStyle style_map_;
+  int32_t text_max_lines_{0};
+
+  MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
+  float animation_velocity_{1};
+  bool typewriter_dynamic_height_{true};
+  int32_t initial_animation_step_{0};
+  float height_transition_duration_{0};
+  bool allow_break_around_punctuation_{false};
+  bool enable_selection_{false};
+  std::unique_ptr<Value> attachments_;
+
   MarkdownDocument document_;
   MarkdownExposureListener* exposure_listener_{nullptr};
   MarkdownPlatformLoader* platform_loader_{nullptr};
+  MarkdownEventListener* event_listener_{nullptr};
 
   std::string parser_type_{};
   SourceType source_type_{SourceType::kMarkdown};
@@ -166,27 +194,29 @@ class MarkdownView final : public MarkdownDrawable,
 
   Paddings paddings_;
 
+  MeasureSpec last_measure_spec_{};
   float measured_width_{0};
   float measured_height_{0};
 
-  MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
-  float animation_velocity_{1};
-
+  int64_t current_frame_time_{0};
   int32_t current_animation_step_{0};
   int32_t max_animation_step_{0};
   int64_t current_animation_step_time_{0};
   MarkdownPlatformView* custom_typewriter_cursor_{nullptr};
   PointF custom_cursor_position_{0, 0};
+  float current_typewriter_height_{0};
 
-  bool typewriter_dynamic_height_{true};
+  float transition_start_height_{0};
+  float transition_end_height_{0};
+  int64_t transition_start_time_{0};
+  float current_transition_height_{0};
+  int64_t current_transition_time_{0};
 
   bool needs_parse_{true};
   bool needs_measure_{true};
 
   bool draw_start_sent_{false};
   bool draw_end_sent_{false};
-
-  bool enable_selection_{false};
 
   struct SelectionHandles {
     MarkdownPlatformView* left_;
