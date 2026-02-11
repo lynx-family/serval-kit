@@ -34,22 +34,34 @@ void MarkdownView::SetPlatformLoader(MarkdownPlatformLoader* loader) {
   platform_loader_ = loader;
   NeedsParse();
 }
-MarkdownPlatformLoader* MarkdownView::GetPlatformLoader() {
+MarkdownPlatformLoader* MarkdownView::GetPlatformLoader() const {
   return platform_loader_;
 }
 void MarkdownView::SetEventListener(MarkdownEventListener* listener) {
+  event_listener_ = listener;
   document_.SetMarkdownEventListener(listener);
 }
 void MarkdownView::SetExposureListener(MarkdownExposureListener* listener) {
   exposure_listener_ = listener;
 }
 void MarkdownView::SetContent(const std::string_view content) {
+  content_ = content;
   document_.SetMarkdownContent(content);
   NeedsParse();
+}
+void MarkdownView::SetContentID(std::string_view id) {
+  content_id_ = id;
+}
+void MarkdownView::SetContentComplete(bool complete) {
+  content_complete_ = complete;
+}
+void MarkdownView::SetContentRange(Range range) {
+  content_range_ = range;
 }
 void MarkdownView::SetStyle(const ValueMap& style_map) {
   const auto style =
       MarkdownStyleReader::ReadStyle(style_map, document_.GetResourceLoader());
+  style_map_ = style;
   document_.SetStyle(style);
   NeedsParse();
 }
@@ -61,8 +73,15 @@ void MarkdownView::ApplyStyleInRange(const ValueMap& style_map,
   NeedsMeasure();
 }
 void MarkdownView::SetTextMaxLines(int32_t max_lines) {
+  text_max_lines_ = max_lines;
   document_.SetMaxLines(max_lines);
   NeedsMeasure();
+}
+void MarkdownView::SetEnableBreakAroundPunctuation(bool allow) {
+  allow_break_around_punctuation_ = allow;
+}
+void MarkdownView::SetTextAttachments(std::unique_ptr<Value> attachments) {
+  attachments_ = std::move(attachments);
 }
 void MarkdownView::SetAnimationType(const MarkdownAnimationType type) {
   animation_type_ = type;
@@ -76,8 +95,14 @@ void MarkdownView::SetTypewriterDynamicHeight(bool enable) {
   typewriter_dynamic_height_ = enable;
   NeedsMeasure();
 }
+void MarkdownView::SetHeightTransitionDuration(float duration) {
+  height_transition_duration_ = duration;
+}
 void MarkdownView::SetAnimationVelocity(float velocity) {
   animation_velocity_ = velocity;
+}
+void MarkdownView::SetInitialAnimationStep(int32_t step) {
+  initial_animation_step_ = step;
 }
 void MarkdownView::SetParserType(std::string_view parser_type,
                                  void* parser_ud) {
@@ -155,17 +180,19 @@ void MarkdownView::CreateSelectionHandles() {
       });
   selection_handles_.right_->SetVisibility(false);
 }
-
 SizeF MarkdownView::Measure(MeasureSpec spec) {
   TraceEventBegin("MarkdownView::Measure");
-  if (FloatsNotEqual(spec.width_, document_.GetMaxWidth())) {
+  if (FloatsNotEqual(spec.width_, last_measure_spec_.width_)) {
     needs_measure_ = true;
     needs_parse_ = true;
   }
-  if (FloatsNotEqual(spec.height_, document_.GetMaxHeight())) {
+  if (FloatsNotEqual(spec.height_, last_measure_spec_.height_)) {
     needs_measure_ = true;
   }
   document_.SetMaxSize(spec.width_, spec.height_);
+  last_measure_spec_ = spec;
+  float result_width = measured_width_;
+  float result_height = measured_height_;
   if (needs_parse_) {
     TraceEventBegin("MarkdownView::Parse");
     auto before_views = GetInlineViews();
@@ -194,6 +221,8 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
       max_animation_step_ = MarkdownSelection::GetPageCharCount(page.get());
       measured_width_ = page->GetLayoutWidth();
       measured_height_ = page->GetLayoutHeight();
+      result_width = measured_width_;
+      result_height = measured_height_;
     }
     needs_measure_ = false;
     draw_end_sent_ = false;
@@ -220,13 +249,48 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
         (custom_typewriter_cursor_ == nullptr) ? nullptr : &cursor);
     drawer.CalculateCursorPosition(page.get());
     if (current_animation_step_ < max_animation_step_) {
-      measured_height_ = drawer.GetMaxDrawHeight();
+      current_typewriter_height_ = drawer.GetMaxDrawHeight();
+    } else {
+      current_typewriter_height_ = measured_height_;
     }
+    result_height = current_typewriter_height_;
     custom_cursor_position_ = drawer.GetCursorPosition();
     TraceEventEnd();
   }
+  if (height_transition_duration_ > 0) {
+    if (transition_start_time_ == 0) {
+      transition_start_height_ = result_height;
+      transition_end_height_ = result_height;
+      transition_start_time_ = current_frame_time_;
+      current_transition_height_ = result_height;
+      current_transition_time_ = current_frame_time_;
+    } else {
+      if (FloatsNotEqual(transition_end_height_, result_height)) {
+        if (FloatsEqual(transition_end_height_, current_transition_height_)) {
+          transition_start_time_ = current_frame_time_;
+        } else {
+          transition_start_time_ = current_transition_time_;
+        }
+        transition_end_height_ = result_height;
+        transition_start_height_ = current_transition_height_;
+      }
+      if (current_frame_time_ >=
+          transition_start_time_ +
+              static_cast<int64_t>(height_transition_duration_ * 1000)) {
+        current_transition_height_ = transition_end_height_;
+      } else {
+        current_transition_height_ =
+            transition_start_height_ +
+            (transition_end_height_ - transition_start_height_) *
+                static_cast<float>(current_frame_time_ -
+                                   transition_start_time_) /
+                (height_transition_duration_ * 1000);
+      }
+    }
+    result_height = current_transition_height_;
+  }
   TraceEventEnd();
-  return {measured_width_, measured_height_};
+  return {result_width, result_height};
 }
 void MarkdownView::Align(float x, float y) {
   TraceEventBegin("MarkdownView::Align");
@@ -306,10 +370,11 @@ void MarkdownView::NeedsDraw() const {
   view_->RequestDraw();
 }
 void MarkdownView::OnNextFrame(int64_t timestamp) {
-  UpdateAnimationStep(timestamp);
+  current_frame_time_ = timestamp;
+  UpdateAnimationStep();
+  UpdateTransitionHeight();
   UpdateExposure();
 }
-
 void MarkdownView::EnterSelection(PointF position) {
   is_in_selection_ = true;
   select_start_position_ = position;
@@ -322,12 +387,10 @@ void MarkdownView::EnterSelection(PointF position) {
   handle_pan_before_motion_ = {0, 0};
   UpdateSelectionRects(SelectionState::kEnter);
 }
-
 void MarkdownView::ExitSelection() {
   is_in_selection_ = false;
   UpdateSelectionRects(SelectionState::kExit);
 }
-
 void MarkdownView::UpdateSelectionStart() {
   auto new_start_index = GetCharIndexByPosition(select_start_position_);
   if (new_start_index == select_end_index_) {
@@ -434,7 +497,7 @@ int32_t MarkdownView::GetCharIndexByPosition(PointF position) {
   return start;
 }
 
-void MarkdownView::UpdateAnimationStep(int64_t timestamp) {
+void MarkdownView::UpdateAnimationStep() {
   if (animation_type_ != MarkdownAnimationType::kTypewriter ||
       animation_velocity_ <= 0 ||
       current_animation_step_ >= max_animation_step_) {
@@ -442,18 +505,22 @@ void MarkdownView::UpdateAnimationStep(int64_t timestamp) {
   }
   TraceEventBegin("MarkdownView::AnimationUpdate");
   int32_t step_count = 0;
-  auto current = timestamp;
+  float interval = 1000.0f / animation_velocity_;
   if (current_animation_step_time_ == 0) {
     step_count = 1;
+    current_animation_step_time_ = current_frame_time_;
   } else {
-    auto duration = current - current_animation_step_time_;
-    step_count = static_cast<int32_t>(static_cast<float>(duration) *
-                                      animation_velocity_ / 1000.0);
+    auto duration = current_frame_time_ - current_animation_step_time_;
+    step_count = static_cast<int32_t>(static_cast<float>(duration) / interval);
+    current_animation_step_time_ +=
+        static_cast<int64_t>(static_cast<float>(step_count) * interval);
   }
   if (step_count > 0) {
-    current_animation_step_ =
-        std::min(max_animation_step_, current_animation_step_ + step_count);
-    current_animation_step_time_ = current;
+    current_animation_step_ += step_count;
+    if (current_animation_step_ >= max_animation_step_) {
+      current_animation_step_ = max_animation_step_;
+      current_animation_step_time_ = 0;
+    }
     SendAnimationStep(current_animation_step_, max_animation_step_);
     if (typewriter_dynamic_height_) {
       view_->RequestMeasure();
@@ -464,7 +531,14 @@ void MarkdownView::UpdateAnimationStep(int64_t timestamp) {
   TraceEventEnd();
 }
 
-void MarkdownView::SendParseEnd() {
+void MarkdownView::UpdateTransitionHeight() const {
+  if (height_transition_duration_ > 0 &&
+      FloatsNotEqual(transition_end_height_, current_transition_height_)) {
+    view_->RequestMeasure();
+  }
+}
+
+void MarkdownView::SendParseEnd() const {
   if (document_.GetMarkdownEventListener() == nullptr) {
     return;
   }
@@ -570,7 +644,7 @@ std::set<MarkdownPlatformView*> MarkdownView::GetInlineViews() {
 
 void MarkdownView::RemoveUnusedViews(
     const std::set<MarkdownPlatformView*>& before,
-    const std::set<MarkdownPlatformView*>& after) {
+    const std::set<MarkdownPlatformView*>& after) const {
   std::vector<MarkdownPlatformView*> diff;
   std::set_difference(before.begin(), before.end(), after.begin(), after.end(),
                       std::inserter(diff, diff.begin()));
