@@ -283,6 +283,8 @@ void SrSVGNode::ParseStrokeDashArray(const char* value) {
 }
 
 static int IsSpace(char c) {
+  if (c == 0)
+    return 0;
   return strchr(" \t\n\v\f\r", c) != 0;
 }
 
@@ -300,7 +302,7 @@ bool SrSVGNode::ParseNameValue(const char* start, const char* end) {
   val = str;
 
   // Right Trim
-  while (str > start && (*str == ':' || IsSpace(*str)))
+  while (str > start && (str == end || *str == ':' || IsSpace(*str)))
     --str;
   ++str;
 
@@ -337,7 +339,7 @@ void SrSVGNode::ParseStyle(const char* str) {
     end = str;
 
     // Right Trim
-    while (end > start && (*end == ';' || IsSpace(*end)))
+    while (end > start && (*end == 0 || *end == ';' || IsSpace(*end)))
       --end;
     ++end;
 
