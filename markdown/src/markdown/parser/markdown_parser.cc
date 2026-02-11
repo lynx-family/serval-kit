@@ -270,6 +270,7 @@ void MarkdownConverter::ConvertTable(MarkdownDomNode* node) {
   auto* table_element = context_.GetTableElement();
   table_element->SetTable(std::make_unique<MarkdownTable>());
   auto* table = context_.GetTable();
+  table->SetTableStyle(document_->GetStyle().table_.table_);
   table->SetHeaderStyle(document_->GetStyle().table_header_.block_);
   table->SetCellStyle(document_->GetStyle().table_cell_.block_);
   table_element->SetCharStart(context_.char_offset_);
@@ -401,8 +402,7 @@ void MarkdownConverter::ConvertImage(MarkdownDomNode* node) {
   if (image != nullptr) {
     auto para = context_.GetParagraph();
     document_->AddImage(MarkdownImage{
-        url,
-        static_cast<int32_t>(para->GetCharCount() - 1 + context_.char_offset_),
+        url, static_cast<int32_t>(para->GetCharCount() + context_.char_offset_),
         image.get()});
     para->AddShapeRun(&(context_.GetCurrentState().run_style_),
                       std::move(image), false);
@@ -419,11 +419,11 @@ void MarkdownConverter::ReplaceInlineNode(MarkdownDomNode* node) {
   if (view != nullptr) {
     tttext::Style style = context_.GetCurrentState().run_style_;
     auto* current_para = context_.GetParagraph();
-    document_->AddInlineView(MarkdownInlineView{
-        id,
-        static_cast<int32_t>(context_.char_offset_ +
-                             current_para->GetCharCount() - 1),
-        false, view.get()});
+    document_->AddInlineView(
+        MarkdownInlineView{id,
+                           static_cast<int32_t>(context_.char_offset_ +
+                                                current_para->GetCharCount()),
+                           false, view.get()});
     style.SetVerticalAlignment(tttext::CharacterVerticalAlignment::kMiddle);
     current_para->AddShapeRun(&style, std::move(view), false);
     current_para->GetParagraphStyle().SetLineHeightInPxAtLeast(
@@ -435,7 +435,7 @@ void MarkdownConverter::ConvertInlineNode(MarkdownDomNode* node) {
   context_.node_id_++;
   const auto type = node->GetType();
   if (type == MarkdownDomType::kPlaceHolder) {
-    ReplaceBlockNode(node);
+    ReplaceInlineNode(node);
     return;
   }
   PushInlineState(node->GetType());
@@ -701,6 +701,7 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     MarkdownParserEmbed::SetTTStyleByMarkdownBaseStyle(
         document_, style.ordered_list_number_.base_, &new_style);
     para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
+    para->AddTextRun(&new_style, number_str.c_str(), number_str.length());
     auto delegate = std::make_shared<MarkdownTextDelegate>(
         std::move(para), style.ordered_list_number_.block_,
         document_->GetMaxWidth(), document_->GetMaxHeight());

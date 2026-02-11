@@ -51,7 +51,7 @@ target_link_libraries(serval_markdown PUBLIC lynxtextra)
 
 target_link_libraries(serval_markdown PUBLIC
     libace_napi.z.so libace_ndk.z.so libnative_display_manager.so libnative_vsync.so libnative_drawing.so uv
-    markdown lynx_base lynx_trace libhitrace_ndk.z.so libhilog_ndk.z.so
+    -Wl,--whole-archive markdown -Wl,--no-whole-archive lynx_base lynx_trace libhitrace_ndk.z.so libhilog_ndk.z.so
 )
 
 target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
