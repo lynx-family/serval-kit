@@ -699,8 +699,8 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
   ::skity::Paint paint;
   paint.SetStyle(is_stroke ? ::skity::Paint::kStroke_Style
                            : ::skity::Paint::kFill_Style);
-  float alpha = render_state.opacity;
-  alpha *= is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
+  float alpha =
+      is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
   paint.SetAlpha(alpha * 255);
   if (is_stroke) {
     paint.SetStrokeWidth(render_state.stroke_width);

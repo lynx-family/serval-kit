@@ -92,7 +92,7 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
         fill_opacity_.value_or(1.0) * render_state_.opacity;
   } else if (inherit_fill_opacity_) {
     render_state_.fill_opacity =
-        inherit_opacity_.value_or(1.0) * render_state_.opacity;
+        inherit_fill_opacity_.value_or(1.0) * render_state_.opacity;
   } else {
     render_state_.fill_opacity = render_state_.opacity;
   }
@@ -102,7 +102,7 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
         stroke_opacity_.value_or(1.0) * render_state_.opacity;
   } else if (inherit_stroke_opacity_) {
     render_state_.stroke_opacity =
-        inherit_opacity_.value_or(1.0) * render_state_.opacity;
+        inherit_stroke_opacity_.value_or(1.0) * render_state_.opacity;
   } else {
     render_state_.stroke_opacity = render_state_.opacity;
   }
