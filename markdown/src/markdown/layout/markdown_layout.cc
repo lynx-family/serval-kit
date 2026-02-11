@@ -61,16 +61,22 @@ std::pair<float, float> MarkdownLayout::Layout(float width, float height,
         quote_range.start_ >= static_cast<int>(page_->regions_.size()))
       continue;
     auto& start_para = page_->regions_[quote_range.start_];
-    if (start_para->border_ == nullptr)
-      continue;
-    auto top = start_para->border_->rect_.GetTop();
+    float top = 0;
+    if (start_para->border_ == nullptr) {
+      top = start_para->rect_.GetTop();
+    } else {
+      top = start_para->border_->rect_.GetTop();
+    }
     if (quote_range.end_ < 1 ||
         quote_range.end_ > static_cast<int>(page_->regions_.size()))
       continue;
     auto& end_para = page_->regions_[quote_range.end_ - 1];
-    if (end_para->border_ == nullptr)
-      continue;
-    auto bottom = end_para->border_->rect_.GetBottom();
+    float bottom = 0;
+    if (end_para->border_ == nullptr) {
+      bottom = end_para->rect_.GetBottom();
+    } else {
+      bottom = end_para->border_->rect_.GetBottom();
+    }
     auto border_left = document_->style_.quote_.block_.margin_left_ +
                        document_->style_.quote_.border_.border_width_ / 2;
     auto border_right = max_width_ -
