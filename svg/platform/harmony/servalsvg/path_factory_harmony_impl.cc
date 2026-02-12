@@ -5,6 +5,7 @@
 #include "platform/harmony/path_factory_harmony_impl.h"
 #include "canvas/SrCanvas.h"
 #include "platform/harmony/path_harmony_impl.h"
+#include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_round_rect.h>
 
@@ -119,6 +120,54 @@ void PathFactoryHarmonyImpl::Op(canvas::Path *path1, canvas::Path *path2, canvas
     }
     OH_Drawing_PathOp(path_impl1->GetPath(), path_impl2->GetPath(), op_mode);
 };
+
+std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const canvas::Path *path, float width,
+                                                                       SrSVGStrokeCap cap, SrSVGStrokeJoin join,
+                                                                       float miter_limit) {
+    auto *harmony_path = static_cast<const PathHarmonyImpl *>(path);
+    if (!harmony_path || !harmony_path->GetPath()) {
+        return nullptr;
+    }
+
+    OH_Drawing_Pen *pen = OH_Drawing_PenCreate();
+    OH_Drawing_PenSetWidth(pen, width);
+    OH_Drawing_PenSetMiterLimit(pen, miter_limit);
+
+    switch (cap) {
+    case SR_SVG_STROKE_CAP_BUTT:
+        OH_Drawing_PenSetCap(pen, LINE_FLAT_CAP);
+        break;
+    case SR_SVG_STROKE_CAP_ROUND:
+        OH_Drawing_PenSetCap(pen, LINE_ROUND_CAP);
+        break;
+    case SR_SVG_STROKE_CAP_SQUARE:
+        OH_Drawing_PenSetCap(pen, LINE_SQUARE_CAP);
+        break;
+    }
+
+    switch (join) {
+    case SR_SVG_STROKE_JOIN_MITER:
+        OH_Drawing_PenSetJoin(pen, LINE_MITER_JOIN);
+        break;
+    case SR_SVG_STROKE_JOIN_ROUND:
+        OH_Drawing_PenSetJoin(pen, LINE_ROUND_JOIN);
+        break;
+    case SR_SVG_STROKE_JOIN_BEVEL:
+        OH_Drawing_PenSetJoin(pen, LINE_BEVEL_JOIN);
+        break;
+    }
+
+    OH_Drawing_Path *dst_path = OH_Drawing_PathCreate();
+    bool ret = OH_Drawing_PenGetFillPath(pen, harmony_path->GetPath(), dst_path, nullptr, nullptr);
+    OH_Drawing_PenDestroy(pen);
+
+    if (ret) {
+        return std::make_unique<PathHarmonyImpl>(dst_path);
+    }
+    OH_Drawing_PathDestroy(dst_path);
+    return nullptr;
+}
+
 } // namespace harmony
 } // namespace svg
 } // namespace serval

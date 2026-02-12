@@ -33,9 +33,12 @@ class PathQuartz2D : public canvas::Path {
   std::unique_ptr<Path> CreateTransformCopy(
       const float (&xform)[6]) const override;
   void Transform(const float (&xform)[6]) override;
+  void SetFillType(SrSVGFillRule rule) override { fill_rule_ = rule; }
+  SrSVGFillRule GetFillType() const { return fill_rule_; }
 
  private:
   CGMutablePathRef path_;
+  SrSVGFillRule fill_rule_ = SR_SVG_FILL;
 };
 
 class PathFactoryQuartz2D : public canvas::PathFactory {
@@ -50,6 +53,11 @@ class PathFactoryQuartz2D : public canvas::PathFactory {
                                            float args[],
                                            uint64_t n_args) override;
   void Op(canvas::Path* path1, canvas::Path* path2, canvas::OP type) override;
+  std::unique_ptr<canvas::Path> CreateStrokePath(const canvas::Path* path,
+                                                 float width,
+                                                 SrSVGStrokeCap cap,
+                                                 SrSVGStrokeJoin join,
+                                                 float miter_limit) override;
   std::unique_ptr<canvas::Path> CreateLine(float start_x, float start_y,
                                            float end_x, float end_y) override {
     return nullptr;

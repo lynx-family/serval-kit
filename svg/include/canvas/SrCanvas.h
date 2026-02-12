@@ -39,6 +39,7 @@ class Path {
   virtual std::unique_ptr<Path> CreateTransformCopy(
       const float (&xform)[6]) const = 0;
   virtual void AddPath(Path* path) = 0;
+  virtual void SetFillType(SrSVGFillRule rule) = 0;
 };
 
 class PathFactory {
@@ -63,6 +64,10 @@ class PathFactory {
   virtual std::unique_ptr<Path> CreatePath(uint8_t ops[], uint64_t n_ops,
                                            float args[], uint64_t n_args) = 0;
   virtual void Op(Path* path1, Path* path2, OP type) = 0;
+  virtual std::unique_ptr<Path> CreateStrokePath(const Path* path, float width,
+                                                 SrSVGStrokeCap cap,
+                                                 SrSVGStrokeJoin join,
+                                                 float miter_limit) = 0;
 };
 
 class GradientModel {
