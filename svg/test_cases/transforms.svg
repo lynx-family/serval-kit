@@ -1,0 +1,28 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Group with translation -->
+  <g transform="translate(50, 50)">
+    <rect x="0" y="0" width="50" height="50" fill="red"/>
+  </g>
+
+  <!-- Group with rotation -->
+  <g transform="translate(150, 50) rotate(45)">
+    <rect x="0" y="0" width="50" height="50" fill="green"/>
+  </g>
+
+  <!-- Group with scale -->
+  <g transform="translate(250, 50) scale(1.5)">
+    <rect x="0" y="0" width="50" height="50" fill="blue"/>
+  </g>
+
+  <!-- Nested transforms -->
+  <g transform="translate(350, 50)">
+    <g transform="rotate(30)">
+        <rect x="0" y="0" width="50" height="50" fill="purple"/>
+    </g>
+  </g>
+  
+  <!-- Skew -->
+  <g transform="translate(50, 150) skewX(20)">
+    <rect x="0" y="0" width="50" height="50" fill="orange"/>
+  </g>
+</svg>

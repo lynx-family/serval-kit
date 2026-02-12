@@ -25,6 +25,7 @@ class PathHarmonyImpl : public canvas::Path {
   std::unique_ptr<canvas::Path> CreateTransformCopy(
       const float (&xform)[6]) const override;
   void Transform(const float (&xform)[6]) override;
+  void SetFillType(SrSVGFillRule rule) override;
 
  private:
   OH_Drawing_Path* path_;

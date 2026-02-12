@@ -31,6 +31,7 @@ enum class SrSVGTag {
   kImage,
   kLine,
   kLinearGradient,
+  kMask,
   kPath,
   kPattern,
   kPolygon,
@@ -116,6 +117,7 @@ class SrSVGNode : public SrSVGNodeBase {
   SrSVGPaint* fill_{nullptr};
   SrSVGPaint* stroke_{nullptr};
   SrSVGPaint* clip_path_{nullptr};
+  SrSVGPaint* mask_{nullptr};
   std::optional<float> opacity_;
   std::optional<float> fill_opacity_;
   std::optional<float> stroke_opacity_;

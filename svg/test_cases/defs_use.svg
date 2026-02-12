@@ -1,0 +1,11 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="shape1">
+      <rect x="0" y="0" width="50" height="50" fill="blue" />
+      <circle cx="25" cy="25" r="10" fill="yellow" />
+    </g>
+  </defs>
+  
+  <use href="#shape1" x="20" y="20" />
+  <use href="#shape1" x="100" y="20" transform="rotate(45)" />
+</svg>

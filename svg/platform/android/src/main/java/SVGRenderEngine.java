@@ -167,6 +167,33 @@ public class SVGRenderEngine {
     return PathUtils.makePolygonPath(points, false);
   }
 
+  public static Path makeStrokePath(Path src, float width, int cap, int join, float miter) {
+      if (src == null) return null;
+      android.graphics.Paint paint = new android.graphics.Paint();
+      paint.setStyle(android.graphics.Paint.Style.STROKE);
+      paint.setStrokeWidth(width);
+      
+      if (cap == 0) paint.setStrokeCap(android.graphics.Paint.Cap.BUTT);
+      else if (cap == 1) paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+      else paint.setStrokeCap(android.graphics.Paint.Cap.SQUARE);
+      
+      if (join == 0) paint.setStrokeJoin(android.graphics.Paint.Join.MITER);
+      else if (join == 1) paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+      else paint.setStrokeJoin(android.graphics.Paint.Join.BEVEL);
+      
+      paint.setStrokeMiter(miter);
+      
+      Path dst = new Path();
+      paint.getFillPath(src, dst);
+      return dst;
+  }
+
+  public static void setFillType(Path path, int rule) {
+    if (path != null) {
+      path.setFillType(rule == 1 ? Path.FillType.EVEN_ODD : Path.FillType.WINDING);
+    }
+  }
+
   public static void op(Path path1, Path path2, int type) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       Path.Op op = Path.Op.UNION;

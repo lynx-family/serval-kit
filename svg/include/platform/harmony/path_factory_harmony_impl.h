@@ -23,6 +23,11 @@ class PathFactoryHarmonyImpl : public canvas::PathFactory {
                                            float args[],
                                            uint64_t n_args) override;
   void Op(canvas::Path* path1, canvas::Path* path2, canvas::OP type) override;
+  std::unique_ptr<canvas::Path> CreateStrokePath(const canvas::Path* path,
+                                                 float width,
+                                                 SrSVGStrokeCap cap,
+                                                 SrSVGStrokeJoin join,
+                                                 float miter_limit) override;
 
   std::unique_ptr<canvas::Path> CreateLine(float start_x, float start_y,
                                            float end_x, float end_y) override;

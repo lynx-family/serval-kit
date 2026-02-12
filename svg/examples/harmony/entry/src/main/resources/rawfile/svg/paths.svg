@@ -1,0 +1,113 @@
+<svg width="800" height="750" viewBox="0 0 800 750" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: sans-serif; font-size: 20px; fill: #333; }
+    .label { font-weight: bold; font-size: 24px; }
+    .grid { stroke: #eee; stroke-width: 1; }
+  </style>
+
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" font-size="32" font-weight="bold">SVG Path Commands Test Suite</text>
+
+  <!-- 1. Bezier Curves (C, S, Q, T) -->
+  <g transform="translate(50, 80)">
+    <text x="0" y="-15" class="label">1. Bezier Curves</text>
+    
+    <!-- Cubic: C and S -->
+    <path d="M0,50 C20,0 80,0 100,50 S180,100 200,50" fill="none" stroke="blue" stroke-width="5"/>
+    <text x="0" y="90" font-size="16">Cubic (C) + Smooth (S)</text>
+    <!-- Control points visualization -->
+    <circle cx="20" cy="0" r="4" fill="red"/> <circle cx="80" cy="0" r="4" fill="red"/>
+    <circle cx="180" cy="100" r="4" fill="red"/>
+
+    <!-- Quadratic: Q and T -->
+    <path d="M300,50 Q325,0 350,50 T400,50 T450,50" fill="none" stroke="green" stroke-width="5"/>
+    <text x="300" y="90" font-size="16">Quad (Q) + Smooth (T)</text>
+    
+    <!-- Relative coordinates (lowercase) -->
+    <path d="M550,50 c20,-50 80,-50 100,0 s80,50 100,0" fill="none" stroke="purple" stroke-width="5" stroke-dasharray="8,8"/>
+    <text x="550" y="90" font-size="16">Relative (c, s)</text>
+  </g>
+
+  <!-- 2. Arcs (A) - The 4 combinations -->
+  <g transform="translate(50, 230)">
+    <text x="0" y="-15" class="label">2. Elliptical Arcs</text>
+    
+    <!-- Base ellipses for reference -->
+    <g stroke="#ddd" fill="none" stroke-width="2" stroke-dasharray="4,4">
+      <ellipse cx="60" cy="60" rx="50" ry="30"/>
+      <ellipse cx="220" cy="60" rx="50" ry="30"/>
+      <ellipse cx="380" cy="60" rx="50" ry="30"/>
+      <ellipse cx="540" cy="60" rx="50" ry="30"/>
+    </g>
+
+    <!-- 1. Small Arc, CCW (0, 0) -->
+    <path d="M10,60 A50,30 0 0,0 110,60" fill="none" stroke="red" stroke-width="5"/>
+    <text x="60" y="110" text-anchor="middle" font-size="16">large=0, sweep=0</text>
+
+    <!-- 2. Small Arc, CW (0, 1) -->
+    <path d="M170,60 A50,30 0 0,1 270,60" fill="none" stroke="red" stroke-width="5"/>
+    <text x="220" y="110" text-anchor="middle" font-size="16">large=0, sweep=1</text>
+
+    <!-- 3. Large Arc, CCW (1, 0) -->
+    <path d="M330,60 A50,30 0 1,0 430,60" fill="none" stroke="red" stroke-width="5"/>
+    <text x="380" y="110" text-anchor="middle" font-size="16">large=1, sweep=0</text>
+
+    <!-- 4. Large Arc, CW (1, 1) -->
+    <path d="M490,60 A50,30 0 1,1 590,60" fill="none" stroke="red" stroke-width="5"/>
+    <text x="540" y="110" text-anchor="middle" font-size="16">large=1, sweep=1</text>
+  </g>
+
+  <!-- 3. Fill Rules (nonzero vs evenodd) -->
+  <g transform="translate(50, 400)">
+    <text x="0" y="-15" class="label">3. Fill Rules</text>
+    
+    <!-- Nonzero (Default) -->
+    <path d="M50,15 L20,85 L80,35 L20,35 L80,85 Z" 
+          fill="orange" stroke="black" stroke-width="2" fill-rule="nonzero"/>
+    <text x="50" y="110" text-anchor="middle" font-size="16">nonzero</text>
+
+    <!-- Evenodd -->
+    <path d="M220,15 L190,85 L250,35 L190,35 L250,85 Z" 
+          fill="orange" stroke="black" stroke-width="2" fill-rule="evenodd"/>
+    <text x="220" y="110" text-anchor="middle" font-size="16">evenodd</text>
+
+    <!-- Doughnut (Compound Path) -->
+    <path d="M400,50 A40,40 0 1,0 400,51  M400,30 A20,20 0 1,1 400,31" 
+          fill="orange" stroke="black" stroke-width="2" fill-rule="nonzero"/>
+    <text x="400" y="110" text-anchor="middle" font-size="16">Hole (Compound)</text>
+  </g>
+
+  <!-- 4. Line Commands & Caps -->
+  <g transform="translate(50, 560)">
+    <text x="0" y="-15" class="label">4. Lines &amp; Caps</text>
+    
+    <path d="M0,20 h60 v30 h-60 z" fill="lightblue" stroke="blue" stroke-width="3"/>
+    <text x="80" y="40" font-size="16">h, v, z (Relative)</text>
+
+    <path d="M300,20 L360,20 L360,50 L300,50 Z" fill="lightgreen" stroke="green" stroke-width="3"/>
+    <text x="380" y="40" font-size="16">L (Absolute)</text>
+    
+    <!-- Line Caps -->
+    <g stroke-width="20" stroke="gray">
+      <path d="M0,100 h60" stroke-linecap="butt"/>
+      <path d="M120,100 h60" stroke-linecap="round"/>
+      <path d="M240,100 h60" stroke-linecap="square"/>
+    </g>
+    <text x="30" y="130" font-size="14" text-anchor="middle">Butt</text>
+    <text x="150" y="130" font-size="14" text-anchor="middle">Round</text>
+    <text x="270" y="130" font-size="14" text-anchor="middle">Square</text>
+  </g>
+
+  <!-- 5. Edge Cases -->
+  <g transform="translate(450, 560)">
+    <text x="0" y="-15" class="label">5. Edge Cases</text>
+    
+    <!-- Zero length segments with caps -->
+    <path d="M20,40 L20,40" stroke="red" stroke-width="15" stroke-linecap="round"/>
+    <text x="50" y="45" font-size="16">Zero-length (Round)</text>
+
+    <!-- Multiple moves -->
+    <path d="M20,100 l30,0 M80,100 l30,0 M140,100 l30,0" stroke="blue" stroke-width="6"/>
+    <text x="20" y="130" font-size="16">Discontinuous (M)</text>
+  </g>
+</svg>

@@ -39,8 +39,12 @@ bool SrSVGPath::ParseAndSetAttribute(const char* name, const char* value) {
 
 std::unique_ptr<canvas::Path> SrSVGPath::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
-  return path_factory->CreatePath(path_->ops, path_->n_ops, path_->args,
-                                  path_->n_args);
+  auto path = path_factory->CreatePath(path_->ops, path_->n_ops, path_->args,
+                                       path_->n_args);
+  if (path) {
+    path->SetFillType(fill_rule_);
+  }
+  return path;
 }
 
 SrSVGPath::~SrSVGPath() {

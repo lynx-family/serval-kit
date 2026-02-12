@@ -197,6 +197,14 @@ void PathHarmonyImpl::Transform(const float (&xform)[6]) {
 
 OH_Drawing_Path *PathHarmonyImpl::GetPath() const { return path_; }
 
+void PathHarmonyImpl::SetFillType(SrSVGFillRule rule) {
+    if (rule == SR_SVG_EO_FILL) {
+        OH_Drawing_PathSetFillType(path_, PATH_FILL_TYPE_EVEN_ODD);
+    } else {
+        OH_Drawing_PathSetFillType(path_, PATH_FILL_TYPE_WINDING);
+    }
+}
+
 PathHarmonyImpl::~PathHarmonyImpl() {
     if (path_) {
         OH_Drawing_PathDestroy(path_);

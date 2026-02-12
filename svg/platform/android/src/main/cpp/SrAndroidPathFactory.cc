@@ -295,6 +295,51 @@ void SrAndroidPathFactory::ApplyTransform(const SrAndroidPath& path,
   }
 }
 
+void SrAndroidPathFactory::SetFillType(const SrAndroidPath& path,
+                                       SrSVGFillRule rule) {
+  LOGD("SrAndroidCanvas::SetFillType");
+  JavaLocalRef<jclass> engine_clazz_ref = GetClass(jni_env_, j_engine_);
+  if (engine_clazz_ref.IsNull() || !path.GetJPath()) {
+    return;
+  }
+  jmethodID j_set_fill_type =
+      GetMethod(jni_env_, engine_clazz_ref.Get(), STATIC_METHOD, "setFillType",
+                "(Landroid/graphics/Path;I)V",
+                &(SrAndroidCanvas::g_SVGRenderEngine_setFillType_));
+  if (j_set_fill_type) {
+    jni_env_->CallStaticVoidMethod(engine_clazz_ref.Get(), j_set_fill_type,
+                                   path.GetJPath(), static_cast<int>(rule));
+  }
+}
+
+std::unique_ptr<canvas::Path> SrAndroidPathFactory::CreateStrokePath(
+    const canvas::Path* path, float width, SrSVGStrokeCap cap,
+    SrSVGStrokeJoin join, float miter_limit) {
+  LOGD("SrAndroidCanvas::CreateStrokePath");
+  JavaLocalRef<jclass> engine_clazz_ref = GetClass(jni_env_, j_engine_);
+  if (engine_clazz_ref.IsNull() || !path) {
+    return nullptr;
+  }
+  
+  jobject j_path = static_cast<const SrAndroidPath*>(path)->GetJPath();
+  if (!j_path) return nullptr;
+
+  jmethodID j_make_stroke_path =
+      GetMethod(jni_env_, engine_clazz_ref.Get(), STATIC_METHOD, "makeStrokePath",
+                "(Landroid/graphics/Path;FIIF)"
+                "Landroid/graphics/Path;",
+                &(SrAndroidCanvas::g_SVGRenderEngine_makeStrokePath_));
+                
+  if (j_make_stroke_path) {
+    return std::make_unique<SrAndroidPath>(
+        jni_env_,
+        jni_env_->CallStaticObjectMethod(engine_clazz_ref.Get(), j_make_stroke_path,
+                                         j_path, width, (int)cap, (int)join, miter_limit),
+        this);
+  }
+  return nullptr;
+}
+
 }  // namespace android
 }  // namespace svg
 }  // namespace serval

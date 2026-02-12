@@ -29,6 +29,12 @@ void SrAndroidPath::Transform(const float (&xform)[6]) {
   }
 }
 
+void SrAndroidPath::SetFillType(SrSVGFillRule rule) {
+  if (path_factory_) {
+    path_factory_->SetFillType(*this, rule);
+  }
+}
+
 }  // namespace android
 }  // namespace svg
 }  // namespace serval

@@ -16,6 +16,7 @@ namespace element {
 
 class SrSVGUse : public SrSVGNode {
  public:
+  friend class SrSVGMask;
   static SrSVGUse* Make() { return new SrSVGUse(); }
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   void OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) override;

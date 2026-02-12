@@ -14,7 +14,8 @@
 		2B50A9312A3AE771006CAE6B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2B50A9302A3AE771006CAE6B /* Assets.xcassets */; };
 		2B50A9342A3AE771006CAE6B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2B50A9322A3AE771006CAE6B /* LaunchScreen.storyboard */; };
 		2B50A9372A3AE771006CAE6B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B50A9362A3AE771006CAE6B /* main.m */; };
-		7C68E9B416EF6619B278534E /* libPods-ServalPark.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */; };
+		61DEF40198B58B15AB22DC48 /* svg in Resources */ = {isa = PBXBuildFile; fileRef = BF5BE99B13D67028469768F5 /* svg */; };
+		674E94011D76338473C6B3FE /* Pods_ServalPark.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4EDC3A1AC975086380AD0B00 /* Pods_ServalPark.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,8 +31,9 @@
 		2B50A9332A3AE771006CAE6B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		2B50A9352A3AE771006CAE6B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2B50A9362A3AE771006CAE6B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		4EDC3A1AC975086380AD0B00 /* Pods_ServalPark.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ServalPark.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9292406E0026CF9B8363858 /* Pods-ServalPark.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalPark.debug.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.debug.xcconfig"; sourceTree = "<group>"; };
-		C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ServalPark.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF5BE99B13D67028469768F5 /* svg */ = {isa = PBXFileReference; includeInIndex = 1; path = svg; sourceTree = "<group>"; };
 		D486801AC58F2DE31E995495 /* Pods-ServalPark.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = Text.xcconfig; name = "Pods-ServalPark.release.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -40,7 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7C68E9B416EF6619B278534E /* libPods-ServalPark.a in Frameworks */,
+				674E94011D76338473C6B3FE /* Pods_ServalPark.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +90,7 @@
 				2B50A9322A3AE771006CAE6B /* LaunchScreen.storyboard */,
 				2B50A9352A3AE771006CAE6B /* Info.plist */,
 				2B50A9362A3AE771006CAE6B /* main.m */,
+				BF5BE99B13D67028469768F5 /* svg */,
 			);
 			path = ServalPark;
 			sourceTree = "<group>";
@@ -95,7 +98,7 @@
 		8E06C3BCCC0B20871D1B1ABA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */,
+				4EDC3A1AC975086380AD0B00 /* Pods_ServalPark.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -111,6 +114,7 @@
 				2B50A91D2A3AE770006CAE6B /* Sources */,
 				2B50A91E2A3AE770006CAE6B /* Frameworks */,
 				2B50A91F2A3AE770006CAE6B /* Resources */,
+				0293CC142625961243CB4779 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -161,12 +165,30 @@
 				2B50A9342A3AE771006CAE6B /* LaunchScreen.storyboard in Resources */,
 				2B50A9312A3AE771006CAE6B /* Assets.xcassets in Resources */,
 				2B50A92F2A3AE770006CAE6B /* Main.storyboard in Resources */,
+				61DEF40198B58B15AB22DC48 /* svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		0293CC142625961243CB4779 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ServalPark/Pods-ServalPark-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ServalPark/Pods-ServalPark-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ServalPark/Pods-ServalPark-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		59EE620949040DC4C1C08F3A /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -343,7 +365,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7559CC869A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ServalPark/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -371,7 +393,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7559CC869A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ServalPark/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

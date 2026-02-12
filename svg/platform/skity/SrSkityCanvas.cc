@@ -206,6 +206,14 @@ void SrWinPath::Transform(const float (&xform)[6]) {
   path_ = path_.CopyWithMatrix(CreateAffineMatrix(xform));
 }
 
+void SrWinPath::SetFillType(SrSVGFillRule rule) {
+  if (rule == SR_SVG_EO_FILL) {
+    path_.SetFillType(::skity::Path::PathFillType::kEvenOdd);
+  } else {
+    path_.SetFillType(::skity::Path::PathFillType::kWinding);
+  }
+}
+
 // skity path factory
 
 std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateCircle(float cx,
@@ -311,6 +319,12 @@ void SrPathFactorySkity::Op(canvas::Path* path1, canvas::Path* path2,
     default:
       break;
   }
+}
+
+std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateStrokePath(
+    const canvas::Path* path, float width, SrSVGStrokeCap cap,
+    SrSVGStrokeJoin join, float miter_limit) {
+    return nullptr;
 }
 
 /// sr canvas

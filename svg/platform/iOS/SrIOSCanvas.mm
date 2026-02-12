@@ -795,13 +795,21 @@ void PathFactoryQuartz2D::Op(canvas::Path* path1, canvas::Path* path2,
   }
   switch (type) {
     case canvas::DIFFERENCE:
+      // CoreGraphics does not support path difference natively.
+      // Fallback to adding path, relying on Even-Odd fill rule for "holes".
+      path_q2d_1->AddPath(path_q2d_2);
       break;
     case canvas::INTERSECT:
+      // Intersection is hard to simulate with just AddPath.
+      // But for Masking, usually we don't use Intersect.
       break;
     case canvas::UNION:
       path_q2d_1->AddPath(path_q2d_2);
       break;
     case canvas::XOR:
+      // XOR behaves like Difference for "hole inside shape".
+      // Fallback to adding path, relying on Even-Odd fill rule.
+      path_q2d_1->AddPath(path_q2d_2);
       break;
     case canvas::REVERSE_DIFFERENCE:
       break;
@@ -869,6 +877,33 @@ std::unique_ptr<canvas::Path> PathFactoryQuartz2D::CreatePath(uint8_t* ops,
   std::unique_ptr<PathQuartz2D> ret = std::make_unique<PathQuartz2D>(path);
   CGPathRelease(path);
   return std::move(ret);
+}
+
+std::unique_ptr<canvas::Path> PathFactoryQuartz2D::CreateStrokePath(
+    const canvas::Path* path, float width, SrSVGStrokeCap cap,
+    SrSVGStrokeJoin join, float miter_limit) {
+  const PathQuartz2D* path_q2d = static_cast<const PathQuartz2D*>(path);
+  if (!path_q2d || !path_q2d->GetPath()) {
+    return nullptr;
+  }
+  
+  CGLineCap cgCap = kCGLineCapButt;
+  if (cap == SR_SVG_STROKE_CAP_ROUND) cgCap = kCGLineCapRound;
+  else if (cap == SR_SVG_STROKE_CAP_SQUARE) cgCap = kCGLineCapSquare;
+  
+  CGLineJoin cgJoin = kCGLineJoinMiter;
+  if (join == SR_SVG_STROKE_JOIN_ROUND) cgJoin = kCGLineJoinRound;
+  else if (join == SR_SVG_STROKE_JOIN_BEVEL) cgJoin = kCGLineJoinBevel;
+  
+  CGPathRef strokedPath = CGPathCreateCopyByStrokingPath(
+      path_q2d->GetPath(), NULL, width, cgCap, cgJoin, miter_limit);
+      
+  if (strokedPath) {
+     auto ret = std::make_unique<PathQuartz2D>(CGPathCreateMutableCopy(strokedPath));
+     CGPathRelease(strokedPath);
+     return std::move(ret);
+  }
+  return nullptr;
 }
 
 }  // namespace ios

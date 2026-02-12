@@ -1,5 +1,5 @@
 PODS:
-  - ServalSVG (0.0.15)
+  - ServalSVG (0.0.1)
 
 DEPENDENCIES:
   - ServalSVG (from `../../../`)
@@ -9,8 +9,8 @@ EXTERNAL SOURCES:
     :path: "../../../"
 
 SPEC CHECKSUMS:
-  ServalSVG: 8305a06a738ad5757604251392224edd10c137fd
+  ServalSVG: 6e02bcaffe5ad1331bca9fe4290ad0b078aeef44
 
-PODFILE CHECKSUM: 8cc15bf6b09f0fba3497037c96119bcba2732121
+PODFILE CHECKSUM: ade6f72054cf056a8f50919357d8bcec68e26c12
 
 COCOAPODS: 1.16.2

@@ -119,6 +119,14 @@ void PathFactoryHarmonyImpl::Op(canvas::Path *path1, canvas::Path *path2, canvas
     }
     OH_Drawing_PathOp(path_impl1->GetPath(), path_impl2->GetPath(), op_mode);
 };
+
+std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const canvas::Path* path, float width,
+                                                 SrSVGStrokeCap cap,
+                                                 SrSVGStrokeJoin join,
+                                                 float miter_limit) {
+    return nullptr;
+}
+
 } // namespace harmony
 } // namespace svg
 } // namespace serval
