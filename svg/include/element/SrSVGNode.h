@@ -67,6 +67,8 @@ class SrSVGNodeBase {
                                  SrSVGRenderContext& context) const {
     return false;
   }
+  void ParseStyle(const char* str);
+  bool ParseNameValue(const char* start, const char* end);
 
  public:
   std::optional<SrSVGColor> color_;
@@ -108,8 +110,6 @@ class SrSVGNode : public SrSVGNodeBase {
 
  private:
   void ParseStrokeDashArray(const char* value);
-  bool ParseNameValue(const char* start, const char* end);
-  void ParseStyle(const char* str);
 
  public:
   static const float s_stroke_miter_limit;

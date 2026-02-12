@@ -988,9 +988,9 @@ static uint32_t parse_color_display_p3(const char* str) {
   float rl = sr_linearize(r);
   float gl = sr_linearize(g);
   float bl = sr_linearize(b);
-  float rs = 2.493496911941425f * rl + (-0.931383617922145f) * gl + (-0.402710784450716f) * bl;
-  float gs = (-0.829488969561574f) * rl + 1.762664060318346f * gl + 0.023624685841943f * bl;
-  float bs = 0.035845830243784f * rl + (-0.076172389268041f) * gl + 0.956884524007586f * bl;
+  float rs = 1.224940172f * rl + (-0.224921230f) * gl + 0.0f * bl;
+  float gs = (-0.042056914f) * rl + 1.041981879f * gl + 0.0f * bl;
+  float bs = (-0.019637621f) * rl + (-0.078636137f) * gl + 1.097948550f * bl;
   rs = sr_compand(clamp01(rs));
   gs = sr_compand(clamp01(gs));
   bs = sr_compand(clamp01(bs));

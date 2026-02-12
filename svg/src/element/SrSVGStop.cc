@@ -18,6 +18,9 @@ bool SrSVGStop::ParseAndSetAttribute(const char* name, const char* value) {
   } else if (strcmp(name, "stop-opacity") == 0) {
     stop_.stopOpacity = make_serval_length(value);
     return true;
+  } else if (strcmp(name, "style") == 0) {
+    ParseStyle(value);
+    return true;
   }
   return false;
 }

@@ -288,7 +288,7 @@ static int IsSpace(char c) {
   return strchr(" \t\n\v\f\r", c) != 0;
 }
 
-bool SrSVGNode::ParseNameValue(const char* start, const char* end) {
+bool SrSVGNodeBase::ParseNameValue(const char* start, const char* end) {
   const char* str;
   const char* val;
   char name[512];
@@ -326,7 +326,7 @@ bool SrSVGNode::ParseNameValue(const char* start, const char* end) {
   return ParseAndSetAttribute(name, value);
 }
 
-void SrSVGNode::ParseStyle(const char* str) {
+void SrSVGNodeBase::ParseStyle(const char* str) {
   const char* start;
   const char* end;
   while (*str) {
@@ -334,8 +334,25 @@ void SrSVGNode::ParseStyle(const char* str) {
     while (*str && IsSpace(*str))
       ++str;
     start = str;
-    while (*str && *str != ';')
-      ++str;
+    int parenthesis_depth = 0;
+    int quote_status = 0; // 0: no quote, 1: single quote, 2: double quote
+    while (*str) {
+        if (*str == ';' && parenthesis_depth == 0 && quote_status == 0) {
+            break;
+        }
+        if (*str == '(') {
+            parenthesis_depth++;
+        } else if (*str == ')') {
+            if (parenthesis_depth > 0) parenthesis_depth--;
+        } else if (*str == '\'') {
+            if (quote_status == 0) quote_status = 1;
+            else if (quote_status == 1) quote_status = 0;
+        } else if (*str == '"') {
+            if (quote_status == 0) quote_status = 2;
+            else if (quote_status == 2) quote_status = 0;
+        }
+        ++str;
+    }
     end = str;
 
     // Right Trim
