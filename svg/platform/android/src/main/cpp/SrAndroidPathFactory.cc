@@ -92,7 +92,7 @@ std::unique_ptr<canvas::Path> SrAndroidPathFactory::CreateLine(float start_x,
       GetMethod(jni_env_, engine_clazz_ref.Get(), STATIC_METHOD, "makeLinePath",
                 "(FFFF)"
                 "Landroid/graphics/Path;",
-                &(SrAndroidCanvas::g_SVGRenderEngine_makeRectPath_));
+                &(SrAndroidCanvas::g_SVGRenderEngine_makeLinePath_));
   if (j_make_line_path) {
     return std::make_unique<SrAndroidPath>(
         jni_env_,
@@ -194,7 +194,7 @@ std::unique_ptr<canvas::Path> SrAndroidPathFactory::CreatePath(
       GetMethod(jni_env_, engine_clazz_ref.Get(), STATIC_METHOD, "makePath",
                 "([B[F)"
                 "Landroid/graphics/Path;",
-                &(SrAndroidCanvas::g_SVGRenderEngine_makePolyLinePath_));
+                &(SrAndroidCanvas::g_SVGRenderEngine_makePath_));
   if (j_make_path) {
     JavaLocalRef<jbyteArray> ops_ref(jni_env_, jni_env_->NewByteArray(n_ops));
     jni_env_->SetByteArrayRegion(ops_ref.Get(), 0, n_ops,
