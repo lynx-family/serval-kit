@@ -1,0 +1,8 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="40" font-family="Arial" font-size="24" fill="black">Hello SVG</text>
+  
+  <text x="20" y="80" font-family="Verdana" font-size="30" fill="blue" stroke="red" stroke-width="1">Stroked Text</text>
+  
+  <text x="20" y="120" font-weight="bold">Bold Text</text>
+  <text x="150" y="120" font-style="italic">Italic Text</text>
+</svg>

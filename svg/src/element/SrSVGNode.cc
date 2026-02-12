@@ -11,6 +11,7 @@
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGClipPath.h"
+#include "element/SrSVGMask.h"
 #include "element/SrSVGTypes.h"
 
 namespace serval {
@@ -57,6 +58,8 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     stroke_opacity_ = Atof(value);
   } else if (strcmp(name, "clip-path") == 0) {
     clip_path_ = make_serval_paint(value);
+  } else if (strcmp(name, "mask") == 0) {
+    mask_ = make_serval_paint(value);
   } else if (strcmp(name, "transform") == 0) {
     ParseTransform(value, transform_);
   } else if (strcmp(name, "color") == 0) {
@@ -71,6 +74,7 @@ SrSVGNode::~SrSVGNode() {
   release_serval_paint(fill_);
   release_serval_paint(stroke_);
   release_serval_paint(clip_path_);
+  release_serval_paint(mask_);
 }
 
 bool SrPreparePattern(canvas::SrCanvas* canvas, SrSVGNodeBase* node,
@@ -118,10 +122,38 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
       }
     }
   }
+
+  if (mask_ && mask_->type == SERVAL_PAINT_IRI && mask_->content.iri &&
+      strlen(mask_->content.iri) > 0) {
+    std::string id(mask_->content.iri + 1);
+    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+    if (nodes) {
+      auto it = nodes->find(id);
+      if (it != nodes->end()) {
+        SrSVGNodeBase* node_base = it->second;
+        if (node_base && node_base->Tag() == SrSVGTag::kMask) {
+          SrSVGMask* mask_node = static_cast<SrSVGMask*>(node_base);
+          std::unique_ptr<canvas::Path> path =
+              mask_node->AsPath(canvas->PathFactory(), &context);
+          if (path) {
+            if (mask_node->mask_content_units() ==
+                SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+              SrSVGBox svg_box =
+                  this->AsPath(canvas->PathFactory(), &context)->GetBounds();
+              float xform[6] = {svg_box.width, 0,          0, svg_box.height,
+                                svg_box.left,  svg_box.top};
+              path = path->CreateTransformCopy(xform);
+            }
+            canvas->ClipPath(path.get(), SR_SVG_EO_FILL);
+          }
+        }
+      }
+    }
+  }
+
   if (fill_ && fill_->type == SERVAL_PAINT_IRI && fill_->content.iri &&
       strlen(fill_->content.iri) > 0) {
-    const char* iri_str = fill_->content.iri;
-    std::string id(iri_str + 1);
+    std::string id{fill_->content.iri + 1};
     IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
     if (nodes) {
       // Use find() to safely look up ID, avoid inserting invalid elements
@@ -134,6 +166,7 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
       }
     }
   }
+
   if (stroke_ && stroke_->type == SERVAL_PAINT_IRI && stroke_->content.iri &&
       strlen(stroke_->content.iri) > 0) {
     const char* iri_str = stroke_->content.iri;
