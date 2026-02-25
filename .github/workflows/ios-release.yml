@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'version of pod'
+        description: "version of pod"
         required: false
         type: string
 

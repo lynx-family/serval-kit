@@ -7,7 +7,6 @@ on:
       - "svg/**"
       - ".github/workflows/build_svg.yml"
 
-
 jobs:
   build-android:
     name: Build Android

@@ -335,23 +335,28 @@ void SrSVGNodeBase::ParseStyle(const char* str) {
       ++str;
     start = str;
     int parenthesis_depth = 0;
-    int quote_status = 0; // 0: no quote, 1: single quote, 2: double quote
+    int quote_status = 0;  // 0: no quote, 1: single quote, 2: double quote
     while (*str) {
-        if (*str == ';' && parenthesis_depth == 0 && quote_status == 0) {
-            break;
-        }
-        if (*str == '(') {
-            parenthesis_depth++;
-        } else if (*str == ')') {
-            if (parenthesis_depth > 0) parenthesis_depth--;
-        } else if (*str == '\'') {
-            if (quote_status == 0) quote_status = 1;
-            else if (quote_status == 1) quote_status = 0;
-        } else if (*str == '"') {
-            if (quote_status == 0) quote_status = 2;
-            else if (quote_status == 2) quote_status = 0;
-        }
-        ++str;
+      if (*str == ';' && parenthesis_depth == 0 && quote_status == 0) {
+        break;
+      }
+      if (*str == '(') {
+        parenthesis_depth++;
+      } else if (*str == ')') {
+        if (parenthesis_depth > 0)
+          parenthesis_depth--;
+      } else if (*str == '\'') {
+        if (quote_status == 0)
+          quote_status = 1;
+        else if (quote_status == 1)
+          quote_status = 0;
+      } else if (*str == '"') {
+        if (quote_status == 0)
+          quote_status = 2;
+        else if (quote_status == 2)
+          quote_status = 0;
+      }
+      ++str;
     }
     end = str;
 
