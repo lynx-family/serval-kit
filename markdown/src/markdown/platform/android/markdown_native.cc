@@ -13,11 +13,6 @@
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/platform/android/markdown_resource_loader_android.h"
 #include "markdown/utils/markdown_screen_metrics.h"
-enum ConfigKey {
-  kConfigKeyAnimationType,
-  kConfigKeyAnimationVelocity,
-  kConfigKeyInitialAnimationStep,
-};
 using lynx::markdown::MarkdownDrawable;
 using lynx::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
@@ -116,29 +111,17 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberConfig(
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jdouble value) {
   if (instance == 0)
     return;
   auto* view = ConvertView(instance);
-  auto config_key = static_cast<ConfigKey>(key);
-  switch (config_key) {
-    case kConfigKeyAnimationType:
-      view->GetMarkdownView()->SetAnimationType(
-          static_cast<lynx::markdown::MarkdownAnimationType>(
-              static_cast<int>(value)));
-      break;
-    case kConfigKeyAnimationVelocity:
-      view->GetMarkdownView()->SetAnimationVelocity(static_cast<float>(value));
-      break;
-    case kConfigKeyInitialAnimationStep:
-      view->GetMarkdownView()->SetAnimationStep(static_cast<int>(value));
-      break;
-  }
+  view->GetMarkdownView()->SetNumberProp(
+      static_cast<lynx::markdown::MarkdownProps>(key), value);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringConfig(
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jstring value) {}
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueConfig(
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jbyteArray config) {}

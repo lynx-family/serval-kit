@@ -1,0 +1,102 @@
+{
+    "animation-type": {
+        "type": "string",
+        "default": "none",
+        "description": "The animation type of the markdown content."
+    },
+    "animation-velocity": {
+        "type": "number",
+        "default": 1.0,
+        "description": "The velocity of the animation."
+    },
+    "text-maxline": {
+        "type": "number",
+        "default": -1,
+        "description": "The maximum number of lines of the text."
+    },
+    "content-complete": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether the content is complete."
+    },
+    "typewriter-dynamic-height": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether the typewriter animation height is dynamic."
+    },
+    "initial-animation-step": {
+        "type": "number",
+        "default": 0,
+        "description": "The initial animation step of the typewriter animation."
+    },
+    "markdown-max-height": {
+        "type": "number",
+        "default": 0,
+        "description": "Override the maximum height of the markdown content."
+    },
+    "content-range-start": {
+        "type": "number",
+        "default": 0,
+        "description": "The start index of the content range."
+    },
+    "content-range-end": {
+        "type": "number",
+        "default": 2147483647,
+        "description": "The end index of the content range."
+    },
+    "exposure-tags": {
+        "type": "array",
+        "default": [],
+        "description": "The exposure tags of the markdown content."
+    },
+    "animation-frame-rate": {
+        "type": "number",
+        "default": 60.0,
+        "description": "The frame rate of the animation."
+    },
+    "typewriter-height-transition-duration": {
+        "type": "number",
+        "default": 0,
+        "description": "The duration of the typewriter height transition animation."
+    },
+    "allow-break-around-punctuation": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to allow break around punctuation."
+    },
+    "enable-text-selection": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to enable text selection."
+    },
+    "selection-highlight-color": {
+        "type": "string",
+        "default": "rgba(255, 255, 0, 0.5)",
+        "description": "The highlight color of the text selection."
+    },
+    "selection-handle-color": {
+        "type": "string",
+        "default": "rgba(255, 255, 0, 1.0)",
+        "description": "The color of the text selection handle."
+    },
+    "selection-handle-size": {
+        "type": "number",
+        "default": 10.0,
+        "description": "The size of the text selection handle."
+    },
+    "selection-handle-touch-margin": {
+        "type": "number",
+        "default": 5.0,
+        "description": "The margin of the text selection handle touch area."
+    },
+    "markdown-effect": {
+        "type": "object",
+        "default": {},
+        "description": "The markdown effect of the content."
+    },
+    "text-mark-attachments": {
+        "type": "array",
+        "default": [],
+        "description": "The text mark attachments of the content."
+    }
+}
