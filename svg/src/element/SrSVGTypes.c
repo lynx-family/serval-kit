@@ -925,29 +925,37 @@ static void skip_sep(const char** s) {
 }
 
 static float clamp01(float v) {
-  if (v < 0.0f) return 0.0f;
-  if (v > 1.0f) return 1.0f;
+  if (v < 0.0f)
+    return 0.0f;
+  if (v > 1.0f)
+    return 1.0f;
   return v;
 }
 
 static float sr_linearize(float c) {
-  if (c <= 0.04045f) return c / 12.92f;
+  if (c <= 0.04045f)
+    return c / 12.92f;
   return powf((c + 0.055f) / 1.055f, 2.4f);
 }
 
 static float sr_compand(float c) {
-  if (c <= 0.0031308f) return c * 12.92f;
+  if (c <= 0.0031308f)
+    return c * 12.92f;
   return 1.055f * powf(c, 1.0f / 2.4f) - 0.055f;
 }
 
 static uint32_t parse_color_display_p3(const char* str) {
   const char* p = str;
-  if (strncmp(p, "color(", 6) != 0) return 0;
+  if (strncmp(p, "color(", 6) != 0)
+    return 0;
   p += 6;
-  while (*p && isspace(*p)) p++;
-  if (strncmp(p, "display-p3", 10) != 0) return 0;
+  while (*p && isspace(*p))
+    p++;
+  if (strncmp(p, "display-p3", 10) != 0)
+    return 0;
   p += 10;
-  while (*p && isspace(*p)) p++;
+  while (*p && isspace(*p))
+    p++;
   float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
   char* endp = NULL;
   r = strtof(p, &endp);
@@ -956,24 +964,28 @@ static uint32_t parse_color_display_p3(const char* str) {
     r = r / 100.0f;
     p++;
   }
-  while (*p && isspace(*p)) p++;
+  while (*p && isspace(*p))
+    p++;
   g = strtof(p, &endp);
   p = endp ? endp : p;
   if (*p == '%') {
     g = g / 100.0f;
     p++;
   }
-  while (*p && isspace(*p)) p++;
+  while (*p && isspace(*p))
+    p++;
   b = strtof(p, &endp);
   p = endp ? endp : p;
   if (*p == '%') {
     b = b / 100.0f;
     p++;
   }
-  while (*p && isspace(*p)) p++;
+  while (*p && isspace(*p))
+    p++;
   if (*p == '/') {
     p++;
-    while (*p && isspace(*p)) p++;
+    while (*p && isspace(*p))
+      p++;
     a = strtof(p, &endp);
     p = endp ? endp : p;
     if (*p == '%') {
@@ -998,10 +1010,14 @@ static uint32_t parse_color_display_p3(const char* str) {
   uint32_t G = (uint32_t)lrintf(gs * 255.0f);
   uint32_t B = (uint32_t)lrintf(bs * 255.0f);
   uint32_t A = (uint32_t)lrintf(a * 255.0f);
-  if (R > 255) R = 255;
-  if (G > 255) G = 255;
-  if (B > 255) B = 255;
-  if (A > 255) A = 255;
+  if (R > 255)
+    R = 255;
+  if (G > 255)
+    G = 255;
+  if (B > 255)
+    B = 255;
+  if (A > 255)
+    A = 255;
   return NSVG_RGBA(R, G, B, A);
 }
 
@@ -1020,7 +1036,8 @@ static uint32_t parse_color(const char* str) {
     return parse_color_rgba(hex, NULL);
   } else if (len >= 6 && strncmp(hex, "color(", 6) == 0) {
     uint32_t c = parse_color_display_p3(hex);
-    if (c != 0) return c;
+    if (c != 0)
+      return c;
   } else if (len >= 1) {
     int i, colors = sizeof(sr_svg__colors) / sizeof(SRSVGNamedColor);
     for (i = 0; i < colors; i++) {

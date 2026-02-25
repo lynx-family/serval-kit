@@ -12,12 +12,27 @@ export const registerImageLoader: (node: NodeContent, fn: Function) => void;
 
 export const registerFontLoader: (node: NodeContent, fn: Function) => void;
 
-export const registerInlineViewLoader: (node: NodeContent, fn: Function) => void;
+export const registerInlineViewLoader: (
+  node: NodeContent,
+  fn: Function
+) => void;
 
-export const registerReplacementViewLoader: (node: NodeContent, fn: Function) => void;
+export const registerReplacementViewLoader: (
+  node: NodeContent,
+  fn: Function
+) => void;
 
 export const bindEvent: (node: NodeContent, name: string, fn: Function) => void;
 
-export const bindExposure: (node: NodeContent, name: string, fn: Function) => void;
+export const bindExposure: (
+  node: NodeContent,
+  name: string,
+  fn: Function
+) => void;
 
-export const applyStyleInRange: (node: NodeContent, style: object, start: number, end: number) => void;
+export const applyStyleInRange: (
+  node: NodeContent,
+  style: object,
+  start: number,
+  end: number
+) => void;
