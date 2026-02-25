@@ -91,41 +91,63 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
                                   SrSVGRenderContext& context) const {
   SrSVGPaint* local_clip_path =
       clip_path_ != nullptr ? clip_path_ : inherit_clip_path_;
-  if (local_clip_path && local_clip_path->type == SERVAL_PAINT_IRI) {
-    std::string id(local_clip_path->content.iri + 1);
+  if (local_clip_path && local_clip_path->type == SERVAL_PAINT_IRI &&
+      local_clip_path->content.iri &&
+      strlen(local_clip_path->content.iri) > 0) {
+    const char* iri_str = local_clip_path->content.iri;
+    std::string id(iri_str + 1);
     IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
     if (nodes) {
-      SrSVGClipPath* clip_path_node =
-          static_cast<SrSVGClipPath*>(nodes->at(id));
-      if (clip_path_node) {
-        std::unique_ptr<canvas::Path> path =
-            clip_path_node->AsPath(canvas->PathFactory(), &context);
-        if (clip_path_node->clip_path_units() ==
-            SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-          SrSVGBox svg_box =
-              this->AsPath(canvas->PathFactory(), &context)->GetBounds();
-          float xform[6] = {svg_box.width, 0,          0, svg_box.height,
-                            svg_box.left,  svg_box.top};
-          path = path->CreateTransformCopy(xform);
+      // Use find() to safely look up ID, avoid throwing exceptions
+      auto it = nodes->find(id);
+      if (it != nodes->end()) {
+        SrSVGClipPath* clip_path_node = static_cast<SrSVGClipPath*>(it->second);
+        if (clip_path_node) {
+          std::unique_ptr<canvas::Path> path =
+              clip_path_node->AsPath(canvas->PathFactory(), &context);
+          if (clip_path_node->clip_path_units() ==
+              SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+            SrSVGBox svg_box =
+                this->AsPath(canvas->PathFactory(), &context)->GetBounds();
+            float xform[6] = {svg_box.width, 0,          0, svg_box.height,
+                              svg_box.left,  svg_box.top};
+            path = path->CreateTransformCopy(xform);
+          }
+          canvas->ClipPath(path.get(), clip_path_node->clip_rule());
         }
-        canvas->ClipPath(path.get(), clip_path_node->clip_rule());
       }
     }
   }
-  if (fill_ && fill_->type == SERVAL_PAINT_IRI) {
-    std::string id{fill_->content.iri + 1};
+  if (fill_ && fill_->type == SERVAL_PAINT_IRI && fill_->content.iri &&
+      strlen(fill_->content.iri) > 0) {
+    const char* iri_str = fill_->content.iri;
+    std::string id(iri_str + 1);
     IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    SrSVGNodeBase* fill_content = (*nodes)[id];
-    if (fill_content) {
-      SrPreparePattern(canvas, fill_content, context);
+    if (nodes) {
+      // Use find() to safely look up ID, avoid inserting invalid elements
+      auto it = nodes->find(id);
+      if (it != nodes->end()) {
+        SrSVGNodeBase* fill_content = it->second;
+        if (fill_content) {
+          SrPreparePattern(canvas, fill_content, context);
+        }
+      }
     }
   }
-  if (stroke_ && stroke_->type == SERVAL_PAINT_IRI) {
-    std::string id{stroke_->content.iri + 1};
+  if (stroke_ && stroke_->type == SERVAL_PAINT_IRI && stroke_->content.iri &&
+      strlen(stroke_->content.iri) > 0) {
+    const char* iri_str = stroke_->content.iri;
+    std::string id(iri_str + 1);
     IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    SrSVGNodeBase* stroke_content = (*nodes)[id];
-    if (stroke_content) {
-      SrPreparePattern(canvas, stroke_content, context);
+    if (nodes) {
+      // Use find() to safely look up ID, avoid inserting invalid elements
+      auto it = nodes->find(id);
+      if (it != nodes->end()) {
+        SrSVGNodeBase* stroke_content = it->second;
+        if (stroke_content) {
+          SrPreparePattern(canvas, stroke_content, context);
+        }
+      }
     }
   }
   return false;
