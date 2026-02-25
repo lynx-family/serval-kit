@@ -136,4 +136,35 @@ MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
   auto* view = [self getMarkdownView];
   view->SetAnimationStep(initialAnimationStep);
 }
+
+- (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value {
+  auto* view = [self getMarkdownView];
+  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop), value);
+}
+- (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value {
+  auto* view = [self getMarkdownView];
+  view->SetStringProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+                      [value UTF8String]);
+}
+- (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value {
+  auto* view = [self getMarkdownView];
+  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+                      value ? 1 : 0);
+}
+- (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color {
+  auto* view = [self getMarkdownView];
+  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop), color);
+}
+- (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array {
+  auto* view = [self getMarkdownView];
+  auto result = MarkdownValueConvert::ConvertArray(array);
+  view->SetArrayProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+                     result->AsArray());
+}
+- (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict {
+  auto* view = [self getMarkdownView];
+  auto result = MarkdownValueConvert::ConvertMap(dict);
+  view->SetMapProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+                   result->AsMap());
+}
 @end

@@ -19,6 +19,7 @@
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
+#include "markdown/view/markdown_props.h"
 #include "markdown/view/markdown_selection_view.h"
 namespace lynx::markdown {
 enum class MarkdownAnimationType {
@@ -69,6 +70,11 @@ class MarkdownView final : public MarkdownDrawable,
 
   void SetPaddings(float left, float top, float right, float bottom);
   void SetPadding(float padding);
+
+  void SetNumberProp(MarkdownProps prop, double value);
+  void SetStringProp(MarkdownProps prop, std::string_view value);
+  void SetArrayProp(MarkdownProps prop, const ValueArray& array);
+  void SetMapProp(MarkdownProps prop, const ValueMap& map);
 
   std::string GetSelectedText();
   Range GetSelectedRange() const;

@@ -4,7 +4,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_
 #import <CoreFoundation/CoreFoundation.h>
-
+#import "ServalMarkdown/serval_markdown_props.h"
 typedef enum : NSUInteger {
   kServalMarkdownLayoutModeIndefinite,
   kServalMarkdownLayoutModeDefinite,
@@ -28,6 +28,13 @@ typedef enum : NSUInteger {
 @property(nonatomic, assign) ServalMarkdownAnimationType animationType;
 @property(nonatomic, assign) float animationVelocity;
 @property(nonatomic, assign) int initialAnimationStep;
+
+- (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
+- (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;
+- (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value;
+- (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color;
+- (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array;
+- (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict;
 @end
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_

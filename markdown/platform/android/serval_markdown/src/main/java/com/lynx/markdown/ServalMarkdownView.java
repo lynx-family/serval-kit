@@ -16,6 +16,7 @@ import com.lynx.markdown.tttext.IDrawerCallback;
 import com.lynx.markdown.tttext.IRunDelegate;
 import com.lynx.markdown.tttext.JavaResourceManager;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 public class ServalMarkdownView
     extends CustomDrawView implements IDrawerCallback {
@@ -60,16 +61,43 @@ public class ServalMarkdownView
   }
 
   public void setAnimationType(int animationType) {
-    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_TYPE,
-                          animationType);
+    setNumberProp(Constants.MARKDOWN_PROPS_ANIMATION_TYPE, animationType);
   }
   public void setAnimationVelocity(float velocity) {
-    nativeSetNumberConfig(mInstance, Constants.CONFIG_KEY_ANIMATION_VELOCITY,
-                          velocity);
+    setNumberProp(Constants.MARKDOWN_PROPS_ANIMATION_VELOCITY, velocity);
   }
   public void setInitialAnimationStep(int initialStep) {
-    nativeSetNumberConfig(
-        mInstance, Constants.CONFIG_KEY_ANIMATION_INITIAL_STEP, initialStep);
+    setNumberProp(Constants.MARKDOWN_PROPS_INITIAL_ANIMATION_STEP, initialStep);
+  }
+
+  public void setBooleanProp(int key, boolean value) {
+    setNumberProp(key, value ? 1 : 0);
+  }
+  public void setColorProp(int key, int value) { setNumberProp(key, value); }
+  public void setNumberProp(int key, double value) {
+    nativeSetNumberProp(mInstance, key, value);
+  }
+  public void setStringProp(int key, String value) {
+    nativeSetStringProp(mInstance, key, value);
+  }
+  public void setArrayProp(int key, ArrayList<Object> object) {
+    MarkdownBufferWriter writer = new MarkdownBufferWriter();
+    try {
+      writer.writeArray(object);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    nativeSetValueProp(mInstance, key, writer.getBuffer());
+  }
+
+  public void setObjectProp(int key, HashMap<String, Object> object) {
+    MarkdownBufferWriter writer = new MarkdownBufferWriter();
+    try {
+      writer.writeMap(object);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    nativeSetValueProp(mInstance, key, writer.getBuffer());
   }
 
   protected void updateDisplayMetrics() {
@@ -91,12 +119,9 @@ public class ServalMarkdownView
   private native void nativeSetDensity(float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnVSync(long instance, long time);
-  private native void nativeSetNumberConfig(long instance, int key,
-                                            double value);
-  private native void nativeSetStringConfig(long instance, int key,
-                                            String value);
-  private native void nativeSetValueConfig(long instance, int key,
-                                           byte[] config);
+  private native void nativeSetNumberProp(long instance, int key, double value);
+  private native void nativeSetStringProp(long instance, int key, String value);
+  private native void nativeSetValueProp(long instance, int key, byte[] value);
   @Override
   public void alignInlineView(MarkdownViewHandle view, Rect rect) {}
 }

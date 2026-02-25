@@ -880,4 +880,60 @@ std::unique_ptr<tttext::RunDelegate> MarkdownView::LoadReplacementView(
   return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
 }
 
+void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {
+  switch (prop) {
+    case MarkdownProps::kAnimationVelocity:
+      SetAnimationVelocity(static_cast<float>(value));
+      break;
+    case MarkdownProps::kTextMaxline:
+      SetTextMaxLines(static_cast<int32_t>(value));
+      break;
+    case MarkdownProps::kContentComplete:
+      SetContentComplete(static_cast<bool>(value));
+      break;
+    case MarkdownProps::kTypewriterDynamicHeight:
+      SetTypewriterDynamicHeight(static_cast<bool>(value));
+      break;
+    case MarkdownProps::kInitialAnimationStep:
+      SetInitialAnimationStep(static_cast<int32_t>(value));
+      break;
+    case MarkdownProps::kContentRangeStart:
+      break;
+    case MarkdownProps::kContentRangeEnd:
+      break;
+    case MarkdownProps::kTypewriterHeightTransitionDuration:
+      SetHeightTransitionDuration(static_cast<float>(value));
+      break;
+    case MarkdownProps::kAllowBreakAroundPunctuation:
+      break;
+    case MarkdownProps::kEnableTextSelection:
+      SetEnableSelection(static_cast<bool>(value));
+      break;
+    case MarkdownProps::kSelectionHighlightColor:
+      SetSelectionHighlightColor(static_cast<uint32_t>(value));
+      break;
+    case MarkdownProps::kSelectionHandleColor:
+      SetSelectionHandleColor(static_cast<uint32_t>(value));
+      break;
+    case MarkdownProps::kSelectionHandleSize:
+      SetSelectionHandleSize(static_cast<float>(value));
+      break;
+    case MarkdownProps::kSelectionHandleTouchMargin:
+      SetSelectionHandleTouchMargin(static_cast<float>(value));
+      break;
+    default:
+      break;
+  }
+}
+void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
+  if (prop == MarkdownProps::kAnimationType) {
+    if (value == "typewriter") {
+      SetAnimationType(MarkdownAnimationType::kTypewriter);
+    } else {
+      SetAnimationType(MarkdownAnimationType::kNone);
+    }
+  }
+}
+void MarkdownView::SetArrayProp(MarkdownProps prop, const ValueArray& array) {}
+void MarkdownView::SetMapProp(MarkdownProps prop, const ValueMap& map) {}
 }  // namespace lynx::markdown
