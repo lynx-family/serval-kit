@@ -21,12 +21,10 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_props.h"
 #include "markdown/view/markdown_selection_view.h"
+#include "markdown/view/markdown_view_animator.h"
+#include "markdown/view/markdown_view_measurer.h"
+#include "markdown_view_renderer.h"
 namespace lynx::markdown {
-enum class MarkdownAnimationType {
-  kNone,
-  kTypewriter,
-};
-enum class SourceType { kPlainText, kMarkdown };
 class MarkdownView final : public MarkdownDrawable,
                            public MarkdownResourceLoader {
  public:
@@ -57,6 +55,7 @@ class MarkdownView final : public MarkdownDrawable,
   void SetInitialAnimationStep(int32_t step);
   void SetTypewriterDynamicHeight(bool enable);
   void SetHeightTransitionDuration(float duration);
+  void SetTypewriterHeightTransitionPrefetch(bool enable);
 
   void SetEnableSelection(bool enable_selection);
   void SetSelectionHandleSize(float size);
@@ -95,12 +94,11 @@ class MarkdownView final : public MarkdownDrawable,
   float GetHeight() const override;
   void Align(float x, float y) override;
 
-  float GetMeasureWidth() const { return measured_width_; }
-  float GetMeasureHeight() const { return measured_height_; }
+  float GetMeasureWidth() const { return measurer_.GetMeasuredSize().width_; }
+  float GetMeasureHeight() const { return measurer_.GetMeasuredSize().height_; }
 
   void OnNextFrame(int64_t timestamp);
 
-  void NeedsParse();
   void NeedsMeasure();
   void NeedsAlign() const;
   void NeedsDraw() const;
@@ -122,6 +120,10 @@ class MarkdownView final : public MarkdownDrawable,
 
  protected:
   int32_t GetCharCount();
+  float CalculateHeightByAnimationStep();
+  void EnsureTypewriterCursor();
+  float CalculateHeightByAnimationStep(int32_t animation_step,
+                                       bool update_cursor_position);
   void UpdateAnimationStep();
   void UpdateTransitionHeight() const;
   void UpdateExposure();
@@ -134,10 +136,8 @@ class MarkdownView final : public MarkdownDrawable,
                          const std::set<MarkdownPlatformView*>& after) const;
 
  protected:
-  void SendParseEnd() const;
   void SendDrawStart();
   void SendDrawEnd();
-  void SendAnimationStep(int32_t animation_step, int32_t max_animation_step);
   void SendLinkClicked(const char* url, const char* content);
   void SendImageClicked(const char* url);
   void SendSelectionChanged(SelectionState state) const;
@@ -171,56 +171,21 @@ class MarkdownView final : public MarkdownDrawable,
  protected:
   MarkdownPlatformView* view_{nullptr};
   MarkdownViewContainerHandle* handle_{nullptr};
-
-  std::string content_;
-  std::string content_id_;
-  Range content_range_{0, std::numeric_limits<int32_t>::max()};
-  bool content_complete_{true};
-
-  MarkdownStyle style_map_;
-  int32_t text_max_lines_{0};
-
-  MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
-  float animation_velocity_{1};
-  bool typewriter_dynamic_height_{true};
-  int32_t initial_animation_step_{0};
-  float height_transition_duration_{0};
-  bool allow_break_around_punctuation_{false};
   bool enable_selection_{false};
   std::unique_ptr<Value> attachments_;
 
-  MarkdownDocument document_;
+  std::shared_ptr<MarkdownDocument> document_;
+  bool document_updated_{false};
+  MarkdownViewMeasurer measurer_;
+  MarkdownViewAnimator animator_;
+  MarkdownViewRenderer renderer_;
   MarkdownExposureListener* exposure_listener_{nullptr};
   MarkdownPlatformLoader* platform_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
 
-  std::string parser_type_{};
-  SourceType source_type_{SourceType::kMarkdown};
-  void* parser_ud_{nullptr};
-
-  Paddings paddings_;
-
-  MeasureSpec last_measure_spec_{};
-  float measured_width_{0};
-  float measured_height_{0};
-
-  int64_t current_frame_time_{0};
-  int32_t current_animation_step_{0};
-  int32_t max_animation_step_{0};
-  int64_t current_animation_step_time_{0};
   MarkdownPlatformView* custom_typewriter_cursor_{nullptr};
+  std::string custom_typewriter_cursor_selector_{};
   PointF custom_cursor_position_{0, 0};
-  float current_typewriter_height_{0};
-
-  float transition_start_height_{0};
-  float transition_end_height_{0};
-  int64_t transition_start_time_{0};
-  float current_transition_height_{0};
-  int64_t current_transition_time_{0};
-
-  bool needs_parse_{true};
-  bool needs_measure_{true};
-
   bool draw_start_sent_{false};
   bool draw_end_sent_{false};
 
@@ -251,6 +216,8 @@ class MarkdownView final : public MarkdownDrawable,
 
   std::unordered_set<MarkdownLink*> exposure_links_;
   std::unordered_set<MarkdownImage*> exposure_images_;
+
+  bool typewriter_height_transition_prefetch_{false};
 };
 
 }  // namespace lynx::markdown

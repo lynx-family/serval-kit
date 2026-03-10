@@ -98,5 +98,10 @@
         "type": "array",
         "default": [],
         "description": "The text mark attachments of the content."
+    },
+    "typewriter-height-transition-prefetch": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to prefetch the height at transition end for typewriter."
     }
 }

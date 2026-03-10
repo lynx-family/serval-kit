@@ -86,11 +86,11 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "\n"
       + "### Code blocks:\n"
       + "\n"
-      + "\\`\\`\\` js\n"
+      + "``` js\n"
       + "var foo = function (bar) {\n"
       + "  return bar++;\n"
       + "};\n"
-      + "\\`\\`\\`\n"
+      + "```\n"
       + "\n"
       + "    var foo = function (bar) {\n"
       + "    return bar++;\n"
@@ -221,5 +221,9 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_TYPEWRITER);
     mMarkdownView.setAnimationVelocity(100);
     mMarkdownView.setInitialAnimationStep(4);
+    mMarkdownView.setNumberProp(
+        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_DURATION, 1);
+    mMarkdownView.setBooleanProp(
+        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_PREFETCH, true);
   }
 }

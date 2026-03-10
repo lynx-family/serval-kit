@@ -17,9 +17,9 @@
 class MarkdownResourceLoaderAndroid
     : public lynx::markdown::MarkdownPlatformLoader {
  public:
-  explicit MarkdownResourceLoaderAndroid(jobject loader) {
-    loader_ = lynx::base::android::ScopedWeakGlobalJavaRef<jobject>(
-        lynx::base::android::AttachCurrentThread(), loader);
+  explicit MarkdownResourceLoaderAndroid(JNIEnv* env, jobject loader) {
+    loader_ =
+        lynx::base::android::ScopedWeakGlobalJavaRef<jobject>(env, loader);
   }
 
  public:

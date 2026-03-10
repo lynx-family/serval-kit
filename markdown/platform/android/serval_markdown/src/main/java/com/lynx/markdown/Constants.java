@@ -35,6 +35,8 @@ public class Constants {
   public static final int MARKDOWN_PROPS_SELECTION_HANDLE_TOUCH_MARGIN = 17;
   public static final int MARKDOWN_PROPS_MARKDOWN_EFFECT = 18;
   public static final int MARKDOWN_PROPS_TEXT_MARK_ATTACHMENTS = 19;
+  public static final int MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_PREFETCH =
+      20;
 
   public static final int ANIMATION_TYPE_NONE = 0;
   public static final int ANIMATION_TYPE_TYPEWRITER = 1;

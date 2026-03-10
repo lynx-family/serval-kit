@@ -26,6 +26,7 @@ typedef enum : NSUInteger {
   kServalMarkdownPropsSelectionHandleTouchMargin,
   kServalMarkdownPropsMarkdownEffect,
   kServalMarkdownPropsTextMarkAttachments,
+  kServalMarkdownPropsTypewriterHeightTransitionPrefetch,
 } ServalMarkdownProps;
 
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_SERVAL_MARKDOWN_PROPS_H_

@@ -130,8 +130,16 @@ PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
     const MarkdownPage* page) {
   page_ = page;
   auto max_char_count = max_char_count_;
-  auto page_char_count = MarkdownSelection::GetPageCharCount(page);
+  if (page_ == nullptr || max_char_count_ <= 0) {
+    max_draw_height_ = 0;
+    return {0, 0};
+  }
+  auto page_char_count = MarkdownSelection::GetPageCharCount(page_);
   max_char_count = std::min(page_char_count, max_char_count) - 1;
+  if (max_char_count < 0) {
+    max_draw_height_ = 0;
+    return {0, 0};
+  }
   auto region_infos = MarkdownSelection::GetSelectionRegionsByCharRange(
       page, max_char_count, max_char_count + 1);
   if (region_infos.empty()) {

@@ -27,6 +27,7 @@ enum class MarkdownProps {
   kSelectionHandleTouchMargin,
   kMarkdownEffect,
   kTextMarkAttachments,
+  kTypewriterHeightTransitionPrefetch,
 };
 }
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_

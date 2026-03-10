@@ -1519,6 +1519,9 @@ std::vector<std::string_view> SplitLines(std::string_view content) {
     last_index = find + 1;
     find = content.find('\n', last_index);
   }
+  if (last_index < content.size()) {
+    result.emplace_back(content.substr(last_index));
+  }
   return result;
 }
 
