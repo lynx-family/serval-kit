@@ -31,7 +31,7 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
 }
 NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   AttachDrawable(std::make_unique<MarkdownView>(this));
-  GetMarkdownView()->SetPlatformLoader(this);
+  GetMarkdownView()->SetResourceLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);
   EnableLongPressEvent(true, NORMAL);
@@ -100,7 +100,7 @@ void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
   }
   RemoveChild(static_cast<HarmonyView*>(view));
 }
-MarkdownPlatformView* NativeServalMarkdownView::InsertEtsView(
+std::shared_ptr<MarkdownPlatformView> NativeServalMarkdownView::InsertEtsView(
     ArkUI_NodeHandle handle) {
   if (handle == nullptr) {
     return nullptr;
@@ -109,21 +109,21 @@ MarkdownPlatformView* NativeServalMarkdownView::InsertEtsView(
   if (find != view_cache_.end()) {
     return find->second;
   }
-  auto view = std::make_unique<EtsViewHolder>(handle);
-  auto view_ptr = view.get();
-  AddChild(std::move(view));
-  view_cache_.emplace(handle, view_ptr);
+  auto view = std::make_shared<EtsViewHolder>(handle);
+  auto* view_ptr = view.get();
+  AddChild(view);
+  view_cache_.emplace(handle, view);
   handle_cache_.emplace(view_ptr, handle);
-  return view_ptr;
+  return view;
 }
-MarkdownPlatformView* NativeServalMarkdownView::LoadInlineView(
+std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadInlineView(
     const char* id_selector, float max_width, float max_height) {
   if (loader_ == nullptr)
     return nullptr;
   return InsertEtsView(
       loader_->LoadInlineView(id_selector, max_width, max_height));
 }
-MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
+std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadImage(
     const char* src, float desire_width, float desire_height, float max_width,
     float max_height, float border_radius) {
   if (loader_ == nullptr)
@@ -132,7 +132,7 @@ MarkdownPlatformView* NativeServalMarkdownView::LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
 
-MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
+std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadReplacementView(
     void* ud, int32_t id, float max_width, float max_height) {
   if (loader_ == nullptr) {
     return nullptr;
@@ -141,7 +141,7 @@ MarkdownPlatformView* NativeServalMarkdownView::LoadReplacementView(
       loader_->LoadReplacementView(ud, id, max_width, max_height));
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
-  GetMarkdownView()->OnNextFrame(time_stamp);
+  GetMarkdownView()->OnNextFrame(time_stamp / 1000 / 1000);
 }
 
 std::string GetStringValue(const ValueMap& config, const std::string& key,
@@ -216,11 +216,11 @@ void NativeServalMarkdownView::SetConfig(const ValueMap& config) {
     GetMarkdownView()->SetSelectionHandleTouchMargin(static_cast<float>(size));
   }
 }
-MarkdownPlatformView* NativeServalMarkdownView::CreateCustomSubView() {
-  auto custom_view = std::make_unique<HarmonyCustomView>();
-  auto view = custom_view.get();
-  AddChild(std::move(custom_view));
-  return view;
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateCustomSubView() {
+  auto custom_view = std::make_shared<HarmonyCustomView>();
+  AddChild(custom_view);
+  return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   HarmonyCustomView::OnLayout(offset_x, offset_y);

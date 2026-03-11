@@ -15,16 +15,20 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
   ~MarkdownCustomViewIOS() override = default;
   void RequestMeasure() override;
   void RequestAlign() override;
-  SizeF Measure(MeasureSpec spec) override;
   void Align(float left, float top) override;
-  void Draw(tttext::ICanvasHelper* canvas) override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   MarkdownCustomViewHandle* GetCustomViewHandle() override { return this; }
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
 };
 }  // namespace lynx::markdown
 
 @interface MarkdownCustomViewImpl (CPP)
 @property(nonatomic, assign)
     lynx::markdown::MarkdownCustomViewIOS* markdownViewHandle;
+- (std::shared_ptr<lynx::markdown::MarkdownPlatformView>)
+    markdownViewSharedHandle;
 - (void)initHandle;
 @end
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_

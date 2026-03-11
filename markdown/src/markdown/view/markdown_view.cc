@@ -27,13 +27,13 @@ MarkdownView::MarkdownView(MarkdownPlatformView* view)
       });
 }
 MarkdownView::~MarkdownView() = default;
-void MarkdownView::SetPlatformLoader(MarkdownPlatformLoader* loader) {
-  platform_loader_ = loader;
-  measurer_.SetPlatformLoader(loader);
+void MarkdownView::SetResourceLoader(MarkdownResourceLoader* loader) {
+  resource_loader_ = loader;
+  measurer_.SetResourceLoader(loader);
   NeedsMeasure();
 }
-MarkdownPlatformLoader* MarkdownView::GetPlatformLoader() const {
-  return platform_loader_;
+MarkdownResourceLoader* MarkdownView::GetResourceLoader() const {
+  return resource_loader_;
 }
 void MarkdownView::SetEventListener(MarkdownEventListener* listener) {
   event_listener_ = listener;
@@ -176,7 +176,7 @@ void MarkdownView::CreateSelectionHandles() {
       });
   selection_handles_.right_->SetVisibility(false);
 }
-SizeF MarkdownView::Measure(MeasureSpec spec) {
+MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
   measurer_.Measure(spec);
   if (measurer_.DidLayoutInLastMeasure()) {
     ClearForParse();
@@ -210,7 +210,9 @@ SizeF MarkdownView::Measure(MeasureSpec spec) {
   if (animator_.GetHeightTransitionDuration() > 0) {
     result_height = animator_.UpdateHeightTransition(transition_target_height);
   }
-  return {result_width, result_height};
+  return {.width_ = result_width,
+          .height_ = result_height,
+          .baseline_ = result_height};
 }
 void MarkdownView::Align(float x, float y) {
   measurer_.Align();
@@ -220,8 +222,9 @@ void MarkdownView::Align(float x, float y) {
                                      custom_cursor_position_.y_);
   }
 }
-void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
-                        float right, float bottom) {
+void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
+  const float left = x;
+  const float top = y;
   SendDrawStart();
   if (document_updated_) {
     renderer_.SetDocument(document_);
@@ -230,7 +233,7 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
   renderer_.SetTypewriterCursor(custom_typewriter_cursor_);
   renderer_.SetMarkdownAnimationStep(animator_.GetAnimationStep());
   renderer_.SetMarkdownAnimationType(animator_.GetAnimationType());
-  renderer_.Draw(canvas, left, top, right, bottom);
+  renderer_.Draw(canvas, left, top);
   if (animator_.GetAnimationType() == MarkdownAnimationType::kNone) {
     SendDrawEnd();
   } else if (animator_.GetAnimationType() ==
@@ -238,12 +241,6 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float left, float top,
              animator_.GetAnimationStep() >= animator_.GetMaxAnimationStep()) {
     SendDrawEnd();
   }
-}
-float MarkdownView::GetWidth() const {
-  return measurer_.GetMeasuredSize().width_;
-}
-float MarkdownView::GetHeight() const {
-  return measurer_.GetMeasuredSize().height_;
 }
 void MarkdownView::HideAllSubviews() {}
 void MarkdownView::NeedsMeasure() {
@@ -490,12 +487,14 @@ std::set<MarkdownPlatformView*> MarkdownView::GetInlineViews() {
   }
   std::set<MarkdownPlatformView*> views;
   for (auto& image : document_->GetImages()) {
-    views.emplace(
-        static_cast<MarkdownViewDelegate*>(image.image_)->GetPlatformView());
+    if (image.image_ != nullptr) {
+      views.emplace(static_cast<MarkdownPlatformView*>(image.image_));
+    }
   }
   for (auto& inline_view : document_->GetInlineViews()) {
-    views.emplace(static_cast<MarkdownViewDelegate*>(inline_view.view_)
-                      ->GetPlatformView());
+    if (inline_view.view_ != nullptr) {
+      views.emplace(static_cast<MarkdownPlatformView*>(inline_view.view_));
+    }
   }
   return views;
 }
@@ -516,12 +515,15 @@ void MarkdownView::RemoveInlineViews() {
     return;
   }
   for (auto& image : document_->GetImages()) {
-    handle_->RemoveSubView(
-        static_cast<MarkdownViewDelegate*>(image.image_)->GetPlatformView());
+    if (image.image_ != nullptr) {
+      handle_->RemoveSubView(static_cast<MarkdownPlatformView*>(image.image_));
+    }
   }
   for (auto& inline_view : document_->GetInlineViews()) {
-    handle_->RemoveSubView(static_cast<MarkdownViewDelegate*>(inline_view.view_)
-                               ->GetPlatformView());
+    if (inline_view.view_ != nullptr) {
+      handle_->RemoveSubView(
+          static_cast<MarkdownPlatformView*>(inline_view.view_));
+    }
   }
 }
 
@@ -540,8 +542,8 @@ float MarkdownView::CalculateHeightByAnimationStep() {
   if (document_ == nullptr) {
     return measurer_.GetMeasuredSize().height_;
   }
-  if (platform_loader_ == nullptr) {
-    custom_typewriter_cursor_ = nullptr;
+  if (resource_loader_ == nullptr) {
+    custom_typewriter_cursor_.reset();
     custom_cursor_position_ = {0, 0};
     return measurer_.GetMeasuredSize().height_;
   }
@@ -553,7 +555,7 @@ void MarkdownView::EnsureTypewriterCursor() {
   auto& cursor_style = document_->GetStyle().typewriter_cursor_;
   const auto& selector = cursor_style.typewriter_cursor_.custom_cursor_;
   if (selector.empty()) {
-    custom_typewriter_cursor_ = nullptr;
+    custom_typewriter_cursor_.reset();
     custom_typewriter_cursor_selector_.clear();
     return;
   }
@@ -561,7 +563,7 @@ void MarkdownView::EnsureTypewriterCursor() {
       custom_typewriter_cursor_selector_ == selector) {
     return;
   }
-  custom_typewriter_cursor_ = platform_loader_->LoadInlineView(
+  custom_typewriter_cursor_ = resource_loader_->LoadInlineView(
       selector.c_str(), document_->GetMaxWidth(), document_->GetMaxHeight());
   custom_typewriter_cursor_selector_ = selector;
 }
@@ -571,7 +573,7 @@ float MarkdownView::CalculateHeightByAnimationStep(
   if (document_ == nullptr) {
     return measurer_.GetMeasuredSize().height_;
   }
-  if (platform_loader_ == nullptr) {
+  if (resource_loader_ == nullptr) {
     return measurer_.GetMeasuredSize().height_;
   }
   auto& cursor_style = document_->GetStyle().typewriter_cursor_;
@@ -582,12 +584,9 @@ float MarkdownView::CalculateHeightByAnimationStep(
     }
     return measurer_.GetMeasuredSize().height_;
   }
-  MarkdownViewDelegate cursor(custom_typewriter_cursor_,
-                              document_->GetMaxWidth(),
-                              document_->GetMaxHeight());
   MarkdownCharTypewriterDrawer drawer(
       nullptr, animation_step, document_->GetResourceLoader(), cursor_style,
-      false, (custom_typewriter_cursor_ == nullptr) ? nullptr : &cursor);
+      false, custom_typewriter_cursor_.get());
   drawer.CalculateCursorPosition(page.get());
   float typewriter_height = 0;
   if (animation_step < animator_.GetMaxAnimationStep()) {
@@ -781,56 +780,6 @@ void MarkdownView::SetPadding(float padding) {
 void MarkdownView::SetPaddings(float left, float top, float right,
                                float bottom) {
   measurer_.SetPaddings({left, top, right, bottom});
-}
-
-void* MarkdownView::LoadFont(const char* family, MarkdownFontWeight weight) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  return platform_loader_->LoadFont(family, weight);
-}
-
-std::unique_ptr<tttext::RunDelegate> MarkdownView::LoadImage(
-    const char* src, float desire_width, float desire_height, float max_width,
-    float max_height, float border_radius) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle = platform_loader_->LoadImageView(
-      src, desire_width, desire_height, max_width, max_height, border_radius);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
-}
-
-std::unique_ptr<tttext::RunDelegate> MarkdownView::LoadGradient(
-    const char* gradient, float font_size, float root_font_size) {
-  return nullptr;
-}
-std::unique_ptr<tttext::RunDelegate> MarkdownView::LoadInlineView(
-    const char* id_selector, float max_width, float max_height) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle =
-      platform_loader_->LoadInlineView(id_selector, max_width, max_height);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
-}
-std::unique_ptr<tttext::RunDelegate> MarkdownView::LoadReplacementView(
-    void* ud, int32_t id, float max_width, float max_height) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle =
-      platform_loader_->LoadReplacementView(ud, id, max_width, max_height);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
 }
 
 void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {

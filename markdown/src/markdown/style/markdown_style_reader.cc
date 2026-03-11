@@ -1486,14 +1486,18 @@ class MarkdownStyleReaderImpl {
   }
 
   void ReadGradientValue(const ValueMap& map, const std::string& key,
-                         std::unique_ptr<tttext::RunDelegate>* result) {
+                         std::shared_ptr<MarkdownDrawable>* result) {
     auto it = map.find(key);
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         const auto& str = it->second->AsString();
         if (base::BeginsWith(str, "linear-gradient(") ||
             base::BeginsWith(str, "radial-gradient(")) {
-          *result = loader_->LoadGradient(str.c_str(), 1, 1);
+          if (loader_ != nullptr) {
+            *result = loader_->LoadGradient(str.c_str(), 1, 1);
+          } else {
+            *result = nullptr;
+          }
         } else {
           *result = nullptr;
         }

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "markdown/draw/markdown_canvas.h"
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
@@ -18,7 +19,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
 namespace markdown {
-class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
+class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
  public:
   MarkdownUnorderedListMarkDelegate(
       MarkdownMarkType type, const MarkdownUnorderedListMarkerStyle& style)
@@ -67,21 +68,28 @@ class MarkdownUnorderedListMarkDelegate : public tttext::RunDelegate {
   float height_;
   MarkdownMarkType type_;
   MarkdownUnorderedListMarkerStyle style_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = width_, .height_ = height_, .baseline_ = height_};
+  }
 };
 
-class MarkdownEmptySpaceDelegate : public tttext::RunDelegate {
+class MarkdownEmptySpaceDelegate : public MarkdownDrawable {
  public:
   explicit MarkdownEmptySpaceDelegate(float space) : width_(space) {}
-  float GetAscent() const override { return 0; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return width_; }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
 
  private:
   float width_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = width_, .height_ = 0, .baseline_ = 0};
+  }
 };
 
-class MarkdownRefDelegate : public tttext::RunDelegate {
+class MarkdownRefDelegate : public MarkdownDrawable {
  public:
   MarkdownRefDelegate(std::unique_ptr<tttext::Paragraph> paragraph,
                       MarkdownRefStyle style, float base_text_size)
@@ -89,11 +97,6 @@ class MarkdownRefDelegate : public tttext::RunDelegate {
         style_(std::move(style)),
         base_text_height_(base_text_size * 0.9f) {}
   ~MarkdownRefDelegate() override = default;
-  float GetAscent() const override { return -base_text_height_; }
-  float GetDescent() const override { return height_ - base_text_height_; }
-  float GetAdvance() const override {
-    return width_ + style_.block_.margin_left_ + style_.block_.margin_right_;
-  }
   bool Equals(RunDelegate* other) override { return this == other; }
   void Layout() override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
@@ -107,9 +110,15 @@ class MarkdownRefDelegate : public tttext::RunDelegate {
   float base_line_{};
   MarkdownRefStyle style_;
   float base_text_height_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    Layout();
+    return measure_result_;
+  }
 };
 
-class MarkdownTextDelegate : public tttext::RunDelegate {
+class MarkdownTextDelegate : public MarkdownDrawable {
  public:
   MarkdownTextDelegate(std::unique_ptr<tttext::Paragraph> text, float width,
                        float height)
@@ -122,10 +131,6 @@ class MarkdownTextDelegate : public tttext::RunDelegate {
         width_(width),
         height_(height),
         block_style_(block) {}
-
-  float GetAscent() const override { return ascent_; }
-  float GetDescent() const override { return descent_; }
-  float GetAdvance() const override { return advance_; }
 
   void Layout() override;
 
@@ -141,27 +146,25 @@ class MarkdownTextDelegate : public tttext::RunDelegate {
   float width_;
   float height_;
   MarkdownBlockStylePart block_style_{};
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    Layout();
+    return measure_result_;
+  }
 };
 
 enum class InlineBorderDirection {
   kLeft,
   kRight,
 };
-class MarkdownInlineBorderDelegate : public tttext::RunDelegate {
+class MarkdownInlineBorderDelegate : public MarkdownDrawable {
  public:
   MarkdownInlineBorderDelegate(InlineBorderDirection direction,
                                MarkdownBorderStylePart border_style,
                                MarkdownBlockStylePart block_style,
                                uint32_t background_color, uint32_t char_offset);
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  float GetAdvance() const override {
-    return border_style_.border_width_ +
-           (direction_ == InlineBorderDirection::kLeft
-                ? (block_style_.margin_left_ + block_style_.padding_left_)
-                : (block_style_.margin_right_ + block_style_.padding_right_));
-  }
-  float GetAscent() const override { return 0; }
-  float GetDescent() const override { return 0; }
   void SetEnable(bool enable) { enable_ = enable; }
   void UpdateDrawRect(std::vector<RectF>&& rect);
   const std::vector<RectF>& GetDrawRect() const { return draw_rect_; }
@@ -187,19 +190,26 @@ class MarkdownInlineBorderDelegate : public tttext::RunDelegate {
   uint32_t char_offset_{0};
   std::shared_ptr<MarkdownDrawable> background_drawable_;
   MarkdownSelection::RectType border_rect_type_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    const float width =
+        border_style_.border_width_ +
+        (direction_ == InlineBorderDirection::kLeft
+             ? (block_style_.margin_left_ + block_style_.padding_left_)
+             : (block_style_.margin_right_ + block_style_.padding_right_));
+    return {.width_ = width, .height_ = 0, .baseline_ = 0};
+  }
 };
 
-class BlockViewWrapper : public tttext::RunDelegate {
+class BlockViewWrapper : public MarkdownDrawable {
  public:
   BlockViewWrapper(const float max_width, const float indent,
-                   std::shared_ptr<RunDelegate> delegate)
+                   std::shared_ptr<MarkdownDrawable> delegate)
       : max_width_(max_width),
         indent_(indent),
         delegate_(std::move(delegate)) {}
 
-  float GetAdvance() const override { return max_width_; }
-  float GetAscent() const override { return delegate_->GetAscent(); }
-  float GetDescent() const override { return delegate_->GetDescent(); }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     canvas->Save();
     float offset = (max_width_ - delegate_->GetAdvance()) / 2;
@@ -207,49 +217,61 @@ class BlockViewWrapper : public tttext::RunDelegate {
     delegate_->Draw(canvas, offset, y);
     canvas->Restore();
   }
-  void Layout() override { delegate_->Layout(); }
 
  protected:
   float max_width_;
   float indent_;
-  std::shared_ptr<RunDelegate> delegate_;
+  std::shared_ptr<MarkdownDrawable> delegate_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    const auto child = delegate_->Measure(spec);
+    return {.width_ = max_width_,
+            .height_ = child.height_,
+            .baseline_ = child.baseline_};
+  }
 };
 
-class RoundRectImageWrapper : public tttext::RunDelegate {
+class RoundRectImageWrapper : public MarkdownDrawable {
  public:
-  RoundRectImageWrapper(std::shared_ptr<RunDelegate> delegate, float radius)
+  RoundRectImageWrapper(std::shared_ptr<MarkdownDrawable> delegate,
+                        float radius)
       : delegate_(std::move(delegate)), radius_(radius) {}
   ~RoundRectImageWrapper() override = default;
-  float GetAscent() const override { return delegate_->GetAscent(); }
-  float GetDescent() const override { return delegate_->GetDescent(); }
-  float GetAdvance() const override { return delegate_->GetAdvance(); }
-  void Layout() override { delegate_->Layout(); }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
   float radius_;
-  std::shared_ptr<RunDelegate> delegate_;
+  std::shared_ptr<MarkdownDrawable> delegate_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    const auto child = delegate_->Measure(spec);
+    return child;
+  }
 };
 
-class CircleDelegate : public tttext::RunDelegate {
+class CircleDelegate : public MarkdownDrawable {
  public:
   CircleDelegate(float radius, uint32_t color)
       : radius_(radius), color_(color) {}
   ~CircleDelegate() override = default;
-  float GetAdvance() const override { return radius_ * 2; }
-  float GetDescent() const override { return 0; }
-  float GetAscent() const override { return -radius_ * 2; }
-  void Layout() override {}
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
   float radius_{0};
   uint32_t color_{0};
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    const float size = radius_ * 2;
+    return {.width_ = size, .height_ = size, .baseline_ = size};
+  }
 };
-class ImageWithCaption final : public tttext::RunDelegate {
+class ImageWithCaption final : public MarkdownDrawable {
  public:
   ImageWithCaption(
-      std::shared_ptr<RunDelegate> image,
+      std::shared_ptr<MarkdownDrawable> image,
       std::unique_ptr<tttext::Paragraph> caption, const float max_width,
       const MarkdownCaptionPosition position = MarkdownCaptionPosition::kBottom,
       const MarkdownTextAlign align = MarkdownTextAlign::kCenter)
@@ -260,12 +282,9 @@ class ImageWithCaption final : public tttext::RunDelegate {
         align_(align) {}
   void Layout() override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  float GetAscent() const override { return -height_; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return width_; }
 
  private:
-  std::shared_ptr<RunDelegate> image_;
+  std::shared_ptr<MarkdownDrawable> image_;
   std::unique_ptr<tttext::Paragraph> caption_;
   std::unique_ptr<tttext::LayoutRegion> region_;
   float max_width_;
@@ -274,6 +293,12 @@ class ImageWithCaption final : public tttext::RunDelegate {
   float width_{};
   float height_{};
   bool layout_{false};
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    Layout();
+    return measure_result_;
+  }
 };
 }  // namespace markdown
 }  // namespace lynx

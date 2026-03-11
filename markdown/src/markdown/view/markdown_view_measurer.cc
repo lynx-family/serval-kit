@@ -12,14 +12,14 @@
 namespace lynx::markdown {
 
 MarkdownViewMeasurer::MarkdownViewMeasurer(
-    MarkdownPlatformLoader* platform_loader)
-    : platform_loader_(platform_loader) {
-  style_ = MarkdownStyleReader::ReadStyle(ValueMap{}, this);
+    MarkdownResourceLoader* resource_loader)
+    : resource_loader_(resource_loader) {
+  style_ = MarkdownStyleReader::ReadStyle(ValueMap{}, resource_loader_);
 }
 
-void MarkdownViewMeasurer::SetPlatformLoader(
-    MarkdownPlatformLoader* platform_loader) {
-  platform_loader_ = platform_loader;
+void MarkdownViewMeasurer::SetResourceLoader(
+    MarkdownResourceLoader* resource_loader) {
+  resource_loader_ = resource_loader;
   NeedsMeasure();
 }
 void MarkdownViewMeasurer::SetEventListener(
@@ -65,7 +65,7 @@ void MarkdownViewMeasurer::SetSourceType(SourceType type) {
 }
 
 void MarkdownViewMeasurer::SetStyle(const ValueMap& style_map) {
-  style_ = MarkdownStyleReader::ReadStyle(style_map, this);
+  style_ = MarkdownStyleReader::ReadStyle(style_map, resource_loader_);
   NeedsMeasure();
 }
 
@@ -80,7 +80,8 @@ void MarkdownViewMeasurer::ApplyStyleInRange(const ValueMap& style_map,
   if (document_ == nullptr) {
     return;
   }
-  const auto base_style = MarkdownStyleReader::ReadBaseStyle(style_map, this);
+  const auto base_style =
+      MarkdownStyleReader::ReadBaseStyle(style_map, resource_loader_);
   document_->ApplyStyleInRange(base_style, {char_start, char_end});
 }
 
@@ -112,7 +113,7 @@ void MarkdownViewMeasurer::InitialDocument() {
   document_->SetMaxLines(text_max_lines_);
   document_->SetStyle(style_);
   document_->AllowBreakAroundPunctuation(break_around_punctuation_);
-  document_->SetResourceLoader(this);
+  document_->SetResourceLoader(resource_loader_);
   document_->SetMarkdownEventListener(event_listener_);
 }
 
@@ -179,71 +180,19 @@ void MarkdownViewMeasurer::Align() {
     }
     auto pos = document_->GetElementOrigin(inline_view.char_index_,
                                            inline_view.is_block_view_);
-    static_cast<MarkdownViewDelegate*>(inline_view.view_)
-        ->GetPlatformView()
-        ->Align(pos.x_, pos.y_);
+    static_cast<MarkdownDrawable*>(inline_view.view_)->Align(pos.x_, pos.y_);
   }
   for (auto& image : document_->GetImages()) {
     if (image.image_ == nullptr) {
       continue;
     }
     auto pos = document_->GetElementOrigin(image.char_index_);
-    static_cast<MarkdownViewDelegate*>(image.image_)
-        ->GetPlatformView()
-        ->Align(pos.x_, pos.y_);
+    static_cast<MarkdownDrawable*>(image.image_)->Align(pos.x_, pos.y_);
   }
 }
 
 std::shared_ptr<MarkdownDocument> MarkdownViewMeasurer::GetDocument() {
   return document_;
-}
-
-std::unique_ptr<tttext::RunDelegate> MarkdownViewMeasurer::LoadImage(
-    const char* src, float desire_width, float desire_height, float max_width,
-    float max_height, float border_radius) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle = platform_loader_->LoadImageView(
-      src, desire_width, desire_height, max_width, max_height, border_radius);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
-}
-
-std::unique_ptr<tttext::RunDelegate> MarkdownViewMeasurer::LoadInlineView(
-    const char* id_selector, float max_width, float max_height) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle =
-      platform_loader_->LoadInlineView(id_selector, max_width, max_height);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
-}
-
-void* MarkdownViewMeasurer::LoadFont(const char* family,
-                                     MarkdownFontWeight weight) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  return platform_loader_->LoadFont(family, weight);
-}
-
-std::unique_ptr<tttext::RunDelegate> MarkdownViewMeasurer::LoadReplacementView(
-    void* ud, int32_t id, float max_width, float max_height) {
-  if (platform_loader_ == nullptr) {
-    return nullptr;
-  }
-  auto handle =
-      platform_loader_->LoadReplacementView(ud, id, max_width, max_height);
-  if (handle == nullptr) {
-    return nullptr;
-  }
-  return std::make_unique<MarkdownViewDelegate>(handle, max_width, max_height);
 }
 void MarkdownViewMeasurer::NeedsMeasure() {
   needs_measure_ = true;

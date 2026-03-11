@@ -5,7 +5,7 @@
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 
 @interface MarkdownCustomViewImpl () {
-  lynx::markdown::MarkdownCustomViewIOS* _markdownViewHandle;
+  std::shared_ptr<lynx::markdown::MarkdownCustomViewIOS> _markdownViewHandle;
 }
 
 @end
@@ -19,22 +19,27 @@ const float kServalMarkdownMaxSize = 1e8;
   return self;
 }
 - (void)initHandle {
-  _markdownViewHandle = new lynx::markdown::MarkdownCustomViewIOS(self);
+  _markdownViewHandle =
+      std::make_shared<lynx::markdown::MarkdownCustomViewIOS>(self);
 }
 
 - (void)setMarkdownViewHandle:
     (lynx::markdown::MarkdownCustomViewIOS*)markdownViewHandle {
-  _markdownViewHandle = markdownViewHandle;
+  _markdownViewHandle.reset(markdownViewHandle);
 }
 
 - (lynx::markdown::MarkdownCustomViewIOS*)markdownViewHandle {
-  return _markdownViewHandle;
+  return _markdownViewHandle.get();
+}
+
+- (std::shared_ptr<lynx::markdown::MarkdownPlatformView>)
+    markdownViewSharedHandle {
+  return std::static_pointer_cast<lynx::markdown::MarkdownPlatformView>(
+      _markdownViewHandle);
 }
 
 - (void)dealloc {
-  if (_markdownViewHandle != nullptr) {
-    delete _markdownViewHandle;
-  }
+  _markdownViewHandle.reset();
 }
 
 - (void)requestMeasure {
@@ -118,7 +123,7 @@ const float kServalMarkdownMaxSize = 1e8;
 - (void)drawRect:(CGRect)rect {
   CGContextRef context = UIGraphicsGetCurrentContext();
   MarkdownCanvasIOS canvas(context);
-  self.markdownViewHandle->Draw(&canvas);
+  self.markdownViewHandle->Draw(&canvas, 0, 0);
 }
 @end
 
@@ -131,16 +136,25 @@ void MarkdownCustomViewIOS::RequestMeasure() {
 void MarkdownCustomViewIOS::RequestAlign() {
   [((MarkdownCustomViewImpl*)view_) setNeedsLayout];
 }
-SizeF MarkdownCustomViewIOS::Measure(MeasureSpec spec) {
-  auto size = drawable_->Measure(spec);
-  SetMeasuredSize(size);
-  return size;
+MeasureResult MarkdownCustomViewIOS::OnMeasure(MeasureSpec spec) {
+  if (drawable_ == nullptr) {
+    return {};
+  }
+  const auto result = drawable_->Measure(spec);
+  SetMeasuredSize({.width_ = result.width_, .height_ = result.height_});
+  return result;
 }
 void MarkdownCustomViewIOS::Align(float left, float top) {
   SetAlignPosition({left, top});
-  drawable_->Align(left, top);
+  if (drawable_ != nullptr) {
+    drawable_->Align(left, top);
+  }
 }
-void MarkdownCustomViewIOS::Draw(tttext::ICanvasHelper* cavas) {
-  drawable_->Draw(cavas, 0, 0);
+void MarkdownCustomViewIOS::Draw(tttext::ICanvasHelper* canvas, float x,
+                                 float y) {
+  if (drawable_ == nullptr) {
+    return;
+  }
+  drawable_->Draw(canvas, x, y);
 }
 }  // namespace lynx::markdown

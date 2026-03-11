@@ -6,6 +6,7 @@
 #define MARKDOWN_TESTING_MARKDOWN_MOCK_RUN_DELEGATE_H_
 #include <string>
 
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -15,7 +16,7 @@ enum class MockDelegateType {
   kInlineView,
   kGradient,
 };
-class MockDelegate : public tttext::RunDelegate {
+class MockDelegate : public MarkdownDrawable {
  public:
   explicit MockDelegate(MockDelegateType type) : type_(type) {}
   ~MockDelegate() override = default;
@@ -44,15 +45,17 @@ class MockImage : public MockDelegate {
   }
   ~MockImage() override = default;
 
-  float GetAscent() const override { return -height_; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return width_; }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
   std::string src_;
   float width_;
   float height_;
   float radius_{0};
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = width_, .height_ = height_, .baseline_ = height_};
+  }
 };
 class MockInlineView : public MockDelegate {
  public:
@@ -63,24 +66,28 @@ class MockInlineView : public MockDelegate {
         height_(30) {}
   ~MockInlineView() override = default;
 
-  float GetAscent() const override { return -height_; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return width_; }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
   std::string id_;
   float width_;
   float height_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = width_, .height_ = height_, .baseline_ = height_};
+  }
 };
 class MockGradient : public MockDelegate {
  public:
   explicit MockGradient(const char* gradient)
       : MockDelegate(MockDelegateType::kGradient), gradient_(gradient) {}
-  float GetAscent() const override { return 0; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return 0; }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
   std::string gradient_;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = 0, .height_ = 0, .baseline_ = 0};
+  }
 };
 }  // namespace lynx::markdown::testing
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_RUN_DELEGATE_H_

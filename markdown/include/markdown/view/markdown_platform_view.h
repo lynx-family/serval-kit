@@ -17,7 +17,7 @@ class MarkdownPlatformView;
 class MarkdownViewContainerHandle {
  public:
   virtual ~MarkdownViewContainerHandle() = default;
-  virtual MarkdownPlatformView* CreateCustomSubView() = 0;
+  virtual std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() = 0;
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
   virtual RectF GetViewRectInScreen() = 0;
@@ -35,17 +35,16 @@ class MarkdownCustomViewHandle {
   std::unique_ptr<MarkdownDrawable> drawable_{nullptr};
 };
 
-class MarkdownPlatformView {
+class MarkdownPlatformView : public MarkdownDrawable {
  public:
-  virtual ~MarkdownPlatformView() = default;
+  ~MarkdownPlatformView() override = default;
 
   virtual void RequestMeasure() = 0;
   virtual void RequestAlign() = 0;
   virtual void RequestDraw() = 0;
 
-  virtual SizeF Measure(MeasureSpec spec) = 0;
-  virtual void Align(float left, float top) = 0;
-  virtual void Draw(tttext::ICanvasHelper* canvas) = 0;
+  void Align(float left, float top) override = 0;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override = 0;
 
   virtual PointF GetAlignedPosition() = 0;
   virtual SizeF GetMeasuredSize() = 0;
@@ -75,41 +74,9 @@ class MarkdownPlatformView {
   TapGestureListener tap_gesture_listener_{};
   LongPressGestureListener long_press_gesture_listener_{};
   PanGestureListener pan_gesture_listener_{};
-};
-
-class MarkdownViewDelegate : public MarkdownDrawable {
- public:
-  explicit MarkdownViewDelegate(MarkdownPlatformView* view, float max_width,
-                                float max_height, float font_size = 0)
-      : view_(view),
-        max_width_(max_width),
-        max_height_(max_height),
-        font_size_(font_size) {}
-
-  float GetWidth() const override;
-  float GetHeight() const override;
-  float GetBaseLine() const override;
-  SizeF Measure(MeasureSpec spec) override;
-  void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
-            float bottom) override;
-  void Align(float x, float y) override;
-  MarkdownPlatformView* GetPlatformView() const { return view_; }
 
  protected:
-  MarkdownPlatformView* view_;
-  SizeF size_;
-  float max_width_;
-  float max_height_;
-  float font_size_;
-};
-
-class MarkdownBlockViewDelegate : public MarkdownViewDelegate {
- public:
-  explicit MarkdownBlockViewDelegate(MarkdownPlatformView* view,
-                                     float max_width, float max_height)
-      : MarkdownViewDelegate(view, max_width, max_height, 0) {}
-  void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
-            float bottom) override;
+  MeasureResult OnMeasure(MeasureSpec spec) override = 0;
 };
 
 }  // namespace lynx::markdown

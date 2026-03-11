@@ -12,6 +12,6 @@ AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
   resource_loader_android_ =
       std::make_unique<MarkdownResourceLoaderAndroid>(env, nullptr);
   event_android_ = std::make_unique<MarkdownEventAndroid>(env, nullptr);
-  markdown_view->SetPlatformLoader(resource_loader_android_.get());
+  markdown_view->SetResourceLoader(resource_loader_android_.get());
   markdown_view->SetEventListener(event_android_.get());
 }

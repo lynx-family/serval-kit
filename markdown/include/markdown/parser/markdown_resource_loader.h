@@ -7,6 +7,7 @@
 
 #include <memory>
 
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx {
@@ -15,17 +16,18 @@ class MarkdownPlatformView;
 class MarkdownResourceLoader {
  public:
   virtual ~MarkdownResourceLoader() = default;
-  virtual std::unique_ptr<tttext::RunDelegate> LoadImage(
+  virtual std::shared_ptr<MarkdownDrawable> LoadImage(
       const char* src, float desire_width, float desire_height, float max_width,
       float max_height, float border_radius) = 0;
-  virtual std::unique_ptr<tttext::RunDelegate> LoadInlineView(
+  virtual std::shared_ptr<MarkdownDrawable> LoadInlineView(
       const char* id_selector, float max_width, float max_height) = 0;
   virtual void* LoadFont(const char* family, MarkdownFontWeight weight) = 0;
-  virtual std::unique_ptr<tttext::RunDelegate> LoadGradient(
-      const char* gradient, float font_size, float root_font_size) {
+  virtual std::shared_ptr<MarkdownDrawable> LoadGradient(const char* gradient,
+                                                         float font_size,
+                                                         float root_font_size) {
     return nullptr;
   }
-  virtual std::unique_ptr<tttext::RunDelegate> LoadReplacementView(
+  virtual std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) = 0;
 };
 }  // namespace markdown

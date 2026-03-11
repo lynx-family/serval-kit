@@ -17,7 +17,7 @@ void MarkdownViewRenderer::SetDocument(
   document_ = std::move(document);
 }
 void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
-                                float top, float right, float bottom) const {
+                                float top) const {
   if (document_ == nullptr) {
     return;
   }
@@ -29,12 +29,9 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
     }
   }
   if (animation_type_ == MarkdownAnimationType::kTypewriter) {
-    MarkdownViewDelegate cursor(cursor_, document_->GetMaxWidth(),
-                                document_->GetMaxHeight());
     MarkdownCharTypewriterDrawer drawer(
         canvas, animation_step_, document_->GetResourceLoader(),
-        document_->GetStyle().typewriter_cursor_, false,
-        cursor_ == nullptr ? nullptr : &cursor);
+        document_->GetStyle().typewriter_cursor_, false, cursor_.get());
     auto page = document_->GetPage();
     if (page != nullptr) {
       drawer.DrawPage(*page);

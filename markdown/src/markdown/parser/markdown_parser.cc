@@ -85,7 +85,7 @@ struct MarkdownConverterContext {
   std::vector<float> max_width_stack_;
   int32_t node_id_{0};
   int32_t list_level_{0};
-  std::shared_ptr<tttext::RunDelegate> marker_;
+  std::shared_ptr<MarkdownDrawable> marker_;
 
   int32_t hn_{0};
 
@@ -705,7 +705,7 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     auto delegate = std::make_shared<MarkdownTextDelegate>(
         std::move(para), style.ordered_list_number_.block_,
         document_->GetMaxWidth(), document_->GetMaxHeight());
-    delegate->Layout();
+    delegate->Measure(MeasureSpec{});
     context_.GetListItem()->SetMarker(delegate);
     context_.marker_ = delegate;
   } else if (type == MarkdownDomType::kUnorderedList) {
@@ -718,6 +718,7 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     }
     auto mark = std::make_shared<MarkdownUnorderedListMarkDelegate>(
         mark_type, style.unordered_list_marker_);
+    mark->Measure(MeasureSpec{});
     context_.GetListItem()->SetMarker(mark);
     context_.marker_ = mark;
   }

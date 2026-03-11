@@ -330,7 +330,7 @@ void HarmonyView::SetFloatsAttribute(ArkUI_NodeAttributeType type, float* v,
   api_->setAttribute(handle_, type, &attribute);
 }
 
-SizeF HarmonyView::Measure(MeasureSpec spec) {
+MeasureResult HarmonyView::OnMeasure(MeasureSpec spec) {
   auto* constraint = OH_ArkUI_LayoutConstraint_Create();
   OH_ArkUI_LayoutConstraint_SetPercentReferenceWidth(
       constraint, static_cast<int32_t>(std::min(1e5f, spec.width_)));
@@ -344,12 +344,17 @@ SizeF HarmonyView::Measure(MeasureSpec spec) {
   OH_ArkUI_LayoutConstraint_SetMinHeight(constraint, 0);
   Measure(constraint);
   OH_ArkUI_LayoutConstraint_Dispose(constraint);
-  return GetMeasuredSize();
+  const auto size = GetMeasuredSize();
+  return {.width_ = size.width_,
+          .height_ = size.height_,
+          .baseline_ = size.height_ / 2};
 }
 void HarmonyView::Align(float left, float top) {
   Layout(left, top);
 }
-void HarmonyView::Draw(tttext::ICanvasHelper* canvas) {}
+void HarmonyView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
+  SetVisibility(true);
+}
 SizeF HarmonyView::GetMeasuredSize() {
   auto size = GetMeasuredIntSize();
   return SizeF{static_cast<float>(size.width), static_cast<float>(size.height)};
@@ -398,6 +403,7 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   auto max_width = OH_ArkUI_LayoutConstraint_GetMaxWidth(constraint);
   auto max_height = OH_ArkUI_LayoutConstraint_GetMaxHeight(constraint);
   MeasureSpec spec{.width_ = static_cast<float>(max_width),
+                   .width_mode_ = tttext::LayoutMode::kAtMost,
                    .height_ = static_cast<float>(max_height)};
   auto size = drawable_->Measure(spec);
   if (size.width_ > 1e5f || size.height_ > 1e5f) {
@@ -422,7 +428,6 @@ void HarmonyCustomView::OnDraw(ArkUI_DrawContext* context) {
   auto size = GetMeasuredIntSize();
   canvas.ClipRect(0, 0, static_cast<float>(size.width),
                   static_cast<float>(size.height), true);
-  drawable_->Draw(&canvas, 0, 0, static_cast<float>(size.width),
-                  static_cast<float>(size.height));
+  drawable_->Draw(&canvas, 0, 0);
 }
 }  // namespace lynx::markdown

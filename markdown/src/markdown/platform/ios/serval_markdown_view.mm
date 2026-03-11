@@ -25,9 +25,9 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
  public:
   MarkdownMainViewIOS(ServalMarkdownView* view) : MarkdownCustomViewIOS(view) {}
   ~MarkdownMainViewIOS() override = default;
-  MarkdownPlatformView* CreateCustomSubView() override {
+  std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override {
     MarkdownCustomViewImpl* view = [GetServalView() createCustomView];
-    return view.markdownViewHandle;
+    return [view markdownViewSharedHandle];
   }
   void RemoveSubView(MarkdownPlatformView* subview) override {
     [GetServalView() removeSubview:subview];

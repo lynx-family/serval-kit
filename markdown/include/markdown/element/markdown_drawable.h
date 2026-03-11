@@ -22,20 +22,22 @@ class MarkdownDrawable : public tttext::RunDelegate {
   ~MarkdownDrawable() override = default;
 
   void Layout() override { Measure(MeasureSpec{}); }
-  float GetAdvance() const override { return GetWidth(); }
-  float GetAscent() const override { return -GetBaseLine(); }
-  float GetDescent() const override { return GetHeight() - GetBaseLine(); }
-  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
-    Draw(canvas, x, y, x + GetWidth(), y + GetHeight());
+  float GetAdvance() const override { return measure_result_.width_; }
+  float GetAscent() const override { return -measure_result_.baseline_; }
+  float GetDescent() const override {
+    return measure_result_.height_ - measure_result_.baseline_;
   }
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override = 0;
 
-  virtual SizeF Measure(MeasureSpec spec) = 0;
+  MeasureResult Measure(MeasureSpec spec) {
+    measure_result_ = OnMeasure(spec);
+    return measure_result_;
+  }
   virtual void Align(float x, float y) {}
-  virtual void Draw(tttext::ICanvasHelper* canvas, float left, float top,
-                    float right, float bottom) = 0;
-  virtual float GetWidth() const = 0;
-  virtual float GetHeight() const = 0;
-  virtual float GetBaseLine() const { return GetHeight(); }
+
+ protected:
+  virtual MeasureResult OnMeasure(MeasureSpec spec) = 0;
+  mutable MeasureResult measure_result_{};
 };
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_

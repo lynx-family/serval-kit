@@ -25,9 +25,8 @@ class HarmonyView : public MarkdownPlatformView {
   explicit HarmonyView(ArkUI_NodeHandle handle);
   ~HarmonyView() override;
 
-  SizeF Measure(MeasureSpec spec) override;
   void Align(float left, float top) override;
-  void Draw(tttext::ICanvasHelper* canvas) override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   SizeF GetMeasuredSize() final;
   PointF GetAlignedPosition() final;
   void SetMeasuredSize(SizeF size) final {
@@ -101,18 +100,18 @@ class HarmonyView : public MarkdownPlatformView {
   void MarkNeedsLayout() { api_->markDirty(handle_, NODE_NEED_LAYOUT); }
   void MarkNeedsRender() { api_->markDirty(handle_, NODE_NEED_RENDER); }
 
-  void AddChild(std::unique_ptr<HarmonyView> child) {
+  void AddChild(std::shared_ptr<HarmonyView> child) {
     api_->addChild(handle_, child->GetHandle());
     children_.emplace_back(std::move(child));
   }
-  std::unique_ptr<HarmonyView> RemoveChild(HarmonyView* child) {
+  std::shared_ptr<HarmonyView> RemoveChild(HarmonyView* child) {
     auto pred = [child](const auto& ptr) {
       return ptr.get() == child;
     };
     auto find = std::find_if(children_.begin(), children_.end(), pred);
     if (find == children_.end())
       return nullptr;
-    auto content = std::move(*find);
+    auto content = *find;
     children_.erase(find);
     api_->removeChild(handle_, child->GetHandle());
     return content;
@@ -123,7 +122,7 @@ class HarmonyView : public MarkdownPlatformView {
     }
     children_.clear();
   }
-  void InsertChild(std::unique_ptr<HarmonyView> child, int32_t index) {
+  void InsertChild(std::shared_ptr<HarmonyView> child, int32_t index) {
     if (index >= children_.size()) {
       AddChild(std::move(child));
     } else {
@@ -140,6 +139,7 @@ class HarmonyView : public MarkdownPlatformView {
   void SetOpacity(float opacity);
 
  protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
   static void CustomEventDispatcher(ArkUI_NodeCustomEvent* event);
   static void NodeEventDispatcher(ArkUI_NodeEvent* event);
   void RequestCustomMeasure();
@@ -158,7 +158,7 @@ class HarmonyView : public MarkdownPlatformView {
  protected:
   ArkUI_NodeHandle handle_{nullptr};
   ArkUI_NativeNodeAPI_1* api_{nullptr};
-  std::list<std::unique_ptr<HarmonyView>> children_;
+  std::list<std::shared_ptr<HarmonyView>> children_;
   ArkUI_GestureRecognizer* long_press_{nullptr};
   ArkUI_GestureRecognizer* tap_{nullptr};
   ArkUI_GestureRecognizer* pan_{nullptr};

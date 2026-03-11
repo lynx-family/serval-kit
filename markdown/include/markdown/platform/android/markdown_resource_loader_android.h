@@ -9,13 +9,13 @@
 
 #include "base/include/platform/android/jni_convert_helper.h"
 #include "base/include/platform/android/jni_utils.h"
-#include "markdown/markdown_platform_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
 #include "markdown/platform/android/tttext_run_delegate.h"
 
 class MarkdownResourceLoaderAndroid
-    : public lynx::markdown::MarkdownPlatformLoader {
+    : public lynx::markdown::MarkdownResourceLoader {
  public:
   explicit MarkdownResourceLoaderAndroid(JNIEnv* env, jobject loader) {
     loader_ =
@@ -27,16 +27,16 @@ class MarkdownResourceLoaderAndroid
                  lynx::markdown::MarkdownFontWeight weight) override {
     return nullptr;
   }
-  lynx::markdown::MarkdownPlatformView* LoadImageView(
+  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadImage(
       const char* src, float desire_width, float desire_height, float max_width,
       float max_height, float border_radius) override {
     return nullptr;
   }
-  lynx::markdown::MarkdownPlatformView* LoadInlineView(
+  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadInlineView(
       const char* id_selector, float max_width, float max_height) override {
     return nullptr;
   }
-  lynx::markdown::MarkdownPlatformView* LoadReplacementView(
+  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadReplacementView(
       void* ud, int id, float max_width, float max_height) override {
     return nullptr;
   }

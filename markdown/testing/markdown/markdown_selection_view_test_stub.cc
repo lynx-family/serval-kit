@@ -16,9 +16,8 @@ class StubPlatformView : public MarkdownPlatformView {
   void RequestAlign() override {}
   void RequestDraw() override {}
 
-  SizeF Measure(MeasureSpec spec) override { return measured_size_; }
   void Align(float left, float top) override { align_position_ = {left, top}; }
-  void Draw(tttext::ICanvasHelper* canvas) override {}
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
 
   PointF GetAlignedPosition() override { return align_position_; }
   SizeF GetMeasuredSize() override { return measured_size_; }
@@ -35,6 +34,12 @@ class StubPlatformView : public MarkdownPlatformView {
   }
 
  private:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = measured_size_.width_,
+            .height_ = measured_size_.height_,
+            .baseline_ = measured_size_.height_};
+  }
+
   StubCustomViewHandle custom_view_handle_;
   SizeF measured_size_{};
   PointF align_position_{};

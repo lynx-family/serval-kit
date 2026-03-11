@@ -10,6 +10,7 @@ export interface ServalMarkdownStyle {
   lineHeight?: number
   color?: string
   width?: number
+  maxWidth ?: number
   height?: number
   marginLeft?: number
   marginRight?: number
@@ -21,6 +22,7 @@ export interface ServalMarkdownStyle {
   paddingBottom?: number
   borderWidth?: number
   borderColor?: string
+  scrollX ?: boolean
 }
 
 export interface ServalMarkdownStyleSheet {

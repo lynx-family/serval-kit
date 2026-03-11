@@ -17,7 +17,7 @@
 namespace lynx::markdown {
 class NativeServalMarkdownView final : public HarmonyCustomView,
                                        public MarkdownViewContainerHandle,
-                                       public MarkdownPlatformLoader,
+                                       public MarkdownResourceLoader,
                                        public HarmonyVSyncCallback {
  public:
   static void InitEnv(napi_env env);
@@ -41,22 +41,26 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
 
   // MarkdownMainViewHandle
   void RemoveSubView(MarkdownPlatformView* view) override;
-  void RemoveAllSubViews() override { RemoveAllChildren(); }
+  void RemoveAllSubViews() override {
+    view_cache_.clear();
+    handle_cache_.clear();
+    RemoveAllChildren();
+  }
   RectF GetViewRectInScreen() override;
-  MarkdownPlatformView* CreateCustomSubView() override;
+  std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   // end
-  // MarkdownResourceLoader
   void* LoadFont(const char* family, MarkdownFontWeight wieght) override;
-  MarkdownPlatformView* LoadInlineView(const char* id_selector, float max_width,
-                                       float max_height) override;
-  MarkdownPlatformView* LoadImageView(const char* src, float desire_width,
-                                      float desire_height, float max_width,
-                                      float max_height,
-                                      float border_radius) override;
-  MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
-                                            float max_width,
-                                            float max_height) override;
+  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
+                                                   float max_width,
+                                                   float max_height) override;
+  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
+                                              float desire_width,
+                                              float desire_height,
+                                              float max_width, float max_height,
+                                              float border_radius) override;
+  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
+      void* ud, int32_t id, float max_width, float max_height) override;
   // end
 
   // HarmonyVSyncCallback
@@ -68,14 +72,15 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   }
 
  protected:
-  MarkdownPlatformView* InsertEtsView(ArkUI_NodeHandle handle);
+  std::shared_ptr<MarkdownPlatformView> InsertEtsView(ArkUI_NodeHandle handle);
 
   static void UpdateDisplayMetrics();
 
   ArkUI_NodeContentHandle node_content_handle_{nullptr};
   IHarmonyResourceLoader* loader_;
 
-  std::unordered_map<ArkUI_NodeHandle, MarkdownPlatformView*> view_cache_;
+  std::unordered_map<ArkUI_NodeHandle, std::shared_ptr<MarkdownPlatformView>>
+      view_cache_;
   std::unordered_map<MarkdownPlatformView*, ArkUI_NodeHandle> handle_cache_;
 };
 }  // namespace lynx::markdown

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "markdown/element/markdown_attachments.h"
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/element/markdown_region.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -34,10 +35,10 @@ class MarkdownPage {
   int GetLineCount() const { return line_count_; }
   bool FullFilled() { return full_filled_; }
   void SetCustomTypewriterCursor(
-      std::unique_ptr<tttext::RunDelegate> custom_typewriter_cursor) {
+      std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor) {
     custom_typewriter_cursor_ = std::move(custom_typewriter_cursor);
   }
-  tttext::RunDelegate* GetCustomTypewriterCursor() {
+  MarkdownDrawable* GetCustomTypewriterCursor() {
     return custom_typewriter_cursor_.get();
   }
   MarkdownPageRegion* GetRegion(uint32_t index) const {
@@ -98,7 +99,7 @@ class MarkdownPage {
   float layout_height_;
   float max_width_;
   float max_height_;
-  std::unique_ptr<tttext::RunDelegate> custom_typewriter_cursor_{nullptr};
+  std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor_{nullptr};
   // TODO(zhouchaoying): temporarily fix quote border, will be removed next
   // commit
   std::vector<std::unique_ptr<MarkdownQuoteBorder>> quote_borders_;

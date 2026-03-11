@@ -17,20 +17,23 @@ namespace testing {
 
 class MockMarkdownResourceLoader : public MarkdownResourceLoader {
  public:
-  std::unique_ptr<tttext::RunDelegate> LoadImage(
-      const char* src, float desire_width, float desire_height, float max_width,
-      float max_height, float radius) override {
+  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
+                                              float desire_width,
+                                              float desire_height,
+                                              float max_width, float max_height,
+                                              float radius) override {
     if (base::StringEqual(src, "invalid")) {
       return nullptr;
     }
-    return std::make_unique<MockImage>(src, desire_width, desire_height,
+    return std::make_shared<MockImage>(src, desire_width, desire_height,
                                        max_width, max_height, radius);
   }
-  std::unique_ptr<tttext::RunDelegate> LoadInlineView(
-      const char* id_selector, float max_width, float max_height) override {
-    return std::make_unique<MockInlineView>(id_selector, max_width, max_height);
+  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
+                                                   float max_width,
+                                                   float max_height) override {
+    return std::make_shared<MockInlineView>(id_selector, max_width, max_height);
   }
-  std::unique_ptr<tttext::RunDelegate> LoadReplacementView(
+  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) override {
     return nullptr;
   }
@@ -49,9 +52,9 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
       return reinterpret_cast<void*>(find->second);
     }
   }
-  std::unique_ptr<tttext::RunDelegate> LoadGradient(
+  std::shared_ptr<MarkdownDrawable> LoadGradient(
       const char* gradient, float font_size, float root_font_size) override {
-    return std::make_unique<MockGradient>(gradient);
+    return std::make_shared<MockGradient>(gradient);
   }
 
   std::unordered_map<std::string, size_t> font_cache_;

@@ -1110,8 +1110,9 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
             .view_ = delegate.get(),
         });
         if (is_block_view) {
-          delegate = std::make_unique<BlockViewWrapper>(
-              context_.max_width_, indent, std::move(delegate));
+          delegate = std::make_shared<BlockViewWrapper>(
+              context_.max_width_, indent,
+              std::static_pointer_cast<MarkdownDrawable>(std::move(delegate)));
         }
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
@@ -1153,8 +1154,9 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
                             &(caption->GetParagraphStyle()), nullptr);
           caption->AddTextRun(&style, node->GetCaption().data(),
                               node->GetCaption().length());
-          delegate = std::make_unique<ImageWithCaption>(
-              std::move(delegate), std::move(caption), max_width,
+          delegate = std::make_shared<ImageWithCaption>(
+              std::static_pointer_cast<MarkdownDrawable>(std::move(delegate)),
+              std::move(caption), max_width,
               style_.image_caption_.image_caption_.caption_position_,
               style_.image_caption_.base_.text_align_);
         }

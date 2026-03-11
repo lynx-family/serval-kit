@@ -15,7 +15,6 @@
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
-#include "markdown/markdown_platform_loader.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
@@ -25,13 +24,12 @@
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown_view_renderer.h"
 namespace lynx::markdown {
-class MarkdownView final : public MarkdownDrawable,
-                           public MarkdownResourceLoader {
+class MarkdownView final : public MarkdownDrawable {
  public:
   explicit MarkdownView(MarkdownPlatformView* view);
   ~MarkdownView() override;
-  void SetPlatformLoader(MarkdownPlatformLoader* loader);
-  MarkdownPlatformLoader* GetPlatformLoader() const;
+  void SetResourceLoader(MarkdownResourceLoader* loader);
+  MarkdownResourceLoader* GetResourceLoader() const;
   void SetEventListener(MarkdownEventListener* listener);
   void SetExposureListener(MarkdownExposureListener* listener);
 
@@ -87,11 +85,7 @@ class MarkdownView final : public MarkdownDrawable,
 
   std::string GetParsedContent(Range char_range);
 
-  SizeF Measure(MeasureSpec spec) override;
-  void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
-            float bottom) override;
-  float GetWidth() const override;
-  float GetHeight() const override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   void Align(float x, float y) override;
 
   float GetMeasureWidth() const { return measurer_.GetMeasuredSize().width_; }
@@ -107,18 +101,8 @@ class MarkdownView final : public MarkdownDrawable,
   void OnTap(PointF position, GestureEventType event);
   void OnPan(PointF position, PointF motion, GestureEventType event);
 
-  std::unique_ptr<tttext::RunDelegate> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) override;
-  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
-  std::unique_ptr<tttext::RunDelegate> LoadImage(
-      const char* src, float desire_width, float desire_height, float max_width,
-      float max_height, float border_radius) override;
-  std::unique_ptr<tttext::RunDelegate> LoadInlineView(
-      const char* id_selector, float max_width, float max_height) override;
-  std::unique_ptr<tttext::RunDelegate> LoadGradient(
-      const char* gradient, float font_size, float root_font_size) override;
-
  protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
   int32_t GetCharCount();
   float CalculateHeightByAnimationStep();
   void EnsureTypewriterCursor();
@@ -180,10 +164,10 @@ class MarkdownView final : public MarkdownDrawable,
   MarkdownViewAnimator animator_;
   MarkdownViewRenderer renderer_;
   MarkdownExposureListener* exposure_listener_{nullptr};
-  MarkdownPlatformLoader* platform_loader_{nullptr};
+  MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
 
-  MarkdownPlatformView* custom_typewriter_cursor_{nullptr};
+  std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor_{};
   std::string custom_typewriter_cursor_selector_{};
   PointF custom_cursor_position_{0, 0};
   bool draw_start_sent_{false};
