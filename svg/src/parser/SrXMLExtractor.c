@@ -53,10 +53,16 @@ void SrXMLParseElement(char* s, SrSVGStartElementCb start_element,
 
   // Parse tag name
   name = s;
-  while (*s && !isspace(*s)) {
+  // break if tag name end, maybe is space or '/'
+  while (*s && !isspace(*s) && *s != '/') {
     s++;
   }
-  if (*s) {
+  if (*s == '/') {
+    // self-closing tag like <rect/>
+    end = true;
+    *s++ = '\0';
+  } else if (*s) {
+    // normal start tag like <rect ...>
     *s++ = '\0';
   }
 

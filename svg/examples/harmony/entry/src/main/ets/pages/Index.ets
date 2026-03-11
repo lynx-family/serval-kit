@@ -1,4 +1,4 @@
-import { SvgData, SvgView } from 'servalsvg';
+import { SvgData, SvgView } from '@lynx/servalsvg';
 import { Size } from '@kit.ArkUI';
 
 @Entry

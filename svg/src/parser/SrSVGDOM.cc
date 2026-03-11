@@ -4,6 +4,7 @@
 
 #include "parser/SrSVGDOM.h"
 #include <cstring>
+#include <string>
 #include "element/SrSVGCircle.h"
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGDefs.h"
@@ -21,10 +22,33 @@
 #include "element/SrSVGText.h"
 #include "element/SrSVGUse.h"
 #include "parser/SrDOM.h"
+#include "utils/SrSVGLog.h"
 
 namespace serval {
 namespace svg {
 namespace parser {
+
+static bool gEnableDumpDom = false;
+
+static void DumpDomTree(const SrDOM& dom, const SrDOM::Node* node, int depth) {
+  if (!node)
+    return;
+  std::string indent(depth * 2, ' ');
+  const char* name = dom.GetName(node);
+  LOGI("%s[%d] Node: %s", indent.c_str(), depth, name);
+
+  SrDOM::AttrIter attrIter(node);
+  const char* attrName;
+  const char* attrValue;
+  while ((attrName = attrIter.Next(&attrValue))) {
+    LOGI("%s  Attr: %s = %s", indent.c_str(), attrName, attrValue);
+  }
+
+  for (auto* child = dom.GetFirstChild(node, nullptr); child;
+       child = dom.GetNextSibling(child)) {
+    DumpDomTree(dom, child, depth + 1);
+  }
+}
 
 bool set_string_attribute(element::SrSVGNodeBase* node, const char* name,
                           const char* value) {
@@ -145,6 +169,9 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
   auto xml_dom = std::make_shared<SrDOM>();
   if (!xml_dom->build(doc, len)) {
     return nullptr;
+  }
+  if (gEnableDumpDom) {
+    DumpDomTree(*xml_dom, xml_dom->GetRootNode(), 0);
   }
   element::IDMapper* id_mapper = new element::IDMapper();
   std::list<element::SrSVGNodeBase*> holder;
