@@ -35,7 +35,7 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "### Plain text:\n"
       + "\n"
       +
-      "This is a paragraph containing **bold**, *italic*, ***bold + italic***, ~~strikethrough~~, \\`inline code\\`, mixed inline styles, and emoji: \uD83D\uDE04 \n"
+      "This is a paragraph containing **bold**, *italic*, ***bold + italic***, ~~strikethrough~~, `inline code`, mixed inline styles, and emoji: \uD83D\uDE04 \n"
       + "\n"
       + "### Blockquote:\n"
       + "\n"

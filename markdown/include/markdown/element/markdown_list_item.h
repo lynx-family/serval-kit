@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_LIST_ITEM_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_LIST_ITEM_H_
 #include <memory>
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/element/markdown_element.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace lynx::markdown {
@@ -12,15 +13,13 @@ class MarkdownListItem : public MarkdownBlockElement {
  public:
   MarkdownListItem() { type_ = MarkdownElementType::kListItem; }
   ~MarkdownListItem() override = default;
-  void SetMarker(const std::shared_ptr<tttext::RunDelegate>& delegate) {
+  void SetMarker(const std::shared_ptr<MarkdownDrawable>& delegate) {
     marker_ = delegate;
   }
-  const std::shared_ptr<tttext::RunDelegate>& GetMarker() const {
-    return marker_;
-  }
+  const std::shared_ptr<MarkdownDrawable>& GetMarker() const { return marker_; }
 
  protected:
-  std::shared_ptr<tttext::RunDelegate> marker_;
+  std::shared_ptr<MarkdownDrawable> marker_;
 };
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_LIST_ITEM_H_

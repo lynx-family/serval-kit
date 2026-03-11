@@ -9,7 +9,6 @@
 #include <string_view>
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_drawable.h"
-#include "markdown/markdown_platform_loader.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
 namespace lynx::markdown {
@@ -18,13 +17,13 @@ enum class MarkdownAnimationType {
   kTypewriter,
 };
 enum class SourceType { kPlainText, kMarkdown };
-class MarkdownViewMeasurer : public MarkdownResourceLoader {
+class MarkdownViewMeasurer {
  public:
   explicit MarkdownViewMeasurer(
-      MarkdownPlatformLoader* platform_loader = nullptr);
-  ~MarkdownViewMeasurer() override = default;
+      MarkdownResourceLoader* resource_loader = nullptr);
+  ~MarkdownViewMeasurer() = default;
 
-  void SetPlatformLoader(MarkdownPlatformLoader* platform_loader);
+  void SetResourceLoader(MarkdownResourceLoader* resource_loader);
   void SetEventListener(MarkdownEventListener* event_listener);
 
   void SetContent(std::string_view content);
@@ -56,15 +55,6 @@ class MarkdownViewMeasurer : public MarkdownResourceLoader {
 
   std::shared_ptr<MarkdownDocument> GetDocument();
 
-  std::unique_ptr<tttext::RunDelegate> LoadImage(
-      const char* src, float desire_width, float desire_height, float max_width,
-      float max_height, float border_radius) override;
-  std::unique_ptr<tttext::RunDelegate> LoadInlineView(
-      const char* id_selector, float max_width, float max_height) override;
-  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
-  std::unique_ptr<tttext::RunDelegate> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) override;
-
  private:
   std::shared_ptr<MarkdownDocument> document_;
   std::string content_;
@@ -88,7 +78,7 @@ class MarkdownViewMeasurer : public MarkdownResourceLoader {
   bool did_layout_in_last_measure_{false};
 
   Paddings paddings_{};
-  MarkdownPlatformLoader* platform_loader_{nullptr};
+  MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
 };
 }  // namespace lynx::markdown

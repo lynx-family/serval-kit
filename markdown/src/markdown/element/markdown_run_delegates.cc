@@ -41,6 +41,12 @@ void MarkdownRefDelegate::Layout() {
     height_ = text_height;
     base_line_ = text_base_line;
   }
+  measure_result_ = {
+      .width_ =
+          width_ + style_.block_.margin_left_ + style_.block_.margin_right_,
+      .height_ = height_,
+      .baseline_ = base_text_height_,
+  };
   layout_ = true;
 }
 
@@ -97,6 +103,11 @@ void MarkdownTextDelegate::Layout() {
   advance_ = text_width + left + right;
   ascent_ = -(text_base_line + top);
   descent_ = (text_height - text_base_line) + bottom;
+  measure_result_ = {
+      .width_ = advance_,
+      .height_ = descent_ - ascent_,
+      .baseline_ = -ascent_,
+  };
   layout_ = true;
 }
 
@@ -152,8 +163,12 @@ void MarkdownInlineBorderDelegate::DrawOnRects(
                           border_style_.border_radius_, painter_.get());
     if (background_drawable_ != nullptr) {
       canvas->Save();
-      background_drawable_->Draw(canvas, rect.GetLeft(), rect.GetTop(),
-                                 rect.GetRight(), rect.GetBottom());
+      background_drawable_->Measure(
+          {.width_ = rect.GetWidth(),
+           .width_mode_ = tttext::LayoutMode::kDefinite,
+           .height_ = rect.GetHeight(),
+           .height_mode_ = tttext::LayoutMode::kDefinite});
+      background_drawable_->Draw(canvas, rect.GetLeft(), rect.GetTop());
       canvas->Restore();
     }
     // border
@@ -194,7 +209,7 @@ void RoundRectImageWrapper::Draw(tttext::ICanvasHelper* canvas, float x,
 }
 
 void ImageWithCaption::Layout() {
-  image_->Layout();
+  image_->Measure(MeasureSpec{});
   if (!layout_) {
     auto* layout = MarkdownPlatform::GetTextLayout();
     region_ = std::make_unique<tttext::LayoutRegion>(
@@ -217,6 +232,8 @@ void ImageWithCaption::Layout() {
   const auto content_height = region_->GetPageHeight();
   width_ = std::max(image_->GetAdvance(), content_width);
   height_ = image_->GetDescent() - image_->GetAscent() + content_height;
+  measure_result_ = {
+      .width_ = width_, .height_ = height_, .baseline_ = height_};
 }
 void ImageWithCaption::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   float image_x_offset = x;

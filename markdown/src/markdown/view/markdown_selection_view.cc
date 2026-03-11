@@ -7,11 +7,14 @@
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_platform_view.h"
 namespace lynx::markdown {
-SizeF MarkdownSelectionHandle::Measure(MeasureSpec spec) {
-  return GetSize();
+MeasureResult MarkdownSelectionHandle::OnMeasure(MeasureSpec spec) {
+  const auto size = GetSize();
+  return {.width_ = size.width_,
+          .height_ = size.height_,
+          .baseline_ = size.height_};
 }
-void MarkdownSelectionHandle::Draw(tttext::ICanvasHelper* canvas, float left,
-                                   float top, float right, float bottom) {
+void MarkdownSelectionHandle::Draw(tttext::ICanvasHelper* canvas, float x,
+                                   float y) {
   canvas->Translate(margin_, margin_);
   auto painter = canvas->CreatePainter();
   const auto r = size_ / 2;
@@ -48,12 +51,14 @@ SizeF MarkdownSelectionHandle::GetSize() const {
   return {size_ + margin_ * 2, size_ + text_height_ + margin_ * 2};
 }
 
-SizeF MarkdownSelectionHighlight::Measure(MeasureSpec spec) {
-  return {GetWidth(), GetHeight()};
+MeasureResult MarkdownSelectionHighlight::OnMeasure(MeasureSpec spec) {
+  const float w = bounding_box_.GetWidth();
+  const float h = bounding_box_.GetHeight();
+  return {.width_ = w, .height_ = h, .baseline_ = h};
 }
 
-void MarkdownSelectionHighlight::Draw(tttext::ICanvasHelper* canvas, float left,
-                                      float top, float right, float bottom) {
+void MarkdownSelectionHighlight::Draw(tttext::ICanvasHelper* canvas, float x,
+                                      float y) {
   canvas->Translate(-bounding_box_.GetLeft(), -bounding_box_.GetTop());
   const auto painter = canvas->CreatePainter();
   painter->SetFillColor(color_);
@@ -62,12 +67,6 @@ void MarkdownSelectionHighlight::Draw(tttext::ICanvasHelper* canvas, float left,
                      rect.GetBottom(), painter.get());
   }
   canvas->Translate(bounding_box_.GetLeft(), bounding_box_.GetTop());
-}
-float MarkdownSelectionHighlight::GetWidth() const {
-  return bounding_box_.GetWidth();
-}
-float MarkdownSelectionHighlight::GetHeight() const {
-  return bounding_box_.GetHeight();
 }
 
 void MarkdownSelectionHighlight::CalculateBoundingBox() {

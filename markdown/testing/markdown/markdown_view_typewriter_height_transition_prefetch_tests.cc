@@ -4,14 +4,16 @@
 
 #include "gtest/gtest.h"
 
-#include "markdown/markdown_platform_loader.h"
+#include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/view/markdown_view.h"
 
 namespace lynx::markdown {
 
 class TestViewContainerHandle : public MarkdownViewContainerHandle {
  public:
-  MarkdownPlatformView* CreateCustomSubView() override { return nullptr; }
+  std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override {
+    return {};
+  }
   void RemoveSubView(MarkdownPlatformView* subview) override {}
   void RemoveAllSubViews() override {}
   RectF GetViewRectInScreen() override { return {}; }
@@ -23,9 +25,8 @@ class TestPlatformView : public MarkdownPlatformView {
   void RequestAlign() override {}
   void RequestDraw() override {}
 
-  SizeF Measure(MeasureSpec spec) override { return measured_size_; }
   void Align(float left, float top) override { align_position_ = {left, top}; }
-  void Draw(tttext::ICanvasHelper* canvas) override {}
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
 
   PointF GetAlignedPosition() override { return align_position_; }
   SizeF GetMeasuredSize() override { return measured_size_; }
@@ -42,29 +43,36 @@ class TestPlatformView : public MarkdownPlatformView {
   }
 
  private:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = measured_size_.width_,
+            .height_ = measured_size_.height_,
+            .baseline_ = measured_size_.height_};
+  }
+
   TestViewContainerHandle container_handle_;
   SizeF measured_size_{};
   PointF align_position_{};
 };
 
-class TestPlatformLoader : public MarkdownPlatformLoader {
+class TestPlatformLoader : public MarkdownResourceLoader {
  public:
-  MarkdownPlatformView* LoadImageView(const char* src, float desire_width,
-                                      float desire_height, float max_width,
-                                      float max_height,
-                                      float border_radius) override {
+  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
+                                              float desire_width,
+                                              float desire_height,
+                                              float max_width, float max_height,
+                                              float border_radius) override {
     return nullptr;
   }
-  MarkdownPlatformView* LoadInlineView(const char* id_selector, float max_width,
-                                       float max_height) override {
+  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
+                                                   float max_width,
+                                                   float max_height) override {
     return nullptr;
   }
   void* LoadFont(const char* family, MarkdownFontWeight weight) override {
     return nullptr;
   }
-  MarkdownPlatformView* LoadReplacementView(void* ud, int32_t id,
-                                            float max_width,
-                                            float max_height) override {
+  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
+      void* ud, int32_t id, float max_width, float max_height) override {
     return nullptr;
   }
 };
@@ -74,7 +82,7 @@ TEST(MarkdownViewTest,
   TestPlatformView platform_view;
   MarkdownView view(&platform_view);
   TestPlatformLoader loader;
-  view.SetPlatformLoader(&loader);
+  view.SetResourceLoader(&loader);
   view.SetSourceType(SourceType::kPlainText);
   view.SetContent("1234567890\n1234567890\n1234567890\n");
   view.SetAnimationType(MarkdownAnimationType::kTypewriter);

@@ -14,7 +14,7 @@ MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
   auto highlight = std::make_unique<MarkdownSelectionHighlight>();
   highlight->SetColor(color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
-  return view;
+  return view.get();
 }
 MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
     MarkdownViewContainerHandle* parent, SelectionHandleType type, float size,
@@ -23,9 +23,9 @@ MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
   auto selection_handle =
       std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
-  auto harmony_view = static_cast<HarmonyView*>(view);
+  auto harmony_view = static_cast<HarmonyView*>(view.get());
   harmony_view->EnablePanEvent(true, GESTURE_DIRECTION_ALL, PRIORITY);
   harmony_view->SetClipByParent(false);
-  return view;
+  return view.get();
 }
 }  // namespace lynx::markdown

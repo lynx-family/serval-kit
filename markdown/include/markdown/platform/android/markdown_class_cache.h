@@ -39,9 +39,10 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
   void RequestMeasure() override;
   void RequestAlign() override;
   void RequestDraw() override;
-  lynx::markdown::SizeF Measure(lynx::markdown::MeasureSpec spec) override;
   void Align(float left, float top) final;
-  void Draw(tttext::ICanvasHelper* canvas) override {}
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
+    SetVisibility(true);
+  }
   lynx::markdown::PointF GetAlignedPosition() final;
   lynx::markdown::SizeF GetMeasuredSize() override;
   void SetMeasuredSize(lynx::markdown::SizeF size) final;
@@ -50,6 +51,8 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
   jobject GetObject() const { return ref_.Get(); }
 
  protected:
+  lynx::markdown::MeasureResult OnMeasure(
+      lynx::markdown::MeasureSpec spec) override;
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> ref_;
 
  protected:
@@ -77,10 +80,11 @@ class AndroidCustomView : public AndroidMarkdownView,
   lynx::markdown::MarkdownCustomViewHandle* GetCustomViewHandle() final {
     return this;
   }
-  lynx::markdown::SizeF Measure(lynx::markdown::MeasureSpec spec) override;
   lynx::markdown::SizeF GetMeasuredSize() override;
 
  protected:
+  lynx::markdown::MeasureResult OnMeasure(
+      lynx::markdown::MeasureSpec spec) override;
   static struct Methods {
     jmethodID attach_drawable_{};
   } methods_;
@@ -91,7 +95,8 @@ class AndroidMainView : public AndroidCustomView,
  public:
   static void Initialize(JNIEnv* env);
   AndroidMainView(JNIEnv* env, jobject ref);
-  MarkdownPlatformView* CreateCustomSubView() final;
+  std::shared_ptr<lynx::markdown::MarkdownPlatformView> CreateCustomSubView()
+      final;
   void RemoveSubView(lynx::markdown::MarkdownPlatformView* subview) final;
   void RemoveAllSubViews() final;
   lynx::markdown::RectF GetViewRectInScreen() final;
@@ -100,7 +105,7 @@ class AndroidMainView : public AndroidCustomView,
   }
 
  protected:
-  std::list<std::unique_ptr<AndroidMarkdownView>> subviews_;
+  std::list<std::shared_ptr<AndroidMarkdownView>> subviews_;
 
  protected:
   static struct Methods {

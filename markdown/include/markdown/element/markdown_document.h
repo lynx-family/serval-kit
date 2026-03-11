@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/element/markdown_page.h"
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/markdown_event_listener.h"
@@ -44,13 +45,13 @@ struct MarkdownLink {
 struct MarkdownImage {
   std::string url_;
   int32_t char_index_;
-  tttext::RunDelegate* image_;
+  MarkdownDrawable* image_;
 };
 struct MarkdownInlineView {
   std::string id_;
   int32_t char_index_;
   bool is_block_view_;
-  tttext::RunDelegate* view_;
+  MarkdownDrawable* view_;
 };
 class MarkdownDocument {
  public:
@@ -115,7 +116,7 @@ class MarkdownDocument {
     return allow_break_around_punctuation;
   }
   std::u16string_view GetTruncationText() const { return truncation_text_; }
-  std::shared_ptr<tttext::RunDelegate> GetTruncationDelegate() const {
+  std::shared_ptr<MarkdownDrawable> GetTruncationDelegate() const {
     return truncation_delegate_;
   }
   MarkdownTouchState OnTouchEvent(MarkdownTouchEventType type, PointF point);
@@ -187,7 +188,7 @@ class MarkdownDocument {
   MarkdownEventListener* event_{nullptr};
 
   std::u16string truncation_text_;
-  std::shared_ptr<tttext::RunDelegate> truncation_delegate_;
+  std::shared_ptr<MarkdownDrawable> truncation_delegate_;
 
   bool allow_break_around_punctuation = false;
 

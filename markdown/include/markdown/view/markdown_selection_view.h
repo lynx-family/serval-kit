@@ -26,11 +26,7 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
         handle_type_(type),
         text_height_(0) {}
   ~MarkdownSelectionHandle() override = default;
-  SizeF Measure(MeasureSpec spec) override;
-  void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
-            float bottom) override;
-  float GetWidth() const override { return size_; }
-  float GetHeight() const override { return size_ + text_height_; }
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   void SetSize(float size) { size_ = size; }
   void SetColor(uint32_t color) { color_ = color; }
   void SetTextHeight(float height) { text_height_ = height; }
@@ -38,6 +34,7 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
   void UpdateViewRect(PointF pivot, MarkdownPlatformView* view) const;
 
  protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
   SizeF GetSize() const;
   float size_;
   float margin_;
@@ -55,11 +52,7 @@ class MarkdownSelectionHighlight final : public MarkdownDrawable {
   MarkdownSelectionHighlight() = default;
   ~MarkdownSelectionHighlight() override = default;
 
-  SizeF Measure(MeasureSpec spec) override;
-  void Draw(tttext::ICanvasHelper* canvas, float left, float top, float right,
-            float bottom) override;
-  float GetWidth() const override;
-  float GetHeight() const override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
   void SetRects(const std::vector<RectF>& rects) {
     selection_rects_ = rects;
@@ -70,6 +63,7 @@ class MarkdownSelectionHighlight final : public MarkdownDrawable {
   void UpdateViewRect(MarkdownPlatformView* view) const;
 
  private:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
   void CalculateBoundingBox();
   std::vector<RectF> selection_rects_;
   RectF bounding_box_;

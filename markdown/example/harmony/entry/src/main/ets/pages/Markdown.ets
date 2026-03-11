@@ -13,6 +13,8 @@ interface MarkdownStyleExtended extends ServalMarkdownStyleSheet {
   ".small"?: ServalMarkdownStyle,
   ".underline"?: ServalMarkdownStyle,
   unorderedListMarker ?: ServalMarkdownStyle,
+  table ?: ServalMarkdownStyle,
+  tableCell?: ServalMarkdownStyle,
 }
 
 @Component
@@ -42,10 +44,16 @@ export struct Markdown {
     },
     unorderedListMarker: {
       color: "000000"
+    },
+    table:{
+      scrollX: true
+    },
+    tableCell:{
+      maxWidth: 150
     }
   }
   private servalMarkdownConfig: ServalMarkdownConfig = {
-    animationType: "none",
+    animationType: "typewriter",
     animationVelocity: 20,
     enableSelection: true,
     sourceType: "markdown",
