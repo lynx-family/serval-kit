@@ -43,6 +43,8 @@ class SrAndroidPath : public canvas::Path {
 
   void AddPath(canvas::Path* path) override {}
 
+  void SetFillType(SrSVGFillRule rule) override;
+
   jobject GetJPath() const { return j_path_ref_.Get(); }
 
  private:

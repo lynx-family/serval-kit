@@ -24,6 +24,8 @@ class SrSVGContainer : public SrSVGNode {
       canvas::PathFactory* path_factory,
       SrSVGRenderContext* context) const override;
 
+  const std::vector<SrSVGNodeBase*>& children() const { return children_; }
+
  protected:
   explicit SrSVGContainer(SrSVGTag t) : SrSVGNode(t){};
   ~SrSVGContainer() override;

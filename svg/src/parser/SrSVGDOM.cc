@@ -13,6 +13,7 @@
 #include "element/SrSVGImage.h"
 #include "element/SrSVGLine.h"
 #include "element/SrSVGLinearGradient.h"
+#include "element/SrSVGMask.h"
 #include "element/SrSVGPath.h"
 #include "element/SrSVGPolyLine.h"
 #include "element/SrSVGPolygon.h"
@@ -133,6 +134,8 @@ element::SrSVGNodeBase* construct_svg_node(
     node = element::SrSVGImage::Make();
   } else if (strcmp(el, "clipPath") == 0) {
     node = element::SrSVGClipPath::Make();
+  } else if (strcmp(el, "mask") == 0) {
+    node = element::SrSVGMask::Make();
   } else if (strcmp(el, "g") == 0) {
     node = element::SrSVGG::Make();
   } else if (strcmp(el, "text") == 0) {
