@@ -11,7 +11,6 @@
 #include "markdown/platform/android/android_serval_markdown_view.h"
 #include "markdown/platform/android/markdown_buffer_reader.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
-#include "markdown/platform/android/markdown_resource_loader_android.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 using lynx::markdown::MarkdownDrawable;
 using lynx::markdown::MeasureSpec;
@@ -48,10 +47,9 @@ AndroidServalMarkdownView* ConvertView(jlong instance) {
 }
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeCreateInstance(JNIEnv* env,
-                                                               jobject thiz,
-                                                               jobject handle) {
-  auto view = new AndroidServalMarkdownView(env, handle);
-  return reinterpret_cast<jlong>(view);
+                                                               jobject thiz) {
+  auto view_instance = new AndroidServalMarkdownView(env, thiz);
+  return reinterpret_cast<jlong>(view_instance);
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeDestroyInstance(
@@ -108,6 +106,16 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
     return;
   auto view = ConvertView(instance);
   view->GetMarkdownView()->OnNextFrame(time);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetExposureListenerEnabled(
+    JNIEnv* env, jobject thiz, jlong instance, jboolean enabled) {
+  if (instance == 0) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  view->SetExposureListenerEnabled(enabled == JNI_TRUE);
 }
 
 extern "C" JNIEXPORT void JNICALL

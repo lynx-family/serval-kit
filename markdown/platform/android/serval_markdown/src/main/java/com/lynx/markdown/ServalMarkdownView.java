@@ -4,47 +4,54 @@
 package com.lynx.markdown;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Rect;
-import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.view.Choreographer;
 import android.view.View;
-import com.lynx.markdown.tttext.IDrawerCallback;
-import com.lynx.markdown.tttext.IRunDelegate;
-import com.lynx.markdown.tttext.JavaResourceManager;
+import androidx.annotation.Keep;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-public class ServalMarkdownView
-    extends CustomDrawView implements IDrawerCallback {
+
+@Keep
+public class ServalMarkdownView extends CustomDrawView {
   protected long mInstance = 0;
+  protected IResourceLoader mLoader = null;
+  protected IMarkdownEventListener mEventListener = null;
+  protected IMarkdownExposureListener mExposureListener = null;
   public ServalMarkdownView(Context context) {
     super(context);
-    mInstance = nativeCreateInstance(new MarkdownViewHandle(this));
-    mResourceManager = new JavaResourceManager();
-    mDrawerCallback = this;
+    Markdown.ensureInitialized();
+    mInstance = nativeCreateInstance();
+    mResourceManager = new MarkdownResourceManager();
     updateDisplayMetrics();
     initialVSync();
   }
-  @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
+  public void destroy() {
     if (mInstance != 0) {
       nativeDestroyInstance(mInstance);
+      mInstance = 0;
     }
   }
-  public CustomDrawView createCustomView() {
+  public void setResourceLoader(IResourceLoader loader) { mLoader = loader; }
+  public void setEventListener(IMarkdownEventListener listener) {
+    mEventListener = listener;
+  }
+  public void setExposureListener(IMarkdownExposureListener listener) {
+    mExposureListener = listener;
+    if (mInstance != 0) {
+      nativeSetExposureListenerEnabled(mInstance, listener != null);
+    }
+  }
+  protected CustomDrawView createCustomView() {
     CustomDrawView view = new CustomDrawView(getContext());
     view.mResourceManager = mResourceManager;
-    view.mDrawerCallback = mDrawerCallback;
     return view;
   }
-  public void removeSubView(View view) { removeView(view); }
-  public void removeAllSubviews() { removeAllViews(); }
-  public float[] getRectInScreen() { return null; }
+  protected void removeSubView(View view) { removeView(view); }
+  protected void removeAllSubviews() { removeAllViews(); }
+  protected float[] getRectInScreen() { return null; }
 
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
@@ -113,7 +120,79 @@ public class ServalMarkdownView
     nativeOnVSync(mInstance, time / 1000000);
     Choreographer.getInstance().postFrameCallback(this::onVSync);
   }
-  private native long nativeCreateInstance(MarkdownViewHandle handle);
+  protected int loadImage(String source) {
+    if (mLoader == null)
+      return 0;
+    Drawable drawable = mLoader.loadImage(source);
+    if (drawable == null)
+      return 0;
+    return mResourceManager.add(drawable);
+  }
+  protected IMarkdownViewHandle loadInlineView(String id) {
+    if (mLoader == null)
+      return null;
+    return mLoader.loadInlineView(id);
+  }
+  protected long loadFont(String family, int weight, int style) {
+    if (mLoader == null)
+      return 0;
+    Typeface typeface = mLoader.loadFont(family, weight, style);
+    if (typeface == null)
+      return 0;
+    return mResourceManager.add(typeface, family, weight, style).mIndex;
+  }
+
+  protected void onParseEnd() {
+    if (mEventListener != null)
+      mEventListener.onParseEnd();
+  }
+  protected void onTextOverflow(int overflow) {
+    if (mEventListener != null)
+      mEventListener.onTextOverflow(overflow);
+  }
+  protected void onDrawStart() {
+    if (mEventListener != null)
+      mEventListener.onDrawStart();
+  }
+  protected void onDrawEnd() {
+    if (mEventListener != null)
+      mEventListener.onDrawEnd();
+  }
+  protected void onAnimationStep(int animationStep, int maxAnimationStep) {
+    if (mEventListener != null)
+      mEventListener.onAnimationStep(animationStep, maxAnimationStep);
+  }
+  protected void onLinkClicked(String url, String content) {
+    if (mEventListener != null)
+      mEventListener.onLinkClicked(url, content);
+  }
+  protected void onImageClicked(String url) {
+    if (mEventListener != null)
+      mEventListener.onImageClicked(url);
+  }
+  protected void onSelectionChanged(int startIndex, int endIndex, int handle,
+                                    int state) {
+    if (mEventListener != null)
+      mEventListener.onSelectionChanged(startIndex, endIndex, handle, state);
+  }
+
+  protected void onLinkAppear(String url, String content) {
+    if (mExposureListener != null)
+      mExposureListener.onLinkAppear(url, content);
+  }
+  protected void onLinkDisappear(String url, String content) {
+    if (mExposureListener != null)
+      mExposureListener.onLinkDisappear(url, content);
+  }
+  protected void onImageAppear(String url) {
+    if (mExposureListener != null)
+      mExposureListener.onImageAppear(url);
+  }
+  protected void onImageDisappear(String url) {
+    if (mExposureListener != null)
+      mExposureListener.onImageDisappear(url);
+  }
+  private native long nativeCreateInstance();
   private native void nativeDestroyInstance(long instance);
   private native void nativeSetContent(long instance, String content);
   private native void nativeSetDensity(float density);
@@ -122,6 +201,6 @@ public class ServalMarkdownView
   private native void nativeSetNumberProp(long instance, int key, double value);
   private native void nativeSetStringProp(long instance, int key, String value);
   private native void nativeSetValueProp(long instance, int key, byte[] value);
-  @Override
-  public void alignInlineView(MarkdownViewHandle view, Rect rect) {}
+  private native void nativeSetExposureListenerEnabled(long instance,
+                                                       boolean enabled);
 }

@@ -1,9 +1,10 @@
 // Copyright 2024 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-package com.lynx.markdown.tttext;
+package com.lynx.markdown;
 
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import com.lynx.textra.JavaFontManager;
 import com.lynx.textra.JavaTypeface;
 import com.lynx.textra.TTText;
@@ -11,19 +12,19 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
 
-public class JavaResourceManager {
-  private final ArrayList<IRunDelegate> mRunDelegateList;
+public class MarkdownResourceManager {
+  private final ArrayList<Drawable> mRunDelegateList;
   private final Map<Object, Integer> mIDMap;
   private final JavaFontManager mFontManager;
 
-  public JavaResourceManager() {
+  public MarkdownResourceManager() {
     mRunDelegateList = new ArrayList<>();
     mRunDelegateList.add(null);
     mIDMap = new Hashtable<>();
     mFontManager = TTText.mFontManager;
   }
 
-  public int add(IRunDelegate run_delegate) {
+  public int add(Drawable run_delegate) {
     if (run_delegate == null)
       return 0;
     int id = find(run_delegate);
@@ -35,14 +36,16 @@ public class JavaResourceManager {
     return id;
   }
 
-  public JavaTypeface add(Typeface font, String families) {
+  public JavaTypeface add(Typeface font, String families, int weight,
+                          int style) {
     if (font == null) {
       families = "";
     }
-    return mFontManager.CreateOrRegisterTypeface(font, families, 400, false);
+    return mFontManager.CreateOrRegisterTypeface(font, families, weight,
+                                                 style == Typeface.ITALIC);
   }
 
-  public IRunDelegate getRunDelegate(int id) {
+  public Drawable getRunDelegate(int id) {
     if (id < 0 || id >= mRunDelegateList.size()) {
       return null;
     }

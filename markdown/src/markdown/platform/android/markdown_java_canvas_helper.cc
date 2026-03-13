@@ -44,7 +44,7 @@ void MarkdownJavaCanvasHelper::DrawDelegateOnPath(
   stream_->WriteInt8(kCanvasOPExtend);
   stream_->WriteInt8(
       static_cast<int8_t>(MarkdownCanvasOpExtend::kDrawDelegateOnPath));
-  auto* java_delegate = static_cast<const TTTextRunDelegate*>(run_delegate);
+  auto* java_delegate = static_cast<const MarkdownRunDelegate*>(run_delegate);
   stream_->WriteInt32(java_delegate->GetID());
   WritePath(path);
   WritePaint(painter);

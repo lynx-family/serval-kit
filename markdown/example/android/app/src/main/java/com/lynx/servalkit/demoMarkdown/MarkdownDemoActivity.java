@@ -17,7 +17,6 @@ import com.lynx.markdown.Constants;
 import com.lynx.markdown.IResourceLoader;
 import com.lynx.markdown.Markdown;
 import com.lynx.markdown.ServalMarkdownView;
-import com.lynx.markdown.tttext.IRunDelegate;
 import com.lynx.servalkit.R;
 import java.util.HashMap;
 import java.util.Map;

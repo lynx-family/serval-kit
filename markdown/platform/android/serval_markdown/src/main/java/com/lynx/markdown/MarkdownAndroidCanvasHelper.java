@@ -1,14 +1,14 @@
 // Copyright 2024 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-package com.lynx.markdown.tttext;
+package com.lynx.markdown;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.os.Build;
+import android.graphics.drawable.Drawable;
 import com.lynx.textra.BBufferInputStream;
 import com.lynx.textra.JavaCanvasHelper;
 import com.lynx.textra.TTText;
@@ -31,19 +31,16 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected static final int PATH_TYPE_CUBIC_TO = 6;
   protected static final int PATH_TYPE_QUAD_TO = 7;
 
-  protected JavaResourceManager resource_manager_;
+  protected MarkdownResourceManager mResourceManager;
   protected ArrayList<PointF> mTranslateStack = new ArrayList<>();
   protected float mTranslateX;
   protected float mTranslateY;
 
-  IDrawerCallback drawer_callback_;
-
-  public MarkdownAndroidCanvasHelper(Canvas canvas, JavaResourceManager manager,
-                                     IDrawerCallback drawer) {
+  public MarkdownAndroidCanvasHelper(Canvas canvas,
+                                     MarkdownResourceManager manager) {
     super(TTText.mFontManager);
     canvas_ = canvas;
-    resource_manager_ = manager;
-    drawer_callback_ = drawer;
+    mResourceManager = manager;
   }
 
   public void setCanvas(Canvas canvas) { canvas_ = canvas; }
@@ -121,24 +118,21 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     int id = stream.readInt();
     Path path = readPath(stream);
     Paint p = readPaint(stream, paint_);
-    if (drawer_callback_ == null) {
-      return;
-    }
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
-      drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id), path,
+      drawRunDelegateOnPath(canvas_, mResourceManager.getRunDelegate(id), path,
                             p);
     } else {
       if (color_ != 0) {
         p.setStyle(Paint.Style.FILL);
-        drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id),
+        drawRunDelegateOnPath(canvas_, mResourceManager.getRunDelegate(id),
                               path, p);
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
         p.setColor(stroke_color_);
-        drawRunDelegateOnPath(canvas_, resource_manager_.getRunDelegate(id),
+        drawRunDelegateOnPath(canvas_, mResourceManager.getRunDelegate(id),
                               path, p);
       }
     }
@@ -176,18 +170,14 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     float r = TTTextUtils.Dp2Px(stream.readFloat());
     float start = stream.readFloat();
     float end = stream.readFloat();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      path.addArc(cx - r, cy - r, cx + r, cy + r, start, end - start);
-    }
+    path.addArc(cx - r, cy - r, cx + r, cy + r, start, end - start);
   }
   protected void addOval(Path path, BBufferInputStream stream) {
     float left = TTTextUtils.Dp2Px(stream.readFloat());
     float top = TTTextUtils.Dp2Px(stream.readFloat());
     float right = TTTextUtils.Dp2Px(stream.readFloat());
     float bottom = TTTextUtils.Dp2Px(stream.readFloat());
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      path.addOval(left, top, right, bottom, Path.Direction.CW);
-    }
+    path.addOval(left, top, right, bottom, Path.Direction.CW);
   }
   protected void addRect(Path path, BBufferInputStream stream) {
     float left = TTTextUtils.Dp2Px(stream.readFloat());
@@ -203,10 +193,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     float bottom = TTTextUtils.Dp2Px(stream.readFloat());
     float radiusX = TTTextUtils.Dp2Px(stream.readFloat());
     float radiusY = TTTextUtils.Dp2Px(stream.readFloat());
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      path.addRoundRect(left, top, right, bottom, radiusX, radiusY,
-                        Path.Direction.CW);
-    }
+    path.addRoundRect(left, top, right, bottom, radiusX, radiusY,
+                      Path.Direction.CW);
   }
   protected void moveTo(Path path, BBufferInputStream stream) {
     float x = TTTextUtils.Dp2Px(stream.readFloat());
@@ -236,24 +224,20 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   }
 
   @Override
-  protected void drawRunDelegate(BBufferInputStream stream) throws IOException {
+  protected void drawRunDelegate(BBufferInputStream stream) {
     int id = stream.readInt();
     float dl = TTTextUtils.Dp2Px(stream.readFloat());
     float dt = TTTextUtils.Dp2Px(stream.readFloat());
     float dr = TTTextUtils.Dp2Px(stream.readFloat());
     float db = TTTextUtils.Dp2Px(stream.readFloat());
     float radius = TTTextUtils.Dp2Px(stream.readFloat());
-    if (drawer_callback_ == null)
-      return;
     if (radius > 0) {
       canvas_.save();
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        Path path = new Path();
-        path.addRoundRect(dl, dt, dr, db, radius, radius, Path.Direction.CW);
-        canvas_.clipPath(path);
-      }
+      Path path = new Path();
+      path.addRoundRect(dl, dt, dr, db, radius, radius, Path.Direction.CW);
+      canvas_.clipPath(path);
     }
-    drawRunDelegate(canvas_, resource_manager_.getRunDelegate(id),
+    drawRunDelegate(canvas_, mResourceManager.getRunDelegate(id),
                     new Rect((int)dl, (int)dt, (int)dr, (int)db));
     if (radius > 0) {
       canvas_.restore();
@@ -285,9 +269,14 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     return painter;
   }
 
-  public void drawRunDelegate(Canvas canvas, IRunDelegate delegate, Rect rect) {
+  public void drawRunDelegate(Canvas canvas, Drawable delegate, Rect rect) {
+    delegate.setBounds(rect);
+    delegate.draw(canvas);
   }
 
-  public void drawRunDelegateOnPath(Canvas canvas, IRunDelegate delegate,
-                                    Path path, Paint paint) {}
+  public void drawRunDelegateOnPath(Canvas canvas, Drawable delegate, Path path,
+                                    Paint paint) {
+    canvas.clipPath(path);
+    delegate.draw(canvas);
+  }
 }

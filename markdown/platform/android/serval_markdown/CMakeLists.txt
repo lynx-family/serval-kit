@@ -26,7 +26,6 @@ add_library(
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_platform_android.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/buffer_input_stream.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_java_canvas_helper.cc
-    ${SOURCE_ROOT_PATH}/src/markdown/platform/android/tttext_run_delegate.cc
 )
 
 set(LYNX_TEXTRA_ARTIFACT lynxtextra)
@@ -52,3 +51,4 @@ target_link_libraries(serval_markdown
 )
 
 target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
+

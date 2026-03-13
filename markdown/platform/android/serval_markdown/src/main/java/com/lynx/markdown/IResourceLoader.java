@@ -8,20 +8,6 @@ import android.graphics.drawable.Drawable;
 
 public interface IResourceLoader {
   Drawable loadImage(String source);
-  Typeface loadFont(String family);
-  class InlineView {
-    /**
-     * creator of inline view
-     * @param handle: a handle of view
-     * @param verticalAlign: view's vertical align, it's value should be
-     *     Constants.VERTICAL_ALIGN_XXX
-     */
-    public InlineView(MarkdownViewHandle handle, int verticalAlign) {
-      mHandle = handle;
-      mVerticalAlign = verticalAlign;
-    }
-    public MarkdownViewHandle mHandle;
-    public int mVerticalAlign;
-  }
-  InlineView loadInlineView(String id);
+  Typeface loadFont(String family, int weight, int style);
+  IMarkdownViewHandle loadInlineView(String id);
 }

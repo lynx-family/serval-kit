@@ -4,16 +4,12 @@
 package com.lynx.markdown;
 
 import android.graphics.Canvas;
-import com.lynx.markdown.tttext.IDrawerCallback;
-import com.lynx.markdown.tttext.JavaResourceManager;
-import com.lynx.markdown.tttext.MarkdownAndroidCanvasHelper;
 public class CustomDrawable {
   public static void draw(long drawable, Canvas canvas,
-                          JavaResourceManager resourceManager,
-                          IDrawerCallback drawerCallback) {
+                          MarkdownResourceManager resourceManager) {
     byte[] buffer = nativeDrawCustomDrawable(drawable);
-    MarkdownAndroidCanvasHelper canvasHelper = new MarkdownAndroidCanvasHelper(
-        canvas, resourceManager, drawerCallback);
+    MarkdownAndroidCanvasHelper canvasHelper =
+        new MarkdownAndroidCanvasHelper(canvas, resourceManager);
     canvasHelper.drawBuffer(buffer);
   }
   public native static long measure(long drawable, float width, int widthMode,

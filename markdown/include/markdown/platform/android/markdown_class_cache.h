@@ -30,6 +30,29 @@ class MarkdownJNIUtils {
   static int32_t GetIntPackSecond(int64_t value) {
     return static_cast<int32_t>(value & 0xffffffff);
   }
+
+  static int64_t PackMeasureResult(int32_t width, int32_t height,
+                                   int32_t baseline) {
+    constexpr int64_t mask = (1LL << 21) - 1LL;
+    return ((static_cast<int64_t>(width) & mask) << 42) |
+           ((static_cast<int64_t>(height) & mask) << 21) |
+           (static_cast<int64_t>(baseline) & mask);
+  }
+
+  static int32_t GetMeasurePackWidth(int64_t value) {
+    constexpr int64_t mask = (1LL << 21) - 1LL;
+    return static_cast<int32_t>((value >> 42) & mask);
+  }
+
+  static int32_t GetMeasurePackHeight(int64_t value) {
+    constexpr int64_t mask = (1LL << 21) - 1LL;
+    return static_cast<int32_t>((value >> 21) & mask);
+  }
+
+  static int32_t GetMeasurePackBaseline(int64_t value) {
+    constexpr int64_t mask = (1LL << 21) - 1LL;
+    return static_cast<int32_t>(value & mask);
+  }
 };
 
 class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
@@ -64,6 +87,7 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
     jmethodID align_{};
     jmethodID get_size_{};
     jmethodID get_position_{};
+    jmethodID get_vertical_align_{};
     jmethodID set_size_{};
     jmethodID set_position_{};
     jmethodID set_visibility_{};

@@ -7,24 +7,34 @@
 
 #include <textra/i_canvas_helper.h>
 
-#include "markdown/platform/android/tttext_run_delegate.h"
+#include "markdown/element/markdown_drawable.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 
-class MarkdownResourceLoaderAndroid;
-class MarkdownRunDelegate final : public TTTextRunDelegate {
+class MarkdownRunDelegate final : public lynx::markdown::MarkdownDrawable {
  public:
-  MarkdownRunDelegate(int id, MarkdownResourceLoaderAndroid* loader,
-                      float radius)
-      : TTTextRunDelegate(id, 0, 0, 0), loader_(loader), radius_(radius) {}
+  MarkdownRunDelegate(int id, float width, float height, float radius)
+      : id_(id), width_(width), height_(height), radius_(radius) {}
   ~MarkdownRunDelegate() override = default;
 
  public:
-  void Layout() override {}
+  int GetID() const { return id_; }
   float GetRadius() const { return radius_; }
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
+    tttext::Painter painter;
+    canvas->DrawRunDelegate(this, x, y, x + width_, y + height_, &painter);
+  }
 
  private:
-  MarkdownResourceLoaderAndroid* loader_;
+  int id_{0};
+  float width_{0};
+  float height_{0};
   float radius_{0};
+
+ protected:
+  lynx::markdown::MeasureResult OnMeasure(
+      lynx::markdown::MeasureSpec spec) override {
+    return {.width_ = width_, .height_ = height_, .baseline_ = height_};
+  }
 };
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_RUN_DELEGATE_H_

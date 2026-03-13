@@ -5,13 +5,9 @@ package com.lynx.markdown;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.view.ViewGroup;
-import com.lynx.markdown.tttext.IDrawerCallback;
-import com.lynx.markdown.tttext.JavaResourceManager;
-public class CustomDrawView extends ViewGroup {
+public class CustomDrawView extends MarkdownView {
   long mDrawable = 0;
-  protected JavaResourceManager mResourceManager = null;
-  protected IDrawerCallback mDrawerCallback = null;
+  protected MarkdownResourceManager mResourceManager = null;
   public CustomDrawView(Context context) {
     super(context);
     setWillNotDraw(false);
@@ -23,7 +19,7 @@ public class CustomDrawView extends ViewGroup {
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    CustomDrawable.draw(mDrawable, canvas, mResourceManager, mDrawerCallback);
+    CustomDrawable.draw(mDrawable, canvas, mResourceManager);
   }
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -41,6 +37,6 @@ public class CustomDrawView extends ViewGroup {
     invalidate();
   }
 
-  public void attachDrawable(long instance) { mDrawable = instance; }
+  protected void attachDrawable(long instance) { mDrawable = instance; }
   public long getDrawable() { return mDrawable; }
 }
