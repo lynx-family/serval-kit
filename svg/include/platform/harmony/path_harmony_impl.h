@@ -17,6 +17,7 @@ class PathHarmonyImpl : public canvas::Path {
  public:
   PathHarmonyImpl(uint8_t ops[], uint64_t n_ops, float args[], uint64_t n_args);
   PathHarmonyImpl() : path_(OH_Drawing_PathCreate()) {}
+  explicit PathHarmonyImpl(OH_Drawing_Path* path) : path_(path) {}
   explicit PathHarmonyImpl(const PathHarmonyImpl& pathHarmonyImpl);
   ~PathHarmonyImpl() override;
   void AddPath(canvas::Path* path) override;
@@ -25,6 +26,7 @@ class PathHarmonyImpl : public canvas::Path {
   std::unique_ptr<canvas::Path> CreateTransformCopy(
       const float (&xform)[6]) const override;
   void Transform(const float (&xform)[6]) override;
+  void SetFillType(SrSVGFillRule rule) override;
 
  private:
   OH_Drawing_Path* path_;
