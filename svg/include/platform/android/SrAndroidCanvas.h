@@ -91,6 +91,8 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRenderEngine_makePolygonPath_;
   static intptr_t g_SVGRenderEngine_makePolyLinePath_;
   static intptr_t g_SVGRenderEngine_makePath_;
+  static intptr_t g_SVGRenderEngine_makeStrokePath_;
+  static intptr_t g_SVGRenderEngine_setFillType_;
   static intptr_t g_SVGRenderEngine_makeLinearGradient_;
   static intptr_t g_SVGRenderEngine_makeRadialGradient_;
   static intptr_t g_SVGRender_setViewBox_;

@@ -14,6 +14,7 @@
 		2B50A9312A3AE771006CAE6B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2B50A9302A3AE771006CAE6B /* Assets.xcassets */; };
 		2B50A9342A3AE771006CAE6B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2B50A9322A3AE771006CAE6B /* LaunchScreen.storyboard */; };
 		2B50A9372A3AE771006CAE6B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B50A9362A3AE771006CAE6B /* main.m */; };
+		2B50A93E2A3AF3A2006CAE6B /* svg in Resources */ = {isa = PBXBuildFile; fileRef = 2B50A93D2A3AF3A2006CAE6B /* svg */; };
 		7C68E9B416EF6619B278534E /* libPods-ServalPark.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,7 @@
 		2B50A9332A3AE771006CAE6B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		2B50A9352A3AE771006CAE6B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2B50A9362A3AE771006CAE6B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		2B50A93D2A3AF3A2006CAE6B /* svg */ = {isa = PBXFileReference; lastKnownFileType = folder; path = svg; sourceTree = "<group>"; };
 		A9292406E0026CF9B8363858 /* Pods-ServalPark.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalPark.debug.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.debug.xcconfig"; sourceTree = "<group>"; };
 		C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ServalPark.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D486801AC58F2DE31E995495 /* Pods-ServalPark.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = Text.xcconfig; name = "Pods-ServalPark.release.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.release.xcconfig"; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 				2B50A92D2A3AE770006CAE6B /* Main.storyboard */,
 				2B50A9302A3AE771006CAE6B /* Assets.xcassets */,
 				2B50A9322A3AE771006CAE6B /* LaunchScreen.storyboard */,
+				2B50A93D2A3AF3A2006CAE6B /* svg */,
 				2B50A9352A3AE771006CAE6B /* Info.plist */,
 				2B50A9362A3AE771006CAE6B /* main.m */,
 			);
@@ -161,6 +164,7 @@
 				2B50A9342A3AE771006CAE6B /* LaunchScreen.storyboard in Resources */,
 				2B50A9312A3AE771006CAE6B /* Assets.xcassets in Resources */,
 				2B50A92F2A3AE770006CAE6B /* Main.storyboard in Resources */,
+				2B50A93E2A3AF3A2006CAE6B /* svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

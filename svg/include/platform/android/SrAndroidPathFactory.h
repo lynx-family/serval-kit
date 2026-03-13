@@ -36,6 +36,11 @@ class SrAndroidPathFactory : public canvas::PathFactory {
   std::unique_ptr<canvas::Path> CreatePath(uint8_t ops[], uint64_t n_ops,
                                            float args[],
                                            uint64_t n_args) override;
+  std::unique_ptr<canvas::Path> CreateStrokePath(const canvas::Path* path,
+                                                 float width,
+                                                 SrSVGStrokeCap cap,
+                                                 SrSVGStrokeJoin join,
+                                                 float miter_limit) override;
 
   std::unique_ptr<canvas::Path> CreateMutable() override;
   void Op(canvas::Path* path1, canvas::Path* path2,
@@ -47,6 +52,8 @@ class SrAndroidPathFactory : public canvas::PathFactory {
                                                     const float (&xform)[6]);
 
   void ApplyTransform(const SrAndroidPath& path, const float (&xform)[6]);
+
+  void SetFillType(const SrAndroidPath& path, SrSVGFillRule rule);
 
   void SetJNIEnv(JNIEnv* jni_env) { jni_env_ = jni_env; }
   void SetJEngine(jobject j_engine) { j_engine_ = j_engine; }
