@@ -27,12 +27,6 @@ class SrSVGUse : public SrSVGNode {
       canvas::PathFactory* path_factory,
       SrSVGRenderContext* context) const override;
 
-  const std::string& href() const { return href_; }
-  const SrSVGLength& x() const { return x_; }
-  const SrSVGLength& y() const { return y_; }
-  const SrSVGLength& width() const { return width_; }
-  const SrSVGLength& height() const { return height_; }
-
  private:
   void renderRealNode(SrSVGNodeBase* node, canvas::SrCanvas* canvas,
                       SrSVGRenderContext& context);

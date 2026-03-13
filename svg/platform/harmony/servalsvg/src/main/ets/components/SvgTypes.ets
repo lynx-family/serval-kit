@@ -8,9 +8,6 @@ export class SvgData {
   content: string = "";
   antiAlias?: boolean;
 
-  constructor(content?: string) {
-    if (content) {
-      this.content = content;
-    }
+  constructor() {
   }
 }

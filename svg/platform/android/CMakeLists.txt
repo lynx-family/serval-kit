@@ -108,7 +108,6 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLinearGradient.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGRadialGradient.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGClipPath.h
-        ${SVG_SRC_DIRECTORY}/include/element/SrSVGMask.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGG.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGText.h
         # source files
@@ -131,7 +130,6 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGUse.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGImage.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGClipPath.cc
-        ${SVG_SRC_DIRECTORY}/src/element/SrSVGMask.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGText.cc
         # Android platform
         ${SVG_SRC_DIRECTORY}/include/platform/android/SrAndroidCanvas.h

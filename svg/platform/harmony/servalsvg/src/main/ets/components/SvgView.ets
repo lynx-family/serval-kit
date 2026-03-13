@@ -5,8 +5,7 @@ import { SvgData } from './SvgTypes';
 
 @Component
 export struct SvgView {
-  @Prop @Watch('watchSvgSrc') src: string = '';
-  @Prop @Watch('watchSvgData') svgData: SvgData = new SvgData();
+  @Watch('watchSvgData') @ObjectLink svgData: SvgData;
   private svgNodeController?: SvgRenderNodeController;
 
   build() {
@@ -16,21 +15,8 @@ export struct SvgView {
   }
 
   aboutToAppear(): void {
-    this.checkSrc();
     if (this.svgData && !this.svgData.density) {
       this.svgData.density = display.getDefaultDisplaySync().scaledDensity;
-    }
-    this.watchSvgData();
-  }
-
-  watchSvgSrc() {
-    this.checkSrc();
-    this.watchSvgData();
-  }
-
-  checkSrc() {
-    if (this.src && this.src.length > 0) {
-      this.svgData.content = this.src;
     }
   }
 

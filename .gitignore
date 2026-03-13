@@ -4,16 +4,9 @@ __pycache__
 .venv
 *.pyc
 
+svg/platform/harmony/servalsvg/.cxx/
 .idea
 build
 .vscode
 check_style.xml
 .cache
-
-# User specific files
-.DS_Store
-xcuserdata/
-
-# CXX build
-.cxx/
-
