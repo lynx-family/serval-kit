@@ -3,10 +3,14 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "platform/skity/SrSkityCanvas.h"
+#include <algorithm>
 #include <cstring>
 #include <vector>
+#include <cstdlib>
 #include "parser/SrSVGDOM.h"
 #include "skity/skity.hpp"
+#include "element/SrSVGFilter.h"
+#include "element/SrSVGFilterPrimitives.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -69,6 +73,80 @@ std::string Utf16BE_To_Utf8_NoBOM(const void* raw, size_t size_bytes) {
     }
   }
   return out;
+}
+
+std::string Utf16LE_To_Utf8_NoBOM(const void* raw, size_t size_bytes) {
+  if (size_bytes % 2 != 0) {
+    throw std::runtime_error("Invalid UTF-16LE byte length");
+  }
+  const uint8_t* p = static_cast<const uint8_t*>(raw);
+  const uint8_t* end = p + size_bytes;
+
+  std::string out;
+  out.reserve(size_bytes);
+
+  while (p < end) {
+    uint16_t w1 = static_cast<uint16_t>(p[0] | (uint16_t(p[1]) << 8));
+    p += 2;
+
+    if (w1 >= 0xD800 && w1 <= 0xDBFF) {
+      if (p >= end) {
+        throw std::runtime_error("Truncated surrogate pair");
+      }
+      uint16_t w2 = static_cast<uint16_t>(p[0] | (uint16_t(p[1]) << 8));
+      if (w2 < 0xDC00 || w2 > 0xDFFF) {
+        throw std::runtime_error("Invalid surrogate pair");
+      }
+      p += 2;
+      uint32_t cp =
+          0x10000 + (((uint32_t)(w1 - 0xD800) << 10) | (uint32_t)(w2 - 0xDC00));
+      AppendUtf8(out, cp);
+    } else if (w1 >= 0xDC00 && w1 <= 0xDFFF) {
+      throw std::runtime_error("Unpaired low surrogate");
+    } else {
+      AppendUtf8(out, w1);
+    }
+  }
+  return out;
+}
+
+std::string ConvertSvgBytesToUtf8String(const void* raw, size_t size_bytes) {
+  if (!raw || size_bytes == 0) {
+    return {};
+  }
+  const uint8_t* b = static_cast<const uint8_t*>(raw);
+  if (size_bytes >= 2) {
+    if (b[0] == 0xFF && b[1] == 0xFE) {
+      return Utf16LE_To_Utf8_NoBOM(b + 2, size_bytes - 2);
+    }
+    if (b[0] == 0xFE && b[1] == 0xFF) {
+      return Utf16BE_To_Utf8_NoBOM(b + 2, size_bytes - 2);
+    }
+  }
+
+  size_t zeros_even = 0;
+  size_t zeros_odd = 0;
+  size_t sample = std::min<size_t>(size_bytes, 256);
+  for (size_t i = 0; i < sample; ++i) {
+    if (b[i] == 0) {
+      if (i % 2 == 0) {
+        ++zeros_even;
+      } else {
+        ++zeros_odd;
+      }
+    }
+  }
+  const bool looks_utf16 = (zeros_even + zeros_odd) >= (sample / 8);
+  if (looks_utf16) {
+    try {
+      if (zeros_odd > zeros_even) {
+        return Utf16LE_To_Utf8_NoBOM(raw, size_bytes);
+      }
+      return Utf16BE_To_Utf8_NoBOM(raw, size_bytes);
+    } catch (...) {
+    }
+  }
+  return std::string(static_cast<const char*>(raw), size_bytes);
 }
 
 #define M_PI 3.14159265358979323846264338327950288 /* pi             */
@@ -238,6 +316,52 @@ std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateRect(float x, float y,
   return path;
 }
 
+std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateLine(float start_x,
+                                                             float start_y,
+                                                             float end_x,
+                                                             float end_y) {
+  auto path = std::make_unique<SrWinPath>();
+  path->GetSkityPath()->MoveTo(start_x, start_y);
+  path->GetSkityPath()->LineTo(end_x, end_y);
+  return path;
+}
+
+std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateEllipse(
+    float center_x, float center_y, float radius_x, float radius_y) {
+  auto path = std::make_unique<SrWinPath>();
+  path->GetSkityPath()->AddCircle(0.f, 0.f, 1.f);
+  const float xform[6] = {radius_x, 0.f, 0.f, radius_y, center_x, center_y};
+  path->Transform(xform);
+  return path;
+}
+
+std::unique_ptr<canvas::Path> SrPathFactorySkity::CreatePolygon(
+    float points[], uint32_t n_points) {
+  if (!points || n_points < 2) {
+    return nullptr;
+  }
+  auto path = std::make_unique<SrWinPath>();
+  path->GetSkityPath()->MoveTo(points[0], points[1]);
+  for (uint32_t i = 1; i < n_points; ++i) {
+    path->GetSkityPath()->LineTo(points[2 * i], points[2 * i + 1]);
+  }
+  path->GetSkityPath()->Close();
+  return path;
+}
+
+std::unique_ptr<canvas::Path> SrPathFactorySkity::CreatePolyline(
+    float points[], uint32_t n_points) {
+  if (!points || n_points < 2) {
+    return nullptr;
+  }
+  auto path = std::make_unique<SrWinPath>();
+  path->GetSkityPath()->MoveTo(points[0], points[1]);
+  for (uint32_t i = 1; i < n_points; ++i) {
+    path->GetSkityPath()->LineTo(points[2 * i], points[2 * i + 1]);
+  }
+  return path;
+}
+
 std::unique_ptr<canvas::Path> SrPathFactorySkity::CreatePath(uint8_t ops[],
                                                              uint64_t n_ops,
                                                              float args[],
@@ -346,6 +470,174 @@ void SrSkityCanvas::Save() {
 
 void SrSkityCanvas::Restore() {
   canvas_->Restore();
+}
+
+void SrSkityCanvas::SaveLayer(const SrSVGBox* bounds) {
+  if (bounds) {
+    auto rect = ::skity::Rect::MakeXYWH(bounds->left, bounds->top, bounds->width,
+                                       bounds->height);
+    canvas_->SaveLayer(rect, ::skity::Paint());
+    canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+    return;
+  }
+  canvas_->SaveLayer(::skity::Rect(), ::skity::Paint());
+  canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+}
+
+void SrSkityCanvas::SaveLayerWithFilter(const SrSVGBox* bounds,
+                                        const SrSVGPaint* filter,
+                                        void* id_mapper) {
+  if (filter && filter->type == SERVAL_PAINT_IRI && id_mapper) {
+    const char* iri_str = filter->content.iri;
+    std::string id(iri_str + 1);
+    element::IDMapper* nodes = static_cast<element::IDMapper*>(id_mapper);
+    auto it = nodes->find(id);
+    if (it != nodes->end()) {
+      auto* filter_node =
+          static_cast<element::SrSVGFilter*>(it->second);
+      if (filter_node && filter_node->Tag() == element::SrSVGTag::kFilter) {
+         // Attempt to detect DropShadow pattern: Offset + GaussianBlur + ColorMatrix
+         float dx = 0.f;
+         float dy = 0.f;
+         float sigma_x = 0.f;
+         float sigma_y = 0.f;
+         // Default shadow color: black with some alpha? Or just transparent?
+         // SVG default is usually transparent?
+         // But DropShadow filter needs a color.
+         // Let's assume black if no color matrix found, or try to parse.
+         float r = 0.f, g = 0.f, b = 0.f, a = 1.f;
+         bool has_color_matrix = false;
+         
+         const auto& children = filter_node->children();
+         for (auto* child : children) {
+            if (child->Tag() == element::SrSVGTag::kFeGaussianBlur) {
+              auto* blur_node = static_cast<element::SrSVGFeGaussianBlur*>(child);
+              sigma_x = blur_node->std_deviation_x();
+              sigma_y = blur_node->std_deviation_y();
+            } else if (child->Tag() == element::SrSVGTag::kFeOffset) {
+              auto* offset_node = static_cast<element::SrSVGFeOffset*>(child);
+              dx = offset_node->dx();
+              dy = offset_node->dy();
+            } else if (child->Tag() == element::SrSVGTag::kFeColorMatrix) {
+              auto* cm_node = static_cast<element::SrSVGFeColorMatrix*>(child);
+              const auto& values = cm_node->values();
+              if (values.size() >= 20) {
+                 // R G B A offset
+                 // R = 0.12 (index 4)
+                 // G = 0.25 (index 9)
+                 // B = 0.40 (index 14)
+                 // A = 0.16 (index 18) -- scale factor
+                 r = values[4];
+                 g = values[9];
+                 b = values[14];
+                 a = values[18];
+                 has_color_matrix = true;
+              }
+            }
+         }
+
+             // --- Path A: Drop-shadow pattern (offset and/or color matrix present) ---
+             if (has_color_matrix || dx != 0 || dy != 0) {
+                 // Clamp sigma to avoid Skity optimizing away small blurs (sigma <= 0.5)
+                 if (sigma_x > 0 && sigma_x <= 0.57f) sigma_x = 0.57f;
+                 if (sigma_y > 0 && sigma_y <= 0.57f) sigma_y = 0.57f;
+
+                 uint8_t alpha = static_cast<uint8_t>(a * 255.f);
+                 uint8_t red = static_cast<uint8_t>(r * 255.f);
+                 uint8_t green = static_cast<uint8_t>(g * 255.f);
+                 uint8_t blue = static_cast<uint8_t>(b * 255.f);
+                 uint32_t color = ::skity::ColorSetARGB(alpha, red, green, blue);
+
+                 std::shared_ptr<::skity::ImageFilter> current_filter;
+
+                 // Blur (optional for shadow — offset-only shadows are valid)
+                 if (sigma_x > 0 || sigma_y > 0) {
+                     current_filter = ::skity::ImageFilters::Blur(sigma_x, sigma_y);
+                 }
+
+                 // Color Filter: Blend(color, kSrcIn) — colorize the shadow
+                 auto color_blend = ::skity::ColorFilters::Blend(color, ::skity::BlendMode::kSrcIn);
+                 auto color_filter = ::skity::ImageFilters::ColorFilter(color_blend);
+                 if (current_filter) {
+                     current_filter = ::skity::ImageFilters::Compose(color_filter, current_filter);
+                 } else {
+                     current_filter = color_filter;
+                 }
+
+                 // Matrix Filter: Translate(dx, dy)
+                 if (dx != 0 || dy != 0) {
+                     auto matrix_filter = ::skity::ImageFilters::MatrixTransform(
+                         ::skity::Matrix::Translate(dx, dy));
+                     current_filter = ::skity::ImageFilters::Compose(matrix_filter, current_filter);
+                 }
+
+                 ::skity::Paint paint;
+                 paint.SetImageFilter(current_filter);
+
+                 ::skity::Rect layer_bounds;
+                 if (bounds && bounds->width > 0 && bounds->height > 0) {
+                     float pad_x = sigma_x * 6.f + std::abs(dx);
+                     float pad_y = sigma_y * 6.f + std::abs(dy);
+                     layer_bounds = ::skity::Rect::MakeXYWH(
+                         bounds->left - pad_x,
+                         bounds->top - pad_y,
+                         bounds->width + 2.f * pad_x,
+                         bounds->height + 2.f * pad_y);
+                 } else {
+                     layer_bounds = ::skity::Rect::MakeXYWH(-10000.f, -10000.f, 20000.f, 20000.f);
+                 }
+
+                 canvas_->SaveLayer(layer_bounds, paint);
+                 canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+                 return;
+             }
+
+             // --- Path B: Pure blur (feGaussianBlur only, no offset/color) ---
+             if (sigma_x > 0 || sigma_y > 0) {
+                 if (sigma_x > 0 && sigma_x <= 0.57f) sigma_x = 0.57f;
+                 if (sigma_y > 0 && sigma_y <= 0.57f) sigma_y = 0.57f;
+
+                 auto blur_filter = ::skity::ImageFilters::Blur(sigma_x, sigma_y);
+                 ::skity::Paint paint;
+                 paint.SetImageFilter(blur_filter);
+
+                 ::skity::Rect layer_bounds;
+                 if (bounds && bounds->width > 0 && bounds->height > 0) {
+                     float pad = std::max(sigma_x, sigma_y) * 6.f;
+                     layer_bounds = ::skity::Rect::MakeXYWH(
+                         bounds->left - pad,
+                         bounds->top - pad,
+                         bounds->width + 2.f * pad,
+                         bounds->height + 2.f * pad);
+                 } else {
+                     layer_bounds = ::skity::Rect::MakeXYWH(-10000.f, -10000.f, 20000.f, 20000.f);
+                 }
+
+                 canvas_->SaveLayer(layer_bounds, paint);
+                 return;
+             }
+        }
+      }
+    }
+  SaveLayer(bounds);
+}
+
+void SrSkityCanvas::RestoreLayer() {
+  canvas_->Restore();
+}
+
+void SrSkityCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
+  if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver) {
+    blend_mode_override_.reset();
+    return;
+  }
+  if (blend_mode == canvas::SrCanvasBlendMode::kDstIn) {
+    blend_mode_override_ = ::skity::BlendMode::kDstIn;
+  }
+}
+
+void SrSkityCanvas::SetMaskIsLuminance(bool is_luminance) {
+  mask_is_luminance_ = is_luminance;
 }
 
 void SrSkityCanvas::DrawLine(const char*, float x1, float y1, float x2,
@@ -502,7 +794,6 @@ void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
         bool sweep = fabs(args[iArg++]) > 1e-6 ? true : false;
         float x = args[iArg++];
         float y = args[iArg++];
-        path.MoveTo(c1x, c1y);
         path.ArcTo(rx, ry, angle,
                    largeArc ? ::skity::Path::ArcSize::kLarge
                             : ::skity::Path::ArcSize::kSmall,
@@ -573,10 +864,14 @@ void SrSkityCanvas::DrawImage(
 }
 
 void SrSkityCanvas::SetViewBox(float x, float y, float width, float height) {
+  canvas_->Save();
+  canvas_->ResetMatrix();
   ::skity::Paint paint;
-  paint.SetBlendMode(::skity::BlendMode::kClear);
+  paint.SetBlendMode(::skity::BlendMode::kSrc);
+  paint.SetColor(0);
   auto rect = ::skity::Rect::MakeXYWH(x, y, width, height);
   canvas_->DrawRect(rect, paint);
+  canvas_->Restore();
 }
 
 void SrSkityCanvas::UpdateLinearGradient(
@@ -650,6 +945,9 @@ std::shared_ptr<::skity::Shader> ConvertToLinearGradientShader(
     colors.emplace_back(std::move(color));
     offsets.emplace_back(stop.offset.value);
   }
+  if (colors.size() < 2) {
+    return nullptr;
+  }
   ::skity::TileMode mode = ::skity::TileMode::kClamp;
   if (linear.spread_mode_ == GradientSpread::reflect) {
     mode = ::skity::TileMode::kMirror;
@@ -658,6 +956,9 @@ std::shared_ptr<::skity::Shader> ConvertToLinearGradientShader(
   }
   auto lgs = ::skity::Shader::MakeLinear(pts, colors.data(), offsets.data(),
                                          linear.stop_size(), mode, 0);
+  if (!lgs) {
+    return nullptr;
+  }
   ::skity::Matrix matrix(
       linear.gradient_transformer_[0], linear.gradient_transformer_[1], 0.0f,
       0.0f, linear.gradient_transformer_[2], linear.gradient_transformer_[3],
@@ -690,6 +991,9 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
     colors.emplace_back(std::move(color));
     offsets.emplace_back(stop.offset.value);
   }
+  if (colors.size() < 2) {
+    return nullptr;
+  }
   ::skity::TileMode mode = ::skity::TileMode::kClamp;
   if (radial.spread_mode_ == GradientSpread::reflect) {
     mode = ::skity::TileMode::kMirror;
@@ -699,6 +1003,9 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
   auto lgs = ::skity::Shader::MakeTwoPointConical(
       startCenter, startRadius, endCenter, endRadius, colors.data(),
       offsets.data(), radial.stop_size(), mode, 0);
+  if (!lgs) {
+    return nullptr;
+  }
   ::skity::Matrix matrix(
       radial.gradient_transformer_[0], radial.gradient_transformer_[1], 0.0f,
       0.0f, radial.gradient_transformer_[2], radial.gradient_transformer_[3],
@@ -777,53 +1084,33 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
     do_paint(render_state.fill);
   }
 
+  if (blend_mode_override_) {
+    paint.SetBlendMode(*blend_mode_override_);
+  }
+  if (mask_is_luminance_ && blend_mode_override_ &&
+      *blend_mode_override_ == ::skity::BlendMode::kDstIn) {
+    static const float kLumaToAlpha[20] = {
+        0.f, 0.f, 0.f, 0.f, 0.f,  //
+        0.f, 0.f, 0.f, 0.f, 0.f,  //
+        0.f, 0.f, 0.f, 0.f, 0.f,  //
+        0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
+    };
+    paint.SetColorFilter(::skity::ColorFilters::Matrix(kLumaToAlpha));
+  }
+
   return paint;
 }
 
-#include <algorithm>
-#include <string>
-#include <vector>
-std::string CleanInvalidNulls(const void* raw, size_t size_bytes) {
-  const char* src = static_cast<const char*>(raw);
-  std::string out;
-  out.reserve(size_bytes);  // reserve capacity
-  for (size_t i = 0; i < size_bytes; ++i) {
-    if (src[i] != 0) {
-      out.push_back(src[i]);
-    }
-  }
-  return out;
-}
-
-#include <cstdio>
-
-void DumpHeadHex(const void* raw, size_t size_bytes) {
-  const uint8_t* b = static_cast<const uint8_t*>(raw);
-  for (size_t i = 0; i < 500; ++i) {
-    std::printf("%02X ", b[i]);
-  }
-  std::printf("\n");
-}
 std::shared_ptr<::skity::Data> SrSkityCanvas::GetSrSvgDrawImageWithData(
     std::shared_ptr<::skity::Data> data, float width, float height,
     SrSkityCanvas::ImageCallback image_callback) {
   if (!data || data->IsEmpty() || !data->RawData()) {
     return nullptr;
   }
-  // Create a mutable copy of the data as a string, ensuring null-termination.
-  // The parser requires a mutable buffer and relies on null-termination.
-  //  std::string svg_string = Utf16LE_To_Utf8_NoBOM(data->RawData(), data->Size());
-  //   std::string svg_string(reinterpret_cast<const char*>(data->RawData()),
-  //   data->Size());
-
-  DumpHeadHex(data->RawData(), data->Size());
-
-  std::string svg_string = CleanInvalidNulls(data->RawData(), data->Size());
-
-  // SrSVGDOM::make takes a const char* but casts it to char* internally to modify it during parsing.
-  // We pass the string's buffer which is mutable.
-  auto svg_dom = serval::svg::parser::SrSVGDOM::make(svg_string.c_str(),
-                                                     svg_string.length());
+  std::string svg_string =
+      ConvertSvgBytesToUtf8String(data->RawData(), data->Size());
+  auto svg_dom = serval::svg::parser::SrSVGDOM::make(svg_string.data(),
+                                                     svg_string.size());
   if (!svg_dom) {
     return nullptr;
   }

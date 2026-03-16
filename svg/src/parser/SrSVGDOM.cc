@@ -3,12 +3,16 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "parser/SrSVGDOM.h"
+
 #include <cstring>
 #include <string>
+
 #include "element/SrSVGCircle.h"
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGDefs.h"
 #include "element/SrSVGEllipse.h"
+#include "element/SrSVGFilter.h"
+#include "element/SrSVGFilterPrimitives.h"
 #include "element/SrSVGG.h"
 #include "element/SrSVGImage.h"
 #include "element/SrSVGLine.h"
@@ -32,22 +36,69 @@ namespace parser {
 static bool gEnableDumpDom = false;
 
 static void DumpDomTree(const SrDOM& dom, const SrDOM::Node* node, int depth) {
-  if (!node)
+  if (!node) {
     return;
+  }
   std::string indent(depth * 2, ' ');
   const char* name = dom.GetName(node);
   LOGI("%s[%d] Node: %s", indent.c_str(), depth, name);
 
-  SrDOM::AttrIter attrIter(node);
-  const char* attrName;
-  const char* attrValue;
-  while ((attrName = attrIter.Next(&attrValue))) {
-    LOGI("%s  Attr: %s = %s", indent.c_str(), attrName, attrValue);
+  SrDOM::AttrIter attr_iter(node);
+  const char* attr_name;
+  const char* attr_value;
+  while ((attr_name = attr_iter.Next(&attr_value))) {
+    LOGI("%s  Attr: %s = %s", indent.c_str(), attr_name, attr_value);
   }
 
   for (auto* child = dom.GetFirstChild(node, nullptr); child;
        child = dom.GetNextSibling(child)) {
     DumpDomTree(dom, child, depth + 1);
+  }
+}
+
+static bool IsNonRenderingTag(element::SrSVGTag tag) {
+  switch (tag) {
+    case element::SrSVGTag::kDefs:
+    case element::SrSVGTag::kStop:
+    case element::SrSVGTag::kLinearGradient:
+    case element::SrSVGTag::kRadialGradient:
+    case element::SrSVGTag::kClipPath:
+    case element::SrSVGTag::kMask:
+    case element::SrSVGTag::kFilter:
+    case element::SrSVGTag::kFeBlend:
+    case element::SrSVGTag::kFeColorMatrix:
+    case element::SrSVGTag::kFeComposite:
+    case element::SrSVGTag::kFeFlood:
+    case element::SrSVGTag::kFeGaussianBlur:
+    case element::SrSVGTag::kFeOffset:
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Prevents non-rendering nodes (defs/mask/filter/gradient/fe*) from being
+// added as renderable children of normal containers (g/svg). These nodes are
+// still registered in IDMapper for IRI-based lookup. Without this filter,
+// Container::OnRender() would cascade inherited attributes onto these nodes,
+// polluting their state when later referenced via url(#id).
+static bool ShouldAppendChild(const element::SrSVGNodeBase* parent,
+                              const element::SrSVGNodeBase* child) {
+  if (!parent || !child) {
+    return false;
+  }
+  if (!IsNonRenderingTag(child->Tag())) {
+    return true;
+  }
+
+  switch (parent->Tag()) {
+    case element::SrSVGTag::kDefs:
+    case element::SrSVGTag::kFilter:
+    case element::SrSVGTag::kLinearGradient:
+    case element::SrSVGTag::kRadialGradient:
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -60,8 +111,8 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
                           element::SrSVGNodeBase* svgNode,
                           element::IDMapper* id_mapper) {
   const char *name, *value;
-  SrDOM::AttrIter attrIter(xmlNode);
-  while ((name = attrIter.Next(&value))) {
+  SrDOM::AttrIter attr_iter(xmlNode);
+  while ((name = attr_iter.Next(&value))) {
     if (!std::strcmp(name, "id")) {
       std::string key{value};
       (*id_mapper)[key] = svgNode;
@@ -70,15 +121,16 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
   }
 }
 
-void pre_parse_inherit_attribute(const element::SrSVGNode* parentNode,
+void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  element::SrSVGNode* node) {
-  node->inherit_fill_paint_ = parentNode->fill_;
-  node->inherit_stroke_paint_ = parentNode->stroke_;
-  node->inherit_clip_path_ = parentNode->clip_path_;
-  node->inherit_opacity_ = parentNode->opacity_;
-  node->inherit_fill_opacity_ = parentNode->fill_opacity_;
-  node->inherit_stroke_opacity_ = parentNode->stroke_opacity_;
-  node->inherit_stroke_width_ = parentNode->stroke_width_;
+  node->inherit_fill_paint_ = parent_node->fill_;
+  node->inherit_stroke_paint_ = parent_node->stroke_;
+  node->inherit_clip_path_ = parent_node->clip_path_;
+  node->inherit_mask_ = parent_node->mask_;
+  node->inherit_opacity_ = parent_node->opacity_;
+  node->inherit_fill_opacity_ = parent_node->fill_opacity_;
+  node->inherit_stroke_opacity_ = parent_node->stroke_opacity_;
+  node->inherit_stroke_width_ = parent_node->stroke_width_;
 }
 
 void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,
@@ -103,6 +155,7 @@ element::SrSVGNodeBase* construct_svg_node(
     holder.push_back(text_el);
     return text_el;
   }
+
   element::SrSVGNodeBase* node = nullptr;
   if (strcmp(el, "svg") == 0) {
     node = element::SrSVGSVG::Make();
@@ -128,14 +181,28 @@ element::SrSVGNodeBase* construct_svg_node(
     node = element::SrSVGLinearGradient::Make();
   } else if (strcmp(el, "radialGradient") == 0) {
     node = element::SrSVGRadialGradient::Make();
+  } else if (strcmp(el, "mask") == 0) {
+    node = element::SrSVGMask::Make();
   } else if (strcmp(el, "use") == 0) {
     node = element::SrSVGUse::Make();
   } else if (strcmp(el, "image") == 0) {
     node = element::SrSVGImage::Make();
   } else if (strcmp(el, "clipPath") == 0) {
     node = element::SrSVGClipPath::Make();
-  } else if (strcmp(el, "mask") == 0) {
-    node = element::SrSVGMask::Make();
+  } else if (strcmp(el, "filter") == 0) {
+    node = element::SrSVGFilter::Make();
+  } else if (strcmp(el, "feGaussianBlur") == 0) {
+    node = element::SrSVGFeGaussianBlur::Make();
+  } else if (strcmp(el, "feOffset") == 0) {
+    node = element::SrSVGFeOffset::Make();
+  } else if (strcmp(el, "feColorMatrix") == 0) {
+    node = element::SrSVGFeColorMatrix::Make();
+  } else if (strcmp(el, "feComposite") == 0) {
+    node = element::SrSVGFeComposite::Make();
+  } else if (strcmp(el, "feBlend") == 0) {
+    node = element::SrSVGFeBlend::Make();
+  } else if (strcmp(el, "feFlood") == 0) {
+    node = element::SrSVGFeFlood::Make();
   } else if (strcmp(el, "g") == 0) {
     node = element::SrSVGG::Make();
   } else if (strcmp(el, "text") == 0) {
@@ -153,7 +220,6 @@ element::SrSVGNodeBase* construct_svg_node(
           static_cast<const element::SrSVGNode*>(parentNode),
           static_cast<element::SrSVGNode*>(node));
     }
-    // inherit the color from base.
     pre_parse_inherit_color(parentNode, node);
   }
   parse_node_attribute(dom, curNode, node, id_mapper);
@@ -161,7 +227,7 @@ element::SrSVGNodeBase* construct_svg_node(
        child = dom.GetNextSibling(child)) {
     element::SrSVGNodeBase* childNode =
         construct_svg_node(dom, node, child, id_mapper, holder);
-    if (childNode) {
+    if (ShouldAppendChild(node, childNode)) {
       node->AppendChild(childNode);
     }
   }
@@ -176,14 +242,27 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
   if (gEnableDumpDom) {
     DumpDomTree(*xml_dom, xml_dom->GetRootNode(), 0);
   }
-  element::IDMapper* id_mapper = new element::IDMapper();
+  auto id_mapper = std::make_unique<element::IDMapper>();
   std::list<element::SrSVGNodeBase*> holder;
-  auto root = construct_svg_node(*xml_dom, nullptr, xml_dom->GetRootNode(),
-                                 id_mapper, holder);
+  auto* root_node = xml_dom->GetRootNode();
+  if (!root_node) {
+    return nullptr;
+  }
+  auto* root =
+      construct_svg_node(*xml_dom, nullptr, root_node, id_mapper.get(), holder);
+  if (!root) {
+    for (auto* node : holder) {
+      delete node;
+    }
+    return nullptr;
+  }
   if (root->Tag() == element::SrSVGTag::kSvg) {
-    // root should be svg
-    return std::make_unique<SrSVGDOM>((element::SrSVGSVG*)root, id_mapper,
-                                      std::move(holder), xml_dom);
+    return std::make_unique<SrSVGDOM>(static_cast<element::SrSVGSVG*>(root),
+                                      id_mapper.release(), std::move(holder),
+                                      xml_dom);
+  }
+  for (auto* node : holder) {
+    delete node;
   }
   return nullptr;
 }
@@ -219,7 +298,6 @@ SrSVGDOM::~SrSVGDOM() {
     id_mapper_ = nullptr;
   }
 
-  // All nodes are managed by SVG dom, and they should not exceed the lifetime of SVG Dom.
   for (auto* node : nodes_) {
     delete node;
   }

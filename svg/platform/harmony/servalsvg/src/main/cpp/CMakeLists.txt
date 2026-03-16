@@ -61,6 +61,8 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGCircle.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGContainer.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGEllipse.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGFilter.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGFilterPrimitives.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLine.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGNode.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGPath.h
@@ -85,6 +87,8 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGCircle.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGContainer.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGEllipse.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGFilter.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGFilterPrimitives.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGLine.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGNode.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPath.cc

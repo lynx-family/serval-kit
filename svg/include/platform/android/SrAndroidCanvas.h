@@ -68,6 +68,11 @@ class SrAndroidCanvas : public canvas::SrCanvas {
       const char* url, float x, float y, float width, float height,
       const SrSVGPreserveAspectRatio& preserve_aspect_radio) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
+  void SaveLayer(const SrSVGBox* bounds = nullptr) override;
+  void RestoreLayer() override;
+  void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
+  void SetMaskIsLuminance(bool is_luminance) override;
+  void ApplyLuminanceToAlpha() override;
   canvas::PathFactory* PathFactory() override { return path_factory_.get(); }
 
  private:
@@ -103,6 +108,11 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRender_draw_;
   static intptr_t g_SVGRender_draw_image_;
   static intptr_t g_SVGRender_clipPath_;
+  static intptr_t g_SVGRender_saveLayer_;
+  static intptr_t g_SVGRender_restoreLayer_;
+  static intptr_t g_SVGRender_setBlendMode_;
+  static intptr_t g_SVGRender_setMaskIsLuminance_;
+  static intptr_t g_SVGRender_applyLuminanceToAlpha_;
   static intptr_t g_SVGRender_calculatePathBoundsArray_;
   static intptr_t g_SVGRender_applyTransform_;
   static intptr_t g_SVGRenderEngine_makeSpanStringBuilder_;
@@ -113,6 +123,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   jobject j_engine_;
   jobject j_render_;
   JNIEnv* jni_env_;
+  bool mask_is_luminance_{false};
 
  public:
   JNIEnv* GetJNIEnv() const { return jni_env_; }

@@ -11,12 +11,16 @@ import static com.lynx.serval.svg.model.PaintRef.PAINT_IRI;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.DashPathEffect;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Picture;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -45,6 +49,13 @@ import com.lynx.serval.svg.model.StrokePaintModel;
 import java.util.HashMap;
 
 public class SVGRender {
+  private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
+      0f, 0f, 0f, 0f, 0f,
+      0f, 0f, 0f, 0f, 0f,
+      0f, 0f, 0f, 0f, 0f,
+      0.2126f, 0.7152f, 0.0722f, 0f, 0f,
+  };
+
   public interface BitmapRequestCallBack {
     public void onSuccess(Bitmap bitmap);
 
@@ -82,6 +93,9 @@ public class SVGRender {
     Picture picture = new Picture();
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
+    if (mPictureCanvas != null) {
+      mPictureCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+    }
     if (mSVGRenderEngineNG != null) {
       mSVGRenderEngineNG.render(this, content, viewPort.left, viewPort.top,
                                 viewPort.width(), viewPort.height());
@@ -221,6 +235,55 @@ public class SVGRender {
       }
       mPictureCanvas.clipPath(path);
     }
+  }
+
+  public void saveLayer(float left, float top, float right, float bottom) {
+    if (mPictureCanvas != null) {
+      if (left == 0 && top == 0 && right == 0 && bottom == 0) {
+        // Full canvas layer
+        mPictureCanvas.saveLayer(null, null);
+      } else {
+        RectF bounds = new RectF(left, top, right, bottom);
+        mPictureCanvas.saveLayer(bounds, null);
+      }
+    }
+  }
+
+  public void restoreLayer() {
+    if (mPictureCanvas != null) {
+      mPictureCanvas.restore();
+    }
+  }
+
+  private boolean mDstInLayerActive = false;
+  private boolean mMaskIsLuminance = false;
+
+  public void setBlendMode(int mode) {
+    // mode: 0 = SrcOver (normal), 1 = DstIn
+    if (mPictureCanvas != null) {
+      if (mode == 1 && !mDstInLayerActive) {
+        // Record the full mask into a dedicated layer first, then apply DST_IN
+        // once when that layer is restored back to the content layer. For
+        // luminance masks, the restore paint converts the fully composed mask
+        // image into alpha so black cutouts can punch through earlier white
+        // backdrop content.
+        Paint xferPaint = createMaskCompositePaint(mMaskIsLuminance);
+        mPictureCanvas.saveLayer(null, xferPaint);
+        mDstInLayerActive = true;
+      } else if (mode == 0 && mDstInLayerActive) {
+        mPictureCanvas.restore();
+        mDstInLayerActive = false;
+      }
+    }
+  }
+
+  public void setMaskIsLuminance(boolean isLuminance) {
+    mMaskIsLuminance = isLuminance;
+  }
+
+  public void applyLuminanceToAlpha() {
+    // Android applies luminance-to-alpha in the mask layer restore paint, so
+    // the post-process hook does not need extra work.
   }
 
   private void drawPathWithFillModel(@NonNull Canvas canvas, @NonNull Path path,
@@ -557,6 +620,16 @@ public class SVGRender {
     alpha = Math.round(alpha * opacity);
     alpha = (alpha < 0) ? 0 : Math.min(alpha, 255);
     return (alpha << 24) | ((int)(color & 0xffffff));
+  }
+
+  private Paint createMaskCompositePaint(boolean isLuminanceMask) {
+    Paint compositePaint = new Paint();
+    compositePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+    if (isLuminanceMask) {
+      compositePaint.setColorFilter(
+          new ColorMatrixColorFilter(new ColorMatrix(LUMINANCE_TO_ALPHA_MATRIX)));
+    }
+    return compositePaint;
   }
 
   private RectF calculatePathBounds(Path path) {

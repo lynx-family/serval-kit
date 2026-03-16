@@ -38,6 +38,11 @@ intptr_t SrAndroidCanvas::g_SVGRender_transform_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_draw_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_draw_image_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_clipPath_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_saveLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_restoreLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_setBlendMode_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_applyLuminanceToAlpha_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_calculatePathBoundsArray_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_applyTransform_ = 0;
 
@@ -559,6 +564,84 @@ void SrAndroidCanvas::ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) {
   if (j_clip_path) {
     jni_env_->CallVoidMethod(j_render_, j_clip_path, j_path,
                              static_cast<int>(clip_rule));
+  }
+}
+
+void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_save_layer =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "saveLayer",
+                "(FFFF)V", &(SrAndroidCanvas::g_SVGRender_saveLayer_));
+  if (j_save_layer) {
+    if (bounds) {
+      jni_env_->CallVoidMethod(j_render_, j_save_layer,
+                               bounds->left, bounds->top,
+                               bounds->left + bounds->width,
+                               bounds->top + bounds->height);
+    } else {
+      // Pass zeros to indicate full-canvas layer
+      jni_env_->CallVoidMethod(j_render_, j_save_layer,
+                               0.f, 0.f, 0.f, 0.f);
+    }
+  }
+}
+
+void SrAndroidCanvas::RestoreLayer() {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_restore_layer =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "restoreLayer",
+                "()V", &(SrAndroidCanvas::g_SVGRender_restoreLayer_));
+  if (j_restore_layer) {
+    jni_env_->CallVoidMethod(j_render_, j_restore_layer);
+  }
+}
+
+void SrAndroidCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_set_blend_mode =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setBlendMode",
+                "(I)V", &(SrAndroidCanvas::g_SVGRender_setBlendMode_));
+  if (j_set_blend_mode) {
+    // 0 = SrcOver, 1 = DstIn
+    int mode = (blend_mode == canvas::SrCanvasBlendMode::kDstIn) ? 1 : 0;
+    jni_env_->CallVoidMethod(j_render_, j_set_blend_mode, mode);
+  }
+}
+
+void SrAndroidCanvas::SetMaskIsLuminance(bool is_luminance) {
+  mask_is_luminance_ = is_luminance;
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_set_mask_is_luminance =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
+                "setMaskIsLuminance", "(Z)V",
+                &(SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_));
+  if (j_set_mask_is_luminance) {
+    jni_env_->CallVoidMethod(j_render_, j_set_mask_is_luminance,
+                             static_cast<jboolean>(is_luminance));
+  }
+}
+
+void SrAndroidCanvas::ApplyLuminanceToAlpha() {
+  if (!mask_is_luminance_) return;
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) return;
+  jmethodID j_apply_luma =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
+                "applyLuminanceToAlpha", "()V");
+  if (j_apply_luma) {
+    jni_env_->CallVoidMethod(j_render_, j_apply_luma);
   }
 }
 

@@ -33,6 +33,7 @@ std::unique_ptr<canvas::Path> SrSVGPolyLine::AsPath(
         path_factory->CreatePolyline(polygon_->points, polygon_->n_points);
     if (path) {
       path->Transform(transform_);
+      return path;
     }
   }
   return nullptr;

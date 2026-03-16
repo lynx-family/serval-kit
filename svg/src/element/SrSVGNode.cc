@@ -8,9 +8,13 @@
 #endif
 #include <math.h>
 #include <cstdio>
+#include <cstdlib>
+#include <string>
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGClipPath.h"
+#include "element/SrSVGFilter.h"
+#include "element/SrSVGFilterPrimitives.h"
 #include "element/SrSVGMask.h"
 #include "element/SrSVGTypes.h"
 
@@ -22,10 +26,143 @@ const float SrSVGNode::s_stroke_miter_limit = 4.f;
 
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
-  // TODO(renzhongyue): directly return if prepare failed.
   canvas->Save();
   OnPrepareToRender(canvas, context);
-  OnRender(canvas, context);
+  bool filtered = false;
+  bool render_original = false;
+  if (canvas->SupportsFilters() && IsSVGNode() && Tag() != SrSVGTag::kMask &&
+      Tag() != SrSVGTag::kFilter) {
+    auto* svg_node = static_cast<SrSVGNode*>(this);
+    if (svg_node->filter_ && svg_node->filter_->type == SERVAL_PAINT_IRI) {
+      SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+      bool has_bounds = false;
+      if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
+        // Apply transform to path for correct bounds calculation
+        bool has_transform = false;
+        for (int i = 0; i < 6; ++i) {
+           // Indices 0 and 3 are scale factors (diagonal), should be 1.0
+           if (i == 0 || i == 3) {
+              if (fabs(svg_node->transform_[i] - 1.0f) > 1e-5f) has_transform = true;
+           } else {
+              if (fabs(svg_node->transform_[i]) > 1e-5f) has_transform = true;
+           }
+        }
+        
+        if (has_transform) {
+           path = path->CreateTransformCopy(svg_node->transform_);
+        }
+        
+        bounds = path->GetBounds();
+        has_bounds = bounds.width > 0.f && bounds.height > 0.f;
+        
+        // Expand bounds by stroke width
+        float stroke_w = 0.f;
+        if (svg_node->stroke_width_.has_value()) {
+           stroke_w = convert_serval_length_to_float(&*svg_node->stroke_width_, &context, SR_SVG_LENGTH_TYPE_OTHER);
+        } else if (svg_node->inherit_stroke_width_.has_value()) {
+            stroke_w = convert_serval_length_to_float(&*svg_node->inherit_stroke_width_, &context, SR_SVG_LENGTH_TYPE_OTHER);
+        }
+        
+        // Check if stroke is actually drawn
+        bool has_stroke = false;
+        if (svg_node->stroke_ && svg_node->stroke_->type != SERVAL_PAINT_NONE) {
+            has_stroke = true;
+        } else if (svg_node->inherit_stroke_paint_ && svg_node->inherit_stroke_paint_->type != SERVAL_PAINT_NONE) {
+             // If not overridden locally
+             if (!svg_node->stroke_) has_stroke = true;
+        }
+
+        if (has_stroke) {
+             // Default stroke width is 1.0 if not specified but stroke is present? 
+             // Logic in Render usually handles defaults. Here we just want to be safe.
+             if (stroke_w <= 0.f && (!svg_node->stroke_width_.has_value() && !svg_node->inherit_stroke_width_.has_value())) {
+                 stroke_w = 1.f;
+             }
+             
+             if (stroke_w > 0.f) {
+                 float half_w = stroke_w * 0.5f;
+                 bounds.left -= half_w;
+                 bounds.top -= half_w;
+                 bounds.width += stroke_w;
+                 bounds.height += stroke_w;
+             }
+        }
+      }
+      canvas->SaveLayerWithFilter(has_bounds ? &bounds : nullptr, svg_node->filter_,
+                                  context.id_mapper);
+      filtered = true;
+
+      // Hack for DropShadow: check if we should render original image
+      if (context.id_mapper) {
+        IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+        std::string id(svg_node->filter_->content.iri + 1);
+        auto it = nodes->find(id);
+        if (it != nodes->end()) {
+          auto* filter_node = static_cast<SrSVGFilter*>(it->second);
+          if (filter_node && filter_node->Tag() == SrSVGTag::kFilter) {
+            render_original = filter_node->ShouldRenderSourceGraphicOnTop();
+          }
+        }
+      }
+    }
+  }
+
+  // Mask rendering via off-screen compositing (SaveLayer + DstIn blend).
+  // All platforms implement SaveLayer for alpha-accurate masking
+  bool masked = false;
+  if (IsSVGNode() &&
+      Tag() != SrSVGTag::kMask) {
+    auto* svg_node = static_cast<SrSVGNode*>(this);
+    SrSVGPaint* local_mask =
+        svg_node->mask_ != nullptr ? svg_node->mask_ : svg_node->inherit_mask_;
+    if (local_mask && local_mask->type == SERVAL_PAINT_IRI) {
+      IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+      if (nodes) {
+        std::string id(local_mask->content.iri + 1);
+        auto it = nodes->find(id);
+        if (it != nodes->end() && it->second &&
+            it->second->Tag() == SrSVGTag::kMask) {
+          auto* mask_node = static_cast<SrSVGMask*>(it->second);
+          SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+          bool has_bounds = false;
+          if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
+            bounds = path->GetBounds();
+            has_bounds = true;
+          }
+
+          canvas->SetMaskIsLuminance(mask_node->mask_is_luminance());
+          canvas->SaveLayer();
+          OnRender(canvas, context);
+          canvas->SetBlendMode(canvas::SrCanvasBlendMode::kDstIn);
+          canvas->Save();
+          if (has_bounds && mask_node->mask_content_units() ==
+                               SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+            float xform[6] = {bounds.width, 0.f, 0.f,
+                              bounds.height, bounds.left, bounds.top};
+            canvas->Transform(xform);
+          }
+          mask_node->Render(canvas, context);
+          canvas->Restore();
+          if (mask_node->mask_is_luminance()) {
+            canvas->ApplyLuminanceToAlpha();
+          }
+          canvas->SetBlendMode(canvas::SrCanvasBlendMode::kSrcOver);
+          canvas->SetMaskIsLuminance(false);
+          canvas->RestoreLayer();
+          masked = true;
+        }
+      }
+    }
+  }
+  if (!masked) {
+    OnRender(canvas, context);
+  }
+  if (filtered) {
+    canvas->RestoreLayer();
+  }
+  if (render_original) {
+    OnRender(canvas, context);
+  }
   canvas->Restore();
 }
 
@@ -60,6 +197,8 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     clip_path_ = make_serval_paint(value);
   } else if (strcmp(name, "mask") == 0) {
     mask_ = make_serval_paint(value);
+  } else if (strcmp(name, "filter") == 0) {
+    filter_ = make_serval_paint(value);
   } else if (strcmp(name, "transform") == 0) {
     ParseTransform(value, transform_);
   } else if (strcmp(name, "color") == 0) {
@@ -75,6 +214,7 @@ SrSVGNode::~SrSVGNode() {
   release_serval_paint(stroke_);
   release_serval_paint(clip_path_);
   release_serval_paint(mask_);
+  release_serval_paint(filter_);
 }
 
 bool SrPreparePattern(canvas::SrCanvas* canvas, SrSVGNodeBase* node,
@@ -111,40 +251,16 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
               clip_path_node->AsPath(canvas->PathFactory(), &context);
           if (clip_path_node->clip_path_units() ==
               SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-            SrSVGBox svg_box =
-                this->AsPath(canvas->PathFactory(), &context)->GetBounds();
-            float xform[6] = {svg_box.width, 0,          0, svg_box.height,
-                              svg_box.left,  svg_box.top};
-            path = path->CreateTransformCopy(xform);
-          }
-          canvas->ClipPath(path.get(), clip_path_node->clip_rule());
-        }
-      }
-    }
-  }
-
-  if (mask_ && mask_->type == SERVAL_PAINT_IRI && mask_->content.iri &&
-      strlen(mask_->content.iri) > 0) {
-    std::string id(mask_->content.iri + 1);
-    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    if (nodes) {
-      auto it = nodes->find(id);
-      if (it != nodes->end()) {
-        SrSVGNodeBase* node_base = it->second;
-        if (node_base && node_base->Tag() == SrSVGTag::kMask) {
-          SrSVGMask* mask_node = static_cast<SrSVGMask*>(node_base);
-          std::unique_ptr<canvas::Path> path =
-              mask_node->AsPath(canvas->PathFactory(), &context);
-          if (path) {
-            if (mask_node->mask_content_units() ==
-                SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-              SrSVGBox svg_box =
-                  this->AsPath(canvas->PathFactory(), &context)->GetBounds();
+            auto node_path = this->AsPath(canvas->PathFactory(), &context);
+            if (node_path) {
+              SrSVGBox svg_box = node_path->GetBounds();
               float xform[6] = {svg_box.width, 0,          0, svg_box.height,
                                 svg_box.left,  svg_box.top};
               path = path->CreateTransformCopy(xform);
             }
-            canvas->ClipPath(path.get(), SR_SVG_EO_FILL);
+          }
+          if (path) {
+            canvas->ClipPath(path.get(), clip_path_node->clip_rule());
           }
         }
       }
@@ -270,17 +386,17 @@ int SrSVGNode::ParseRotate(float* xform, const char* str) {
 }
 
 int SrSVGNode::ParseSkewX(float* xform, const char* str) {
-  float args[1];
+  float args[1] = {0.f};
   int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 3, &arg_index);
+  int length = ParseTransformArgs(str, args, 1, &arg_index);
   xform_set_skewX(xform, args[0] / 180.0f * M_PI);
   return length;
 }
 
 int SrSVGNode::ParseSkewY(float* xform, const char* str) {
-  float args[1];
+  float args[1] = {0.f};
   int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 3, &arg_index);
+  int length = ParseTransformArgs(str, args, 1, &arg_index);
   xform_set_skewY(xform, args[0] / 180.0f * M_PI);
   return length;
 }
@@ -308,11 +424,10 @@ int SrSVGNode::ParseTransformArgs(const char* str, float* args,
   }
   while (ptr < end) {
     if (*ptr == '-' || *ptr == '+' || *ptr == '.' || isdigit(*ptr)) {
-      if (*arg_index >= max_args_number) {
-        return 0;
-      }
       ptr = ParseNumber(ptr, it, 64);
-      args[(*arg_index)++] = (float)Atof(it);
+      if (*arg_index < max_args_number) {
+        args[(*arg_index)++] = (float)Atof(it);
+      }
     } else {
       ++ptr;
     }
@@ -322,18 +437,24 @@ int SrSVGNode::ParseTransformArgs(const char* str, float* args,
 
 void SrSVGNode::ParseStrokeDashArray(const char* value) {
   stroke_dash_array_.clear();
-  char* input = const_cast<char*>(value);
-  // replace the ','with ''
-  for (int i = 0; input[i] != '\0'; ++i) {
-    if (input[i] == ',')
-      input[i] = ' ';
+  if (!value) {
+    return;
   }
-  // adopt the '' to strtok the str
-  char* token = strtok(input, " ");
-  while (token != NULL) {
-    // add the value to the vector
-    stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
-    token = strtok(NULL, " ");
+
+  const char* ptr = value;
+  char token[64];
+  while (*ptr) {
+    while (*ptr && (isspace(*ptr) || *ptr == ',')) {
+      ++ptr;
+    }
+    if (!*ptr) {
+      break;
+    }
+
+    ptr = ParseNumber(ptr, token, sizeof(token));
+    if (token[0] != '\0') {
+      stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
+    }
   }
 }
 

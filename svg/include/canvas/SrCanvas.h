@@ -30,6 +30,11 @@ enum OP {
   REVERSE_DIFFERENCE,
 };
 
+enum class SrCanvasBlendMode {
+  kSrcOver,
+  kDstIn,
+};
+
 class Path {
  public:
   Path() = default;
@@ -169,6 +174,18 @@ class SrCanvas {
   virtual void ClipPath(Path*, SrSVGFillRule clip_rule) = 0;
   virtual void Save() = 0;
   virtual void Restore() = 0;
+  virtual bool SupportsFilters() const { return false; }
+  virtual void SetMaskIsLuminance(bool is_luminance) {}
+  // Convert the current layer's RGB luminance to alpha (BT.709 coefficients).
+  // Called after mask content is drawn in DstIn mode when mask-type="luminance".
+  // Default is no-op; Skity handles this in ConvertToPaint() instead.
+  virtual void ApplyLuminanceToAlpha() {}
+  virtual void SaveLayer(const SrSVGBox* bounds = nullptr) { Save(); }
+  virtual void SaveLayerWithFilter(const SrSVGBox* bounds, const SrSVGPaint* filter, void* id_mapper = nullptr) {
+    SaveLayer(bounds);
+  }
+  virtual void RestoreLayer() { Restore(); }
+  virtual void SetBlendMode(SrCanvasBlendMode blend_mode) {}
   virtual PathFactory* PathFactory() = 0;
   SrCanvas() = default;
 };

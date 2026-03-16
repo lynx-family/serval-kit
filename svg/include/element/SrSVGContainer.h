@@ -31,6 +31,8 @@ class SrSVGContainer : public SrSVGNode {
   ~SrSVGContainer() override;
   void OnRender(canvas::SrCanvas*, SrSVGRenderContext&) override;
   [[nodiscard]] bool HasChildren() const final;
+
+ protected:
   std::vector<SrSVGNodeBase*> children_;
 };
 

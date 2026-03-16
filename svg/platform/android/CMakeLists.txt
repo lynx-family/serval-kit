@@ -103,6 +103,8 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGPolyLine.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGStop.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGDefs.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGFilter.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGFilterPrimitives.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGUse.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGImage.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLinearGradient.h
@@ -116,6 +118,8 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGCircle.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGContainer.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGEllipse.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGFilter.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGFilterPrimitives.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGLine.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGNode.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPath.cc

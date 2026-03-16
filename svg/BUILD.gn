@@ -15,6 +15,8 @@ source_set("serval-svg") {
     "include/element/SrSVGContainer.h",
     "include/element/SrSVGDefs.h",
     "include/element/SrSVGEllipse.h",
+    "include/element/SrSVGFilter.h",
+    "include/element/SrSVGFilterPrimitives.h",
     "include/element/SrSVGG.h",
     "include/element/SrSVGImage.h",
     "include/element/SrSVGLine.h",
@@ -55,6 +57,8 @@ source_set("serval-svg") {
     "src/element/SrSVGContainer.cc",
     "src/element/SrSVGDefs.cc",
     "src/element/SrSVGEllipse.cc",
+    "src/element/SrSVGFilter.cc",
+    "src/element/SrSVGFilterPrimitives.cc",
     "src/element/SrSVGImage.cc",
     "src/element/SrSVGLine.cc",
     "src/element/SrSVGLinearGradient.cc",
@@ -90,5 +94,5 @@ source_set("serval-svg") {
     "//third_party/skity/skity/include",
   ]
 
-  deps = [ "../../clay/third_party/skity:skity_lib" ]
+  deps = [ "//clay/third_party/skity:skity_lib" ]
 }

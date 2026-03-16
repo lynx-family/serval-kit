@@ -25,11 +25,15 @@ class SrSVGSVG : public SrSVGContainer {
  protected:
   bool OnPrepareToRender(canvas::SrCanvas* canvas,
                          SrSVGRenderContext& context) const override;
+  void OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) override;
 
  private:
   //  void calculateViewBoxTransform(const SrSVGBox& view_port, float* xform) const;
   SrSVGPreserveAspectRatio preserve_aspect_radio_;
   SrSVGBox view_box_;
+  bool parsing_style_{false};
+  bool has_css_transform_{false};
+  float css_transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
 };
 
 }  // namespace element

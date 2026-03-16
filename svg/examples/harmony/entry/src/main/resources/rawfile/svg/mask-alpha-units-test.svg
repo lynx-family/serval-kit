@@ -1,0 +1,40 @@
+<svg width="780" height="260" viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="alphaMask" mask-type="alpha">
+      <rect x="0" y="0" width="200" height="200" fill="white" fill-opacity="0" />
+      <circle cx="100" cy="100" r="82" fill="white" fill-opacity="0.35" />
+      <circle cx="100" cy="100" r="46" fill="white" fill-opacity="1" />
+    </mask>
+
+    <mask id="objectBoundingMask" mask-type="alpha" maskContentUnits="objectBoundingBox">
+      <rect x="0" y="0" width="1" height="1" fill="white" fill-opacity="0.15" />
+      <rect x="0.16" y="0.16" width="0.68" height="0.68" rx="0.14" fill="white" fill-opacity="1" />
+      <circle cx="0.68" cy="0.32" r="0.18" fill="white" fill-opacity="0" />
+    </mask>
+
+    <mask id="groupMask" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="0" y="0" width="200" height="200" fill="white" fill-opacity="0" />
+      <g transform="translate(100 100) rotate(18)">
+        <rect x="-72" y="-20" width="144" height="40" fill="white" fill-opacity="0.9" />
+        <rect x="-20" y="-72" width="40" height="144" fill="white" fill-opacity="0.9" />
+      </g>
+    </mask>
+  </defs>
+
+  <g transform="translate(0, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">Alpha Opacity</text>
+    <rect x="0" y="0" width="200" height="200" rx="24" fill="#246bff" mask="url(#alphaMask)" />
+  </g>
+
+  <g transform="translate(260, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">Object Bounding Box</text>
+    <g transform="translate(18 22) scale(0.82 0.78)">
+      <rect x="0" y="0" width="200" height="200" rx="36" fill="#12b886" mask="url(#objectBoundingMask)" />
+    </g>
+  </g>
+
+  <g transform="translate(520, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">User Space Group</text>
+    <circle cx="100" cy="100" r="96" fill="#f76707" mask="url(#groupMask)" />
+  </g>
+</svg>

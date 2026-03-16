@@ -29,6 +29,15 @@ bool SrSVGSVG::ParseAndSetAttribute(const char* name, const char* value) {
     LOGV("preserveAspectRatio =[%f, %f, %f]", preserve_aspect_radio_.scale,
          preserve_aspect_radio_.align_x, preserve_aspect_radio_.align_y);
     return true;
+  } else if (strcmp(name, "style") == 0) {
+    parsing_style_ = true;
+    ParseStyle(value);
+    parsing_style_ = false;
+    return true;
+  } else if (strcmp(name, "transform") == 0 && parsing_style_) {
+    ParseTransform(value, css_transform_);
+    has_css_transform_ = true;
+    return true;
   }
   return SrSVGContainer::ParseAndSetAttribute(name, value);
 }
@@ -58,6 +67,20 @@ bool SrSVGSVG::OnPrepareToRender(canvas::SrCanvas* canvas,
                                preserve_aspect_radio_, xform);
   canvas->Transform(xform);
   return true;
+}
+
+void SrSVGSVG::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
+  if (has_css_transform_) {
+    float centered[6];
+    xform_identity(centered);
+    const float cx = view_box_.left + view_box_.width * 0.5f;
+    const float cy = view_box_.top + view_box_.height * 0.5f;
+    xform_pre_translate(centered, cx, cy);
+    xform_multiply(centered, css_transform_);
+    xform_pre_translate(centered, -cx, -cy);
+    canvas->Transform(centered);
+  }
+  SrSVGContainer::OnRender(canvas, context);
 }
 
 }  // namespace element

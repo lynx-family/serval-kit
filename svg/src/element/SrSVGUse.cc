@@ -54,22 +54,26 @@ bool SrSVGUse::OnPrepareToRender(canvas::SrCanvas* canvas,
 
 void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   IDMapper* id_mapper = static_cast<IDMapper*>(context.id_mapper);
-  if (!href_.empty()) {
-    SrSVGNodeBase* render_target = (*id_mapper)[href_];
-    if (render_target) {
-      renderRealNode(render_target, canvas, context);
-    }
+  if (!id_mapper || href_.empty()) {
+    return;
+  }
+
+  auto it = id_mapper->find(href_);
+  if (it != id_mapper->end() && it->second) {
+    renderRealNode(it->second, canvas, context);
   }
 }
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
   IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
-  if (!href_.empty()) {
-    SrSVGNodeBase* target = (*id_mapper)[href_];
-    if (target) {
-      return target->AsPath(path_factory, context);
-    }
+  if (!id_mapper || href_.empty()) {
+    return nullptr;
+  }
+
+  auto it = id_mapper->find(href_);
+  if (it != id_mapper->end() && it->second) {
+    return it->second->AsPath(path_factory, context);
   }
   return nullptr;
 }
@@ -83,6 +87,7 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
   SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
   SrSVGPaint* local_clip_path = node->inherit_clip_path_;
+  SrSVGPaint* local_mask = node->inherit_mask_;
   std::optional<SrSVGLength> local_stroke_width = node->inherit_stroke_width_;
   std::optional<float> local_opacity = node->inherit_opacity_;
   std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
@@ -100,7 +105,7 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   if (node->stroke_) {
     node->inherit_stroke_paint_ = node->stroke_;
   } else if (stroke_) {
-    node->inherit_fill_paint_ = stroke_;
+    node->inherit_stroke_paint_ = stroke_;
   } else if (inherit_stroke_paint_) {
     node->inherit_stroke_paint_ = inherit_stroke_paint_;
   }
@@ -113,12 +118,20 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     node->inherit_clip_path_ = inherit_clip_path_;
   }
 
+  if (node->mask_) {
+    node->inherit_mask_ = node->mask_;
+  } else if (mask_) {
+    node->inherit_mask_ = mask_;
+  } else if (inherit_mask_) {
+    node->inherit_mask_ = inherit_mask_;
+  }
+
   if (node->stroke_width_) {
     node->inherit_stroke_width_ = node->stroke_width_;
   } else if (stroke_width_) {
     node->inherit_stroke_width_ = stroke_width_;
   } else if (inherit_stroke_width_) {
-    node->inherit_stroke_width_ = stroke_width_;
+    node->inherit_stroke_width_ = inherit_stroke_width_;
   }
 
   if (node->fill_opacity_) {
@@ -162,6 +175,7 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   node->inherit_stroke_opacity_ = local_stroke_opacity;
   node->inherit_stroke_width_ = local_stroke_width;
   node->inherit_clip_path_ = local_clip_path;
+  node->inherit_mask_ = local_mask;
   node->inherit_color_ = local_color;
 }
 

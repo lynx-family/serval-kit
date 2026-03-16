@@ -67,7 +67,9 @@ void SrXMLParseElement(char* s, SrSVGStartElementCb start_element,
   }
 
   // Parse attrs
-  while (!end && *s && n_attr < SR_XML_MAX_ATTR) {
+  // Guard: each iteration writes 2 entries (key + value) to attr[],
+  // plus 2 NULL terminators after the loop. Reserve space accordingly.
+  while (!end && *s && n_attr + 2 < SR_XML_MAX_ATTR) {
     char* attr_name = NULL;
     char* attr_value = NULL;
 

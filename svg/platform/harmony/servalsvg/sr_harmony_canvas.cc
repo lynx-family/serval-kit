@@ -6,6 +6,7 @@
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
 #include <native_drawing/drawing_color_filter.h>
+#include <native_drawing/drawing_filter.h>
 #include <native_drawing/drawing_matrix.h>
 #include <native_drawing/drawing_path_effect.h>
 #include <native_drawing/drawing_shader_effect.h>
@@ -484,6 +485,63 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
         }
     }
     Restore();
+}
+
+void SrHarmonyCanvas::SaveLayer(const SrSVGBox* bounds) {
+    // OH_Drawing_CanvasSaveLayer creates an off-screen compositing layer.
+    // All drawing until RestoreLayer() goes to this temporary buffer.
+    OH_Drawing_Rect* rect = nullptr;
+    if (bounds) {
+        rect = OH_Drawing_RectCreate(bounds->left, bounds->top,
+                                     bounds->left + bounds->width,
+                                     bounds->top + bounds->height);
+    }
+    OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
+    if (rect) {
+        OH_Drawing_RectDestroy(rect);
+    }
+}
+
+void SrHarmonyCanvas::RestoreLayer() {
+    OH_Drawing_CanvasRestore(context_);
+}
+
+void SrHarmonyCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
+    auto prev = blend_mode_;
+    blend_mode_ = blend_mode;
+    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn &&
+        prev != canvas::SrCanvasBlendMode::kDstIn) {
+        OH_Drawing_Brush* blend_brush = OH_Drawing_BrushCreate();
+        OH_Drawing_Filter* blend_filter = nullptr;
+        OH_Drawing_ColorFilter* color_filter = nullptr;
+        OH_Drawing_BrushSetBlendMode(blend_brush, BLEND_MODE_DST_IN);
+        if (mask_is_luminance_) {
+            blend_filter = OH_Drawing_FilterCreate();
+            color_filter = OH_Drawing_ColorFilterCreateLuma();
+            OH_Drawing_FilterSetColorFilter(blend_filter, color_filter);
+            OH_Drawing_BrushSetFilter(blend_brush, blend_filter);
+        }
+        OH_Drawing_CanvasSaveLayer(context_, nullptr, blend_brush);
+        if (color_filter) {
+            OH_Drawing_ColorFilterDestroy(color_filter);
+        }
+        if (blend_filter) {
+            OH_Drawing_FilterDestroy(blend_filter);
+        }
+        OH_Drawing_BrushDestroy(blend_brush);
+    } else if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver &&
+               prev == canvas::SrCanvasBlendMode::kDstIn) {
+        OH_Drawing_CanvasRestore(context_);
+    }
+}
+
+void SrHarmonyCanvas::SetMaskIsLuminance(bool is_luminance) {
+    mask_is_luminance_ = is_luminance;
+}
+
+void SrHarmonyCanvas::ApplyLuminanceToAlpha() {
+    // Harmony applies luminance-to-alpha in the mask layer restore brush, so
+    // the post-process hook does not need extra work.
 }
 
 void SrHarmonyCanvas::SetAntiAlias(bool anti_alias) { anti_alias_ = anti_alias; }
