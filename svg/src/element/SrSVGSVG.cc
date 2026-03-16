@@ -47,8 +47,8 @@ bool SrSVGSVG::OnPrepareToRender(canvas::SrCanvas* canvas,
   if (IsZero(context.view_box.width) || IsZero(context.view_box.height)) {
     // W3C SVG behavior: if the root <svg> has no valid viewBox, treat the
     // initial user coordinate system as the viewport coordinate system.
-    context.view_box = SrSVGBox{0.f, 0.f, context.view_port.width,
-                                context.view_port.height};
+    context.view_box =
+        SrSVGBox{0.f, 0.f, context.view_port.width, context.view_port.height};
   }
 
   canvas->SetViewBox(context.view_port.left, context.view_port.top,

@@ -90,5 +90,5 @@ source_set("serval-svg") {
     "//third_party/skity/skity/include",
   ]
 
-  deps = [ "//clay/third_party/skity:skity_lib" ]
+  deps = [ "../../clay/third_party/skity:skity_lib" ]
 }

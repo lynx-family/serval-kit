@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGMASK_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGMASK_H_
 
+#include <memory>
 #include "element/SrSVGContainer.h"
 
 namespace serval {

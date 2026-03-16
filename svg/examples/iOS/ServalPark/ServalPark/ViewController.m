@@ -158,7 +158,6 @@
     [self.svgView parseContent:fileContent];
     [self.svgView setNeedsDisplay];
   } else {
-    NSLog(@"Failed to load SVG file: %@", fileName);
     // Try to load from the ServalPark bundle resources
     // The previous attempts were assuming files are in main bundle or 'svg' subdir
     // Let's try to find it recursively or in the root of resources if flattened
@@ -189,8 +188,6 @@
     if (fileContent) {
       [self.svgView parseContent:fileContent];
       [self.svgView setNeedsDisplay];
-    } else {
-      NSLog(@"Still failed to load SVG file: %@", fileName);
     }
   }
 }
