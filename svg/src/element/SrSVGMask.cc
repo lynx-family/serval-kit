@@ -200,8 +200,8 @@ std::unique_ptr<canvas::Path> SrSVGMask::AsPath(
           if (rawPath) {
             std::unique_ptr<canvas::Path> strokePath =
                 path_factory->CreateStrokePath(
-                    rawPath.get(), stroke_w, node->stroke_cap_, node->stroke_join_,
-                    node->stoke_miter_limit_);
+                    rawPath.get(), stroke_w, node->stroke_cap_,
+                    node->stroke_join_, node->stoke_miter_limit_);
 
             if (strokePath) {
               strokePath->Transform(current_xform);
