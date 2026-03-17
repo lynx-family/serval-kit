@@ -7,6 +7,7 @@
 #include <vector>
 #include "parser/SrSVGDOM.h"
 #include "skity/skity.hpp"
+#include "utils/SrSVGMaskMath.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -346,6 +347,27 @@ void SrSkityCanvas::Save() {
 
 void SrSkityCanvas::Restore() {
   canvas_->Restore();
+}
+
+void SrSkityCanvas::SaveLayer() {
+  canvas_->SaveLayer(::skity::Rect(), ::skity::Paint());
+}
+
+void SrSkityCanvas::RestoreLayer() {
+  canvas_->Restore();
+}
+
+void SrSkityCanvas::SetBlendMode(canvas::BlendMode mode) {
+  blend_mode_ = mode;
+}
+
+void SrSkityCanvas::BeginMaskMode(canvas::MaskType type) {
+  mask_mode_ = true;
+  mask_type_ = type;
+}
+
+void SrSkityCanvas::EndMaskMode() {
+  mask_mode_ = false;
 }
 
 void SrSkityCanvas::DrawLine(const char*, float x1, float y1, float x2,
@@ -715,18 +737,56 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
                            : ::skity::Paint::kFill_Style);
   float alpha =
       is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
-  paint.SetAlpha(alpha * 255);
+  if (!mask_mode_) {
+    paint.SetAlpha(alpha * 255);
+  } else {
+    paint.SetAlpha(255);
+  }
   if (is_stroke) {
     paint.SetStrokeWidth(render_state.stroke_width);
   }
+
+  auto to_skity_blend = [](canvas::BlendMode mode) {
+    switch (mode) {
+      case canvas::BlendMode::kDstIn:
+        return ::skity::BlendMode::kDstIn;
+      case canvas::BlendMode::kClear:
+        return ::skity::BlendMode::kClear;
+      case canvas::BlendMode::kSrcOver:
+      default:
+        return ::skity::BlendMode::kSrcOver;
+    }
+  };
+  paint.SetBlendMode(to_skity_blend(blend_mode_));
+
+  auto luminance01 = [](uint32_t argb) {
+    return serval::svg::utils::RelativeLuminanceFromARGB(argb);
+  };
+
+  auto mask_alpha_white = [&](uint32_t argb, float global_alpha) {
+    float a = serval::svg::utils::Alpha01FromARGB(argb);
+    float out = serval::svg::utils::Clamp01(a * global_alpha);
+    uint32_t oa = static_cast<uint32_t>(std::round(out * 255.0f));
+    return (oa << 24) | 0x00FFFFFF;
+  };
+
+  const bool use_luminance = mask_type_ == canvas::MaskType::kLuminance;
 
   auto do_paint = [&](SrSVGPaint* sr_paint) {
     if (sr_paint) {
       if (sr_paint->type == SrSVGPaintType::SERVAL_PAINT_COLOR) {
         uint32_t color = sr_paint->content.color.color;
-        uint32_t color_alpha = (color >> 24) & 0xFF;
-        color_alpha = static_cast<uint32_t>(color_alpha * alpha);
-        color = (color & 0x00FFFFFF) | (color_alpha << 24);
+        if (mask_mode_) {
+          if (use_luminance) {
+            color = serval::svg::utils::MaskWhiteARGB(color, alpha);
+          } else {
+            color = mask_alpha_white(color, alpha);
+          }
+        } else {
+          uint32_t color_alpha = (color >> 24) & 0xFF;
+          color_alpha = static_cast<uint32_t>(color_alpha * alpha);
+          color = (color & 0x00FFFFFF) | (color_alpha << 24);
+        }
 
         if (is_stroke) {
           paint.SetStrokeColor(color);
@@ -737,15 +797,125 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
         do {
           auto ret_l = lg_models_.find(sr_paint->content.iri);
           if (ret_l != lg_models_.end()) {
-            paint.SetShader(
-                ConvertToLinearGradientShader(ret_l->second, bound));
+            if (!mask_mode_) {
+              paint.SetShader(
+                  ConvertToLinearGradientShader(ret_l->second, bound));
+            } else {
+              const auto& linear = ret_l->second;
+              float x1 = linear.x1_;
+              float x2 = linear.x2_;
+              float y1 = linear.y1_;
+              float y2 = linear.y2_;
+              if (linear.obb_type_ ==
+                  SrSVGObjectBoundingBoxUnitType::
+                      SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+                x1 = bound.Left() + x1 * bound.Width();
+                y1 = bound.Top() + y1 * bound.Height();
+                x2 = bound.Left() + x2 * bound.Width();
+                y2 = bound.Top() + y2 * bound.Height();
+              }
+              ::skity::Point pts[2];
+              pts[0] = {x1, y1, 0.0, 1.0};
+              pts[1] = {x2, y2, 0.0, 1.0};
+
+              std::vector<::skity::Vec4> colors;
+              std::vector<float> offsets;
+              for (auto& stop : linear.stops_) {
+                uint32_t c = stop.stopColor.color;
+                float lum = use_luminance ? luminance01(c) : 1.0f;
+                float ca = serval::svg::utils::Alpha01FromARGB(c);
+                float a = serval::svg::utils::Clamp01(
+                    alpha * stop.stopOpacity.value * ca * lum);
+                colors.emplace_back(::skity::Vec4{1.0f, 1.0f, 1.0f, a});
+                offsets.emplace_back(stop.offset.value);
+              }
+
+              ::skity::TileMode mode = ::skity::TileMode::kClamp;
+              if (linear.spread_mode_ == GradientSpread::reflect) {
+                mode = ::skity::TileMode::kMirror;
+              } else if (linear.spread_mode_ == GradientSpread::repeat) {
+                mode = ::skity::TileMode::kRepeat;
+              }
+              auto lgs = ::skity::Shader::MakeLinear(
+                  pts, colors.data(), offsets.data(), linear.stop_size(), mode,
+                  0);
+              ::skity::Matrix matrix(
+                  linear.gradient_transformer_[0],
+                  linear.gradient_transformer_[1], 0.0f, 0.0f,
+                  linear.gradient_transformer_[2],
+                  linear.gradient_transformer_[3], 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+                  0.0f, linear.gradient_transformer_[4],
+                  linear.gradient_transformer_[5], 0.0f, 1.0f);
+              lgs->SetLocalMatrix(matrix);
+              paint.SetShader(lgs);
+            }
             break;
           }
 
           auto ret_r = rg_models_.find(sr_paint->content.iri);
           if (ret_r != rg_models_.end()) {
-            paint.SetShader(
-                ConvertToRadialGradientShader(ret_r->second, bound));
+            if (!mask_mode_) {
+              paint.SetShader(
+                  ConvertToRadialGradientShader(ret_r->second, bound));
+            } else {
+              const auto& radial = ret_r->second;
+
+              float startRadius = radial.fr_;
+              float endRadius = radial.r_;
+              float startCx = radial.fx_;
+              float startCy = radial.fy_;
+              float endCx = radial.cx_;
+              float endCy = radial.cy_;
+
+              if (radial.obb_type_ ==
+                  SrSVGObjectBoundingBoxUnitType::
+                      SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+                float w = bound.Width();
+                float h = bound.Height();
+                startCx = bound.Left() + startCx * w;
+                startCy = bound.Top() + startCy * h;
+                endCx = bound.Left() + endCx * w;
+                endCy = bound.Top() + endCy * h;
+                startRadius *= std::min(w, h);
+                endRadius *= std::min(w, h);
+              }
+
+              ::skity::Point startCenter = {startCx, startCy, 0.0f, 1.0f};
+              ::skity::Point endCenter = {endCx, endCy, 0.0f, 1.0f};
+
+              std::vector<::skity::Vec4> colors;
+              std::vector<float> offsets;
+              for (auto& stop : radial.stops_) {
+                uint32_t c = stop.stopColor.color;
+                float lum = use_luminance ? luminance01(c) : 1.0f;
+                float ca = serval::svg::utils::Alpha01FromARGB(c);
+                float a = serval::svg::utils::Clamp01(
+                    alpha * stop.stopOpacity.value * ca * lum);
+                colors.emplace_back(::skity::Vec4{1.0f, 1.0f, 1.0f, a});
+                offsets.emplace_back(stop.offset.value);
+              }
+
+              ::skity::TileMode mode = ::skity::TileMode::kClamp;
+              if (radial.spread_mode_ == GradientSpread::reflect) {
+                mode = ::skity::TileMode::kMirror;
+              } else if (radial.spread_mode_ == GradientSpread::repeat) {
+                mode = ::skity::TileMode::kRepeat;
+              }
+
+              auto shader = ::skity::Shader::MakeRadialGradientShader(
+                  startCenter, startRadius, endCenter, endRadius, colors.data(),
+                  offsets.data(), radial.stop_size(), mode, 0);
+
+              ::skity::Matrix matrix(
+                  radial.gradient_transformer_[0],
+                  radial.gradient_transformer_[1], 0.0f, 0.0f,
+                  radial.gradient_transformer_[2],
+                  radial.gradient_transformer_[3], 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+                  0.0f, radial.gradient_transformer_[4],
+                  radial.gradient_transformer_[5], 0.0f, 1.0f);
+              shader->SetLocalMatrix(matrix);
+              paint.SetShader(shader);
+            }
             break;
           }
         } while (false);
@@ -775,6 +945,15 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
     }
   } else {
     do_paint(render_state.fill);
+  }
+
+  if (mask_mode_ && !render_state.fill && !is_stroke) {
+    uint32_t color = 0x00000000;
+    paint.SetFillColor(color);
+  }
+  if (mask_mode_ && !render_state.stroke && is_stroke) {
+    uint32_t color = 0x00000000;
+    paint.SetStrokeColor(color);
   }
 
   return paint;

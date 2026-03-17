@@ -43,6 +43,7 @@ std::unique_ptr<canvas::Path> SrSVGPath::AsPath(
                                        path_->n_args);
   if (path) {
     path->SetFillType(fill_rule_);
+    path->Transform(transform_);
   }
   return path;
 }

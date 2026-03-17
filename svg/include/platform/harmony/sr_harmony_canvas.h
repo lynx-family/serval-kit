@@ -30,6 +30,12 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   ~SrHarmonyCanvas() override;
   void Save() override;
   void Restore() override;
+  bool SupportsMaskLayer() const override { return true; }
+  void SaveLayer() override;
+  void RestoreLayer() override;
+  void SetBlendMode(canvas::BlendMode mode) override;
+  void BeginMaskMode(canvas::MaskType type) override;
+  void EndMaskMode() override;
   void SetAntiAlias(bool anti_alias);
   void DrawLine(const char*, float x1, float y1, float x2, float y2,
                 const SrSVGRenderState& render_state) override;
@@ -85,6 +91,10 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
   bool anti_alias_{true};
+  canvas::BlendMode blend_mode_{canvas::BlendMode::kSrcOver};
+  bool mask_mode_{false};
+  canvas::MaskType mask_type_{canvas::MaskType::kLuminance};
+  std::vector<uint32_t> layer_save_counts_;
 
   void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
   void StrokePath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);

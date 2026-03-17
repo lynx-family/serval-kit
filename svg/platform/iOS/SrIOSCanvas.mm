@@ -146,7 +146,10 @@ namespace ios {
 
 static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
                                          std::vector<CGFloat>& offsets,
-                                         std::vector<CGFloat>& colors) {
+                                         std::vector<CGFloat>& colors,
+                                         bool mask_mode,
+                                         canvas::MaskType mask_type,
+                                         CGFloat global_alpha) {
   size_t stopSize = model.stops_.size();
   if (!stopSize) {
     // If there are no stops defined, we are to treat it as paint = 'none'
@@ -166,11 +169,28 @@ static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
       offsets.push_back(lastOffset);
     }
     // prepare color
-    colors.push_back(GetRedFromI32(stop.stopColor.color));
-    colors.push_back(GetGreenFromI32(stop.stopColor.color));
-    colors.push_back(GetBlueFromI32(stop.stopColor.color));
-    colors.push_back(
-        GetAlphaFromI32(stop.stopColor.color, stop.stopOpacity.value));
+    if (!mask_mode) {
+      colors.push_back(GetRedFromI32(stop.stopColor.color));
+      colors.push_back(GetGreenFromI32(stop.stopColor.color));
+      colors.push_back(GetBlueFromI32(stop.stopColor.color));
+      colors.push_back(
+          GetAlphaFromI32(stop.stopColor.color, stop.stopOpacity.value));
+    } else {
+      CGFloat r = GetRedFromI32(stop.stopColor.color);
+      CGFloat g = GetGreenFromI32(stop.stopColor.color);
+      CGFloat b = GetBlueFromI32(stop.stopColor.color);
+      CGFloat lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+      CGFloat a = GetAlphaFromI32(stop.stopColor.color, stop.stopOpacity.value);
+      if (mask_type == canvas::MaskType::kLuminance) {
+        a = a * global_alpha * lum;
+      } else {
+        a = a * global_alpha;
+      }
+      colors.push_back(1.0f);
+      colors.push_back(1.0f);
+      colors.push_back(1.0f);
+      colors.push_back(a);
+    }
   }
   return;
 }
@@ -178,7 +198,9 @@ static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
 static void DrawLinearGradient(CGContextRef cgContext,
                                const canvas::LinearGradientModel& lgModel,
                                CGMutablePathRef cgPath, SrSVGFillRule fillRule,
-                               bool isStroke) {
+                               bool isStroke, bool mask_mode,
+                               canvas::MaskType mask_type,
+                               CGFloat global_alpha) {
   if (!cgContext || !cgPath || lgModel.stop_size() == 0) {
     // If there are no stops defined, we are to treat it as paint = 'none'
     return;
@@ -186,7 +208,8 @@ static void DrawLinearGradient(CGContextRef cgContext,
   CGContextSaveGState(cgContext);
   std::vector<CGFloat> offsets;
   std::vector<CGFloat> colors;
-  MakeGradientColorsAndOffsets(lgModel, offsets, colors);
+  MakeGradientColorsAndOffsets(lgModel, offsets, colors, mask_mode, mask_type,
+                               global_alpha);
   CGColorSpaceRef cgColorSpace = CGColorSpaceCreateDeviceRGB();
   CGGradientRef gradientRef = CGGradientCreateWithColorComponents(
       cgColorSpace, colors.data(), offsets.data(), lgModel.stop_size());
@@ -234,7 +257,9 @@ static void DrawLinearGradient(CGContextRef cgContext,
 static void DrawRadialGradient(CGContextRef cgContext,
                                const canvas::RadialGradientModel& rgModel,
                                CGMutablePathRef cgPath, SrSVGFillRule fillRule,
-                               bool isStroke) {
+                               bool isStroke, bool mask_mode,
+                               canvas::MaskType mask_type,
+                               CGFloat global_alpha) {
   if (!cgContext || !cgPath || rgModel.stop_size() == 0) {
     // If there are no stops defined, we are to treat it as paint = 'none'
     return;
@@ -242,7 +267,8 @@ static void DrawRadialGradient(CGContextRef cgContext,
   CGContextSaveGState(cgContext);
   std::vector<CGFloat> offsets;
   std::vector<CGFloat> colors;
-  MakeGradientColorsAndOffsets(rgModel, offsets, colors);
+  MakeGradientColorsAndOffsets(rgModel, offsets, colors, mask_mode, mask_type,
+                               global_alpha);
   CGColorSpaceRef cgColorSpace = CGColorSpaceCreateDeviceRGB();
   CGGradientRef gradientRef = CGGradientCreateWithColorComponents(
       cgColorSpace, colors.data(), offsets.data(), rgModel.stop_size());
@@ -336,41 +362,97 @@ SrIOSCanvas::~SrIOSCanvas() {
 void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
                            const SrSVGRenderState& renderState) {
   CGContextSaveGState(_context);
-  if (renderState.fill_opacity != 0) {
-    CGContextSetAlpha(_context, renderState.fill_opacity);
-  }
-  if (!renderState.fill) {
-    // if fill is null, we should set fill color to black and apply fill opacity
-    CGContextSetFillColorWithColor(_context, UIColor.blackColor.CGColor);
-    CGContextAddPath(_context, cgPath);
-    if (renderState.fill_rule == SR_SVG_FILL) {
-      CGContextFillPath(_context);
-    } else {
-      CGContextEOFillPath(_context);
+  if (!mask_mode_) {
+    if (renderState.fill_opacity != 0) {
+      CGContextSetAlpha(_context, renderState.fill_opacity);
     }
-  } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_COLOR) {
-    CGContextSetFillColorWithColor(
-        _context,
-        GetUIColorFromI32(renderState.fill->content.color.color).CGColor);
-    CGContextAddPath(_context, cgPath);
-    if (renderState.fill_rule == SR_SVG_FILL) {
-      CGContextFillPath(_context);
-    } else {
-      CGContextEOFillPath(_context);
+    if (!renderState.fill) {
+      CGContextSetFillColorWithColor(_context, UIColor.blackColor.CGColor);
+      CGContextAddPath(_context, cgPath);
+      if (renderState.fill_rule == SR_SVG_FILL) {
+        CGContextFillPath(_context);
+      } else {
+        CGContextEOFillPath(_context);
+      }
+    } else if (renderState.fill &&
+               renderState.fill->type == SERVAL_PAINT_COLOR) {
+      CGContextSetFillColorWithColor(
+          _context,
+          GetUIColorFromI32(renderState.fill->content.color.color).CGColor);
+      CGContextAddPath(_context, cgPath);
+      if (renderState.fill_rule == SR_SVG_FILL) {
+        CGContextFillPath(_context);
+      } else {
+        CGContextEOFillPath(_context);
+      }
+    } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_IRI) {
+      const char* iri = renderState.fill->content.iri;
+      auto it1 = lg_models_.find(iri);
+      if (it1 != lg_models_.end()) {
+        const canvas::LinearGradientModel& lgModel = it1->second;
+        DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
+                           false, false, canvas::MaskType::kLuminance, 1.0);
+      }
+      auto it2 = rg_models_.find(iri);
+      if (it2 != rg_models_.end()) {
+        const canvas::RadialGradientModel& rgModel = it2->second;
+        DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
+                           false, false, canvas::MaskType::kLuminance, 1.0);
+      }
     }
-  } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_IRI) {
-    const char* iri = renderState.fill->content.iri;
-    auto it1 = lg_models_.find(iri);
-    if (it1 != lg_models_.end()) {
-      const canvas::LinearGradientModel& lgModel = it1->second;
-      DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
-                         false);
+  } else {
+    CGFloat global_alpha = renderState.fill_opacity;
+    if (global_alpha <= 0) {
+      CGContextRestoreGState(_context);
+      return;
     }
-    auto it2 = rg_models_.find(iri);
-    if (it2 != rg_models_.end()) {
-      const canvas::RadialGradientModel& rgModel = it2->second;
-      DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
-                         false);
+
+    if (!renderState.fill) {
+      CGContextRestoreGState(_context);
+      return;
+    }
+
+    if (renderState.fill->type == SERVAL_PAINT_NONE) {
+      CGContextRestoreGState(_context);
+      return;
+    }
+
+    if (renderState.fill->type == SERVAL_PAINT_COLOR) {
+      uint32_t color = renderState.fill->content.color.color;
+      CGFloat r = GetRedFromI32(color);
+      CGFloat g = GetGreenFromI32(color);
+      CGFloat b = GetBlueFromI32(color);
+      CGFloat lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+      CGFloat a = ((color & 0xFF000000) >> 24) / 255.f;
+      CGFloat out_alpha = mask_type_ == canvas::MaskType::kLuminance
+                              ? global_alpha * a * lum
+                              : global_alpha * a;
+      if (out_alpha <= 0) {
+        CGContextRestoreGState(_context);
+        return;
+      }
+      CGContextSetAlpha(_context, out_alpha);
+      CGContextSetFillColorWithColor(_context, UIColor.whiteColor.CGColor);
+      CGContextAddPath(_context, cgPath);
+      if (renderState.fill_rule == SR_SVG_FILL) {
+        CGContextFillPath(_context);
+      } else {
+        CGContextEOFillPath(_context);
+      }
+    } else if (renderState.fill->type == SERVAL_PAINT_IRI) {
+      const char* iri = renderState.fill->content.iri;
+      auto it1 = lg_models_.find(iri);
+      if (it1 != lg_models_.end()) {
+        const canvas::LinearGradientModel& lgModel = it1->second;
+        DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
+                           false, true, mask_type_, global_alpha);
+      }
+      auto it2 = rg_models_.find(iri);
+      if (it2 != rg_models_.end()) {
+        const canvas::RadialGradientModel& rgModel = it2->second;
+        DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
+                           false, true, mask_type_, global_alpha);
+      }
     }
   }
   CGContextRestoreGState(_context);
@@ -379,8 +461,10 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
 void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
                              const SrSVGRenderState& renderState) {
   CGContextSaveGState(_context);
-  if (renderState.stroke_opacity != 0) {
-    CGContextSetAlpha(_context, renderState.stroke_opacity);
+  if (!mask_mode_) {
+    if (renderState.stroke_opacity != 0) {
+      CGContextSetAlpha(_context, renderState.stroke_opacity);
+    }
   }
   if (renderState.stroke_width > 0) {
     CGContextSetLineWidth(_context, renderState.stroke_width);
@@ -425,26 +509,75 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
       CGContextSetLineDash(_context, dash_offset, dash_array, dash_count);
     }
   }
-  if (renderState.stroke && renderState.stroke->type == SERVAL_PAINT_COLOR) {
-    CGContextSetStrokeColorWithColor(
-        _context,
-        GetUIColorFromI32(renderState.stroke->content.color.color).CGColor);
-    CGContextAddPath(_context, cgPath);
-    CGContextStrokePath(_context);
-  } else if (renderState.stroke &&
-             renderState.stroke->type == SERVAL_PAINT_IRI) {
-    const char* iri = renderState.stroke->content.iri;
-    auto it1 = lg_models_.find(iri);
-    if (it1 != lg_models_.end()) {
-      const canvas::LinearGradientModel& lgModel = it1->second;
-      DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
-                         true);
+  if (!mask_mode_) {
+    if (renderState.stroke && renderState.stroke->type == SERVAL_PAINT_COLOR) {
+      CGContextSetStrokeColorWithColor(
+          _context,
+          GetUIColorFromI32(renderState.stroke->content.color.color).CGColor);
+      CGContextAddPath(_context, cgPath);
+      CGContextStrokePath(_context);
+    } else if (renderState.stroke &&
+               renderState.stroke->type == SERVAL_PAINT_IRI) {
+      const char* iri = renderState.stroke->content.iri;
+      auto it1 = lg_models_.find(iri);
+      if (it1 != lg_models_.end()) {
+        const canvas::LinearGradientModel& lgModel = it1->second;
+        DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
+                           true, false, canvas::MaskType::kLuminance, 1.0);
+      }
+      auto it2 = rg_models_.find(iri);
+      if (it2 != rg_models_.end()) {
+        const canvas::RadialGradientModel& rgModel = it2->second;
+        DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
+                           true, false, canvas::MaskType::kLuminance, 1.0);
+      }
     }
-    auto it2 = rg_models_.find(iri);
-    if (it2 != rg_models_.end()) {
-      const canvas::RadialGradientModel& rgModel = it2->second;
-      DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
-                         true);
+  } else {
+    CGFloat global_alpha = renderState.stroke_opacity;
+    if (global_alpha <= 0) {
+      CGContextRestoreGState(_context);
+      return;
+    }
+    if (!renderState.stroke) {
+      CGContextRestoreGState(_context);
+      return;
+    }
+    if (renderState.stroke->type == SERVAL_PAINT_NONE) {
+      CGContextRestoreGState(_context);
+      return;
+    }
+    if (renderState.stroke->type == SERVAL_PAINT_COLOR) {
+      uint32_t color = renderState.stroke->content.color.color;
+      CGFloat r = GetRedFromI32(color);
+      CGFloat g = GetGreenFromI32(color);
+      CGFloat b = GetBlueFromI32(color);
+      CGFloat lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+      CGFloat a = ((color & 0xFF000000) >> 24) / 255.f;
+      CGFloat out_alpha = mask_type_ == canvas::MaskType::kLuminance
+                              ? global_alpha * a * lum
+                              : global_alpha * a;
+      if (out_alpha <= 0) {
+        CGContextRestoreGState(_context);
+        return;
+      }
+      CGContextSetAlpha(_context, out_alpha);
+      CGContextSetStrokeColorWithColor(_context, UIColor.whiteColor.CGColor);
+      CGContextAddPath(_context, cgPath);
+      CGContextStrokePath(_context);
+    } else if (renderState.stroke->type == SERVAL_PAINT_IRI) {
+      const char* iri = renderState.stroke->content.iri;
+      auto it1 = lg_models_.find(iri);
+      if (it1 != lg_models_.end()) {
+        const canvas::LinearGradientModel& lgModel = it1->second;
+        DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
+                           true, true, mask_type_, global_alpha);
+      }
+      auto it2 = rg_models_.find(iri);
+      if (it2 != rg_models_.end()) {
+        const canvas::RadialGradientModel& rgModel = it2->second;
+        DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
+                           true, true, mask_type_, global_alpha);
+      }
     }
   }
   CGContextRestoreGState(_context);
@@ -631,6 +764,41 @@ void SrIOSCanvas::Save() {
 
 void SrIOSCanvas::Restore() {
   CGContextRestoreGState(_context);
+}
+
+void SrIOSCanvas::SaveLayer() {
+  CGContextSaveGState(_context);
+  CGContextBeginTransparencyLayer(_context, NULL);
+}
+
+void SrIOSCanvas::RestoreLayer() {
+  CGContextEndTransparencyLayer(_context);
+  CGContextRestoreGState(_context);
+}
+
+void SrIOSCanvas::SetBlendMode(canvas::BlendMode mode) {
+  blend_mode_ = mode;
+  switch (mode) {
+    case canvas::BlendMode::kDstIn:
+      CGContextSetBlendMode(_context, kCGBlendModeDestinationIn);
+      break;
+    case canvas::BlendMode::kClear:
+      CGContextSetBlendMode(_context, kCGBlendModeClear);
+      break;
+    case canvas::BlendMode::kSrcOver:
+    default:
+      CGContextSetBlendMode(_context, kCGBlendModeNormal);
+      break;
+  }
+}
+
+void SrIOSCanvas::BeginMaskMode(canvas::MaskType type) {
+  mask_mode_ = true;
+  mask_type_ = type;
+}
+
+void SrIOSCanvas::EndMaskMode() {
+  mask_mode_ = false;
 }
 
 void SrIOSCanvas::UpdateLinearGradient(

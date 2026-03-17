@@ -5,6 +5,7 @@
 #include "platform/harmony/sr_harmony_canvas.h"
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
+#include "utils/SrSVGMaskMath.h"
 #include <native_drawing/drawing_color_filter.h>
 #include <native_drawing/drawing_matrix.h>
 #include <native_drawing/drawing_path_effect.h>
@@ -12,6 +13,32 @@
 namespace serval {
 namespace svg {
 namespace harmony {
+
+static OH_Drawing_BlendMode ToOHBlendMode(canvas::BlendMode mode) {
+    switch (mode) {
+    case canvas::BlendMode::kDstIn:
+        return BLEND_MODE_DST_IN;
+    case canvas::BlendMode::kClear:
+        return BLEND_MODE_CLEAR;
+    case canvas::BlendMode::kSrcOver:
+    default:
+        return BLEND_MODE_SRC_OVER;
+    }
+}
+
+static uint32_t ToMaskAlphaColor(uint32_t argb, float global_opacity) {
+    float a = static_cast<float>((argb >> 24) & 0xFF) / 255.0f;
+    float out = std::clamp(a * global_opacity, 0.0f, 1.0f);
+    uint32_t oa = static_cast<uint32_t>(std::round(out * 255.0f));
+    return (oa << 24) | 0x00FFFFFF;
+}
+
+static uint32_t ToMaskColor(uint32_t argb, float global_opacity, canvas::MaskType mask_type) {
+    if (mask_type == canvas::MaskType::kAlpha) {
+        return ToMaskAlphaColor(argb, global_opacity);
+    }
+    return serval::svg::utils::MaskWhiteARGB(argb, global_opacity);
+}
 
 SrHarmonyCanvas::SrHarmonyCanvas(OH_Drawing_Canvas *context) {
     context_ = context;
@@ -45,6 +72,31 @@ canvas::PathFactory *SrHarmonyCanvas::PathFactory() { return path_factory_.get()
 void SrHarmonyCanvas::Save() { OH_Drawing_CanvasSave(context_); }
 
 void SrHarmonyCanvas::Restore() { OH_Drawing_CanvasRestore(context_); }
+
+void SrHarmonyCanvas::SaveLayer() {
+    uint32_t count = OH_Drawing_CanvasGetSaveCount(context_);
+    layer_save_counts_.push_back(count);
+    OH_Drawing_CanvasSaveLayer(context_, nullptr, nullptr);
+}
+
+void SrHarmonyCanvas::RestoreLayer() {
+    if (!layer_save_counts_.empty()) {
+        uint32_t count = layer_save_counts_.back();
+        layer_save_counts_.pop_back();
+        OH_Drawing_CanvasRestoreToCount(context_, count);
+    } else {
+        Restore();
+    }
+}
+
+void SrHarmonyCanvas::SetBlendMode(canvas::BlendMode mode) { blend_mode_ = mode; }
+
+void SrHarmonyCanvas::BeginMaskMode(canvas::MaskType type) {
+    mask_mode_ = true;
+    mask_type_ = type;
+}
+
+void SrHarmonyCanvas::EndMaskMode() { mask_mode_ = false; }
 
 void SrHarmonyCanvas::DrawLine(const char *, float x1, float y1, float x2, float y2,
                                const SrSVGRenderState &render_state) {
@@ -173,6 +225,7 @@ void SrHarmonyCanvas::ClipPath(canvas::Path *path, SrSVGFillRule clip_rule) {
 void SrHarmonyCanvas::InitStrokePaint(const SrSVGRenderState &render_state, bool anti_alias) {
     OH_Drawing_PenReset(pen_);
     OH_Drawing_PenSetAntiAlias(pen_, anti_alias);
+    OH_Drawing_PenSetBlendMode(pen_, ToOHBlendMode(blend_mode_));
     if (FloatsLarger(render_state.stroke_width, 0)) {
         OH_Drawing_PenSetWidth(pen_, render_state.stroke_width);
     }
@@ -234,6 +287,7 @@ void SrHarmonyCanvas::InitStrokePaint(const SrSVGRenderState &render_state, bool
 void SrHarmonyCanvas::InitFillPaint(const SrSVGRenderState &render_state, bool anti_alias) {
     OH_Drawing_BrushReset(brush_);
     OH_Drawing_BrushSetAntiAlias(brush_, anti_alias);
+    OH_Drawing_BrushSetBlendMode(brush_, ToOHBlendMode(blend_mode_));
 }
 
 void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &render_state) {
@@ -245,21 +299,32 @@ void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &re
         OH_Drawing_PathSetFillType(path, PATH_FILL_TYPE_WINDING);
     }
     if (!render_state.fill) {
-        OH_Drawing_BrushSetColor(brush_, NSVG_RGB(0, 0, 0));
-        if (FloatsNotEqual(render_state.fill_opacity, 1)) {
-            OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
+        if (!mask_mode_) {
+            OH_Drawing_BrushSetColor(brush_, NSVG_RGB(0, 0, 0));
+            if (FloatsNotEqual(render_state.fill_opacity, 1)) {
+                OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
+            }
+            OH_Drawing_CanvasAttachBrush(context_, brush_);
+            OH_Drawing_CanvasDrawPath(context_, path);
+            OH_Drawing_CanvasDetachBrush(context_);
         }
-        OH_Drawing_CanvasAttachBrush(context_, brush_);
-        OH_Drawing_CanvasDrawPath(context_, path);
-        OH_Drawing_CanvasDetachBrush(context_);
     } else if (render_state.fill && render_state.fill->type == SERVAL_PAINT_COLOR) {
-        OH_Drawing_BrushSetColor(brush_, render_state.fill->content.color.color);
-        if (FloatsNotEqual(render_state.fill_opacity, 1)) {
-            OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
+        if (!mask_mode_) {
+            OH_Drawing_BrushSetColor(brush_, render_state.fill->content.color.color);
+            if (FloatsNotEqual(render_state.fill_opacity, 1)) {
+                OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
+            }
+            OH_Drawing_CanvasAttachBrush(context_, brush_);
+            OH_Drawing_CanvasDrawPath(context_, path);
+            OH_Drawing_CanvasDetachBrush(context_);
+        } else {
+            uint32_t c = render_state.fill->content.color.color;
+            uint32_t mc = ToMaskColor(c, render_state.fill_opacity, mask_type_);
+            OH_Drawing_BrushSetColor(brush_, mc);
+            OH_Drawing_CanvasAttachBrush(context_, brush_);
+            OH_Drawing_CanvasDrawPath(context_, path);
+            OH_Drawing_CanvasDetachBrush(context_);
         }
-        OH_Drawing_CanvasAttachBrush(context_, brush_);
-        OH_Drawing_CanvasDrawPath(context_, path);
-        OH_Drawing_CanvasDetachBrush(context_);
     } else if (render_state.fill && render_state.fill->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.fill->content.iri;
         auto it1 = lg_models_.find(iri);
@@ -291,6 +356,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
     size_t stopSize = lg_model.stops_.size();
     std::vector<float> offsets;
     std::vector<uint32_t> colors;
+    float global_opacity = is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
     float lastOffset = -1.f;
     for (size_t i = 0; i < stopSize; ++i) {
         const SrStop &stop = lg_model.stops_[i];
@@ -302,7 +368,12 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
         } else {
             offsets.push_back(lastOffset);
         }
-        colors.emplace_back(MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value));
+        if (!mask_mode_) {
+            colors.emplace_back(MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value));
+        } else {
+            uint32_t c = MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value);
+            colors.emplace_back(ToMaskColor(c, global_opacity, mask_type_));
+        }
     }
 
     float x1 = lg_model.x1_;
@@ -345,7 +416,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
     Save();
     if (is_stroke) {
         InitStrokePaint(render_state, anti_alias_);
-        if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
+        if (!mask_mode_ && FloatsNotEqual(render_state.stroke_opacity, 1)) {
             OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
         }
         OH_Drawing_PenSetShaderEffect(pen_, shader_);
@@ -354,7 +425,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
         OH_Drawing_CanvasDetachPen(context_);
     } else {
         InitFillPaint(render_state, anti_alias_);
-        if (FloatsNotEqual(render_state.fill_opacity, 1)) {
+        if (!mask_mode_ && FloatsNotEqual(render_state.fill_opacity, 1)) {
             OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
         }
         OH_Drawing_BrushSetShaderEffect(brush_, shader_);
@@ -375,6 +446,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
     size_t stopSize = rg_model.stops_.size();
     std::vector<float> offsets;
     std::vector<uint32_t> colors;
+    float global_opacity = is_stroke ? render_state.stroke_opacity : render_state.fill_opacity;
     float lastOffset = -1.f;
     for (size_t i = 0; i < stopSize; ++i) {
         const SrStop &stop = rg_model.stops_[i];
@@ -386,7 +458,12 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         } else {
             offsets.push_back(lastOffset);
         }
-        colors.emplace_back(MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value));
+        if (!mask_mode_) {
+            colors.emplace_back(MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value));
+        } else {
+            uint32_t c = MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value);
+            colors.emplace_back(ToMaskColor(c, global_opacity, mask_type_));
+        }
     }
     auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
     OH_Drawing_PathGetBounds(path, rect);
@@ -431,7 +508,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         &startCenter, startRadius, &endCenter, endRadius, colors.data(), offsets.data(), colors.size(), mode, matrix);
     if (is_stroke) {
         InitStrokePaint(render_state, anti_alias_);
-        if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
+        if (!mask_mode_ && FloatsNotEqual(render_state.stroke_opacity, 1)) {
             OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
         }
         OH_Drawing_PenSetShaderEffect(pen_, shader_);
@@ -440,7 +517,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         OH_Drawing_CanvasDetachPen(context_);
     } else {
         InitFillPaint(render_state, anti_alias_);
-        if (FloatsNotEqual(render_state.fill_opacity, 1)) {
+        if (!mask_mode_ && FloatsNotEqual(render_state.fill_opacity, 1)) {
             OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
         }
         OH_Drawing_BrushSetShaderEffect(brush_, shader_);
@@ -463,13 +540,22 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
         OH_Drawing_PathSetFillType(path, PATH_FILL_TYPE_WINDING);
     }
     if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_COLOR) {
-        OH_Drawing_PenSetColor(pen_, render_state.stroke->content.color.color);
-        if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
-            OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
+        if (!mask_mode_) {
+            OH_Drawing_PenSetColor(pen_, render_state.stroke->content.color.color);
+            if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
+                OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
+            }
+            OH_Drawing_CanvasAttachPen(context_, pen_);
+            OH_Drawing_CanvasDrawPath(context_, path);
+            OH_Drawing_CanvasDetachPen(context_);
+        } else {
+            uint32_t c = render_state.stroke->content.color.color;
+            uint32_t mc = ToMaskColor(c, render_state.stroke_opacity, mask_type_);
+            OH_Drawing_PenSetColor(pen_, mc);
+            OH_Drawing_CanvasAttachPen(context_, pen_);
+            OH_Drawing_CanvasDrawPath(context_, path);
+            OH_Drawing_CanvasDetachPen(context_);
         }
-        OH_Drawing_CanvasAttachPen(context_, pen_);
-        OH_Drawing_CanvasDrawPath(context_, path);
-        OH_Drawing_CanvasDetachPen(context_);
     } else if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.stroke->content.iri;
         auto it1 = lg_models_.find(iri);

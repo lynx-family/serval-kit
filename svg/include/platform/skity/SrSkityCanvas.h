@@ -83,6 +83,12 @@ class SrSkityCanvas : public canvas::SrCanvas {
   ~SrSkityCanvas() override;
   void Save() override;
   void Restore() override;
+  bool SupportsMaskLayer() const override { return true; }
+  void SaveLayer() override;
+  void RestoreLayer() override;
+  void SetBlendMode(canvas::BlendMode mode) override;
+  void BeginMaskMode(canvas::MaskType type) override;
+  void EndMaskMode() override;
   void SetAntiAlias(bool anti_alias);
   void DrawLine(const char*, float x1, float y1, float x2, float y2,
                 const SrSVGRenderState& render_state) override;
@@ -141,6 +147,9 @@ class SrSkityCanvas : public canvas::SrCanvas {
   std::unique_ptr<SrPathFactorySkity> path_factory_;
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
+  canvas::BlendMode blend_mode_{canvas::BlendMode::kSrcOver};
+  bool mask_mode_{false};
+  canvas::MaskType mask_type_{canvas::MaskType::kLuminance};
 };
 
 }  // namespace skity

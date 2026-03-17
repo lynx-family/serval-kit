@@ -17,6 +17,17 @@ namespace serval {
 namespace svg {
 namespace canvas {
 
+enum class BlendMode {
+  kSrcOver = 0,
+  kDstIn = 1,
+  kClear = 2,
+};
+
+enum class MaskType {
+  kLuminance = 0,
+  kAlpha = 1,
+};
+
 enum OP {
   // Subtract the second path from the first path.
   DIFFERENCE = 0,
@@ -169,6 +180,12 @@ class SrCanvas {
   virtual void ClipPath(Path*, SrSVGFillRule clip_rule) = 0;
   virtual void Save() = 0;
   virtual void Restore() = 0;
+  virtual bool SupportsMaskLayer() const { return false; }
+  virtual void SaveLayer() { Save(); }
+  virtual void RestoreLayer() { Restore(); }
+  virtual void SetBlendMode(BlendMode) {}
+  virtual void BeginMaskMode(MaskType) {}
+  virtual void EndMaskMode() {}
   virtual PathFactory* PathFactory() = 0;
   SrCanvas() = default;
 };

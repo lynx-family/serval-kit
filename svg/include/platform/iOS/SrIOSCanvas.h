@@ -88,6 +88,12 @@ class SrIOSCanvas : public canvas::SrCanvas {
 #pragma mark PreparingContext
   void Save() override;
   void Restore() override;
+  bool SupportsMaskLayer() const override { return true; }
+  void SaveLayer() override;
+  void RestoreLayer() override;
+  void SetBlendMode(canvas::BlendMode mode) override;
+  void BeginMaskMode(canvas::MaskType type) override;
+  void EndMaskMode() override;
 
 #pragma mark RenderingCommands
   void DrawLine(const char*, float x1, float y1, float x2, float y2,
@@ -147,6 +153,9 @@ class SrIOSCanvas : public canvas::SrCanvas {
   std::unique_ptr<PathFactoryQuartz2D> path_factory_;
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
+  canvas::BlendMode blend_mode_{canvas::BlendMode::kSrcOver};
+  bool mask_mode_{false};
+  canvas::MaskType mask_type_{canvas::MaskType::kLuminance};
 };
 
 }  // namespace ios

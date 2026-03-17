@@ -22,8 +22,17 @@ const float SrSVGNode::s_stroke_miter_limit = 4.f;
 
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
-  // TODO(renzhongyue): directly return if prepare failed.
   canvas->Save();
+  const SrSVGPaint* mask_paint = MaskPaint();
+  if (SrSVGMask::ApplyToTargetIfPresent(canvas, context, this, mask_paint,
+                                        [&]() {
+                                          OnPrepareToRender(canvas, context);
+                                          OnRender(canvas, context);
+                                        })) {
+    canvas->Restore();
+    return;
+  }
+
   OnPrepareToRender(canvas, context);
   OnRender(canvas, context);
   canvas->Restore();
@@ -118,34 +127,6 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
             path = path->CreateTransformCopy(xform);
           }
           canvas->ClipPath(path.get(), clip_path_node->clip_rule());
-        }
-      }
-    }
-  }
-
-  if (mask_ && mask_->type == SERVAL_PAINT_IRI && mask_->content.iri &&
-      strlen(mask_->content.iri) > 0) {
-    std::string id(mask_->content.iri + 1);
-    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    if (nodes) {
-      auto it = nodes->find(id);
-      if (it != nodes->end()) {
-        SrSVGNodeBase* node_base = it->second;
-        if (node_base && node_base->Tag() == SrSVGTag::kMask) {
-          SrSVGMask* mask_node = static_cast<SrSVGMask*>(node_base);
-          std::unique_ptr<canvas::Path> path =
-              mask_node->AsPath(canvas->PathFactory(), &context);
-          if (path) {
-            if (mask_node->mask_content_units() ==
-                SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-              SrSVGBox svg_box =
-                  this->AsPath(canvas->PathFactory(), &context)->GetBounds();
-              float xform[6] = {svg_box.width, 0,          0, svg_box.height,
-                                svg_box.left,  svg_box.top};
-              path = path->CreateTransformCopy(xform);
-            }
-            canvas->ClipPath(path.get(), SR_SVG_EO_FILL);
-          }
         }
       }
     }

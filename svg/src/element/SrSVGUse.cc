@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGUse.h"
+#include <cstring>
 #include <optional>
 
 #include "canvas/SrCanvas.h"
@@ -64,14 +65,35 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
-  IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
-  if (!href_.empty()) {
-    SrSVGNodeBase* target = (*id_mapper)[href_];
-    if (target) {
-      return target->AsPath(path_factory, context);
-    }
+  if (!context) {
+    return nullptr;
   }
-  return nullptr;
+  IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
+  if (!id_mapper || href_.empty()) {
+    return nullptr;
+  }
+  auto it = id_mapper->find(href_);
+  if (it == id_mapper->end() || !it->second) {
+    return nullptr;
+  }
+  std::unique_ptr<canvas::Path> path =
+      it->second->AsPath(path_factory, context);
+  if (!path) {
+    return nullptr;
+  }
+
+  float x = convert_serval_length_to_float(&x_, context,
+                                           SR_SVG_LENGTH_TYPE_HORIZONTAL);
+  float y =
+      convert_serval_length_to_float(&y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
+
+  float xform[6];
+  memcpy(xform, transform_, sizeof(xform));
+  float translate[6];
+  xform_set_translation(translate, x, y);
+  xform_multiply(xform, translate);
+  path->Transform(xform);
+  return path;
 }
 
 void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,

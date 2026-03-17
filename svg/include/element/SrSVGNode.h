@@ -57,6 +57,7 @@ class SrSVGNodeBase {
     return nullptr;
   }
   virtual bool IsSVGNode() const { return false; }
+  virtual const SrSVGPaint* MaskPaint() const { return nullptr; }
   SrSVGTag Tag() const { return tag_; }
 
  protected:
@@ -102,6 +103,7 @@ class SrSVGNode : public SrSVGNodeBase {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
 
   bool IsSVGNode() const override { return true; }
+  const SrSVGPaint* MaskPaint() const override { return mask_; }
 
  protected:
   explicit SrSVGNode(SrSVGTag tag) : SrSVGNodeBase(tag) {}

@@ -5,14 +5,143 @@
 #include "element/SrSVGMask.h"
 
 #include <functional>
-#include <optional>
+#include <string>
 
+#include "canvas/SrCanvas.h"
 #include "element/SrSVGNode.h"
-#include "element/SrSVGUse.h"
 
 namespace serval {
 namespace svg {
 namespace element {
+
+static SrSVGMask* ResolveMaskNode(const SrSVGPaint* mask_paint,
+                                  SrSVGRenderContext& context) {
+  if (!mask_paint || mask_paint->type != SERVAL_PAINT_IRI ||
+      !mask_paint->content.iri || strlen(mask_paint->content.iri) == 0) {
+    return nullptr;
+  }
+  std::string id(mask_paint->content.iri + 1);
+  IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+  if (!nodes) {
+    return nullptr;
+  }
+  auto it = nodes->find(id);
+  if (it == nodes->end()) {
+    return nullptr;
+  }
+  SrSVGNodeBase* node_base = it->second;
+  if (!node_base || node_base->Tag() != SrSVGTag::kMask) {
+    return nullptr;
+  }
+  return static_cast<SrSVGMask*>(node_base);
+}
+
+static void DrawWithMask(canvas::SrCanvas* canvas, canvas::MaskType mask_type,
+                         const std::function<void()>& draw_content,
+                         const std::function<void()>& draw_mask) {
+  canvas->SaveLayer();
+  canvas->SetBlendMode(canvas::BlendMode::kSrcOver);
+  draw_content();
+  canvas->SetBlendMode(canvas::BlendMode::kDstIn);
+  canvas->BeginMaskMode(mask_type);
+  draw_mask();
+  canvas->EndMaskMode();
+  canvas->RestoreLayer();
+  canvas->SetBlendMode(canvas::BlendMode::kSrcOver);
+}
+
+static float ResolveLengthForBox(const SrSVGLength& len, float box_size) {
+  if (len.unit == SR_SVG_UNITS_PERCENTAGE) {
+    return len.value / 100.f * box_size;
+  }
+  return len.value;
+}
+
+static float ResolveCoordForMaskUnits(const SrSVGLength& len, float box_origin,
+                                      float box_size, bool object_bbox_units) {
+  if (object_bbox_units) {
+    return box_origin + ResolveLengthForBox(len, box_size);
+  }
+  if (len.unit == SR_SVG_UNITS_PERCENTAGE) {
+    return box_origin + ResolveLengthForBox(len, box_size);
+  }
+  return len.value;
+}
+
+static float ResolveSizeForMaskUnits(const SrSVGLength& len, float box_size,
+                                     bool object_bbox_units) {
+  if (object_bbox_units) {
+    return ResolveLengthForBox(len, box_size);
+  }
+  if (len.unit == SR_SVG_UNITS_PERCENTAGE) {
+    return ResolveLengthForBox(len, box_size);
+  }
+  return len.value;
+}
+
+bool SrSVGMask::ApplyToTargetIfPresent(
+    canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+    const SrSVGNodeBase* target, const SrSVGPaint* mask_paint,
+    const std::function<void()>& draw_content) {
+  if (!canvas || !target || !canvas->SupportsMaskLayer()) {
+    return false;
+  }
+  SrSVGMask* mask_node = ResolveMaskNode(mask_paint, context);
+  if (!mask_node) {
+    return false;
+  }
+
+  std::unique_ptr<canvas::Path> target_path =
+      target->AsPath(canvas->PathFactory(), &context);
+  SrSVGBox target_box = context.view_port;
+  if (target_path) {
+    target_box = target_path->GetBounds();
+  }
+
+  const bool object_bbox_units =
+      mask_node->mask_units_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
+  float region_x = ResolveCoordForMaskUnits(
+      mask_node->x_, target_box.left, target_box.width, object_bbox_units);
+  float region_y = ResolveCoordForMaskUnits(
+      mask_node->y_, target_box.top, target_box.height, object_bbox_units);
+  float region_w = ResolveSizeForMaskUnits(mask_node->width_, target_box.width,
+                                           object_bbox_units);
+  float region_h = ResolveSizeForMaskUnits(
+      mask_node->height_, target_box.height, object_bbox_units);
+  if (region_w < 0) {
+    region_w = 0;
+  }
+  if (region_h < 0) {
+    region_h = 0;
+  }
+
+  if (region_w == 0 || region_h == 0) {
+    DrawWithMask(canvas, mask_node->mask_type_, draw_content, []() {});
+    return true;
+  }
+
+  DrawWithMask(canvas, mask_node->mask_type_, draw_content, [&]() {
+    canvas->Save();
+    std::unique_ptr<canvas::Path> region_path =
+        canvas->PathFactory()->CreateRect(region_x, region_y, 0, 0, region_w,
+                                          region_h);
+    if (region_path) {
+      canvas->ClipPath(region_path.get(), SR_SVG_FILL);
+    }
+    if (mask_node->mask_content_units_ ==
+        SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+      if (target_box.width != 0 && target_box.height != 0) {
+        float xform[6] = {
+            target_box.width, 0, 0, target_box.height, target_box.left,
+            target_box.top};
+        canvas->Transform(xform);
+      }
+    }
+    mask_node->RenderMaskContent(canvas, context);
+    canvas->Restore();
+  });
+  return true;
+}
 
 // SrSVGMask::~SrSVGMask() = default;
 
@@ -20,7 +149,20 @@ void SrSVGMask::OnRender(canvas::SrCanvas*, SrSVGRenderContext&) {
   // invisible container, do nothing here.
 }
 
+void SrSVGMask::RenderMaskContent(canvas::SrCanvas* canvas,
+                                  SrSVGRenderContext& context) {
+  SrSVGContainer::OnRender(canvas, context);
+}
+
 bool SrSVGMask::ParseAndSetAttribute(const char* name, const char* value) {
+  if (strcmp(name, "mask-type") == 0) {
+    if (strcmp(value, "alpha") == 0) {
+      mask_type_ = canvas::MaskType::kAlpha;
+    } else {
+      mask_type_ = canvas::MaskType::kLuminance;
+    }
+    return true;
+  }
   if (strcmp(name, "maskUnits") == 0) {
     if (strcmp(value, "objectBoundingBox") == 0) {
       mask_units_ = SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
@@ -41,185 +183,19 @@ bool SrSVGMask::ParseAndSetAttribute(const char* name, const char* value) {
     }
     return true;
   } else if (strcmp(name, "x") == 0) {
-    x_ = Atof(value);
+    x_ = make_serval_length(value);
     return true;
   } else if (strcmp(name, "y") == 0) {
-    y_ = Atof(value);
+    y_ = make_serval_length(value);
     return true;
   } else if (strcmp(name, "width") == 0) {
-    width_ = Atof(value);
+    width_ = make_serval_length(value);
     return true;
   } else if (strcmp(name, "height") == 0) {
-    height_ = Atof(value);
+    height_ = make_serval_length(value);
     return true;
   }
   return SrSVGContainer::ParseAndSetAttribute(name, value);
-}
-
-std::unique_ptr<canvas::Path> SrSVGMask::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
-  std::unique_ptr<canvas::Path> path = path_factory->CreateMutable();
-
-  // Create mask region path
-  // If maskUnits is objectBoundingBox, these are relative coords.
-  // If userSpaceOnUse, these are absolute coords.
-  // The caller (OnPrepareToRender) will transform the result if needed.
-  // So we just create the rect here.
-  // But wait, the mask region clips the content.
-  // Should we start with the mask region?
-  // No, the mask content defines the alpha.
-  // But the mask region defines the valid area.
-  // So we should intersect the content with the mask region.
-
-  // Helper for matrix multiplication: out = a * b
-  auto MultiplyMatrix = [](float* out, const float* a, const float* b) {
-    float a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5];
-    float b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5];
-    out[0] = a0 * b0 + a2 * b1;
-    out[1] = a1 * b0 + a3 * b1;
-    out[2] = a0 * b2 + a2 * b3;
-    out[3] = a1 * b2 + a3 * b3;
-    out[4] = a0 * b4 + a2 * b5 + a4;
-    out[5] = a1 * b4 + a3 * b5 + a5;
-  };
-
-  std::function<void(SrSVGNodeBase*, const float*, SrSVGPaint*, SrSVGPaint*,
-                     std::optional<SrSVGLength>)>
-      process_node = [&](SrSVGNodeBase* child, const float* parent_xform,
-                         SrSVGPaint* inherited_fill,
-                         SrSVGPaint* inherited_stroke,
-                         std::optional<SrSVGLength> inherited_stroke_width) {
-        if (!child || !child->IsSVGNode())
-          return;
-        auto node = static_cast<SrSVGNode*>(child);
-
-        // 1. Calculate Transform
-        float current_xform[6];
-        MultiplyMatrix(current_xform, parent_xform, node->transform_);
-
-        // Handle Use: Apply x/y translation
-        if (node->Tag() == SrSVGTag::kUse) {
-          // SrSVGUse is a forward declaration in the header, so we need to
-          // cast carefully. However, we included SrSVGUse.h, so it's fine.
-          auto use_node = static_cast<SrSVGUse*>(node);
-          float dx = convert_serval_length_to_float(
-              &use_node->x(), context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-          float dy = convert_serval_length_to_float(
-              &use_node->y(), context, SR_SVG_LENGTH_TYPE_VERTICAL);
-          if (dx != 0 || dy != 0) {
-            float translate[6] = {1, 0, 0, 1, dx, dy};
-            float temp[6];
-            std::copy(std::begin(current_xform), std::end(current_xform),
-                      std::begin(temp));
-            MultiplyMatrix(current_xform, temp, translate);
-          }
-        }
-
-        // 2. Resolve Attributes
-        SrSVGPaint* fill = node->fill_ ? node->fill_ : inherited_fill;
-        SrSVGPaint* stroke = node->stroke_ ? node->stroke_ : inherited_stroke;
-        auto stroke_width = node->stroke_width_.has_value()
-                                ? node->stroke_width_
-                                : inherited_stroke_width;
-
-        // 3. Handle Container (Group / Use)
-        if (node->Tag() == SrSVGTag::kG || node->Tag() == SrSVGTag::kUse) {
-          std::vector<SrSVGNodeBase*> targets;
-          if (node->Tag() == SrSVGTag::kG) {
-            auto container = static_cast<SrSVGContainer*>(node);
-            targets = container->children();
-          } else {  // Use
-            auto use_node = static_cast<SrSVGUse*>(node);
-            IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
-            if (id_mapper && !use_node->href().empty()) {
-              auto it = id_mapper->find(use_node->href());
-              if (it != id_mapper->end()) {
-                targets.push_back(it->second);
-              }
-            }
-          }
-
-          for (auto target : targets) {
-            process_node(target, current_xform, fill, stroke, stroke_width);
-          }
-          return;
-        }
-
-        // 4. Handle Shape (Leaf)
-        bool has_fill = true;  // Default process as fill exist
-        if (fill && fill->type == SERVAL_PAINT_NONE) {
-          has_fill = false;
-        }
-
-        if (has_fill) {
-          canvas::OP op =
-              canvas::OP::DIFFERENCE;  // Default black -> Difference
-          if (fill && fill->type == SERVAL_PAINT_COLOR) {
-            if (fill->content.color.color == 0xFFFFFFFF) {
-              op = canvas::OP::UNION;
-            } else {
-              op = canvas::OP::XOR;
-            }
-          } else if (fill) {
-            op = canvas::OP::XOR;
-          } else {
-            // effective_fill is null -> default black -> Difference
-            op = canvas::OP::XOR;
-          }
-
-          std::unique_ptr<canvas::Path> fillPath =
-              node->AsPath(path_factory, context);
-          if (fillPath) {
-            fillPath->Transform(current_xform);
-            path_factory->Op(path.get(), fillPath.get(), op);
-          }
-        }
-
-        float stroke_w = 1.0f;
-        if (stroke_width.has_value()) {
-          stroke_w = convert_serval_length_to_float(&(*stroke_width), context,
-                                                    SR_SVG_LENGTH_TYPE_OTHER);
-        }
-
-        bool has_stroke =
-            stroke && stroke->type != SERVAL_PAINT_NONE && stroke_w > 0;
-        if (has_stroke) {
-          canvas::OP op = canvas::OP::UNION;
-          if (stroke->type == SERVAL_PAINT_COLOR) {
-            if (stroke->content.color.color == 0xFFFFFFFF) {
-              op = canvas::OP::UNION;
-            } else {
-              op = canvas::OP::XOR;
-            }
-          } else {
-            op = canvas::OP::XOR;
-          }
-
-          std::unique_ptr<canvas::Path> rawPath =
-              node->AsPath(path_factory, context);
-          if (rawPath) {
-            std::unique_ptr<canvas::Path> strokePath =
-                path_factory->CreateStrokePath(
-                    rawPath.get(), stroke_w, node->stroke_cap_,
-                    node->stroke_join_, node->stoke_miter_limit_);
-
-            if (strokePath) {
-              strokePath->Transform(current_xform);
-              path_factory->Op(path.get(), strokePath.get(), op);
-            }
-          }
-        }
-      };
-
-  float identity[6] = {1, 0, 0, 1, 0, 0};
-  for (SrSVGNodeBase* child : children_) {
-    process_node(child, identity, this->fill_, this->stroke_, std::nullopt);
-  }
-
-  // Clip to mask region logic is omitted as it might cause regressions if defaults are not handled perfectly.
-  // The content of the mask (e.g., white rect) effectively defines the clipping region in most cases.
-
-  return path;
 }
 
 }  // namespace element

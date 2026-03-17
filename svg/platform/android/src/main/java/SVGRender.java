@@ -17,6 +17,8 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Picture;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -42,6 +44,7 @@ import com.lynx.serval.svg.model.PaintRef;
 import com.lynx.serval.svg.model.RadialGradientModel;
 import com.lynx.serval.svg.model.StopModel;
 import com.lynx.serval.svg.model.StrokePaintModel;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 
 public class SVGRender {
@@ -68,6 +71,14 @@ public class SVGRender {
   private HashMap<String, Pair<String, GradientModel>> mGradientModels;
   private SVGRenderEngine mSVGRenderEngineNG;
   private ResourceManager mResourceProvider;
+  private boolean mMaskMode = false;
+  private int mMaskType = 0;
+  private int mBlendMode = 0;  // 0: srcOver, 1: dstIn, 2: clear
+  private final ArrayDeque<Integer> mLayerStack = new ArrayDeque<>();
+  private static final PorterDuffXfermode XFERMODE_DST_IN =
+      new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+  private static final PorterDuffXfermode XFERMODE_CLEAR =
+      new PorterDuffXfermode(PorterDuff.Mode.CLEAR);
 
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
@@ -105,6 +116,31 @@ public class SVGRender {
       mPictureCanvas.restore();
     }
   }
+
+  public void saveLayer() {
+    if (mPictureCanvas != null) {
+      int count = mPictureCanvas.saveLayer(null, null);
+      mLayerStack.push(count);
+    }
+  }
+
+  public void restoreLayer() {
+    if (mPictureCanvas != null && !mLayerStack.isEmpty()) {
+      int count = mLayerStack.pop();
+      mPictureCanvas.restoreToCount(count);
+    } else {
+      restore();
+    }
+  }
+
+  public void setBlendMode(int mode) { mBlendMode = mode; }
+
+  public void beginMaskMode(int maskType) {
+    mMaskMode = true;
+    mMaskType = maskType;
+  }
+
+  public void endMaskMode() { mMaskMode = false; }
 
   public void translate(float x, float y) {
     if (mPictureCanvas != null) {
@@ -292,7 +328,11 @@ public class SVGRender {
     } else if (paintRef instanceof StrokePaintModel) {
       paint = initStrokePaint((StrokePaintModel)paintRef);
     }
-    paint.setAlpha(clampOpacity(paintRef.mOpacity));
+    if (!mMaskMode) {
+      paint.setAlpha(clampOpacity(paintRef.mOpacity));
+    } else {
+      paint.setAlpha(255);
+    }
     float[] positions = new float[stopSize];
     int[] colors = new int[stopSize];
     float lastOffset = -1.f;
@@ -309,7 +349,8 @@ public class SVGRender {
         positions[i] = lastOffset;
       }
       // prepare color
-      colors[i] = getColorWithOpacity(stopModel.mColor, stopModel.mStopOpacity);
+      int c = getColorWithOpacity(stopModel.mColor, stopModel.mStopOpacity);
+      colors[i] = !mMaskMode ? c : toMaskColor(c, paintRef.mOpacity, mMaskType);
     }
     RectF boundingBox = calculatePathBounds(path);
     float r = rgModel.mFr;
@@ -370,7 +411,11 @@ public class SVGRender {
     } else if (paintRef instanceof StrokePaintModel) {
       paint = initStrokePaint((StrokePaintModel)paintRef);
     }
-    paint.setAlpha(clampOpacity(paintRef.mOpacity));
+    if (!mMaskMode) {
+      paint.setAlpha(clampOpacity(paintRef.mOpacity));
+    } else {
+      paint.setAlpha(255);
+    }
     float[] positions = new float[stopSize];
     int[] colors = new int[stopSize];
     float lastOffset = -1.f;
@@ -387,7 +432,8 @@ public class SVGRender {
         positions[i] = lastOffset;
       }
       // prepare color
-      colors[i] = getColorWithOpacity(stopModel.mColor, stopModel.mStopOpacity);
+      int c = getColorWithOpacity(stopModel.mColor, stopModel.mStopOpacity);
+      colors[i] = !mMaskMode ? c : toMaskColor(c, paintRef.mOpacity, mMaskType);
     }
     float x1 = lgModel.mX1;
     float y1 = lgModel.mY1;
@@ -440,9 +486,11 @@ public class SVGRender {
   private Paint initFillPaint(FillPaintModel fillPaintModel) {
     Paint fillPaint = initFillPaint();
     if (fillPaintModel != null) {
-      fillPaint.setColor(
-          getColorWithOpacity(fillPaintModel.mColor, fillPaintModel.mOpacity));
+      int c =
+          getColorWithOpacity(fillPaintModel.mColor, fillPaintModel.mOpacity);
+      fillPaint.setColor(!mMaskMode ? c : toMaskColor(c, 1.0f, mMaskType));
     }
+    applyBlendMode(fillPaint);
     return fillPaint;
   }
 
@@ -455,17 +503,20 @@ public class SVGRender {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
       fillPaint.setHinting(Paint.HINTING_OFF);
     }
+    applyBlendMode(fillPaint);
     return fillPaint;
   }
 
   private Paint initStrokePaint(StrokePaintModel strokePaintModel) {
     Paint strokePaint = initStrokePaint();
     if (strokePaintModel != null) {
-      strokePaint.setColor(getColorWithOpacity(strokePaintModel.mColor,
-                                               strokePaintModel.mOpacity));
+      int c = getColorWithOpacity(strokePaintModel.mColor,
+                                  strokePaintModel.mOpacity);
+      strokePaint.setColor(!mMaskMode ? c : toMaskColor(c, 1.0f, mMaskType));
       strokePaint.setStrokeWidth(strokePaintModel.mWith);
       initStrokeExtraInfo(strokePaint, strokePaintModel);
     }
+    applyBlendMode(strokePaint);
     return strokePaint;
   }
 
@@ -478,7 +529,36 @@ public class SVGRender {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
       strokePaint.setHinting(Paint.HINTING_OFF);
     }
+    applyBlendMode(strokePaint);
     return strokePaint;
+  }
+
+  private void applyBlendMode(Paint paint) {
+    if (paint == null) {
+      return;
+    }
+    if (mBlendMode == 1) {
+      paint.setXfermode(XFERMODE_DST_IN);
+    } else if (mBlendMode == 2) {
+      paint.setXfermode(XFERMODE_CLEAR);
+    } else {
+      paint.setXfermode(null);
+    }
+  }
+
+  private static float luminance01(int color) {
+    float r = ((color >> 16) & 0xFF) / 255.0f;
+    float g = ((color >> 8) & 0xFF) / 255.0f;
+    float b = (color & 0xFF) / 255.0f;
+    return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+  }
+
+  private static int toMaskColor(int argb, float globalOpacity, int maskType) {
+    float a = ((argb >> 24) & 0xFF) / 255.0f;
+    float lum = maskType == 0 ? luminance01(argb) : 1.0f;
+    float outA = Math.max(0.0f, Math.min(1.0f, a * lum * globalOpacity));
+    int oa = Math.round(outA * 255.0f);
+    return (oa << 24) | 0x00FFFFFF;
   }
 
   private void initStrokeExtraInfo(@NonNull Paint paint,

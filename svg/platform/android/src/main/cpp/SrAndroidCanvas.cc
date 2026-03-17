@@ -33,6 +33,11 @@ intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeRadialGradient_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_setViewBox_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_save_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_restore_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_saveLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_restoreLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_setBlendMode_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_beginMaskMode_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_endMaskMode_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_translate_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_transform_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_draw_ = 0;
@@ -81,6 +86,88 @@ void SrAndroidCanvas::Restore() {
                 "()V", &(SrAndroidCanvas::g_SVGRender_restore_));
   if (j_restore) {
     jni_env_->CallVoidMethod(j_render_, j_restore);
+  }
+}
+
+void SrAndroidCanvas::SaveLayer() {
+  JavaLocalRef<jclass> j_render_clazz = GetClass(jni_env_, j_render_);
+  if (j_render_clazz.IsNull()) {
+    return;
+  }
+  jmethodID j_save_layer =
+      GetMethod(jni_env_, j_render_clazz.Get(), INSTANCE_METHOD, "saveLayer",
+                "()V", &(SrAndroidCanvas::g_SVGRender_saveLayer_));
+  if (j_save_layer) {
+    jni_env_->CallVoidMethod(j_render_, j_save_layer);
+  }
+}
+
+void SrAndroidCanvas::RestoreLayer() {
+  JavaLocalRef<jclass> j_render_clazz = GetClass(jni_env_, j_render_);
+  if (j_render_clazz.IsNull()) {
+    return;
+  }
+  jmethodID j_restore_layer =
+      GetMethod(jni_env_, j_render_clazz.Get(), INSTANCE_METHOD, "restoreLayer",
+                "()V", &(SrAndroidCanvas::g_SVGRender_restoreLayer_));
+  if (j_restore_layer) {
+    jni_env_->CallVoidMethod(j_render_, j_restore_layer);
+  }
+}
+
+void SrAndroidCanvas::SetBlendMode(canvas::BlendMode mode) {
+  JavaLocalRef<jclass> j_render_clazz = GetClass(jni_env_, j_render_);
+  if (j_render_clazz.IsNull()) {
+    return;
+  }
+  jmethodID j_set_blend_mode =
+      GetMethod(jni_env_, j_render_clazz.Get(), INSTANCE_METHOD, "setBlendMode",
+                "(I)V", &(SrAndroidCanvas::g_SVGRender_setBlendMode_));
+  if (j_set_blend_mode) {
+    jint v = 0;
+    switch (mode) {
+      case canvas::BlendMode::kDstIn:
+        v = 1;
+        break;
+      case canvas::BlendMode::kClear:
+        v = 2;
+        break;
+      case canvas::BlendMode::kSrcOver:
+      default:
+        v = 0;
+        break;
+    }
+    jni_env_->CallVoidMethod(j_render_, j_set_blend_mode, v);
+  }
+}
+
+void SrAndroidCanvas::BeginMaskMode(canvas::MaskType type) {
+  JavaLocalRef<jclass> j_render_clazz = GetClass(jni_env_, j_render_);
+  if (j_render_clazz.IsNull()) {
+    return;
+  }
+  jmethodID j_begin = GetMethod(jni_env_, j_render_clazz.Get(), INSTANCE_METHOD,
+                                "beginMaskMode", "(I)V",
+                                &(SrAndroidCanvas::g_SVGRender_beginMaskMode_));
+  if (j_begin) {
+    jint mask_type = 0;
+    if (type == canvas::MaskType::kAlpha) {
+      mask_type = 1;
+    }
+    jni_env_->CallVoidMethod(j_render_, j_begin, mask_type);
+  }
+}
+
+void SrAndroidCanvas::EndMaskMode() {
+  JavaLocalRef<jclass> j_render_clazz = GetClass(jni_env_, j_render_);
+  if (j_render_clazz.IsNull()) {
+    return;
+  }
+  jmethodID j_end =
+      GetMethod(jni_env_, j_render_clazz.Get(), INSTANCE_METHOD, "endMaskMode",
+                "()V", &(SrAndroidCanvas::g_SVGRender_endMaskMode_));
+  if (j_end) {
+    jni_env_->CallVoidMethod(j_render_, j_end);
   }
 }
 

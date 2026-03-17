@@ -4,8 +4,10 @@
 
 #include "parser/SrDOMParser.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace serval {
 namespace svg {
@@ -16,6 +18,116 @@ static char* dupStr(const char src[], size_t srcLen) {
   memcpy(dst, src, srcLen);
   dst[srcLen] = '\0';
   return dst;
+}
+
+static std::string DecodeXmlEntities(const char* src, size_t len) {
+  std::string out;
+  out.reserve(len);
+  size_t i = 0;
+  while (i < len) {
+    char c = src[i];
+    if (c != '&') {
+      out.push_back(c);
+      i++;
+      continue;
+    }
+
+    size_t semi = i + 1;
+    while (semi < len && src[semi] != ';' && semi - i <= 16) {
+      semi++;
+    }
+    if (semi >= len || src[semi] != ';') {
+      out.push_back('&');
+      i++;
+      continue;
+    }
+
+    const size_t entity_start = i + 1;
+    const size_t entity_len = semi - entity_start;
+    if (entity_len == 0) {
+      out.push_back('&');
+      i++;
+      continue;
+    }
+
+    auto append_utf8 = [&](uint32_t codepoint) {
+      if (codepoint <= 0x7F) {
+        out.push_back(static_cast<char>(codepoint));
+      } else if (codepoint <= 0x7FF) {
+        out.push_back(static_cast<char>(0xC0 | (codepoint >> 6)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+      } else if (codepoint <= 0xFFFF) {
+        out.push_back(static_cast<char>(0xE0 | (codepoint >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+      } else if (codepoint <= 0x10FFFF) {
+        out.push_back(static_cast<char>(0xF0 | (codepoint >> 18)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+      }
+    };
+
+    bool decoded = false;
+    const char* e = src + entity_start;
+    if (entity_len == 3 && std::memcmp(e, "amp", 3) == 0) {
+      out.push_back('&');
+      decoded = true;
+    } else if (entity_len == 2 && std::memcmp(e, "lt", 2) == 0) {
+      out.push_back('<');
+      decoded = true;
+    } else if (entity_len == 2 && std::memcmp(e, "gt", 2) == 0) {
+      out.push_back('>');
+      decoded = true;
+    } else if (entity_len == 4 && std::memcmp(e, "quot", 4) == 0) {
+      out.push_back('"');
+      decoded = true;
+    } else if (entity_len == 4 && std::memcmp(e, "apos", 4) == 0) {
+      out.push_back('\'');
+      decoded = true;
+    } else if (entity_len >= 2 && e[0] == '#') {
+      uint32_t codepoint = 0;
+      bool ok = false;
+      if (entity_len >= 3 && (e[1] == 'x' || e[1] == 'X')) {
+        ok = true;
+        for (size_t k = 2; k < entity_len; k++) {
+          const char ch = e[k];
+          uint32_t v = 0;
+          if (ch >= '0' && ch <= '9') {
+            v = static_cast<uint32_t>(ch - '0');
+          } else if (ch >= 'a' && ch <= 'f') {
+            v = static_cast<uint32_t>(ch - 'a' + 10);
+          } else if (ch >= 'A' && ch <= 'F') {
+            v = static_cast<uint32_t>(ch - 'A' + 10);
+          } else {
+            ok = false;
+            break;
+          }
+          codepoint = (codepoint << 4) + v;
+        }
+      } else {
+        ok = true;
+        for (size_t k = 1; k < entity_len; k++) {
+          const char ch = e[k];
+          if (ch < '0' || ch > '9') {
+            ok = false;
+            break;
+          }
+          codepoint = codepoint * 10 + static_cast<uint32_t>(ch - '0');
+        }
+      }
+      if (ok && codepoint <= 0x10FFFF) {
+        append_utf8(codepoint);
+        decoded = true;
+      }
+    }
+
+    if (!decoded) {
+      out.append(src + i, semi - i + 1);
+    }
+    i = semi + 1;
+  }
+  return out;
 }
 
 SrDOMParser::SrDOMParser() : SrXMLParser(&fParserError) {
@@ -62,8 +174,10 @@ bool SrDOMParser::OnStartElement(const char elem[]) {
 }
 
 bool SrDOMParser::OnAddAttribute(const char name[], const char value[]) {
-  fAttrs.emplace_back(SrDOM::Attr{.fName = dupStr(name, strlen(name)),
-                                  .fValue = dupStr(value, strlen(value))});
+  std::string decoded = DecodeXmlEntities(value, strlen(value));
+  fAttrs.emplace_back(
+      SrDOM::Attr{.fName = dupStr(name, strlen(name)),
+                  .fValue = dupStr(decoded.c_str(), decoded.size())});
   return false;
 }
 
@@ -91,7 +205,8 @@ bool SrDOMParser::OnText(const char text[], int len) {
   if (len == 0) {
     return false;
   }
-  this->startCommon(text, len, SrDOM::kText_Type);
+  std::string decoded = DecodeXmlEntities(text, static_cast<size_t>(len));
+  this->startCommon(decoded.c_str(), decoded.size(), SrDOM::kText_Type);
   this->SrDOMParser::OnEndElement(fElemName);
   return true;
 }

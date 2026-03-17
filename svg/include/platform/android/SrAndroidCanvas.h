@@ -33,6 +33,12 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   void SetViewBox(float x, float y, float width, float height) override;
   void Save() override;
   void Restore() override;
+  bool SupportsMaskLayer() const override { return true; }
+  void SaveLayer() override;
+  void RestoreLayer() override;
+  void SetBlendMode(canvas::BlendMode mode) override;
+  void BeginMaskMode(canvas::MaskType type) override;
+  void EndMaskMode() override;
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
   void DrawRect(const char* id, float x, float y, float rx, float ry,
@@ -98,6 +104,11 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRender_setViewBox_;
   static intptr_t g_SVGRender_save_;
   static intptr_t g_SVGRender_restore_;
+  static intptr_t g_SVGRender_saveLayer_;
+  static intptr_t g_SVGRender_restoreLayer_;
+  static intptr_t g_SVGRender_setBlendMode_;
+  static intptr_t g_SVGRender_beginMaskMode_;
+  static intptr_t g_SVGRender_endMaskMode_;
   static intptr_t g_SVGRender_translate_;
   static intptr_t g_SVGRender_transform_;
   static intptr_t g_SVGRender_draw_;

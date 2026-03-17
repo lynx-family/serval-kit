@@ -108,9 +108,15 @@ std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(
   std::unique_ptr<canvas::Path> path = path_factory->CreateMutable();
   for (SrSVGNodeBase* child : children_) {
     if (child) {
-      path_factory->Op(path.get(), child->AsPath(path_factory, context).get(),
-                       canvas::OP::UNION);
+      std::unique_ptr<canvas::Path> child_path =
+          child->AsPath(path_factory, context);
+      if (child_path) {
+        path_factory->Op(path.get(), child_path.get(), canvas::OP::UNION);
+      }
     }
+  }
+  if (path) {
+    path->Transform(transform_);
   }
   return path;
 }
