@@ -4,10 +4,9 @@
 
 #include "markdown/parser/embed/markdown_inline_parser.h"
 
-#include "base/include/string/string_number_convert.h"
-#include "base/include/string/string_utils.h"
 #include "markdown/parser/embed/markdown_inline_node.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_string_utils.h"
 namespace serval::markdown {
 enum class TokenType : uint8_t {
   kRawText = 0,
@@ -428,17 +427,17 @@ class MarkdownInlineSyntaxParserImpl {
       if (raw[2] == 'x') {
         // &#x000000;
         const std::string hex_string(raw.data() + 3, raw.length() - 4);
-        success = lynx::base::StringToInt(hex_string, &unicode, 16);
+        success = StringToInt(hex_string, &unicode, 16);
       } else {
         // &#000000;
         const std::string decimal_string(raw.data() + 2, raw.length() - 3);
-        success = lynx::base::StringToInt(decimal_string, &unicode, 10);
+        success = StringToInt(decimal_string, &unicode, 10);
       }
       if (!success || unicode > 0x10ffff || unicode < 0) {
         return "";
       }
       char32_t unicode_char = unicode;
-      return lynx::base::U32StringToU8({&unicode_char, 1});
+      return U32StringToU8({&unicode_char, 1});
     }
     return std::string(DecodeEntity(raw.substr(1, raw.length() - 2)));
   }
@@ -871,13 +870,11 @@ class MarkdownInlineSyntaxParserImpl {
     auto split = SplitBySpaceAndQuote(extra);
     for (auto& str : split) {
       if (str.substr(0, 6) == "width=") {
-        if (!lynx::base::StringToFloat(std::string(str.substr(6)),
-                                       result.width_)) {
+        if (!StringToFloat(std::string(str.substr(6)), result.width_)) {
           result.width_ = -1;
         }
       } else if (str.substr(0, 7) == "height=") {
-        if (!lynx::base::StringToFloat(std::string(str.substr(7)),
-                                       result.height_)) {
+        if (!StringToFloat(std::string(str.substr(7)), result.height_)) {
           result.height_ = -1;
         }
       } else {

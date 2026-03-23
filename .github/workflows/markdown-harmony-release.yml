@@ -1,4 +1,4 @@
-name: markdown release
+name: markdown harmony release
 
 on:
   release:
@@ -36,79 +36,6 @@ jobs:
             exit 1
           fi
 
-  release-android:
-    name: Release Android
-    needs: get-version
-    runs-on: lynx-ubuntu-22.04-large
-    steps:
-      - uses: actions/checkout@v3
-      - name: Python Setup
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - name: Setup Java SDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11
-          distribution: "zulu"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 9862592
-
-      - name: Install CMake
-        run: echo "y" | sdkmanager --install "cmake;3.18.1"
-
-      - name: Sync Common Dependencies
-        uses: ./.github/actions/sync-deps
-
-      - name: Build AAR
-        working-directory: markdown/platform/android/serval_markdown
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease
-          ./gradlew publish \
-          -Pversion=${{ needs.get-version.outputs.version }} \
-          -Psigning.keyId=${{ secrets.SIGNING_KEY_ID }} \
-          -Psigning.password=${{ secrets.SIGNING_PASSWORD }} \
-          -Psigning.secretKey=${{ secrets.SIGNING_SECRET_KEY }}
-          ./gradlew zipArtifacts -Pversion=${{ needs.get-version.outputs.version }} getArtifactList
-          pushd build/
-          artifact_list=$(<artifact-list)
-          echo "artifact_list=$artifact_list" >> $GITHUB_OUTPUT;
-          popd
-        id: build_artifact
-
-      - name: Publish artifact to maven
-        uses: lynx-infra/maven-publish-action@8f547cf037360752cc9f195d04c2d8f327fee434
-        with:
-          portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
-          artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
-
-  release-ios:
-    name: Release iOS
-    needs: get-version
-    runs-on: lynx-darwin-14-medium
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Sync Common Dependencies
-        uses: ./.github/actions/sync-deps
-
-      - name: Install Cocoapods Generate
-        run: |
-          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-          bundle install --path .bundle
-      - name: Publish to CocoaPods Repo
-        env:
-          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
-          POD_VERSION: ${{ needs.get-version.outputs.version }}
-          SERVAL_KIT_COMMIT_ID: ${{ github.sha }}
-        run: |-
-          export LANG=en_US.UTF-8
-          bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push markdown/ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
-
   release-harmony:
     name: Release Harmony
     needs: get-version
@@ -137,12 +64,6 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Get latest tag
-        id: get-latest-tag
-        uses: ./.github/actions/get-latest-tag
-        with:
-          current-tag: ${{ needs.get-version.outputs.version }}
-
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
 
@@ -157,7 +78,8 @@ jobs:
         shell: bash
         working-directory: .
         run: |
-          LATEST_TAG="${{ steps.get-latest-tag.outputs.latest-tag }}"
+          CURRENT_TAG="${{ needs.get-version.outputs.version }}"
+          LATEST_TAG=$(git describe --tags --exclude="$CURRENT_TAG" --abbrev=0 2>/dev/null || true)
           COMMIT_RANGE=""
           if [ -n "$LATEST_TAG" ]; then
             COMMIT_ID=$(git rev-list -n 1 "$LATEST_TAG")
@@ -185,6 +107,7 @@ jobs:
         shell: bash
         working-directory: .
         run: |
+          source tools/envsetup.sh
           export PUBLISH_KEY_PASSPHRASE=${{ secrets.HARMONY_PUBLISH_KEY_PASSPHRASE }}
           cat << EOF > publish_key
           ${{ secrets.HARMONY_PUBLISH_KEY }}

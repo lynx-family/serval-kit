@@ -6,7 +6,6 @@
 
 #include <limits>
 
-#include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/element/markdown_run_delegates.h"
@@ -19,6 +18,7 @@
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_string_utils.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 extern "C" {
 #include "discount/discount_lite/markdown.h"
@@ -53,8 +53,8 @@ void MarkdownParserEmbed::Parse(const char* src, int size,
                                 float width) {
   if (document_ == nullptr)
     return;
-  markdown_start = lynx::base::UTF8IndexToCIndex(src, size, markdown_start);
-  markdown_end = lynx::base::UTF8IndexToCIndex(src, size, markdown_end);
+  markdown_start = UTF8IndexToCIndex(src, size, markdown_start);
+  markdown_end = UTF8IndexToCIndex(src, size, markdown_end);
   auto* doc = mkd_string(src, size, 0);
   doc->cb.ud = this;
   doc->cb.paragraph_start = &MarkdownParserEmbed::OnParagraphStart;
@@ -1083,8 +1083,8 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
                                                uint32_t markdown_offset) {
   std::string url(node->GetUrl());
   float max_height = -1;
-  bool is_inline_view = lynx::base::BeginsWith(url, kInlineViewSchema);
-  bool is_block_view = lynx::base::BeginsWith(url, kBlockViewSchema);
+  bool is_inline_view = BeginsWith(url, kInlineViewSchema);
+  bool is_block_view = BeginsWith(url, kBlockViewSchema);
   float indent = context_.indent_ + context_.block_style_.margin_left_ +
                  context_.block_style_.padding_left_ +
                  context_.border_style_.border_width_ * 2 +

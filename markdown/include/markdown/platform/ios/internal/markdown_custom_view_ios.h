@@ -10,7 +10,7 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
                               public MarkdownCustomViewHandle {
  public:
   explicit MarkdownCustomViewIOS(id<IMarkdownPlatformViewHandle> view);
-  ~MarkdownCustomViewIOS() override = default;
+  ~MarkdownCustomViewIOS() override;
   void AttachDrawable(std::unique_ptr<MarkdownDrawable> drawable) override;
   void RequestMeasure() override;
   void RequestAlign() override;

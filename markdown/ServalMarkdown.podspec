@@ -18,9 +18,6 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target    = "12.0"
   s.requires_arc             = true
-  s.static_framework         = true
-
-  s.dependency 'LynxTextra', '~> 0.1.1-alpha'
 
   s.public_header_files = "include/markdown/platform/ios/*.h"
   s.private_header_files = "include/markdown/platform/ios/internal/**/*.h"
@@ -41,11 +38,7 @@ Pod::Spec.new do |s|
                     "src/markdown/utils/**/*.{h,m,mm,cc}",
                     "src/markdown/view/**/*.{h,m,mm,cc}",
                     "src/markdown/platform/ios/**/*.{h,m,mm,cc}",
-                    "third_party/discount/discount_lite/*.{h,c}",
-                    "third_party/base/src/string/string_utils.cc",
-                    "third_party/base/include/string/string_utils.h",
-                    "third_party/base/src/string/string_number_convert.cc",
-                    "third_party/base/include/string/string_number_convert.h"
+                    "third_party/discount/discount_lite/*.{h,c}"
 
   s.pod_target_xcconfig = {
     "GCC_PREPROCESSOR_DEFINITIONS" => "OS_IOS=1",
@@ -54,11 +47,11 @@ Pod::Spec.new do |s|
     'CLANG_ENABLE_MODULES' => 'YES',
     'CLANG_ENABLE_OBJC_ARC' => 'YES',
     'GCC_C_LANGUAGE_STANDARD' => 'c11',
-    'HEADER_SEARCH_PATHS' => '"$(PODS_TARGET_SRCROOT)" "$(PODS_TARGET_SRCROOT)/include" "$(PODS_TARGET_SRCROOT)/third_party" "$(PODS_TARGET_SRCROOT)/third_party/lynx-textra/public"'
+    'HEADER_SEARCH_PATHS' => '"$(PODS_TARGET_SRCROOT)" "$(PODS_TARGET_SRCROOT)/include" "$(PODS_TARGET_SRCROOT)/third_party" "${PODS_ROOT}/LynxTextra/public"'
   }
 
   s.xcconfig = {
-    "USER_HEADER_SEARCH_PATHS" => '"$(PODS_TARGET_SRCROOT)/include" "$(PODS_TARGET_SRCROOT)/third_party/base" "$(PODS_TARGET_SRCROOT)/third_party/lynx-textra/public"',
+    "USER_HEADER_SEARCH_PATHS" => '"$(PODS_TARGET_SRCROOT)/include" "$(PODS_TARGET_SRCROOT)/third_party/base"  "${PODS_ROOT}/LynxTextra/public"',
     "OTHER_CPLUSPLUSFLAGS" => "-std=c++17 -stdlib=libc++"
   }
   s.libraries = 'stdc++', 'c++'

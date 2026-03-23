@@ -4,10 +4,10 @@
 
 #include "markdown/element/markdown_document.h"
 
-#include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/parser/embed/markdown_parser_embed.h"
+#include "markdown/utils/markdown_string_utils.h"
 namespace serval::markdown {
 const MarkdownLink* MarkdownDocument::GetLinkByTouchPosition(PointF point) {
   if (links_.empty()) {
@@ -196,8 +196,7 @@ void MarkdownDocument::ClearForParse() {
 void MarkdownDocument::UpdateTruncation(float width) {
   if (style_.truncation_.truncation_.truncation_type_ ==
       MarkdownTruncationType::kText) {
-    truncation_text_ =
-        lynx::base::U8StringToU16(style_.truncation_.truncation_.content_);
+    truncation_text_ = U8StringToU16(style_.truncation_.truncation_.content_);
     truncation_delegate_ = nullptr;
   } else if (style_.truncation_.truncation_.truncation_type_ ==
              MarkdownTruncationType::kView) {
@@ -466,13 +465,21 @@ Range MarkdownDocument::GetChangedRegionsWhenAnimationUpdated(int32_t from_step,
   if (from_step > to_step) {
     std::swap(from_step, to_step);
   }
-  int32_t char_count = -1;
-  for (auto& attachment : page->GetTextAttachments()) {
-    char_count = std::min(attachment->start_index_, char_count);
-    char_count = std::min(attachment->end_index_, char_count);
+  int32_t min_attachment_index = -1;
+  for (const auto& attachment : page->GetTextAttachments()) {
+    min_attachment_index =
+        std::min(attachment->start_index_, min_attachment_index);
+    min_attachment_index =
+        std::min(attachment->end_index_, min_attachment_index);
   }
-  from_step += char_count + 1;
-  from_step = std::max(0, from_step);
+  from_step += min_attachment_index + 1;
+  const int32_t page_char_count =
+      MarkdownSelection::GetPageCharCount(page.get());
+  if (page_char_count <= 0) {
+    return {-1, -1};
+  }
+  from_step = std::max(0, std::min(from_step, page_char_count - 1));
+  to_step = std::max(0, std::min(to_step, page_char_count - 1));
   auto start = GetRegionIndexByCharIndex(from_step);
   auto end = GetRegionIndexByCharIndex(to_step);
   return {.start_ = start, .end_ = end};

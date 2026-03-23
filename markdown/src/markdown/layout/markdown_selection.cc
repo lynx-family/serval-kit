@@ -6,8 +6,8 @@
 
 #include <limits>
 
-#include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_table.h"
+#include "markdown/utils/markdown_string_utils.h"
 namespace serval::markdown {
 Range MarkdownSelection::GetCharRangeByPoint(
     const serval::markdown::MarkdownPage* page, PointF point,
@@ -535,8 +535,9 @@ Range MarkdownSelection::GetSentenceOfChar(tttext::Paragraph* paragraph,
                                            int32_t char_pos) {
   auto content_string =
       paragraph->GetContentString(0, paragraph->GetCharCount());
-  auto byte_pos_start = lynx::base::UTF8IndexToCIndex(
-      content_string.data(), content_string.length(), char_pos);
+  auto byte_pos_start =
+      UTF8IndexToCIndex(content_string.data(), content_string.length(),
+                        static_cast<size_t>(char_pos));
   size_t sentence_start = std::string::npos, sentence_end = std::string::npos,
          sentence_end_length = 0;
   for (auto& patten : SentenceEndPattens()) {
@@ -595,11 +596,11 @@ Range MarkdownSelection::GetSentenceOfChar(tttext::Paragraph* paragraph,
       sentence_end_length = 0;
     }
   }
-  return {.start_ = static_cast<int32_t>(lynx::base::CIndexToUTF8Index(
+  return {.start_ = static_cast<int32_t>(CIndexToUTF8Index(
               content_string.data(), content_string.length(), sentence_start)),
-          .end_ = static_cast<int32_t>(lynx::base::CIndexToUTF8Index(
-              content_string.data(), content_string.length(),
-              sentence_end + sentence_end_length))};
+          .end_ = static_cast<int32_t>(
+              CIndexToUTF8Index(content_string.data(), content_string.length(),
+                                sentence_end + sentence_end_length))};
 }
 
 }  // namespace serval::markdown
