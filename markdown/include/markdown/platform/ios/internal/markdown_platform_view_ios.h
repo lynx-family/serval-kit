@@ -3,15 +3,24 @@
 // LICENSE file in the root directory of this source tree.
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_PLATFORM_VIEW_IOS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_PLATFORM_VIEW_IOS_H_
-#import <CoreFoundation/CoreFoundation.h>
+#import <Foundation/Foundation.h>
 
+#import "markdown/platform/ios/IMarkdownPlatformViewHandle.h"
 #include "markdown/view/markdown_platform_view.h"
 namespace lynx::markdown {
 class MarkdownPlatformViewIOS : public MarkdownPlatformView {
  public:
-  MarkdownPlatformViewIOS(UIView* view);
-  ~MarkdownPlatformViewIOS() override = default;
+  explicit MarkdownPlatformViewIOS(id<IMarkdownPlatformViewHandle> handle);
+  ~MarkdownPlatformViewIOS() override;
+  void RequestMeasure() override;
+  void RequestAlign() override;
   void RequestDraw() override;
+  void Align(float left, float top) override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
+  bool HasGestureListener() const;
+  bool DispatchTap(PointF position, GestureEventType event);
+  bool DispatchLongPress(PointF position, GestureEventType event);
+  bool DispatchPan(PointF position, PointF motion, GestureEventType event);
   PointF GetAlignedPosition() override;
   SizeF GetMeasuredSize() override;
 
@@ -19,10 +28,12 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
 
-  UIView* GetUIView() { return view_; }
+  id<IMarkdownPlatformViewHandle> GetHandle() { return handle_; }
 
  protected:
-  __weak UIView* view_;
+  MeasureResult OnMeasure(MeasureSpec spec) override;
+
+  __weak id<IMarkdownPlatformViewHandle> handle_;
 };
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_PLATFORM_VIEW_IOS_H_

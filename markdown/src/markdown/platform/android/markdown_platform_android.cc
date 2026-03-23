@@ -5,9 +5,9 @@
 #include <textra/fontmgr_collection.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
+#include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/utils/markdown_platform.h"
-#include "markdown/view/markdown_selection_view.h"
 namespace lynx {
 namespace markdown {
 class TextLayoutManager {
@@ -30,16 +30,6 @@ tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
 }
 MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
     tttext::ICanvasHelper* canvas) {
-  return nullptr;
-}
-MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
-    lynx::markdown::MarkdownViewContainerHandle* handle,
-    lynx::markdown::SelectionHandleType type, float size, float margin,
-    uint32_t color) {
-  return nullptr;
-}
-MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
-    lynx::markdown::MarkdownViewContainerHandle* handle, uint32_t color) {
   return nullptr;
 }
 }  // namespace markdown

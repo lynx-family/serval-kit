@@ -4,6 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PLATFORM_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PLATFORM_VIEW_H_
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -14,10 +15,18 @@
 namespace lynx::markdown {
 
 class MarkdownPlatformView;
+enum class SelectionHandleType : uint8_t;
 class MarkdownViewContainerHandle {
  public:
   virtual ~MarkdownViewContainerHandle() = default;
   virtual std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() = 0;
+  virtual std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() {
+    return CreateCustomSubView();
+  }
+  virtual std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
+      SelectionHandleType type, float size, float margin, uint32_t color) = 0;
+  virtual std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
+      uint32_t color) = 0;
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
   virtual RectF GetViewRectInScreen() = 0;

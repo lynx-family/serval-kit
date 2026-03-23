@@ -97,9 +97,9 @@ class MarkdownView final : public MarkdownDrawable {
   void NeedsAlign() const;
   void NeedsDraw() const;
 
-  void OnLongPress(PointF position, GestureEventType event);
-  void OnTap(PointF position, GestureEventType event);
-  void OnPan(PointF position, PointF motion, GestureEventType event);
+  bool OnLongPress(PointF position, GestureEventType event);
+  bool OnTap(PointF position, GestureEventType event);
+  bool OnPan(PointF position, PointF motion, GestureEventType event);
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
@@ -113,8 +113,6 @@ class MarkdownView final : public MarkdownDrawable {
   void UpdateExposure();
 
   void ClearForParse();
-  void RemoveInlineViews();
-  void HideAllSubviews();
   std::set<MarkdownPlatformView*> GetInlineViews();
   void RemoveUnusedViews(const std::set<MarkdownPlatformView*>& before,
                          const std::set<MarkdownPlatformView*>& after) const;
@@ -136,18 +134,18 @@ class MarkdownView final : public MarkdownDrawable {
   void SwapSelectionStartAndEnd();
   void RecalculateSelectionPosition();
   void CreateSelectionHandles();
-  void OnStartHandleMove(PointF position, PointF motion, GestureEventType type);
-  void OnEndHandleMove(PointF position, PointF motion, GestureEventType type);
-  void OnHandleMove(PointF position, PointF motion, GestureEventType type);
+  bool OnStartHandleMove(PointF position, PointF motion, GestureEventType type);
+  bool OnEndHandleMove(PointF position, PointF motion, GestureEventType type);
+  bool OnHandleMove(PointF position, PointF motion, GestureEventType type);
 
  protected:
   static MarkdownSelectionHandle* GetSelectionHandle(
-      MarkdownPlatformView* view) {
+      const std::shared_ptr<MarkdownPlatformView>& view) {
     return static_cast<MarkdownSelectionHandle*>(
         view->GetCustomViewHandle()->GetDrawable());
   }
   static MarkdownSelectionHighlight* GetSelectionHighlight(
-      MarkdownPlatformView* view) {
+      const std::shared_ptr<MarkdownPlatformView>& view) {
     return static_cast<MarkdownSelectionHighlight*>(
         view->GetCustomViewHandle()->GetDrawable());
   }
@@ -174,11 +172,11 @@ class MarkdownView final : public MarkdownDrawable {
   bool draw_end_sent_{false};
 
   struct SelectionHandles {
-    MarkdownPlatformView* left_;
-    MarkdownPlatformView* right_;
+    std::shared_ptr<MarkdownPlatformView> left_;
+    std::shared_ptr<MarkdownPlatformView> right_;
   };
   SelectionHandles selection_handles_{nullptr, nullptr};
-  MarkdownPlatformView* selection_highlight_{nullptr};
+  std::shared_ptr<MarkdownPlatformView> selection_highlight_{nullptr};
   float selection_handle_size_{17};
   float selection_handle_touch_margin_{0};
   uint32_t selection_handle_color_{0xff0000ff};

@@ -12,6 +12,7 @@
 #include "markdown/platform/android/markdown_buffer_reader.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/view/markdown_gesture.h"
 using lynx::markdown::MarkdownDrawable;
 using lynx::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
@@ -105,7 +106,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
   if (instance == 0)
     return;
   auto view = ConvertView(instance);
-  view->GetMarkdownView()->OnNextFrame(time);
+  view->OnVSync(time);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -129,7 +130,115 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberProp(
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringProp(
-    JNIEnv* env, jobject thiz, jlong instance, jint key, jstring value) {}
+    JNIEnv* env, jobject thiz, jlong instance, jint key, jstring value) {
+  if (instance == 0) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  if (value == nullptr) {
+    view->GetMarkdownView()->SetStringProp(
+        static_cast<lynx::markdown::MarkdownProps>(key), "");
+    return;
+  }
+  const auto length = env->GetStringUTFLength(value);
+  const auto* chars = env->GetStringUTFChars(value, nullptr);
+  view->GetMarkdownView()->SetStringProp(
+      static_cast<lynx::markdown::MarkdownProps>(key),
+      {chars, static_cast<size_t>(length)});
+  env->ReleaseStringUTFChars(value, chars);
+}
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueProp(
-    JNIEnv* env, jobject thiz, jlong instance, jint key, jbyteArray config) {}
+    JNIEnv* env, jobject thiz, jlong instance, jint key, jbyteArray config) {
+  if (instance == 0 || config == nullptr) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  const auto length = env->GetArrayLength(config);
+  if (length <= 0) {
+    return;
+  }
+  auto* array = env->GetByteArrayElements(config, nullptr);
+  BufferInputStream stream(reinterpret_cast<uint8_t*>(array), length);
+  MarkdownBufferReader reader(stream);
+  auto result = reader.ReadValue();
+  env->ReleaseByteArrayElements(config, array, JNI_ABORT);
+  if (result == nullptr) {
+    return;
+  }
+  const auto prop = static_cast<lynx::markdown::MarkdownProps>(key);
+  if (result->GetType() == lynx::markdown::ValueType::kArray) {
+    view->GetMarkdownView()->SetArrayProp(prop, result->AsArray());
+  } else if (result->GetType() == lynx::markdown::ValueType::kMap) {
+    view->GetMarkdownView()->SetMapProp(prop, result->AsMap());
+  }
+}
+
+lynx::markdown::GestureEventType ConvertGestureEventType(jint type) {
+  switch (type) {
+    case 1:
+      return lynx::markdown::GestureEventType::kDown;
+    case 2:
+      return lynx::markdown::GestureEventType::kMove;
+    case 3:
+      return lynx::markdown::GestureEventType::kUp;
+    case 4:
+      return lynx::markdown::GestureEventType::kCancel;
+    default:
+      return lynx::markdown::GestureEventType::kUnknown;
+  }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeDispatchTap(
+    JNIEnv* env, jobject thiz, jlong instance, jfloat x, jfloat y) {
+  if (instance == 0) {
+    return JNI_FALSE;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  return markdown_view->OnTap({x, y}, lynx::markdown::GestureEventType::kDown)
+             ? JNI_TRUE
+             : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeDispatchLongPress(
+    JNIEnv* env, jobject thiz, jlong instance, jfloat x, jfloat y) {
+  if (instance == 0) {
+    return JNI_FALSE;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  return markdown_view->OnLongPress({x, y},
+                                    lynx::markdown::GestureEventType::kDown)
+             ? JNI_TRUE
+             : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeDispatchPan(
+    JNIEnv* env, jobject thiz, jlong instance, jfloat x, jfloat y,
+    jfloat motion_x, jfloat motion_y, jint type) {
+  if (instance == 0) {
+    return JNI_FALSE;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  const auto event = ConvertGestureEventType(type);
+  return markdown_view->OnPan({x, y}, {motion_x, motion_y}, event) ? JNI_TRUE
+                                                                   : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_lynx_markdown_SelectionHandleView_nativeDispatchPanByPlatformView(
+    JNIEnv* env, jobject thiz, jlong platform_view, jfloat x, jfloat y,
+    jfloat motion_x, jfloat motion_y, jint type) {
+  auto* view = reinterpret_cast<AndroidMarkdownView*>(platform_view);
+  if (view == nullptr) {
+    return JNI_FALSE;
+  }
+  const auto event = ConvertGestureEventType(type);
+  return view->DispatchPan({x, y}, {motion_x, motion_y}, event) ? JNI_TRUE
+                                                                : JNI_FALSE;
+}

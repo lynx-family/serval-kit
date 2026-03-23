@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #import "ViewController.h"
-#import <ServalMarkdown/serval_markdown_view.h>
+#import <ServalMarkdown/ServalMarkdownView.h>
 @interface ViewController ()
 @property(nonatomic, strong) ServalMarkdownView* markdown;
 @end

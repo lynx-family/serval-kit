@@ -7,16 +7,11 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "vector"
 namespace lynx::markdown {
-enum class SelectionHandleType {
+enum class SelectionHandleType : uint8_t {
   kLeftHandle,
   kRightHandle,
 };
 class MarkdownSelectionHandle final : public MarkdownDrawable {
- public:
-  static MarkdownPlatformView* CreateView(MarkdownViewContainerHandle* parent,
-                                          SelectionHandleType type, float size,
-                                          float margin, uint32_t color);
-
  public:
   MarkdownSelectionHandle(const float size, const float margin,
                           const SelectionHandleType type, const uint32_t color)
@@ -44,10 +39,6 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
 };
 
 class MarkdownSelectionHighlight final : public MarkdownDrawable {
- public:
-  static MarkdownPlatformView* CreateView(MarkdownViewContainerHandle* parent,
-                                          uint32_t color);
-
  public:
   MarkdownSelectionHighlight() = default;
   ~MarkdownSelectionHighlight() override = default;

@@ -138,10 +138,10 @@ void HarmonyView::EnableTapEvent(bool enable, ArkUI_GesturePriority priority) {
         auto y = OH_ArkUI_PointerEvent_GetY(input_event);
         auto type = OH_ArkUI_GestureEvent_GetActionType(event);
         if (type & GESTURE_EVENT_ACTION_ACCEPT) {
-          view->tap_gesture_listener_({x, y}, GestureEventType::kDown);
+          (void)view->tap_gesture_listener_({x, y}, GestureEventType::kDown);
         }
         if (type & GESTURE_EVENT_ACTION_END) {
-          view->tap_gesture_listener_({x, y}, GestureEventType::kUp);
+          (void)view->tap_gesture_listener_({x, y}, GestureEventType::kUp);
         }
       };
       api->setGestureEventTarget(tap_,
@@ -171,10 +171,12 @@ void HarmonyView::EnableLongPressEvent(bool enable,
         auto y = OH_ArkUI_PointerEvent_GetY(input_event);
         auto type = OH_ArkUI_GestureEvent_GetActionType(event);
         if (type & GESTURE_EVENT_ACTION_ACCEPT) {
-          view->long_press_gesture_listener_({x, y}, GestureEventType::kDown);
+          (void)view->long_press_gesture_listener_({x, y},
+                                                   GestureEventType::kDown);
         }
         if (type & GESTURE_EVENT_ACTION_END) {
-          view->long_press_gesture_listener_({x, y}, GestureEventType::kUp);
+          (void)view->long_press_gesture_listener_({x, y},
+                                                   GestureEventType::kUp);
         }
       };
       api->setGestureEventTarget(long_press_,
@@ -206,15 +208,16 @@ void HarmonyView::EnablePanEvent(bool enable,
         auto oy = OH_ArkUI_PanGesture_GetOffsetY(event);
         auto type = OH_ArkUI_GestureEvent_GetActionType(event);
         if (type & GESTURE_EVENT_ACTION_ACCEPT) {
-          view->pan_gesture_listener_({x, y}, {ox, oy},
-                                      GestureEventType::kDown);
+          (void)view->pan_gesture_listener_({x, y}, {ox, oy},
+                                            GestureEventType::kDown);
         }
         if (type & GESTURE_EVENT_ACTION_UPDATE) {
-          view->pan_gesture_listener_({x, y}, {ox, oy},
-                                      GestureEventType::kMove);
+          (void)view->pan_gesture_listener_({x, y}, {ox, oy},
+                                            GestureEventType::kMove);
         }
         if (type & GESTURE_EVENT_ACTION_END) {
-          view->pan_gesture_listener_({x, y}, {ox, oy}, GestureEventType::kUp);
+          (void)view->pan_gesture_listener_({x, y}, {ox, oy},
+                                            GestureEventType::kUp);
         }
       };
       api->setGestureEventTarget(pan_,

@@ -72,6 +72,10 @@ void NativeServalMarkdownView::DetachFromNodeContent() {
   node_content_handle_ = nullptr;
 }
 RectF NativeServalMarkdownView::GetViewRectInScreen() {
+  return cached_view_rect_in_screen_;
+}
+
+RectF NativeServalMarkdownView::CalculateViewRectInScreen() {
   ArkUI_IntOffset offset;
   OH_ArkUI_NodeUtils_GetLayoutPositionInScreen(handle_, &offset);
   offset.x = -offset.x;
@@ -141,6 +145,7 @@ std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadReplacementView(
       loader_->LoadReplacementView(ud, id, max_width, max_height));
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
+  cached_view_rect_in_screen_ = CalculateViewRectInScreen();
   GetMarkdownView()->OnNextFrame(time_stamp / 1000 / 1000);
 }
 
@@ -220,6 +225,13 @@ std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateCustomSubView() {
   auto custom_view = std::make_shared<HarmonyCustomView>();
   AddChild(custom_view);
+  return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
+}
+
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateRegionSubView() {
+  auto custom_view = std::make_shared<HarmonyCustomView>();
+  InsertChild(custom_view, 0);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {

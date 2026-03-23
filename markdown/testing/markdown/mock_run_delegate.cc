@@ -25,9 +25,5 @@ void MockImage::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
     canvas->Restore();
   }
 }
-void MockInlineView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
-  static_cast<MockMarkdownCanvas*>(canvas)->DrawView(id_.c_str(), x, y,
-                                                     x + width_, y + height_);
-}
 
 }  // namespace lynx::markdown::testing

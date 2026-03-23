@@ -112,6 +112,15 @@ void AndroidServalMarkdownView::SetExposureListenerEnabled(bool enabled) {
   }
 }
 
+void AndroidServalMarkdownView::OnVSync(int64_t time) {
+  UpdateCachedViewRectInScreen();
+  auto* markdown_view = GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return;
+  }
+  markdown_view->OnNextFrame(time);
+}
+
 std::shared_ptr<lynx::markdown::MarkdownDrawable>
 AndroidServalMarkdownView::LoadImage(const char* src, float desire_width,
                                      float desire_height, float max_width,

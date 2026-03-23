@@ -5,7 +5,8 @@
 #ifndef THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_EVENT_IOS_H_
 #define THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_EVENT_IOS_H_
 #include "markdown/markdown_event_listener.h"
-#import "markdown/platform/ios/i_resource_delegate.h"
+#import "markdown/platform/ios/IMarkdownEventDelegate.h"
+#import "markdown/platform/ios/IMarkdownResourceDelegate.h"
 
 namespace lynx {
 namespace markdown {
@@ -13,30 +14,64 @@ class MarkdownEventIOS final : public MarkdownEventListener {
  public:
   MarkdownEventIOS() {}
 
-  void SetDelegate(id<IEventDelegate> delegate) { delegate_ = delegate; }
-  void OnTextOverflow(MarkdownTextOverflow overflow) {
+  void SetDelegate(id<IMarkdownEventDelegate> delegate) {
+    delegate_ = delegate;
+  }
+  void OnParseEnd() override {
     if (delegate_ != nil) {
-      NSString* type = nil;
-      if (overflow == MarkdownTextOverflow::kEllipsis) {
-        type = @"ellipsis";
-      } else {
-        type = @"clip";
-      }
-      [delegate_ dispatchCustomEvent:@"overflow" Detail:@{@"type": type}];
+      [delegate_ onParseEnd];
+    }
+  }
+  void OnTextOverflow(MarkdownTextOverflow overflow) override {
+    if (delegate_ != nil) {
+      const auto type = static_cast<ServalMarkdownTextOverflow>(overflow);
+      [delegate_ onTextOverflow:type];
     }
   }
 
-  void OnParseEnd() override {}
-  void OnDrawStart() override {}
-  void OnDrawEnd() override {}
-  void OnAnimationStep(int32_t, int32_t) override {}
-  void OnLinkClicked(const char*, const char*) override {}
-  void OnImageClicked(const char*) override {}
-  void OnSelectionChanged(int32_t, int32_t, SelectionHandleType,
-                          SelectionState) override {}
+  void OnDrawStart() override {
+    if (delegate_ != nil) {
+      [delegate_ onDrawStart];
+    }
+  }
+  void OnDrawEnd() override {
+    if (delegate_ != nil) {
+      [delegate_ onDrawEnd];
+    }
+  }
+  void OnAnimationStep(int32_t animation_step,
+                       int32_t max_animation_step) override {
+    if (delegate_ != nil) {
+      [delegate_ onAnimationStep:animation_step
+                MaxAnimationStep:max_animation_step];
+    }
+  }
+  void OnLinkClicked(const char* url, const char* content) override {
+    if (delegate_ != nil && url != nullptr && content != nullptr) {
+      [delegate_ onLinkClicked:[NSString stringWithUTF8String:url]
+                       Content:[NSString stringWithUTF8String:content]];
+    }
+  }
+  void OnImageClicked(const char* url) override {
+    if (delegate_ != nil && url != nullptr) {
+      [delegate_ onImageClicked:[NSString stringWithUTF8String:url]];
+    }
+  }
+  void OnSelectionChanged(int32_t start_index, int32_t end_index,
+                          SelectionHandleType handle,
+                          SelectionState state) override {
+    if (delegate_ != nil) {
+      [delegate_
+          onSelectionChanged:start_index
+                    EndIndex:end_index
+                      Handle:static_cast<ServalMarkdownSelectionHandleType>(
+                                 handle)
+                       State:static_cast<ServalMarkdownSelectionState>(state)];
+    }
+  }
 
  private:
-  id<IEventDelegate> delegate_{nil};
+  __weak id<IMarkdownEventDelegate> delegate_{nil};
 };
 }  // namespace markdown
 }  // namespace lynx

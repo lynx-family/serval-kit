@@ -4,21 +4,21 @@
 
 #ifndef THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
 #define THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
+#import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
+#import <UIKit/UIKit.h>
 #include <vector>
 #include "markdown/draw/markdown_canvas.h"
 #include "markdown/element/markdown_run_delegates.h"
-#include "markdown/platform/ios/internal/markdown_canvas_callback.h"
 #include "markdown/utils/markdown_definition.h"
 #import "textra/platform/ios/ios_canvas_base.h"
 #import "textra/run_delegate.h"
-
 enum class MarkdownRunDelegateType : uint8_t {
   kImage = 0,
   kView,
   kBackground,
 };
 
-class MarkdownRunDelegate : public tttext::RunDelegate {
+class MarkdownRunDelegate : public lynx::markdown::MarkdownDrawable {
  public:
   MarkdownRunDelegate(float desire_width, float desire_height,
                       MarkdownRunDelegateType type)
@@ -30,13 +30,18 @@ class MarkdownRunDelegate : public tttext::RunDelegate {
     return delegate_type_;
   };
 
-  float GetAscent() const override { return -desire_height_; }
-  float GetDescent() const override { return 0; }
-  float GetAdvance() const override { return desire_width_; }
-
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     canvas->DrawRunDelegate(this, x, y, x + GetAdvance(),
                             y + GetDescent() - GetAscent(), nullptr);
+  }
+
+ protected:
+  lynx::markdown::MeasureResult OnMeasure(
+      lynx::markdown::MeasureSpec spec) override {
+    const float width = desire_width_;
+    const float height = desire_height_;
+    const float baseline = desire_height_;
+    return {.width_ = width, .height_ = height, .baseline_ = baseline};
   }
 
  protected:
@@ -48,10 +53,10 @@ class MarkdownRunDelegate : public tttext::RunDelegate {
 class MarkdownImage : public MarkdownRunDelegate {
  public:
   MarkdownImage(UIImage* image, float desire_width, float desire_height,
-                float max_width, float max_height)
+                float max_width, float max_height, float border_radius)
       : image_(nullptr),
-        MarkdownRunDelegate(desire_width, desire_height,
-                            MarkdownRunDelegateType::kImage) {
+        border_radius_(border_radius > 0 ? border_radius : 0),
+        MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kImage) {
     if (image != nullptr && image.size.width != 0 && image.size.height != 0) {
       float img_w = image.size.width;
       float img_h = image.size.height;
@@ -86,56 +91,41 @@ class MarkdownImage : public MarkdownRunDelegate {
     }
   }
   ~MarkdownImage() override = default;
-
-  float GetAscent() const override {
-    return desire_height_ > 0 ? -desire_height_
-                              : (image_ == nullptr ? 0 : -image_.size.height);
-  }
-  float GetAdvance() const override {
-    return desire_width_ > 0 ? desire_width_
-                             : (image_ == nullptr ? 0 : image_.size.width);
-  }
-
   UIImage* GetImage() const { return image_; }
+  float GetBorderRadius() const { return border_radius_; }
 
  private:
   UIImage* image_;
+  float border_radius_;
 };
 
 class MarkdownInlineView : public MarkdownRunDelegate {
  public:
-  MarkdownInlineView(std::string id_selector, float desire_width,
-                     float desire_height, float baseline)
-      : id_selector_(id_selector),
-        baseline_(baseline),
-        MarkdownRunDelegate(desire_width, desire_height,
-                            MarkdownRunDelegateType::kView) {}
+  MarkdownInlineView(id<IMarkdownPlatformViewHandle> handle)
+      : MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kView),
+        handle_(handle) {}
   ~MarkdownInlineView() override = default;
+  void Align(float x, float y) override { [handle_ align:x top:y]; }
+  id<IMarkdownPlatformViewHandle> GetHandle() const { return handle_; }
 
-  std::string GetIdSelector() const { return id_selector_; }
-  void SetVerticalAlign(lynx::markdown::MarkdownVerticalAlign align,
-                        float value, float font_size) {
-    if (align == lynx::markdown::MarkdownVerticalAlign::kCenter) {
-      // temporary assume text ascent = -0.9*font_size descent = 0.3*font_size
-      // shift = (height2 + |ascent1| - descent1) / 2 - |ascent2|
-      baseline_shift_ = (desire_height_ + 0.6 * font_size) / 2 - baseline_;
-    } else if (align == lynx::markdown::MarkdownVerticalAlign::kTop) {
-      baseline_shift_ = value;
-    } else {
-      baseline_shift_ = 0;
-    }
-  }
-
-  float GetAscent() const override { return -(baseline_ + baseline_shift_); }
-
-  float GetDescent() const override {
-    return desire_height_ - (baseline_ + baseline_shift_);
+ protected:
+  lynx::markdown::MeasureResult OnMeasure(
+      lynx::markdown::MeasureSpec spec) override {
+    auto result = [handle_
+        measureByWidth:spec.width_
+             WidthMode:static_cast<ServalMarkdownLayoutMode>(spec.width_mode_)
+                Height:spec.height_
+            HeightMode:static_cast<ServalMarkdownLayoutMode>(
+                           spec.height_mode_)];
+    return {
+        result.width,
+        result.height,
+        result.baseline,
+    };
   }
 
  private:
-  std::string id_selector_;
-  float baseline_{0};
-  float baseline_shift_{0};
+  id<IMarkdownPlatformViewHandle> handle_;
 };
 
 class MarkdownCanvasIOS : public IOSCanvasBase,
@@ -143,10 +133,6 @@ class MarkdownCanvasIOS : public IOSCanvasBase,
  public:
   explicit MarkdownCanvasIOS(CGContextRef context);
   ~MarkdownCanvasIOS() override = default;
-
-  void SetCallback(id<MarkdownCanvasCallback> callback) {
-    callback_ = callback;
-  }
 
  public:
   void Save() override;
@@ -171,7 +157,6 @@ class MarkdownCanvasIOS : public IOSCanvasBase,
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter);
 
  private:
-  id<MarkdownCanvasCallback> callback_{nil};
   std::vector<lynx::markdown::PointF> translate_stack_;
   lynx::markdown::PointF translate_point_;
 };

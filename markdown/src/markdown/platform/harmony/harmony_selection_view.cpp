@@ -4,28 +4,30 @@
 #include <memory>
 #include <utility>
 
-#include "markdown/platform/harmony/internal/harmony_view.h"
+#include "markdown/platform/harmony/serval_markdown_view.h"
 #include "markdown/view/markdown_selection_view.h"
 
 namespace lynx::markdown {
-MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
-    MarkdownViewContainerHandle* parent, const uint32_t color) {
-  const auto view = parent->CreateCustomSubView();
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateSelectionHighlightSubView(
+    const uint32_t color) {
+  const auto view = CreateCustomSubView();
   auto highlight = std::make_unique<MarkdownSelectionHighlight>();
   highlight->SetColor(color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
-  return view.get();
+  return view;
 }
-MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
-    MarkdownViewContainerHandle* parent, SelectionHandleType type, float size,
-    float margin, uint32_t color) {
-  const auto view = parent->CreateCustomSubView();
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
+                                                       float size, float margin,
+                                                       uint32_t color) {
+  const auto view = CreateCustomSubView();
   auto selection_handle =
       std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   auto harmony_view = static_cast<HarmonyView*>(view.get());
   harmony_view->EnablePanEvent(true, GESTURE_DIRECTION_ALL, PRIORITY);
   harmony_view->SetClipByParent(false);
-  return view.get();
+  return view;
 }
 }  // namespace lynx::markdown

@@ -77,6 +77,7 @@ rapidjson::Value MockMarkdownCanvas::MakeFont(uint32_t id) {
 std::string MockMarkdownCanvas::GetResult() const {
   rapidjson::StringBuffer s;
   rapidjson::PrettyWriter writer(s);
+  writer.SetIndent(' ', 2);
   result_.Accept(writer);
   return s.GetString();
 }
@@ -194,7 +195,6 @@ void MockMarkdownCanvas::DrawImage(const char* src, float left, float top,
 }
 void MockMarkdownCanvas::DrawView(const char* src, float left, float top,
                                   float right, float bottom) {
-  document_->GetInlineViewOrigin(src);
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "view", result_.GetAllocator());
@@ -231,9 +231,9 @@ void MockMarkdownCanvas::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
                                             MarkdownPath* path,
                                             tttext::Painter* painter) {
   ClipPath(path);
-  auto type = static_cast<MockDelegate*>(run_delegate)->type_;
-  if (type == MockDelegateType::kGradient) {
-    auto gradient = static_cast<MockGradient*>(run_delegate);
+  const auto* delegate = dynamic_cast<const MockDelegate*>(run_delegate);
+  if (delegate != nullptr && delegate->type_ == MockDelegateType::kGradient) {
+    const auto* gradient = static_cast<const MockGradient*>(delegate);
     rapidjson::Value op;
     op.SetObject();
     op.AddMember("op", "gradient", result_.GetAllocator());

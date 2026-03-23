@@ -4,10 +4,14 @@
 package com.lynx.markdown;
 
 import android.content.Context;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.view.Choreographer;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.Keep;
 import java.io.IOException;
@@ -20,6 +24,10 @@ public class ServalMarkdownView extends CustomDrawView {
   protected IResourceLoader mLoader = null;
   protected IMarkdownEventListener mEventListener = null;
   protected IMarkdownExposureListener mExposureListener = null;
+  private final GestureDetector mGestureDetector;
+  private float mDownX = 0;
+  private float mDownY = 0;
+
   public ServalMarkdownView(Context context) {
     super(context);
     Markdown.ensureInitialized();
@@ -27,6 +35,37 @@ public class ServalMarkdownView extends CustomDrawView {
     mResourceManager = new MarkdownResourceManager();
     updateDisplayMetrics();
     initialVSync();
+    setClipChildren(false);
+    setClipToPadding(false);
+    setClickable(true);
+    setLongClickable(true);
+    mGestureDetector = new GestureDetector(
+        context, new GestureDetector.SimpleOnGestureListener() {
+          @Override
+          public boolean onDown(MotionEvent e) {
+            return true;
+          }
+
+          @Override
+          public void onLongPress(MotionEvent e) {
+            if (mInstance == 0) {
+              return;
+            }
+            boolean consumed =
+                nativeDispatchLongPress(mInstance, e.getX(), e.getY());
+            if (consumed) {
+              disallowParentIntercept(true);
+            }
+          }
+
+          @Override
+          public boolean onSingleTapUp(MotionEvent e) {
+            if (mInstance == 0) {
+              return false;
+            }
+            return nativeDispatchTap(mInstance, e.getX(), e.getY());
+          }
+        });
   }
   public void destroy() {
     if (mInstance != 0) {
@@ -47,11 +86,45 @@ public class ServalMarkdownView extends CustomDrawView {
   protected CustomDrawView createCustomView() {
     CustomDrawView view = new CustomDrawView(getContext());
     view.mResourceManager = mResourceManager;
+    addView(view);
+    return view;
+  }
+  protected CustomDrawView createRegionView() {
+    CustomDrawView view = new CustomDrawView(getContext());
+    view.mResourceManager = mResourceManager;
+    addView(view, 0);
+    return view;
+  }
+  protected SelectionHandleView createSelectionHandleView(
+      long nativePlatformView) {
+    SelectionHandleView view =
+        new SelectionHandleView(getContext(), nativePlatformView);
+    view.mResourceManager = mResourceManager;
+    addView(view);
     return view;
   }
   protected void removeSubView(View view) { removeView(view); }
   protected void removeAllSubviews() { removeAllViews(); }
-  protected float[] getRectInScreen() { return null; }
+  protected long getVisibleVerticalRangeInScreen() {
+    if (getWidth() <= 0 || getHeight() <= 0) {
+      return MarkdownValuePack.packIntPair(0, 0);
+    }
+
+    Rect globalVisible = new Rect();
+    Point globalOffset = new Point();
+    if (!getGlobalVisibleRect(globalVisible, globalOffset)) {
+      return MarkdownValuePack.packIntPair(0, 0);
+    }
+
+    int top = globalVisible.top - globalOffset.y;
+    int bottom = globalVisible.bottom - globalOffset.y;
+    top = Math.max(0, top);
+    bottom = Math.min(getHeight(), bottom);
+    if (bottom <= top) {
+      return MarkdownValuePack.packIntPair(0, 0);
+    }
+    return MarkdownValuePack.packIntPair(top, bottom);
+  }
 
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
@@ -119,6 +192,49 @@ public class ServalMarkdownView extends CustomDrawView {
   protected void onVSync(long time) {
     nativeOnVSync(mInstance, time / 1000000);
     Choreographer.getInstance().postFrameCallback(this::onVSync);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent event) {
+    boolean handledByDetector = mGestureDetector.onTouchEvent(event);
+    if (mInstance == 0) {
+      return handledByDetector || super.onTouchEvent(event);
+    }
+    int action = event.getActionMasked();
+    float x = event.getX();
+    float y = event.getY();
+    int gestureEventType = 0;
+    if (action == MotionEvent.ACTION_DOWN) {
+      mDownX = x;
+      mDownY = y;
+      gestureEventType = 1;
+    } else if (action == MotionEvent.ACTION_MOVE) {
+      gestureEventType = 2;
+    } else if (action == MotionEvent.ACTION_UP) {
+      gestureEventType = 3;
+    } else if (action == MotionEvent.ACTION_CANCEL) {
+      gestureEventType = 4;
+    }
+
+    boolean panConsumed = false;
+    if (gestureEventType != 0) {
+      float motionX = x - mDownX;
+      float motionY = y - mDownY;
+      panConsumed = nativeDispatchPan(mInstance, x, y, motionX, motionY,
+                                      gestureEventType);
+      if (panConsumed && (gestureEventType == 1 || gestureEventType == 2)) {
+        disallowParentIntercept(true);
+      } else if (gestureEventType == 3 || gestureEventType == 4) {
+        disallowParentIntercept(false);
+      }
+    }
+    return true;
+  }
+
+  protected void disallowParentIntercept(boolean disallow) {
+    if (getParent() != null) {
+      getParent().requestDisallowInterceptTouchEvent(disallow);
+    }
   }
   protected int loadImage(String source) {
     if (mLoader == null)
@@ -203,4 +319,10 @@ public class ServalMarkdownView extends CustomDrawView {
   private native void nativeSetValueProp(long instance, int key, byte[] value);
   private native void nativeSetExposureListenerEnabled(long instance,
                                                        boolean enabled);
+  private native boolean nativeDispatchTap(long instance, float x, float y);
+  private native boolean nativeDispatchLongPress(long instance, float x,
+                                                 float y);
+  private native boolean nativeDispatchPan(long instance, float x, float y,
+                                           float motionX, float motionY,
+                                           int type);
 }

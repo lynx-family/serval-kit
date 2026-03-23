@@ -84,7 +84,7 @@ def generate_java_constants(props, script_dir):
 
 def generate_ios_enum(props, script_dir):
     # Target iOS header file path
-    ios_header_path = os.path.join(script_dir, '../include/markdown/platform/ios/serval_markdown_props.h')
+    ios_header_path = os.path.join(script_dir, '../include/markdown/platform/ios/ServalMarkdownConstants.h')
 
     # Generate ServalMarkdownProps enum content
     props_enum_body = ""
@@ -93,16 +93,16 @@ def generate_ios_enum(props, script_dir):
         enum_member = "kServalMarkdownProps" + to_pascal_case(key)
         props_enum_body += f"  {enum_member},\n"
     
-    props_enum = f"typedef enum : NSUInteger {{\n{props_enum_body}}} ServalMarkdownProps;"
+    props_enum = f"typedef NS_ENUM(NSUInteger, ServalMarkdownProps) {{\n{props_enum_body}}};"
 
     try:
         with open(ios_header_path, 'r') as f:
             header_content = f.read()
 
-        # Regex to find and replace the ServalMarkdownProps enum
-        # Matches "typedef enum : NSUInteger { ... } ServalMarkdownProps;"
-        # Uses non-greedy match for content inside braces
-        pattern = re.compile(r'typedef enum : NSUInteger\s*\{.*?\}\s*ServalMarkdownProps;', re.MULTILINE | re.DOTALL)
+        pattern = re.compile(
+            r'typedef\s+NS_ENUM\s*\(\s*NSUInteger\s*,\s*ServalMarkdownProps\s*\)\s*\{.*?\}\s*;'
+            r'|typedef\s+enum\s*:\s*NSUInteger\s*\{.*?\}\s*ServalMarkdownProps\s*;',
+            re.MULTILINE | re.DOTALL)
 
         if pattern.search(header_content):
             updated_content = pattern.sub(props_enum, header_content)

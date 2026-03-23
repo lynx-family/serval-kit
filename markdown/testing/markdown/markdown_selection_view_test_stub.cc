@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <memory>
+#include <vector>
 
 #include "markdown/view/markdown_selection_view.h"
 
@@ -45,22 +46,48 @@ class StubPlatformView : public MarkdownPlatformView {
   PointF align_position_{};
 };
 
-MarkdownPlatformView* MarkdownSelectionHandle::CreateView(
-    MarkdownViewContainerHandle* parent, SelectionHandleType type, float size,
-    float margin, uint32_t color) {
-  auto* view = new StubPlatformView();
-  view->GetCustomViewHandle()->AttachDrawable(
-      std::make_unique<MarkdownSelectionHandle>(size, margin, type, color));
-  return view;
-}
+class StubViewContainerHandle : public MarkdownViewContainerHandle {
+ public:
+  std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override {
+    auto view = std::make_shared<StubPlatformView>();
+    subviews_.push_back(view);
+    return view;
+  }
 
-MarkdownPlatformView* MarkdownSelectionHighlight::CreateView(
-    MarkdownViewContainerHandle* parent, uint32_t color) {
-  auto* view = new StubPlatformView();
-  auto drawable = std::make_unique<MarkdownSelectionHighlight>();
-  drawable->SetColor(color);
-  view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
-  return view;
-}
+  std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
+      SelectionHandleType type, float size, float margin,
+      uint32_t color) override {
+    const auto view = CreateCustomSubView();
+    auto drawable =
+        std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+    view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+    return view;
+  }
+
+  std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
+      uint32_t color) override {
+    const auto view = CreateCustomSubView();
+    auto drawable = std::make_unique<MarkdownSelectionHighlight>();
+    drawable->SetColor(color);
+    view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+    return view;
+  }
+
+  void RemoveSubView(MarkdownPlatformView* subview) override {
+    for (auto iter = subviews_.begin(); iter != subviews_.end(); ++iter) {
+      if (iter->get() == subview) {
+        subviews_.erase(iter);
+        return;
+      }
+    }
+  }
+
+  void RemoveAllSubViews() override { subviews_.clear(); }
+
+  RectF GetViewRectInScreen() override { return {}; }
+
+ private:
+  std::vector<std::shared_ptr<MarkdownPlatformView>> subviews_;
+};
 
 }  // namespace lynx::markdown

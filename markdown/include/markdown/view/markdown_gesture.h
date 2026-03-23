@@ -16,10 +16,10 @@ enum class GestureEventType : uint8_t {
   kCancel = 4,
 };
 using TapGestureListener =
-    std::function<void(PointF position, GestureEventType event)>;
+    std::function<bool(PointF position, GestureEventType event)>;
 using LongPressGestureListener =
-    std::function<void(PointF position, GestureEventType event)>;
+    std::function<bool(PointF position, GestureEventType event)>;
 using PanGestureListener =
-    std::function<void(PointF position, PointF motion, GestureEventType event)>;
+    std::function<bool(PointF position, PointF motion, GestureEventType event)>;
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_GESTURE_H_

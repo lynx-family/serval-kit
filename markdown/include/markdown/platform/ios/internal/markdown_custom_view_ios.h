@@ -4,15 +4,14 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_
 #include "markdown/platform/ios/internal/markdown_platform_view_ios.h"
-#include "markdown/platform/ios/serval_markdown_view.h"
-@class MarkdownCustomViewImpl;
 
 namespace lynx::markdown {
 class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
                               public MarkdownCustomViewHandle {
  public:
-  MarkdownCustomViewIOS(MarkdownCustomViewImpl* view);
+  explicit MarkdownCustomViewIOS(id<IMarkdownPlatformViewHandle> view);
   ~MarkdownCustomViewIOS() override = default;
+  void AttachDrawable(std::unique_ptr<MarkdownDrawable> drawable) override;
   void RequestMeasure() override;
   void RequestAlign() override;
   void Align(float left, float top) override;
@@ -23,12 +22,4 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
   MeasureResult OnMeasure(MeasureSpec spec) override;
 };
 }  // namespace lynx::markdown
-
-@interface MarkdownCustomViewImpl (CPP)
-@property(nonatomic, assign)
-    lynx::markdown::MarkdownCustomViewIOS* markdownViewHandle;
-- (std::shared_ptr<lynx::markdown::MarkdownPlatformView>)
-    markdownViewSharedHandle;
-- (void)initHandle;
-@end
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_

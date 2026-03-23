@@ -4,6 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_
+#include <cstdint>
 #include <memory>
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
@@ -25,6 +26,7 @@ class AndroidServalMarkdownView
   std::shared_ptr<AndroidMarkdownView> LoadInlineView(const char* id);
   int64_t LoadFont(const char* family, int32_t weight, int32_t style);
   void SetExposureListenerEnabled(bool enabled);
+  void OnVSync(int64_t time);
 
  public:
   std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadImage(

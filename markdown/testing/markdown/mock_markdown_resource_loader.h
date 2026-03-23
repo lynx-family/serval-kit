@@ -10,6 +10,7 @@
 
 #include "base/include/string/string_utils.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "testing/markdown/mock_markdown_platform_view.h"
 #include "testing/markdown/mock_run_delegate.h"
 namespace lynx {
 namespace markdown {
@@ -17,6 +18,8 @@ namespace testing {
 
 class MockMarkdownResourceLoader : public MarkdownResourceLoader {
  public:
+  void SetMainView(MockMarkdownMainView* main_view) { main_view_ = main_view; }
+
   std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
                                               float desire_width,
                                               float desire_height,
@@ -31,6 +34,11 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
   std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
                                                    float max_width,
                                                    float max_height) override {
+    if (main_view_ != nullptr) {
+      const auto view =
+          main_view_->CreateInlineSubView(id_selector, max_width, max_height);
+      return std::static_pointer_cast<MarkdownDrawable>(view);
+    }
     return std::make_shared<MockInlineView>(id_selector, max_width, max_height);
   }
   std::shared_ptr<MarkdownDrawable> LoadReplacementView(
@@ -59,6 +67,7 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
 
   std::unordered_map<std::string, size_t> font_cache_;
   std::unordered_map<size_t, std::string> family_cache_;
+  MockMarkdownMainView* main_view_{nullptr};
 };
 }  // namespace testing
 }  // namespace markdown

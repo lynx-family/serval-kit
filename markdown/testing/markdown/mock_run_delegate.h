@@ -57,26 +57,6 @@ class MockImage : public MockDelegate {
     return {.width_ = width_, .height_ = height_, .baseline_ = height_};
   }
 };
-class MockInlineView : public MockDelegate {
- public:
-  MockInlineView(const char* id_selector, float max_width, float max_height)
-      : MockDelegate(MockDelegateType::kInlineView),
-        id_(id_selector),
-        width_(max_width * 0.2),
-        height_(30) {}
-  ~MockInlineView() override = default;
-
-  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-
-  std::string id_;
-  float width_;
-  float height_;
-
- protected:
-  MeasureResult OnMeasure(MeasureSpec spec) override {
-    return {.width_ = width_, .height_ = height_, .baseline_ = height_};
-  }
-};
 class MockGradient : public MockDelegate {
  public:
   explicit MockGradient(const char* gradient)

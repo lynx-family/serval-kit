@@ -1,0 +1,2 @@
+markdown/testing/markdown/cases/**/*.json filter=lfs diff=lfs merge=lfs -text
+markdown/testing/markdown/cases/**/*.md filter=lfs diff=lfs merge=lfs -text

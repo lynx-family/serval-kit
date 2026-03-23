@@ -85,6 +85,7 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
 
   std::string GetResult() const;
   const rapidjson::Document& GetJson() const { return result_; }
+  void ResetResult() { result_.SetArray(); }
 
  private:
   rapidjson::Value MakeRect(float left, float top, float right, float bottom);

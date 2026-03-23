@@ -1,5 +1,13 @@
 ## Markdown
 
+### build ios
+
+run `markdown/tools/ios_build.sh` script to build ios example.
+
+### build android
+
+run `markdown/tools/android_build.sh` script to build android example.
+
 ### c++ unittests
 
 c++ unittests are all in `markdown/testing/markdown/` folder.

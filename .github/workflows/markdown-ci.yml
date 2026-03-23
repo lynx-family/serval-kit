@@ -28,6 +28,7 @@ jobs:
       - name: Build and Run Tests
         run: |
           source tools/envsetup.sh
+          git lfs pull
           cmake -S markdown -B markdown/build
           cmake --build markdown/build -j --target markdown_tests
           ./markdown/build/testing/markdown/markdown_tests

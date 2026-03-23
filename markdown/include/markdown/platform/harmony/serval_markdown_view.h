@@ -48,6 +48,12 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   }
   RectF GetViewRectInScreen() override;
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
+  std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
+  std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
+      SelectionHandleType type, float size, float margin,
+      uint32_t color) override;
+  std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
+      uint32_t color) override;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   // end
   void* LoadFont(const char* family, MarkdownFontWeight wieght) override;
@@ -72,6 +78,7 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   }
 
  protected:
+  RectF CalculateViewRectInScreen();
   std::shared_ptr<MarkdownPlatformView> InsertEtsView(ArkUI_NodeHandle handle);
 
   static void UpdateDisplayMetrics();
@@ -82,6 +89,7 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   std::unordered_map<ArkUI_NodeHandle, std::shared_ptr<MarkdownPlatformView>>
       view_cache_;
   std::unordered_map<MarkdownPlatformView*, ArkUI_NodeHandle> handle_cache_;
+  RectF cached_view_rect_in_screen_{};
 };
 }  // namespace lynx::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_

@@ -15,15 +15,16 @@
 namespace lynx::markdown {
 MarkdownView::MarkdownView(MarkdownPlatformView* view)
     : view_(view), handle_(view->GetViewContainerHandle()) {
+  renderer_.SetViewContainerHandle(handle_);
   view_->SetTapListener([this](PointF position, GestureEventType event) {
-    OnTap(position, event);
+    return OnTap(position, event);
   });
   view_->SetLongPressListener([this](PointF position, GestureEventType event) {
-    OnLongPress(position, event);
+    return OnLongPress(position, event);
   });
   view_->SetPanGestureListener(
       [this](PointF position, PointF motion, GestureEventType event) {
-        OnPan(position, motion, event);
+        return OnPan(position, motion, event);
       });
 }
 MarkdownView::~MarkdownView() = default;
@@ -151,28 +152,28 @@ void MarkdownView::SetSelectionHighlightColor(uint32_t color) {
   }
 }
 void MarkdownView::CreateSelectionHandles() {
-  if (selection_highlight_ != nullptr) {
+  if (selection_highlight_ != nullptr || handle_ == nullptr) {
     return;
   }
-  selection_highlight_ = MarkdownSelectionHighlight::CreateView(
-      handle_, selection_highlight_color_);
+  selection_highlight_ =
+      handle_->CreateSelectionHighlightSubView(selection_highlight_color_);
   selection_highlight_->SetVisibility(false);
-  selection_handles_.left_ = MarkdownSelectionHandle::CreateView(
-      handle_, SelectionHandleType::kLeftHandle, selection_handle_size_,
+  selection_handles_.left_ = handle_->CreateSelectionHandleSubView(
+      SelectionHandleType::kLeftHandle, selection_handle_size_,
       selection_handle_touch_margin_, selection_handle_color_);
   selection_handles_.left_->Measure(MeasureSpec{});
   selection_handles_.left_->SetPanGestureListener(
       [this](PointF position, PointF motion, GestureEventType event) {
-        OnStartHandleMove(position, motion, event);
+        return OnStartHandleMove(position, motion, event);
       });
   selection_handles_.left_->SetVisibility(false);
-  selection_handles_.right_ = MarkdownSelectionHandle::CreateView(
-      handle_, SelectionHandleType::kRightHandle, selection_handle_size_,
+  selection_handles_.right_ = handle_->CreateSelectionHandleSubView(
+      SelectionHandleType::kRightHandle, selection_handle_size_,
       selection_handle_touch_margin_, selection_handle_color_);
   selection_handles_.right_->Measure(MeasureSpec{});
   selection_handles_.right_->SetPanGestureListener(
       [this](PointF position, PointF motion, GestureEventType event) {
-        OnEndHandleMove(position, motion, event);
+        return OnEndHandleMove(position, motion, event);
       });
   selection_handles_.right_->SetVisibility(false);
 }
@@ -231,8 +232,8 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
     document_updated_ = false;
   }
   renderer_.SetTypewriterCursor(custom_typewriter_cursor_);
-  renderer_.SetMarkdownAnimationStep(animator_.GetAnimationStep());
   renderer_.SetMarkdownAnimationType(animator_.GetAnimationType());
+  renderer_.SetMarkdownAnimationStep(animator_.GetAnimationStep());
   renderer_.Draw(canvas, left, top);
   if (animator_.GetAnimationType() == MarkdownAnimationType::kNone) {
     SendDrawEnd();
@@ -242,7 +243,6 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
     SendDrawEnd();
   }
 }
-void MarkdownView::HideAllSubviews() {}
 void MarkdownView::NeedsMeasure() {
   measurer_.NeedsMeasure();
   view_->RequestMeasure();
@@ -258,6 +258,7 @@ void MarkdownView::OnNextFrame(int64_t timestamp) {
   UpdateAnimationStep();
   UpdateTransitionHeight();
   UpdateExposure();
+  renderer_.OnNextFrame();
 }
 void MarkdownView::EnterSelection(PointF position) {
   is_in_selection_ = true;
@@ -345,21 +346,21 @@ void MarkdownView::UpdateSelectionViews() const {
   GetSelectionHighlight(selection_highlight_)
       ->SetRects(selection_highlight_rects_);
   GetSelectionHighlight(selection_highlight_)
-      ->UpdateViewRect(selection_highlight_);
+      ->UpdateViewRect(selection_highlight_.get());
   selection_highlight_->RequestMeasure();
 
   const auto rect_start = selection_highlight_rects_.front();
   auto* handle_start = GetSelectionHandle(selection_handles_.left_);
   handle_start->SetTextHeight(rect_start.GetHeight());
   handle_start->UpdateViewRect({rect_start.GetLeft(), rect_start.GetBottom()},
-                               selection_handles_.left_);
+                               selection_handles_.left_.get());
   selection_highlight_->RequestMeasure();
 
   const auto& rect_end = selection_highlight_rects_.back();
   auto* handle_end = GetSelectionHandle(selection_handles_.right_);
   handle_end->SetTextHeight(selection_highlight_rects_.back().GetHeight());
   handle_end->UpdateViewRect({rect_end.GetRight(), rect_end.GetBottom()},
-                             selection_handles_.right_);
+                             selection_handles_.right_.get());
   selection_highlight_->RequestMeasure();
 }
 
@@ -507,23 +508,6 @@ void MarkdownView::RemoveUnusedViews(
                       std::inserter(diff, diff.begin()));
   for (const auto& view : diff) {
     handle_->RemoveSubView(view);
-  }
-}
-
-void MarkdownView::RemoveInlineViews() {
-  if (document_ == nullptr) {
-    return;
-  }
-  for (auto& image : document_->GetImages()) {
-    if (image.image_ != nullptr) {
-      handle_->RemoveSubView(static_cast<MarkdownPlatformView*>(image.image_));
-    }
-  }
-  for (auto& inline_view : document_->GetInlineViews()) {
-    if (inline_view.view_ != nullptr) {
-      handle_->RemoveSubView(
-          static_cast<MarkdownPlatformView*>(inline_view.view_));
-    }
   }
 }
 
@@ -689,43 +673,50 @@ void MarkdownView::SendSelectionChanged(SelectionState state) const {
   }
 }
 
-void MarkdownView::OnTap(PointF position, GestureEventType event) {
+bool MarkdownView::OnTap(PointF position, GestureEventType event) {
   if (event == GestureEventType::kDown) {
     if (is_in_selection_) {
       ExitSelection();
+      return true;
     }
     if (document_ == nullptr || event_listener_ == nullptr) {
-      return;
+      return false;
     }
     const auto* link = document_->GetLinkByTouchPosition(position);
     if (link != nullptr) {
       event_listener_->OnLinkClicked(link->url_.c_str(),
                                      link->content_.c_str());
+      return true;
     }
     const auto image = document_->GetImageByTouchPosition(position);
     if (!image.empty()) {
       event_listener_->OnImageClicked(image.c_str());
+      return true;
     }
   }
+  return false;
 }
 
-void MarkdownView::OnLongPress(PointF position, GestureEventType event) {
+bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
   if (document_ == nullptr) {
-    return;
+    return false;
   }
   if (event == GestureEventType::kDown && enable_selection_ &&
       !is_in_selection_) {
     EnterSelection(position);
+    return true;
   } else if (is_in_selection_) {
     SendSelectionChanged(SelectionState::kStop);
     RecalculateSelectionPosition();
+    return true;
   }
+  return false;
 }
 
-void MarkdownView::OnPan(PointF position, PointF motion,
+bool MarkdownView::OnPan(PointF position, PointF motion,
                          GestureEventType event) {
   if (document_ == nullptr) {
-    return;
+    return false;
   }
   auto state = MarkdownTouchState::kNone;
   if (event == GestureEventType::kDown) {
@@ -737,27 +728,38 @@ void MarkdownView::OnPan(PointF position, PointF motion,
   }
   if (state == MarkdownTouchState::kOnScroll) {
     NeedsAlign();
+    return true;
   }
+  return false;
 }
 
-void MarkdownView::OnStartHandleMove(PointF position, PointF motion,
+bool MarkdownView::OnStartHandleMove(PointF position, PointF motion,
                                      GestureEventType type) {
+  if (!is_in_selection_) {
+    return false;
+  }
   if (!is_adjust_start_pos_ && !is_adjust_end_pos_) {
     is_adjust_start_pos_ = true;
   }
-  OnHandleMove(position, motion, type);
+  return OnHandleMove(position, motion, type);
 }
 
-void MarkdownView::OnEndHandleMove(PointF position, PointF motion,
+bool MarkdownView::OnEndHandleMove(PointF position, PointF motion,
                                    GestureEventType type) {
+  if (!is_in_selection_) {
+    return false;
+  }
   if (!is_adjust_start_pos_ && !is_adjust_end_pos_) {
     is_adjust_end_pos_ = true;
   }
-  OnHandleMove(position, motion, type);
+  return OnHandleMove(position, motion, type);
 }
 
-void MarkdownView::OnHandleMove(PointF position, PointF motion,
+bool MarkdownView::OnHandleMove(PointF position, PointF motion,
                                 GestureEventType type) {
+  if (!is_in_selection_) {
+    return false;
+  }
   PointF delta = motion - handle_pan_before_motion_;
   handle_pan_before_motion_ = motion;
   if (is_adjust_start_pos_) {
@@ -771,6 +773,7 @@ void MarkdownView::OnHandleMove(PointF position, PointF motion,
     RecalculateSelectionPosition();
     SendSelectionChanged(SelectionState::kStop);
   }
+  return true;
 }
 
 void MarkdownView::SetPadding(float padding) {
