@@ -10,7 +10,6 @@ import static com.lynx.serval.svg.model.PaintRef.PAINT_IRI;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.DashPathEffect;
@@ -93,9 +92,6 @@ public class SVGRender {
     Picture picture = new Picture();
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
-    if (mPictureCanvas != null) {
-      mPictureCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-    }
     if (mSVGRenderEngineNG != null) {
       mSVGRenderEngineNG.render(this, content, viewPort.left, viewPort.top,
                                 viewPort.width(), viewPort.height());
