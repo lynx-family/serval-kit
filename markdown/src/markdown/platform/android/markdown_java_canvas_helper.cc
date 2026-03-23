@@ -24,14 +24,14 @@ void MarkdownJavaCanvasHelper::DrawRunDelegate(
   stream_->WriteFloat(radius);
 }
 
-void MarkdownJavaCanvasHelper::ClipPath(lynx::markdown::MarkdownPath* path) {
+void MarkdownJavaCanvasHelper::ClipPath(serval::markdown::MarkdownPath* path) {
   stream_->WriteInt8(kCanvasOPExtend);
   stream_->WriteInt8(static_cast<int8_t>(MarkdownCanvasOpExtend::kClipPath));
   WritePath(path);
 }
 
 void MarkdownJavaCanvasHelper::DrawMarkdownPath(
-    lynx::markdown::MarkdownPath* path, tttext::Painter* painter) {
+    serval::markdown::MarkdownPath* path, tttext::Painter* painter) {
   stream_->WriteInt8(kCanvasOPExtend);
   stream_->WriteInt8(static_cast<int8_t>(MarkdownCanvasOpExtend::kDrawPath));
   WritePath(path);
@@ -39,7 +39,7 @@ void MarkdownJavaCanvasHelper::DrawMarkdownPath(
 }
 
 void MarkdownJavaCanvasHelper::DrawDelegateOnPath(
-    tttext::RunDelegate* run_delegate, lynx::markdown::MarkdownPath* path,
+    tttext::RunDelegate* run_delegate, serval::markdown::MarkdownPath* path,
     tttext::Painter* painter) {
   stream_->WriteInt8(kCanvasOPExtend);
   stream_->WriteInt8(
@@ -68,47 +68,47 @@ void MarkdownJavaCanvasHelper::WritePaint(tttext::Painter* painter) {
   stream_->WriteInt8(flag);
 }
 
-void MarkdownJavaCanvasHelper::WritePath(lynx::markdown::MarkdownPath* path) {
+void MarkdownJavaCanvasHelper::WritePath(serval::markdown::MarkdownPath* path) {
   auto size = static_cast<int32_t>(path->path_ops_.size());
   stream_->WriteInt32(size);
   for (const auto& op : path->path_ops_) {
     stream_->WriteInt8(static_cast<int8_t>(op.op_));
     switch (op.op_) {
-      case lynx::markdown::MarkdownPath::kArc: {
+      case serval::markdown::MarkdownPath::kArc: {
         auto& arc = op.data_.arc_;
         WritePoint(arc.center_);
         stream_->WriteFloat(arc.radius_);
         stream_->WriteFloat(arc.start_angle_);
         stream_->WriteFloat(arc.end_angle_);
       } break;
-      case lynx::markdown::MarkdownPath::kOval: {
+      case serval::markdown::MarkdownPath::kOval: {
         WriteRect(op.data_.rect_);
       } break;
-      case lynx::markdown::MarkdownPath::kRect: {
+      case serval::markdown::MarkdownPath::kRect: {
         WriteRect(op.data_.rect_);
         break;
       }
-      case lynx::markdown::MarkdownPath::kRoundRect: {
+      case serval::markdown::MarkdownPath::kRoundRect: {
         WriteRect(op.data_.round_rect_.rect_);
         stream_->WriteFloat(op.data_.round_rect_.radius_x_);
         stream_->WriteFloat(op.data_.round_rect_.radius_y_);
         break;
       }
-      case lynx::markdown::MarkdownPath::kMoveTo: {
+      case serval::markdown::MarkdownPath::kMoveTo: {
         WritePoint(op.data_.point_);
         break;
       }
-      case lynx::markdown::MarkdownPath::kLineTo: {
+      case serval::markdown::MarkdownPath::kLineTo: {
         WritePoint(op.data_.point_);
         break;
       }
-      case lynx::markdown::MarkdownPath::kCubicTo: {
+      case serval::markdown::MarkdownPath::kCubicTo: {
         WritePoint(op.data_.cubic_.control_1_);
         WritePoint(op.data_.cubic_.control_2_);
         WritePoint(op.data_.cubic_.end_);
         break;
       }
-      case lynx::markdown::MarkdownPath::kQuadTo: {
+      case serval::markdown::MarkdownPath::kQuadTo: {
         WritePoint(op.data_.quad_.control_);
         WritePoint(op.data_.quad_.end_);
         break;

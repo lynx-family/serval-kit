@@ -72,14 +72,14 @@ void MarkdownCanvasIOS::DrawRunDelegate(const tttext::RunDelegate* run_delegate,
   }
 }
 
-void MarkdownCanvasIOS::ClipPath(lynx::markdown::MarkdownPath* path) {
+void MarkdownCanvasIOS::ClipPath(serval::markdown::MarkdownPath* path) {
   CGPathRef p = CreatePath(path);
   CGContextAddPath(context_, p);
   CGContextClip(context_);
   CGPathRelease(p);
 }
 
-void MarkdownCanvasIOS::DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
+void MarkdownCanvasIOS::DrawMarkdownPath(serval::markdown::MarkdownPath* path,
                                          tttext::Painter* painter) {
   CGPathRef p = CreatePath(path);
   CGContextAddPath(context_, p);
@@ -88,7 +88,7 @@ void MarkdownCanvasIOS::DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
 }
 
 void MarkdownCanvasIOS::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
-                                           lynx::markdown::MarkdownPath* path,
+                                           serval::markdown::MarkdownPath* path,
                                            tttext::Painter* painter) {
   CGContextSaveGState(context_);
   CGPathRef p = CreatePath(path);
@@ -109,31 +109,31 @@ void MarkdownCanvasIOS::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
   CGPathRelease(p);
 }
 
-void MarkdownCanvasIOS::AddPath(lynx::markdown::MarkdownPath* path,
+void MarkdownCanvasIOS::AddPath(serval::markdown::MarkdownPath* path,
                                 CGMutablePathRef result) {
   for (auto& op : path->path_ops_) {
     switch (op.op_) {
-      case lynx::markdown::MarkdownPath::PathOpType::kArc:
+      case serval::markdown::MarkdownPath::PathOpType::kArc:
         CGPathAddArc(result, NULL, op.data_.arc_.center_.x_,
                      op.data_.arc_.center_.y_, op.data_.arc_.radius_,
                      op.data_.arc_.start_angle_, op.data_.arc_.end_angle_,
                      true);
         break;
-      case lynx::markdown::MarkdownPath::PathOpType::kOval: {
+      case serval::markdown::MarkdownPath::PathOpType::kOval: {
         auto rect = op.data_.rect_;
         CGPathAddEllipseInRect(result, NULL,
                                CGRectMake(rect.GetLeft(), rect.GetTop(),
                                           rect.GetWidth(), rect.GetHeight()));
         break;
       }
-      case lynx::markdown::MarkdownPath::PathOpType::kRect: {
+      case serval::markdown::MarkdownPath::PathOpType::kRect: {
         auto rect = op.data_.rect_;
         CGPathAddRect(result, NULL,
                       CGRectMake(rect.GetLeft(), rect.GetTop(), rect.GetWidth(),
                                  rect.GetHeight()));
         break;
       }
-      case lynx::markdown::MarkdownPath::PathOpType::kRoundRect: {
+      case serval::markdown::MarkdownPath::PathOpType::kRoundRect: {
         auto& rr = op.data_.round_rect_;
         auto& rect = rr.rect_;
         float radius_x = std::min(rr.radius_x_, rect.GetWidth() / 2);
@@ -144,20 +144,20 @@ void MarkdownCanvasIOS::AddPath(lynx::markdown::MarkdownPath* path,
                              radius_x, radius_y);
         break;
       }
-      case lynx::markdown::MarkdownPath::PathOpType::kMoveTo:
+      case serval::markdown::MarkdownPath::PathOpType::kMoveTo:
         CGPathMoveToPoint(result, NULL, op.data_.point_.x_, op.data_.point_.y_);
         break;
-      case lynx::markdown::MarkdownPath::PathOpType::kLineTo:
+      case serval::markdown::MarkdownPath::PathOpType::kLineTo:
         CGPathAddLineToPoint(result, NULL, op.data_.point_.x_,
                              op.data_.point_.y_);
         break;
-      case lynx::markdown::MarkdownPath::PathOpType::kQuadTo: {
+      case serval::markdown::MarkdownPath::PathOpType::kQuadTo: {
         auto& quad = op.data_.quad_;
         CGPathAddQuadCurveToPoint(result, NULL, quad.control_.x_,
                                   quad.control_.y_, quad.end_.x_, quad.end_.y_);
         break;
       }
-      case lynx::markdown::MarkdownPath::PathOpType::kCubicTo: {
+      case serval::markdown::MarkdownPath::PathOpType::kCubicTo: {
         auto& cubic = op.data_.cubic_;
         CGPathAddCurveToPoint(result, nullptr, cubic.control_1_.x_,
                               cubic.control_1_.y_, cubic.control_2_.x_,
@@ -203,7 +203,7 @@ CGPathDrawingMode MarkdownCanvasIOS::ApplyPainterStyle(
   return mode;
 }
 
-CGPathRef MarkdownCanvasIOS::CreatePath(lynx::markdown::MarkdownPath* path) {
+CGPathRef MarkdownCanvasIOS::CreatePath(serval::markdown::MarkdownPath* path) {
   CGMutablePathRef result = CGPathCreateMutable();
   AddPath(path, result);
   return result;

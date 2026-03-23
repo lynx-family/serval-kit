@@ -45,12 +45,12 @@ void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
 
 AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view), view_ref_(env, view) {
-  AttachDrawable(std::make_unique<lynx::markdown::MarkdownView>(this));
+  AttachDrawable(std::make_unique<serval::markdown::MarkdownView>(this));
   auto* markdown_view = GetMarkdownView();
   markdown_view->SetResourceLoader(
-      static_cast<lynx::markdown::MarkdownResourceLoader*>(this));
+      static_cast<serval::markdown::MarkdownResourceLoader*>(this));
   markdown_view->SetEventListener(
-      static_cast<lynx::markdown::MarkdownEventListener*>(this));
+      static_cast<serval::markdown::MarkdownEventListener*>(this));
 }
 
 int AndroidServalMarkdownView::LoadImage(const char* source) {
@@ -106,7 +106,7 @@ void AndroidServalMarkdownView::SetExposureListenerEnabled(bool enabled) {
   }
   if (enabled) {
     markdown_view->SetExposureListener(
-        static_cast<lynx::markdown::MarkdownExposureListener*>(this));
+        static_cast<serval::markdown::MarkdownExposureListener*>(this));
   } else {
     markdown_view->SetExposureListener(nullptr);
   }
@@ -121,7 +121,7 @@ void AndroidServalMarkdownView::OnVSync(int64_t time) {
   markdown_view->OnNextFrame(time);
 }
 
-std::shared_ptr<lynx::markdown::MarkdownDrawable>
+std::shared_ptr<serval::markdown::MarkdownDrawable>
 AndroidServalMarkdownView::LoadImage(const char* src, float desire_width,
                                      float desire_height, float max_width,
                                      float max_height, float border_radius) {
@@ -133,50 +133,51 @@ AndroidServalMarkdownView::LoadImage(const char* src, float desire_width,
                                                border_radius);
 }
 
-std::shared_ptr<lynx::markdown::MarkdownDrawable>
+std::shared_ptr<serval::markdown::MarkdownDrawable>
 AndroidServalMarkdownView::LoadInlineView(const char* id_selector,
                                           float max_width, float max_height) {
   auto view = LoadInlineView(id_selector);
-  return std::static_pointer_cast<lynx::markdown::MarkdownDrawable>(
+  return std::static_pointer_cast<serval::markdown::MarkdownDrawable>(
       std::move(view));
 }
 
-int32_t ConvertToAndroidFontWeight(lynx::markdown::MarkdownFontWeight weight) {
+int32_t ConvertToAndroidFontWeight(
+    serval::markdown::MarkdownFontWeight weight) {
   switch (weight) {
-    case lynx::markdown::MarkdownFontWeight::kBold:
+    case serval::markdown::MarkdownFontWeight::kBold:
       return 700;
-    case lynx::markdown::MarkdownFontWeight::k100:
+    case serval::markdown::MarkdownFontWeight::k100:
       return 100;
-    case lynx::markdown::MarkdownFontWeight::k200:
+    case serval::markdown::MarkdownFontWeight::k200:
       return 200;
-    case lynx::markdown::MarkdownFontWeight::k300:
+    case serval::markdown::MarkdownFontWeight::k300:
       return 300;
-    case lynx::markdown::MarkdownFontWeight::k400:
+    case serval::markdown::MarkdownFontWeight::k400:
       return 400;
-    case lynx::markdown::MarkdownFontWeight::k500:
+    case serval::markdown::MarkdownFontWeight::k500:
       return 500;
-    case lynx::markdown::MarkdownFontWeight::k600:
+    case serval::markdown::MarkdownFontWeight::k600:
       return 600;
-    case lynx::markdown::MarkdownFontWeight::k700:
+    case serval::markdown::MarkdownFontWeight::k700:
       return 700;
-    case lynx::markdown::MarkdownFontWeight::k800:
+    case serval::markdown::MarkdownFontWeight::k800:
       return 800;
-    case lynx::markdown::MarkdownFontWeight::k900:
+    case serval::markdown::MarkdownFontWeight::k900:
       return 900;
-    case lynx::markdown::MarkdownFontWeight::kNormal:
+    case serval::markdown::MarkdownFontWeight::kNormal:
     default:
       return 400;
   }
 }
 
 void* AndroidServalMarkdownView::LoadFont(
-    const char* family, lynx::markdown::MarkdownFontWeight weight) {
+    const char* family, serval::markdown::MarkdownFontWeight weight) {
   const int32_t w = ConvertToAndroidFontWeight(weight);
   const auto idx = LoadFont(family, w, 0);
   return reinterpret_cast<void*>(static_cast<uintptr_t>(idx));
 }
 
-std::shared_ptr<lynx::markdown::MarkdownDrawable>
+std::shared_ptr<serval::markdown::MarkdownDrawable>
 AndroidServalMarkdownView::LoadReplacementView(void* ud, int32_t id,
                                                float max_width,
                                                float max_height) {
@@ -192,7 +193,7 @@ void AndroidServalMarkdownView::OnParseEnd() {
 }
 
 void AndroidServalMarkdownView::OnTextOverflow(
-    lynx::markdown::MarkdownTextOverflow overflow) {
+    serval::markdown::MarkdownTextOverflow overflow) {
   auto* env = MarkdownClassCache::GetEnv();
   if (env == nullptr || view_ref_.Get() == nullptr) {
     return;
@@ -263,8 +264,8 @@ void AndroidServalMarkdownView::OnImageClicked(const char* url) {
 
 void AndroidServalMarkdownView::OnSelectionChanged(
     int32_t start_index, int32_t end_index,
-    lynx::markdown::SelectionHandleType handle,
-    lynx::markdown::SelectionState state) {
+    serval::markdown::SelectionHandleType handle,
+    serval::markdown::SelectionState state) {
   auto* env = MarkdownClassCache::GetEnv();
   if (env == nullptr || view_ref_.Get() == nullptr) {
     return;

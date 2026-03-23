@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:db6abb41b88e17ea4cc2b0077ad59e4d64e7bebf1208838f39dff7b1dc2fe24c
-size 428
+{
+  "width": 260,
+  "height": 120,
+  "text-mark-attachments": [
+    {
+      "startIndex": 0,
+      "endIndex": 8,
+      "indexType": "source",
+      "layer": "foreground",
+      "id": "source-highlight",
+      "style": {
+        "left": "1px",
+        "right": "1px",
+        "top": "1px",
+        "bottom": "1px",
+        "radius": "3px",
+        "color": "linear-gradient(90deg, #ffd7e8 0%, #ffdbb5 100%)"
+      }
+    }
+  ]
+}

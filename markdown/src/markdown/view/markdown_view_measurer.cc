@@ -9,7 +9,7 @@
 #include "markdown/utils/markdown_float_comparison.h"
 #include "markdown/view/markdown_platform_view.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 MarkdownViewMeasurer::MarkdownViewMeasurer(
     MarkdownResourceLoader* resource_loader)
@@ -198,4 +198,4 @@ void MarkdownViewMeasurer::NeedsMeasure() {
   needs_measure_ = true;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

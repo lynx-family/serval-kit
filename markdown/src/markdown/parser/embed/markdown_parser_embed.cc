@@ -24,7 +24,7 @@ extern "C" {
 #include "discount/discount_lite/markdown.h"
 }
 
-namespace lynx::markdown {
+namespace serval::markdown {
 MarkdownSyntaxType ParagraphTypeToSyntaxType(ParagraphType type) {
   switch (type) {
     case CODE:
@@ -53,8 +53,8 @@ void MarkdownParserEmbed::Parse(const char* src, int size,
                                 float width) {
   if (document_ == nullptr)
     return;
-  markdown_start = base::UTF8IndexToCIndex(src, size, markdown_start);
-  markdown_end = base::UTF8IndexToCIndex(src, size, markdown_end);
+  markdown_start = lynx::base::UTF8IndexToCIndex(src, size, markdown_start);
+  markdown_end = lynx::base::UTF8IndexToCIndex(src, size, markdown_end);
   auto* doc = mkd_string(src, size, 0);
   doc->cb.ud = this;
   doc->cb.paragraph_start = &MarkdownParserEmbed::OnParagraphStart;
@@ -212,7 +212,7 @@ void MarkdownParserEmbed::OnParagraphStart(int type) {
 }
 
 std::string MarkdownParserEmbed::MarkdownNumberTypeToString(
-    lynx::markdown::MarkdownNumberType type, int index) {
+    serval::markdown::MarkdownNumberType type, int index) {
   if (type == MarkdownNumberType::kNumber) {
     return std::to_string(index);
   } else if (type == MarkdownNumberType::kAlphabet) {
@@ -329,7 +329,7 @@ void MarkdownParserEmbed::OnParagraphEnd() {
 }
 
 void MarkdownParserEmbed::SetParagraphStyle(
-    const lynx::markdown::MarkdownBaseStylePart& base_style_part,
+    const serval::markdown::MarkdownBaseStylePart& base_style_part,
     tttext::ParagraphStyle* style, MarkdownElement* element) {
   SetParagraphStyle(document_, base_style_part, style, element,
                     context_.line_height_rule_);
@@ -416,13 +416,13 @@ void MarkdownParserEmbed::SetTTStyleByMarkdownBaseStyle(
 }
 
 void MarkdownParserEmbed::SetTTStyleByMarkdownBaseStyle(
-    const lynx::markdown::MarkdownBaseStylePart& base_style_part,
+    const serval::markdown::MarkdownBaseStylePart& base_style_part,
     tttext::Style* style) {
   SetTTStyleByMarkdownBaseStyle(document_, base_style_part, style);
 }
 
 void MarkdownParserEmbed::SetDecorationStyle(
-    const lynx::markdown::MarkdownDecorationStylePart& decoration_style_part,
+    const serval::markdown::MarkdownDecorationStylePart& decoration_style_part,
     tttext::Style* style) {
   if (decoration_style_part.text_decoration_line_ ==
           MarkdownTextDecorationLine::kNone ||
@@ -441,7 +441,7 @@ void MarkdownParserEmbed::SetDecorationStyle(
 }
 
 tttext::DecorationType MarkdownParserEmbed::ConvertDecorationLine(
-    lynx::markdown::MarkdownTextDecorationLine line) {
+    serval::markdown::MarkdownTextDecorationLine line) {
   switch (line) {
     case MarkdownTextDecorationLine::kUnderline:
       return ttoffice::tttext::DecorationType::kUnderLine;
@@ -455,7 +455,7 @@ tttext::DecorationType MarkdownParserEmbed::ConvertDecorationLine(
 }
 
 tttext::LineType MarkdownParserEmbed::ConvertDecorationStyle(
-    lynx::markdown::MarkdownTextDecorationStyle type) {
+    serval::markdown::MarkdownTextDecorationStyle type) {
   switch (type) {
     case MarkdownTextDecorationStyle::kSolid:
       return ttoffice::tttext::LineType::kSolid;
@@ -669,7 +669,7 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
 }
 
 void MarkdownParserEmbed::GenerateElement(
-    lynx::markdown::MarkdownElement* element) {
+    serval::markdown::MarkdownElement* element) {
   element->SetBlockStyle(context_.block_style_);
   element->SetBorderStyle(context_.border_style_);
   element->SetBorderType(context_.border_type_);
@@ -677,7 +677,7 @@ void MarkdownParserEmbed::GenerateElement(
 }
 
 void MarkdownParserEmbed::GenerateParagraph(
-    int type, lynx::markdown::MarkdownParagraphElement* para) {
+    int type, serval::markdown::MarkdownParagraphElement* para) {
   if (context_.quote_level_ > 0) {
     SetParagraphStyle(style_.quote_.base_,
                       &context_.current_paragraph_->GetParagraphStyle(), para);
@@ -733,7 +733,7 @@ void MarkdownParserEmbed::GenerateParagraph(
 }
 
 void MarkdownParserEmbed::GenerateTable(
-    lynx::markdown::MarkdownTableElement* table) {
+    serval::markdown::MarkdownTableElement* table) {
   GenerateElement(table);
   context_.current_table_->SetCellStyle(style_.table_cell_.block_);
   context_.current_table_->SetCellBackground(
@@ -1083,8 +1083,8 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
                                                uint32_t markdown_offset) {
   std::string url(node->GetUrl());
   float max_height = -1;
-  bool is_inline_view = base::BeginsWith(url, kInlineViewSchema);
-  bool is_block_view = base::BeginsWith(url, kBlockViewSchema);
+  bool is_inline_view = lynx::base::BeginsWith(url, kInlineViewSchema);
+  bool is_block_view = lynx::base::BeginsWith(url, kBlockViewSchema);
   float indent = context_.indent_ + context_.block_style_.margin_left_ +
                  context_.block_style_.padding_left_ +
                  context_.border_style_.border_width_ * 2 +
@@ -1478,7 +1478,7 @@ void MarkdownParserEmbed::AppendNodeToParagraph(MarkdownInlineNode* node,
 }
 
 void MarkdownParserEmbed::AppendChildrenToParagraph(
-    lynx::markdown::MarkdownInlineNode* node, tttext::Paragraph* para,
+    serval::markdown::MarkdownInlineNode* node, tttext::Paragraph* para,
     const tttext::Style& base_style, uint32_t char_offset,
     uint32_t markdown_offset) {
   for (auto& child : node->Children()) {
@@ -1557,4 +1557,4 @@ void MarkdownParserEmbed::ParsePlainText(const char* src, int size) {
   }
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

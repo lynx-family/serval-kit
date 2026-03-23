@@ -1,3 +1,246 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4d9bb686f29814db1654436874d5ad3dd6627a42b807f2a0ba4d3c2592cd67b1
-size 5155
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 300.0,
+      "bottom": 260.0
+    },
+    "need_draw": true,
+    "draw_view_count": 6,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 190.0,
+          "right": 225.0,
+          "bottom": 220.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "2.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 212.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "ordered two",
+        "font": "",
+        "origin": {
+          "x": 38.0,
+          "y": 212.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 150.0,
+          "right": 225.0,
+          "bottom": 180.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "1.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 172.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "ordered one",
+        "font": "",
+        "origin": {
+          "x": 38.0,
+          "y": 172.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 14.0,
+          "top": 80.0,
+          "right": 181.0,
+          "bottom": 140.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 16.0,
+          "y": 95.0
+        },
+        "radius": 1.5,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4291872511,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": " nested",
+        "font": "",
+        "origin": {
+          "x": 28.0,
+          "y": 102.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "unchecked",
+        "font": "",
+        "origin": {
+          "x": 28.0,
+          "y": 132.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 40.0,
+          "right": 235.0,
+          "bottom": 70.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 2.0,
+          "y": 55.0
+        },
+        "radius": 2.0,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291872511,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": " checked item",
+        "font": "",
+        "origin": {
+          "x": 14.0,
+          "y": 62.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 269.0,
+          "bottom": 30.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 2.0,
+          "y": 15.0
+        },
+        "radius": 2.0,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291872511,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": " unchecked item",
+        "font": "",
+        "origin": {
+          "x": 14.0,
+          "y": 22.649999618530273
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

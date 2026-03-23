@@ -1,3 +1,173 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9e5636de842ae38663e2e41c634099e8f52b31b7d71e3e15b4a39089a4e3a059
-size 3620
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 260.0
+    },
+    "need_draw": true,
+    "draw_view_count": 5,
+    "ops": [
+      {
+        "op": "rect",
+        "rect": {
+          "left": 9.0,
+          "top": 15.0,
+          "right": 11.0,
+          "bottom": 135.0
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 336992291,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 9.0,
+          "top": 235.0,
+          "right": 281.0,
+          "bottom": 265.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Final paragraph.",
+        "font": "",
+        "origin": {
+          "x": 9.0,
+          "y": 257.6499938964844
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 9.0,
+          "top": 165.0,
+          "right": 329.0,
+          "bottom": 213.0
+        }
+      },
+      {
+        "op": "round rect",
+        "radius": 7.0,
+        "rect": {
+          "left": 9.5,
+          "top": 165.5,
+          "right": 328.5,
+          "bottom": 212.5
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "echo \"hello\"",
+        "font": "",
+        "origin": {
+          "x": 22.0,
+          "y": 195.3000030517578
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 3205896227,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 17.0,
+          "top": 30.0,
+          "right": 329.0,
+          "bottom": 150.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "This is a quote",
+        "font": "",
+        "origin": {
+          "x": 27.0,
+          "y": 52.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "block.",
+        "font": "",
+        "origin": {
+          "x": 27.0,
+          "y": 82.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "It spans multiple",
+        "font": "",
+        "origin": {
+          "x": 27.0,
+          "y": 112.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "lines.",
+        "font": "",
+        "origin": {
+          "x": 27.0,
+          "y": 142.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

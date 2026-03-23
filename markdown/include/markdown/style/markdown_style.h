@@ -8,8 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 // AUTO GEN START
 enum class MarkdownStyleTag {
   kNormalText = 0,
@@ -515,6 +514,5 @@ struct MarkdownStyle {
   MarkdownItalicStyle italic_;
 };
 // AUTO GEN END
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_H_

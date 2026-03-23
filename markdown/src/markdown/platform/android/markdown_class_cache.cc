@@ -52,8 +52,8 @@ void AndroidMarkdownView::RequestDraw() {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.request_draw_);
 }
-lynx::markdown::MeasureResult AndroidMarkdownView::OnMeasure(
-    lynx::markdown::MeasureSpec spec) {
+serval::markdown::MeasureResult AndroidMarkdownView::OnMeasure(
+    serval::markdown::MeasureSpec spec) {
   auto* env = MarkdownClassCache::GetEnv();
   jlong result = env->CallLongMethod(
       ref_.Get(), methods_.measure_, static_cast<jint>(spec.width_),
@@ -72,7 +72,7 @@ void AndroidMarkdownView::Align(float left, float top) {
   env->CallVoidMethod(ref_.Get(), methods_.align_, static_cast<jint>(left),
                       static_cast<jint>(top));
 }
-lynx::markdown::PointF AndroidMarkdownView::GetAlignedPosition() {
+serval::markdown::PointF AndroidMarkdownView::GetAlignedPosition() {
   auto* env = MarkdownClassCache::GetEnv();
   jlong result = env->CallLongMethod(ref_.Get(), methods_.get_position_);
   return {
@@ -80,7 +80,7 @@ lynx::markdown::PointF AndroidMarkdownView::GetAlignedPosition() {
       .y_ = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(result)),
   };
 }
-lynx::markdown::SizeF AndroidMarkdownView::GetMeasuredSize() {
+serval::markdown::SizeF AndroidMarkdownView::GetMeasuredSize() {
   auto* env = MarkdownClassCache::GetEnv();
   jlong result = env->CallLongMethod(ref_.Get(), methods_.get_size_);
   return {
@@ -88,13 +88,13 @@ lynx::markdown::SizeF AndroidMarkdownView::GetMeasuredSize() {
       .height_ = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(result)),
   };
 }
-void AndroidMarkdownView::SetMeasuredSize(lynx::markdown::SizeF size) {
+void AndroidMarkdownView::SetMeasuredSize(serval::markdown::SizeF size) {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.set_size_,
                       static_cast<jint>(size.width_),
                       static_cast<jint>(size.height_));
 }
-void AndroidMarkdownView::SetAlignPosition(lynx::markdown::PointF position) {
+void AndroidMarkdownView::SetAlignPosition(serval::markdown::PointF position) {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.set_position_,
                       static_cast<jint>(position.x_),
@@ -114,15 +114,16 @@ AndroidCustomView::AndroidCustomView() : AndroidMarkdownView() {}
 AndroidCustomView::AndroidCustomView(JNIEnv* env, jobject ref)
     : AndroidMarkdownView(env, ref) {}
 void AndroidCustomView::AttachDrawable(
-    std::unique_ptr<lynx::markdown::MarkdownDrawable> drawable) {
-  lynx::markdown::MarkdownCustomViewHandle::AttachDrawable(std::move(drawable));
+    std::unique_ptr<serval::markdown::MarkdownDrawable> drawable) {
+  serval::markdown::MarkdownCustomViewHandle::AttachDrawable(
+      std::move(drawable));
   auto* drawable_ptr = drawable_.get();
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.attach_drawable_,
                       reinterpret_cast<int64_t>(drawable_ptr));
 }
-lynx::markdown::MeasureResult AndroidCustomView::OnMeasure(
-    lynx::markdown::MeasureSpec spec) {
+serval::markdown::MeasureResult AndroidCustomView::OnMeasure(
+    serval::markdown::MeasureSpec spec) {
   if (drawable_ == nullptr) {
     return {};
   }
@@ -130,7 +131,7 @@ lynx::markdown::MeasureResult AndroidCustomView::OnMeasure(
   SetMeasuredSize({.width_ = result.width_, .height_ = result.height_});
   return result;
 }
-lynx::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
+serval::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
   return {drawable_->GetAdvance(),
           drawable_->GetDescent() - drawable_->GetAscent()};
 }
@@ -153,31 +154,31 @@ void AndroidMainView::Initialize(JNIEnv* env) {
 AndroidMainView::Methods AndroidMainView::methods_{};
 AndroidMainView::AndroidMainView(JNIEnv* env, jobject ref)
     : AndroidCustomView(env, ref) {}
-std::shared_ptr<lynx::markdown::MarkdownPlatformView>
+std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateCustomSubView() {
   auto* env = MarkdownClassCache::GetEnv();
   auto object =
       env->CallObjectMethod(ref_.Get(), methods_.create_custom_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
   subviews_.insert(subviews_.end(), subview);
-  return std::static_pointer_cast<lynx::markdown::MarkdownPlatformView>(
+  return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
       subview);
 }
 
-std::shared_ptr<lynx::markdown::MarkdownPlatformView>
+std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateRegionSubView() {
   auto* env = MarkdownClassCache::GetEnv();
   auto object =
       env->CallObjectMethod(ref_.Get(), methods_.create_region_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
   subviews_.insert(subviews_.end(), subview);
-  return std::static_pointer_cast<lynx::markdown::MarkdownPlatformView>(
+  return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
       subview);
 }
 
-std::shared_ptr<lynx::markdown::MarkdownPlatformView>
+std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateSelectionHandleSubView(
-    lynx::markdown::SelectionHandleType type, float size, float margin,
+    serval::markdown::SelectionHandleType type, float size, float margin,
     uint32_t color) {
   auto* env = MarkdownClassCache::GetEnv();
   auto subview = std::make_shared<AndroidCustomView>();
@@ -187,24 +188,24 @@ AndroidMainView::CreateSelectionHandleSubView(
                                       reinterpret_cast<jlong>(subview.get()));
   subview->UpdateObject(env, object);
   const auto view =
-      std::static_pointer_cast<lynx::markdown::MarkdownPlatformView>(subview);
+      std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(subview);
   auto selection_handle =
-      std::make_unique<lynx::markdown::MarkdownSelectionHandle>(size, margin,
-                                                                type, color);
+      std::make_unique<serval::markdown::MarkdownSelectionHandle>(size, margin,
+                                                                  type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   return view;
 }
-std::shared_ptr<lynx::markdown::MarkdownPlatformView>
+std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateSelectionHighlightSubView(uint32_t color) {
   const auto view = CreateCustomSubView();
   auto highlight =
-      std::make_unique<lynx::markdown::MarkdownSelectionHighlight>();
+      std::make_unique<serval::markdown::MarkdownSelectionHighlight>();
   highlight->SetColor(color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
   return view;
 }
 void AndroidMainView::RemoveSubView(
-    lynx::markdown::MarkdownPlatformView* subview) {
+    serval::markdown::MarkdownPlatformView* subview) {
   auto iter =
       std::find_if(subviews_.begin(), subviews_.end(),
                    [subview](const std::shared_ptr<AndroidMarkdownView>& view) {
@@ -222,7 +223,7 @@ void AndroidMainView::RemoveAllSubViews() {
   env->CallVoidMethod(ref_.Get(), methods_.remove_all_subviews_);
   subviews_.clear();
 }
-lynx::markdown::RectF AndroidMainView::CalculateViewRectInScreen() {
+serval::markdown::RectF AndroidMainView::CalculateViewRectInScreen() {
   auto* env = MarkdownClassCache::GetEnv();
   jlong packed =
       env->CallLongMethod(ref_.Get(), methods_.get_view_rect_in_screen_);
@@ -231,13 +232,13 @@ lynx::markdown::RectF AndroidMainView::CalculateViewRectInScreen() {
   const float bottom =
       static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(packed));
   const auto size = AndroidMarkdownView::GetMeasuredSize();
-  return lynx::markdown::RectF::MakeLTRB(0.0f, top, size.width_, bottom);
+  return serval::markdown::RectF::MakeLTRB(0.0f, top, size.width_, bottom);
 }
 
 void AndroidMainView::UpdateCachedViewRectInScreen() {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();
 }
 
-lynx::markdown::RectF AndroidMainView::GetViewRectInScreen() {
+serval::markdown::RectF AndroidMainView::GetViewRectInScreen() {
   return cached_view_rect_in_screen_;
 }

@@ -8,8 +8,7 @@
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/utils/markdown_platform.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
@@ -32,5 +31,4 @@ MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
     tttext::ICanvasHelper* canvas) {
   return nullptr;
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

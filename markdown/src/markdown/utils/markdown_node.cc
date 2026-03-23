@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "markdown/utils/markdown_node.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 void MarkdownNode::AppendChild(MarkdownNode* child) {
   child->parent_ = this;
   child->next_ = nullptr;
@@ -75,4 +75,4 @@ void MarkdownNode::RemoveChild(MarkdownNode* child) {
   child_count_--;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

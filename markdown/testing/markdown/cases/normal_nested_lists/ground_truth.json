@@ -1,3 +1,271 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f3a97927cd9e5c50e1ea3500580ca6526db2704bb842593ce37cd574ebcace83
-size 5636
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 280.0,
+      "bottom": 220.0
+    },
+    "need_draw": true,
+    "draw_view_count": 7,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 20.0,
+          "top": 200.0,
+          "right": 160.0,
+          "bottom": 230.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "2.",
+        "font": "",
+        "origin": {
+          "x": 20.0,
+          "y": 222.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Mobile",
+        "font": "",
+        "origin": {
+          "x": 58.0,
+          "y": 222.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 20.0,
+          "top": 160.0,
+          "right": 109.0,
+          "bottom": 190.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "1.",
+        "font": "",
+        "origin": {
+          "x": 20.0,
+          "y": 182.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Web",
+        "font": "",
+        "origin": {
+          "x": 58.0,
+          "y": 182.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 120.0,
+          "right": 150.0,
+          "bottom": 150.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 2.0,
+          "y": 135.0
+        },
+        "radius": 2.0,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291872511,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Frontend",
+        "font": "",
+        "origin": {
+          "x": 14.0,
+          "y": 142.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 14.0,
+          "top": 80.0,
+          "right": 130.0,
+          "bottom": 110.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 16.0,
+          "y": 95.0
+        },
+        "radius": 1.5,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4291872511,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Worker",
+        "font": "",
+        "origin": {
+          "x": 28.0,
+          "y": 102.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 14.0,
+          "top": 40.0,
+          "right": 79.0,
+          "bottom": 70.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 16.0,
+          "y": 55.0
+        },
+        "radius": 1.5,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4291872511,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "API",
+        "font": "",
+        "origin": {
+          "x": 28.0,
+          "y": 62.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 133.0,
+          "bottom": 30.0
+        }
+      },
+      {
+        "op": "circle",
+        "center": {
+          "x": 2.0,
+          "y": 15.0
+        },
+        "radius": 2.0,
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291872511,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Backend",
+        "font": "",
+        "origin": {
+          "x": 14.0,
+          "y": 22.649999618530273
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 #include "markdown/platform/harmony/internal/harmony_utils.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 HarmonyExposureListener::HarmonyExposureListener(napi_env env) : env_(env) {}
 void HarmonyExposureListener::BindExposure(const std::string& name,
                                            HarmonyValueRef function) {
@@ -55,4 +55,4 @@ void HarmonyExposureListener::OnImageDisappear(const char* url) {
                                 u.c_str());
   });
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

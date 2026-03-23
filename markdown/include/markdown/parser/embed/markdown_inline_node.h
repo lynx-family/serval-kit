@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 #include "markdown/utils/markdown_definition.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class MarkdownInlineSyntax : uint8_t {
   kNone,
   kBold,
@@ -140,5 +140,5 @@ class MarkdownInlineHtmlTag : public MarkdownInlineNode {
   std::string_view tag_;
   std::vector<MarkdownHtmlAttribute> attributes_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_INLINE_NODE_H_

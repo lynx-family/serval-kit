@@ -20,7 +20,7 @@
 #include "arkui/native_type.h"
 #include "markdown/utils/markdown_value.h"
 #include "napi/native_api.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyEnv {
  public:
   static napi_env GetEnv();
@@ -144,25 +144,25 @@ class HarmonyValues {
     return result;
   }
   template <>
-  std::unique_ptr<lynx::markdown::Value> ConvertValue(napi_env env,
-                                                      napi_value value) {
+  std::unique_ptr<serval::markdown::Value> ConvertValue(napi_env env,
+                                                        napi_value value) {
     bool is_array = false;
     napi_is_array(env, value, &is_array);
     if (is_array) {
-      return lynx::markdown::Value::MakeArray(
-          ConvertArray<std::unique_ptr<lynx::markdown::Value>>(env, value));
+      return serval::markdown::Value::MakeArray(
+          ConvertArray<std::unique_ptr<serval::markdown::Value>>(env, value));
     } else {
       napi_valuetype type;
       napi_typeof(env, value, &type);
       switch (type) {
         case napi_boolean:
-          return lynx::markdown::Value::MakeBool(
+          return serval::markdown::Value::MakeBool(
               ConvertValue<bool>(env, value));
         case napi_number:
-          return lynx::markdown::Value::MakeDouble(
+          return serval::markdown::Value::MakeDouble(
               ConvertValue<double>(env, value));
         case napi_string:
-          return lynx::markdown::Value::MakeString(
+          return serval::markdown::Value::MakeString(
               ConvertValue<std::string>(env, value));
         case napi_object:
           return ConvertObjectValue(env, value);
@@ -174,31 +174,31 @@ class HarmonyValues {
         case napi_bigint:
         case napi_null:
         default:
-          return lynx::markdown::Value::MakeNull();
+          return serval::markdown::Value::MakeNull();
       }
     }
   }
-  static std::unique_ptr<lynx::markdown::Value> ConvertObjectValue(
+  static std::unique_ptr<serval::markdown::Value> ConvertObjectValue(
       napi_env env, napi_value value) {
     napi_value result;
     auto status = napi_get_property_names(env, value, &result);
     if (status != napi_ok) {
-      return lynx::markdown::Value::MakeMap();
+      return serval::markdown::Value::MakeMap();
     }
     auto names = ConvertArray<std::string>(env, result);
-    lynx::markdown::ValueMap map;
+    serval::markdown::ValueMap map;
     for (auto& name : names) {
       napi_value element;
       napi_get_named_property(env, value, name.c_str(), &element);
       auto value =
-          ConvertValue<std::unique_ptr<lynx::markdown::Value>>(env, element);
+          ConvertValue<std::unique_ptr<serval::markdown::Value>>(env, element);
       if (value == nullptr) {
         continue;
       }
       map[name] =
-          ConvertValue<std::unique_ptr<lynx::markdown::Value>>(env, element);
+          ConvertValue<std::unique_ptr<serval::markdown::Value>>(env, element);
     }
-    return lynx::markdown::Value::MakeMap(std::move(map));
+    return serval::markdown::Value::MakeMap(std::move(map));
   }
   template <typename Value>
   static std::vector<Value> ConvertArray(napi_env env, napi_value value) {
@@ -303,5 +303,5 @@ class ArkUINativeAPI {
   ArkUI_NativeNodeAPI_1* node_api_;
   ArkUI_NativeGestureAPI_1* gesture_api_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_UTILS_H_

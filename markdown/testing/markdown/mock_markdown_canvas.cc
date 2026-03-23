@@ -10,7 +10,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 rapidjson::Value MockMarkdownCanvas::MakeRect(float left, float top,
                                               float right, float bottom) {
@@ -168,7 +168,7 @@ void MockMarkdownCanvas::DrawGlyphs(const tttext::ITypefaceHelper* font,
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "glyphs", result_.GetAllocator());
-  const auto t = base::U16StringToU8(std::u16string_view(
+  const auto t = lynx::base::U16StringToU8(std::u16string_view(
       reinterpret_cast<const char16_t*>(glyphs), glyph_count));
   op.AddMember("text", t, result_.GetAllocator());
   op.AddMember("font", MakeFont(font->GetUniqueId()), result_.GetAllocator());
@@ -334,4 +334,4 @@ rapidjson::Value MockMarkdownCanvas::MakePath(MarkdownPath* path) {
   }
   return p;
 }
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing

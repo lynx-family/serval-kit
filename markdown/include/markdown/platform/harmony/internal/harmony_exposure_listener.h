@@ -8,7 +8,7 @@
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/platform/harmony/internal/harmony_value_ref.h"
 #include "napi/native_api.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyExposureListener : public MarkdownExposureListener {
  public:
   explicit HarmonyExposureListener(napi_env env);
@@ -26,5 +26,5 @@ class HarmonyExposureListener : public MarkdownExposureListener {
   HarmonyValueRef image_appear_;
   HarmonyValueRef image_disappear_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_EXPOSURE_LISTENER_H_

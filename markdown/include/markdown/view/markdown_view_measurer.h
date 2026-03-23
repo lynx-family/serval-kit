@@ -11,7 +11,7 @@
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_value.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class MarkdownAnimationType {
   kNone,
   kTypewriter,
@@ -81,5 +81,5 @@ class MarkdownViewMeasurer {
   MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_MEASURER_H_

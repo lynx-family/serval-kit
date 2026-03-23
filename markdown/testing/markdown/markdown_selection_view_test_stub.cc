@@ -7,7 +7,7 @@
 
 #include "markdown/view/markdown_selection_view.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 class StubCustomViewHandle : public MarkdownCustomViewHandle {};
 
@@ -90,4 +90,4 @@ class StubViewContainerHandle : public MarkdownViewContainerHandle {
   std::vector<std::shared_ptr<MarkdownPlatformView>> subviews_;
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

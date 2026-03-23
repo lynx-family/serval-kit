@@ -6,7 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_SELECTION_VIEW_H_
 #include "markdown/view/markdown_platform_view.h"
 #include "vector"
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class SelectionHandleType : uint8_t {
   kLeftHandle,
   kRightHandle,
@@ -61,5 +61,5 @@ class MarkdownSelectionHighlight final : public MarkdownDrawable {
   uint32_t color_{};
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_SELECTION_VIEW_H_

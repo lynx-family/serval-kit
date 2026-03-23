@@ -1,3 +1,954 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:433ba348473116211ee46ab4f395b9bfaddfa18e75385d46c5b09837d86b7525
-size 20075
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 360.0,
+      "bottom": 240.0
+    },
+    "need_draw": true,
+    "draw_view_count": 2,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 215.0,
+          "bottom": 120.0
+        }
+      },
+      {
+        "op": "clip path",
+        "path": [
+          {
+            "type": "round rect",
+            "rect": {
+              "left": 0.0,
+              "top": 0.0,
+              "right": 215.0,
+              "bottom": 120.0
+            },
+            "radius": {
+              "x": 7.0,
+              "y": 7.0
+            }
+          }
+        ]
+      },
+      {
+        "op": "round rect",
+        "radius": 7.0,
+        "rect": {
+          "left": 0.5,
+          "top": 0.5,
+          "right": 214.5,
+          "bottom": 119.5
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.0,
+          "y": 40.0
+        },
+        "p2": {
+          "x": 215.0,
+          "y": 40.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.0,
+          "y": 80.0
+        },
+        "p2": {
+          "x": 215.0,
+          "y": 80.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 100.0,
+          "y": 0.0
+        },
+        "p2": {
+          "x": 100.0,
+          "y": 120.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Name",
+        "font": "",
+        "origin": {
+          "x": 5.0,
+          "y": 26.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": true,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Link",
+        "font": "",
+        "origin": {
+          "x": 105.0,
+          "y": 26.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": true,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "OpenAI",
+        "font": "",
+        "origin": {
+          "x": 5.0,
+          "y": 66.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Website",
+        "font": "",
+        "origin": {
+          "x": 105.0,
+          "y": 66.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190335,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 107.5,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 110.0,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 111.5625,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 114.0625,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 115.625,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 118.125,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 119.6875,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 122.1875,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 123.75,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 126.25,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 127.8125,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 130.3125,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 131.875,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 134.375,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 135.9375,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 138.4375,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 140.0,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 142.5,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 144.0625,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 146.5625,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 148.125,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 150.625,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 152.1875,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 154.6875,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 156.25,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 158.75,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 160.3125,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 162.8125,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 164.375,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 166.875,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 168.4375,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 170.9375,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 172.5,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 175.0,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 176.5625,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 179.0625,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 180.625,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 183.125,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 184.6875,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 187.1875,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 188.75,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 191.25,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 192.8125,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 195.3125,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 196.875,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 199.375,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 200.9375,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 203.4375,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 205.0,
+          "y": 73.0
+        },
+        "p2": {
+          "x": 207.5,
+          "y": 73.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "GitHub",
+        "font": "",
+        "origin": {
+          "x": 5.0,
+          "y": 106.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Code",
+        "font": "",
+        "origin": {
+          "x": 105.0,
+          "y": 106.75
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190335,
+          "stroke_color": 0,
+          "text_size": 15.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 107.5,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 110.0,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 111.53845977783203,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 114.03845977783203,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 115.57691955566406,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 118.07691955566406,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 119.61538696289063,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 122.11538696289063,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 123.65384674072266,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 126.15384674072266,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 127.69230651855469,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 130.1923065185547,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 131.73077392578125,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 134.23077392578125,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 135.76922607421875,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 138.26922607421875,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 139.8076934814453,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 142.3076934814453,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 143.84616088867188,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 146.34616088867188,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 147.88461303710938,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 150.38461303710938,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 151.92308044433594,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 154.42308044433594,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 155.9615478515625,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 158.4615478515625,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 160.0,
+          "y": 113.0
+        },
+        "p2": {
+          "x": 162.5,
+          "y": 113.0
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4294901760,
+          "stroke_color": 4294901760,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

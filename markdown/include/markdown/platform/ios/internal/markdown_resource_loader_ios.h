@@ -12,7 +12,7 @@
 
 #import "markdown/platform/ios/IMarkdownResourceDelegate.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
  public:
   MarkdownResourceLoaderIOS() = default;
@@ -46,6 +46,6 @@ class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
   // Keep returned UIFont handles alive while the loader is alive.
   NSMutableSet<UIFont*>* font_cache_{nil};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_RESOURCE_LOADER_IOS_H_

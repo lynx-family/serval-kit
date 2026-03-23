@@ -11,7 +11,7 @@
 static const CGFloat kMarkdownMaxMeasureSize = 1e8;
 
 namespace {
-lynx::markdown::PointF ConvertPoint(CGPoint point) {
+serval::markdown::PointF ConvertPoint(CGPoint point) {
   return {static_cast<float>(point.x), static_cast<float>(point.y)};
 }
 }  // namespace
@@ -23,12 +23,12 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
 
 - (void)setupGestureRecognizers;
 - (BOOL)dispatchTapAtPoint:(CGPoint)point
-                     event:(lynx::markdown::GestureEventType)event;
+                     event:(serval::markdown::GestureEventType)event;
 - (BOOL)dispatchLongPressAtPoint:(CGPoint)point
-                           event:(lynx::markdown::GestureEventType)event;
+                           event:(serval::markdown::GestureEventType)event;
 - (BOOL)dispatchPanAtPoint:(CGPoint)point
                     motion:(CGPoint)motion
-                     event:(lynx::markdown::GestureEventType)event;
+                     event:(serval::markdown::GestureEventType)event;
 - (void)onTapGesture:(UITapGestureRecognizer*)recognizer;
 - (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer;
 - (void)onPanGesture:(UIPanGestureRecognizer*)recognizer;
@@ -93,8 +93,8 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
 }
 
 - (BOOL)dispatchTapAtPoint:(CGPoint)point
-                     event:(lynx::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<lynx::markdown::MarkdownPlatformViewIOS*>(
+                     event:(serval::markdown::GestureEventType)event {
+  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
       _nativePlatformView);
   if (view == nullptr) {
     return NO;
@@ -103,8 +103,8 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
 }
 
 - (BOOL)dispatchLongPressAtPoint:(CGPoint)point
-                           event:(lynx::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<lynx::markdown::MarkdownPlatformViewIOS*>(
+                           event:(serval::markdown::GestureEventType)event {
+  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
       _nativePlatformView);
   if (view == nullptr) {
     return NO;
@@ -114,8 +114,8 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
 
 - (BOOL)dispatchPanAtPoint:(CGPoint)point
                     motion:(CGPoint)motion
-                     event:(lynx::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<lynx::markdown::MarkdownPlatformViewIOS*>(
+                     event:(serval::markdown::GestureEventType)event {
+  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
       _nativePlatformView);
   if (view == nullptr) {
     return NO;
@@ -128,7 +128,8 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
     return;
   }
   const CGPoint point = [recognizer locationInView:self];
-  [self dispatchTapAtPoint:point event:lynx::markdown::GestureEventType::kDown];
+  [self dispatchTapAtPoint:point
+                     event:serval::markdown::GestureEventType::kDown];
 }
 
 - (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer {
@@ -137,7 +138,7 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
   }
   const CGPoint point = [recognizer locationInView:self];
   [self dispatchLongPressAtPoint:point
-                           event:lynx::markdown::GestureEventType::kDown];
+                           event:serval::markdown::GestureEventType::kDown];
 }
 
 - (void)onPanGesture:(UIPanGestureRecognizer*)recognizer {
@@ -147,23 +148,23 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
     case UIGestureRecognizerStateBegan:
       [self dispatchPanAtPoint:point
                         motion:CGPointZero
-                         event:lynx::markdown::GestureEventType::kDown];
+                         event:serval::markdown::GestureEventType::kDown];
       break;
     case UIGestureRecognizerStateChanged:
       [self dispatchPanAtPoint:point
                         motion:motion
-                         event:lynx::markdown::GestureEventType::kMove];
+                         event:serval::markdown::GestureEventType::kMove];
       break;
     case UIGestureRecognizerStateEnded:
       [self dispatchPanAtPoint:point
                         motion:motion
-                         event:lynx::markdown::GestureEventType::kUp];
+                         event:serval::markdown::GestureEventType::kUp];
       break;
     case UIGestureRecognizerStateCancelled:
     case UIGestureRecognizerStateFailed:
       [self dispatchPanAtPoint:point
                         motion:motion
-                         event:lynx::markdown::GestureEventType::kCancel];
+                         event:serval::markdown::GestureEventType::kCancel];
       break;
     default:
       break;
@@ -175,7 +176,7 @@ lynx::markdown::PointF ConvertPoint(CGPoint point) {
   if (target != self) {
     return target;
   }
-  auto* view = reinterpret_cast<lynx::markdown::MarkdownPlatformViewIOS*>(
+  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
       _nativePlatformView);
   if (view == nullptr || !view->HasGestureListener()) {
     return nil;

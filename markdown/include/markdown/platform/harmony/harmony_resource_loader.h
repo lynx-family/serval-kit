@@ -6,7 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_
 #include "arkui/native_type.h"
 #include "native_drawing/drawing_types.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class IHarmonyResourceLoader {
  public:
   virtual OH_Drawing_Font* LoadFont(const char* family) = 0;
@@ -20,5 +20,5 @@ class IHarmonyResourceLoader {
                                                float max_width,
                                                float max_height) = 0;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_

@@ -7,7 +7,7 @@
 #include "base/include/string/string_utils.h"
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 HarmonyEventListener::HarmonyEventListener(napi_env env) : env_(env) {}
 void HarmonyEventListener::BindEvent(const std::string& name,
                                      HarmonyValueRef callback) {
@@ -111,4 +111,4 @@ void HarmonyEventListener::OnSelectionChanged(int32_t start_index,
                               start_index, end_index, ToString(handle),
                               ToString(state));
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

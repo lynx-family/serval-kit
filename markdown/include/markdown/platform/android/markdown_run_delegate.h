@@ -11,7 +11,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 
-class MarkdownRunDelegate final : public lynx::markdown::MarkdownDrawable {
+class MarkdownRunDelegate final : public serval::markdown::MarkdownDrawable {
  public:
   MarkdownRunDelegate(int id, float width, float height, float radius)
       : id_(id), width_(width), height_(height), radius_(radius) {}
@@ -32,8 +32,8 @@ class MarkdownRunDelegate final : public lynx::markdown::MarkdownDrawable {
   float radius_{0};
 
  protected:
-  lynx::markdown::MeasureResult OnMeasure(
-      lynx::markdown::MeasureSpec spec) override {
+  serval::markdown::MeasureResult OnMeasure(
+      serval::markdown::MeasureSpec spec) override {
     return {.width_ = width_, .height_ = height_, .baseline_ = height_};
   }
 };

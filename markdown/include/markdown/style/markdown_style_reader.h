@@ -6,7 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_READER_H_
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_value.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownResourceLoader;
 class MarkdownTextAttachment;
 class MarkdownDocument;
@@ -20,5 +20,5 @@ class MarkdownStyleReader {
                                              MarkdownResourceLoader* loader);
   static uint32_t ReadColor(const std::string& color);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_READER_H_

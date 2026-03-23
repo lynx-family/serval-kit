@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a04c9c0cfdb56e9c8f96e9b9c72df4878c69b6bb95c80d1d50d7af96b5b53b3a
-size 382
+{
+  "width": 320,
+  "height": 220,
+  "style": {
+    ".box": {
+      "marginTop": 6,
+      "marginBottom": 8,
+      "paddingLeft": 4,
+      "paddingRight": 4,
+      "backgroundImage": "linear-gradient(0deg, #fff5d6 0%, rgba(255,245,214,0) 90%)"
+    },
+    ".warn": {
+      "color": "d12f19",
+      "textDecorationLine": "underline",
+      "textDecorationStyle": "dotted"
+    }
+  }
+}

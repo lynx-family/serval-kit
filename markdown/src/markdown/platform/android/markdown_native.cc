@@ -13,8 +13,8 @@
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_gesture.h"
-using lynx::markdown::MarkdownDrawable;
-using lynx::markdown::MeasureSpec;
+using serval::markdown::MarkdownDrawable;
+using serval::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_CustomDrawable_measure(JNIEnv* env, jclass clazz,
                                               jlong drawable, jfloat width,
@@ -78,7 +78,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetDensity(JNIEnv* env,
                                                            jobject thiz,
                                                            jfloat density) {
-  lynx::markdown::MarkdownScreenMetrics::SetDensity(density);
+  serval::markdown::MarkdownScreenMetrics::SetDensity(density);
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,
@@ -94,7 +94,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,
   MarkdownBufferReader reader(stream);
   auto result = reader.ReadValue();
   env->ReleaseByteArrayElements(buffer, array, 0);
-  if (result->GetType() != lynx::markdown::ValueType::kMap)
+  if (result->GetType() != serval::markdown::ValueType::kMap)
     return;
   view->GetMarkdownView()->SetStyle(result->AsMap());
 }
@@ -126,7 +126,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberProp(
     return;
   auto* view = ConvertView(instance);
   view->GetMarkdownView()->SetNumberProp(
-      static_cast<lynx::markdown::MarkdownProps>(key), value);
+      static_cast<serval::markdown::MarkdownProps>(key), value);
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringProp(
@@ -137,13 +137,13 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringProp(
   auto* view = ConvertView(instance);
   if (value == nullptr) {
     view->GetMarkdownView()->SetStringProp(
-        static_cast<lynx::markdown::MarkdownProps>(key), "");
+        static_cast<serval::markdown::MarkdownProps>(key), "");
     return;
   }
   const auto length = env->GetStringUTFLength(value);
   const auto* chars = env->GetStringUTFChars(value, nullptr);
   view->GetMarkdownView()->SetStringProp(
-      static_cast<lynx::markdown::MarkdownProps>(key),
+      static_cast<serval::markdown::MarkdownProps>(key),
       {chars, static_cast<size_t>(length)});
   env->ReleaseStringUTFChars(value, chars);
 }
@@ -166,26 +166,26 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueProp(
   if (result == nullptr) {
     return;
   }
-  const auto prop = static_cast<lynx::markdown::MarkdownProps>(key);
-  if (result->GetType() == lynx::markdown::ValueType::kArray) {
+  const auto prop = static_cast<serval::markdown::MarkdownProps>(key);
+  if (result->GetType() == serval::markdown::ValueType::kArray) {
     view->GetMarkdownView()->SetArrayProp(prop, result->AsArray());
-  } else if (result->GetType() == lynx::markdown::ValueType::kMap) {
+  } else if (result->GetType() == serval::markdown::ValueType::kMap) {
     view->GetMarkdownView()->SetMapProp(prop, result->AsMap());
   }
 }
 
-lynx::markdown::GestureEventType ConvertGestureEventType(jint type) {
+serval::markdown::GestureEventType ConvertGestureEventType(jint type) {
   switch (type) {
     case 1:
-      return lynx::markdown::GestureEventType::kDown;
+      return serval::markdown::GestureEventType::kDown;
     case 2:
-      return lynx::markdown::GestureEventType::kMove;
+      return serval::markdown::GestureEventType::kMove;
     case 3:
-      return lynx::markdown::GestureEventType::kUp;
+      return serval::markdown::GestureEventType::kUp;
     case 4:
-      return lynx::markdown::GestureEventType::kCancel;
+      return serval::markdown::GestureEventType::kCancel;
     default:
-      return lynx::markdown::GestureEventType::kUnknown;
+      return serval::markdown::GestureEventType::kUnknown;
   }
 }
 
@@ -197,7 +197,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeDispatchTap(
   }
   auto* view = ConvertView(instance);
   auto* markdown_view = view->GetMarkdownView();
-  return markdown_view->OnTap({x, y}, lynx::markdown::GestureEventType::kDown)
+  return markdown_view->OnTap({x, y}, serval::markdown::GestureEventType::kDown)
              ? JNI_TRUE
              : JNI_FALSE;
 }
@@ -211,7 +211,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeDispatchLongPress(
   auto* view = ConvertView(instance);
   auto* markdown_view = view->GetMarkdownView();
   return markdown_view->OnLongPress({x, y},
-                                    lynx::markdown::GestureEventType::kDown)
+                                    serval::markdown::GestureEventType::kDown)
              ? JNI_TRUE
              : JNI_FALSE;
 }

@@ -17,8 +17,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
  public:
   MarkdownUnorderedListMarkDelegate(
@@ -300,6 +299,5 @@ class ImageWithCaption final : public MarkdownDrawable {
     return measure_result_;
   }
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_RUN_DELEGATES_H_

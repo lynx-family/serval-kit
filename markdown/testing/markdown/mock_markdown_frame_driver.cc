@@ -6,7 +6,7 @@
 
 #include <utility>
 
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 rapidjson::Value MockMarkdownFrameDriver::MakeRectValue(
     RectF rect, rapidjson::Document::AllocatorType& alloc) {
@@ -115,4 +115,4 @@ rapidjson::Document MockMarkdownFrameDriver::Run(
   return result;
 }
 
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing

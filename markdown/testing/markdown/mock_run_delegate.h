@@ -10,7 +10,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 enum class MockDelegateType {
   kImage,
   kInlineView,
@@ -69,5 +69,5 @@ class MockGradient : public MockDelegate {
     return {.width_ = 0, .height_ = 0, .baseline_ = 0};
   }
 };
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_RUN_DELEGATE_H_

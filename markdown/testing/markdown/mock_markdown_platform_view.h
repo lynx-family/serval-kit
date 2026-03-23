@@ -14,11 +14,11 @@
 
 #include "markdown/view/markdown_platform_view.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownView;
 }
 
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 class MockMarkdownPlatformView : public MarkdownPlatformView {
  public:
@@ -186,6 +186,6 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
   RectF cached_view_rect_in_screen_{MakeDefaultViewRectInScreen()};
 };
 
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing
 
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_PLATFORM_VIEW_H_

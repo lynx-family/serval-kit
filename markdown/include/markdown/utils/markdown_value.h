@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class ValueType : uint8_t {
   kNull = 0,
   kMap,
@@ -57,5 +57,5 @@ class Value {
  protected:
   ValueType type_{};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_VALUE_H_

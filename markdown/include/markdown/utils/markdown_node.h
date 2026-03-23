@@ -6,7 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
 #include <cstdint>
 #include "markdown/utils/markdown_marco.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class L_EXPORT MarkdownNode {
  public:
   MarkdownNode() = default;
@@ -31,5 +31,5 @@ class L_EXPORT MarkdownNode {
   MarkdownNode* last_child_{nullptr};
   int32_t child_count_{0};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_

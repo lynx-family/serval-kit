@@ -8,7 +8,7 @@
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 #include "markdown/platform/harmony/internal/harmony_value_ref.h"
 #include "napi/native_api.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyResourceLoaderImpl : public IHarmonyResourceLoader {
  public:
   explicit HarmonyResourceLoaderImpl(napi_env env);
@@ -36,5 +36,5 @@ class HarmonyResourceLoaderImpl : public IHarmonyResourceLoader {
   HarmonyValueRef image_loader_{};
   HarmonyValueRef replacement_view_loader_{};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_RESOURCE_LOADER_IMPL_H_

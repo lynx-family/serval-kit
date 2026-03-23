@@ -5,7 +5,7 @@
 
 #include "base/trace/native/trace_event.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 constexpr const char* MARKDOWN_CATEGORY = "markdown";
 void TraceEventBegin(const char* name) {
   TRACE_EVENT_BEGIN(MARKDOWN_CATEGORY, name);
@@ -13,4 +13,4 @@ void TraceEventBegin(const char* name) {
 void TraceEventEnd() {
   TRACE_EVENT_END(MARKDOWN_CATEGORY);
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

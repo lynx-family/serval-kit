@@ -10,7 +10,7 @@
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 
 @interface MarkdownCustomDrawView () {
-  lynx::markdown::MarkdownDrawable* _drawable;
+  serval::markdown::MarkdownDrawable* _drawable;
 }
 @end
 
@@ -18,7 +18,7 @@ const float kServalMarkdownMaxSize = 1e8;
 
 @implementation MarkdownCustomDrawView
 
-- (void)attachDrawable:(lynx::markdown::MarkdownDrawable*)drawable {
+- (void)attachDrawable:(serval::markdown::MarkdownDrawable*)drawable {
   _drawable = drawable;
 }
 
@@ -43,7 +43,7 @@ const float kServalMarkdownMaxSize = 1e8;
   if (_drawable == nullptr) {
     return {0, 0, 0};
   }
-  lynx::markdown::MeasureSpec spec;
+  serval::markdown::MeasureSpec spec;
   spec.width_ = width;
   spec.height_ = height;
   spec.width_mode_ = static_cast<tttext::LayoutMode>(widthMode);

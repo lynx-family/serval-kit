@@ -9,8 +9,7 @@
 #import "textra/platform/ios/ios_font_manager.h"
 #import "textra/text_layout.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
@@ -33,5 +32,4 @@ MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
     tttext::ICanvasHelper* canvas) {
   return static_cast<MarkdownCanvasIOS*>(canvas);
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

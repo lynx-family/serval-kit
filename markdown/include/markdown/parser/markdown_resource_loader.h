@@ -10,8 +10,7 @@
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownPlatformView;
 class MarkdownResourceLoader {
  public:
@@ -30,6 +29,5 @@ class MarkdownResourceLoader {
   virtual std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) = 0;
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_RESOURCE_LOADER_H_

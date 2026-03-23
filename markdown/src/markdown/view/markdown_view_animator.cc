@@ -9,7 +9,7 @@
 
 #include "markdown/utils/markdown_float_comparison.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 void MarkdownViewAnimator::SetAnimationStep(int32_t step) {
   current_animation_step_ = std::max(0, step);
@@ -143,4 +143,4 @@ void MarkdownViewAnimator::SendAnimationStep(int32_t animation_step,
   event_listener_->OnAnimationStep(animation_step, max_animation_step);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

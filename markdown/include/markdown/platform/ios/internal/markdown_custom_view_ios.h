@@ -5,7 +5,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_
 #include "markdown/platform/ios/internal/markdown_platform_view_ios.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
                               public MarkdownCustomViewHandle {
  public:
@@ -21,5 +21,5 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_

@@ -6,7 +6,7 @@
 
 #include "markdown/view/markdown_view_animator.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 TEST(MarkdownViewAnimatorTest, UpdateTypewriterStepAdvancesByVelocity) {
   MarkdownViewAnimator animator;
@@ -117,4 +117,4 @@ TEST(MarkdownViewAnimatorTest, UpdateHeightTransitionClampsDurationMsToOne) {
   EXPECT_EQ(h2, 200);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

@@ -23,7 +23,7 @@
 #include "markdown/view/markdown_view_animator.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown_view_renderer.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownView final : public MarkdownDrawable {
  public:
   explicit MarkdownView(MarkdownPlatformView* view);
@@ -202,5 +202,5 @@ class MarkdownView final : public MarkdownDrawable {
   bool typewriter_height_transition_prefetch_{false};
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_H_

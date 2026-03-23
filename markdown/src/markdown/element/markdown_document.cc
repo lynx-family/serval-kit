@@ -8,8 +8,7 @@
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/parser/embed/markdown_parser_embed.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 const MarkdownLink* MarkdownDocument::GetLinkByTouchPosition(PointF point) {
   if (links_.empty()) {
     return nullptr;
@@ -198,7 +197,7 @@ void MarkdownDocument::UpdateTruncation(float width) {
   if (style_.truncation_.truncation_.truncation_type_ ==
       MarkdownTruncationType::kText) {
     truncation_text_ =
-        base::U8StringToU16(style_.truncation_.truncation_.content_);
+        lynx::base::U8StringToU16(style_.truncation_.truncation_.content_);
     truncation_delegate_ = nullptr;
   } else if (style_.truncation_.truncation_.truncation_type_ ==
              MarkdownTruncationType::kView) {
@@ -247,7 +246,7 @@ std::vector<std::string> MarkdownDocument::GetAllImageUrl() {
 }
 
 std::string MarkdownDocument::GetImageByTouchPosition(
-    lynx::markdown::PointF point) {
+    serval::markdown::PointF point) {
   if (images_.empty()) {
     return "";
   }
@@ -286,7 +285,8 @@ bool MarkdownDocument::TouchPointCanScroll(PointF point, float safe_offset) {
 }
 
 MarkdownTouchState MarkdownDocument::OnTouchEvent(
-    lynx::markdown::MarkdownTouchEventType type, lynx::markdown::PointF point) {
+    serval::markdown::MarkdownTouchEventType type,
+    serval::markdown::PointF point) {
   touch_state_ = MarkdownTouchState::kNone;
   auto page = GetPage();
   if (page == nullptr || page->regions_.empty()) {
@@ -382,7 +382,7 @@ int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
 }
 
 int32_t MarkdownDocument::GetCharIndexByTouchPosition(
-    lynx::markdown::PointF point) {
+    serval::markdown::PointF point) {
   auto page = GetPage();
   if (page == nullptr || page->regions_.empty()) {
     return -1;
@@ -394,7 +394,7 @@ int32_t MarkdownDocument::GetCharIndexByTouchPosition(
 
 const MarkdownTextAttachment*
 MarkdownDocument::GetTextClickRangeByTouchPosition(
-    lynx::markdown::PointF position) {
+    serval::markdown::PointF position) {
   auto page = GetPage();
   const auto& attachments = page->GetTextAttachments();
   if (attachments.empty())
@@ -529,7 +529,7 @@ Range MarkdownDocument::GetShowedExtraContents(float top, float bottom) {
 }
 
 void MarkdownDocument::InheritState(
-    lynx::markdown::MarkdownDocument* old_document) {
+    serval::markdown::MarkdownDocument* old_document) {
   if (old_document != nullptr && old_document->page_ != nullptr) {
     inherited_scroll_state_ = old_document->page_->GetScrollState();
   }
@@ -551,5 +551,4 @@ void MarkdownDocument::TrimParagraphSpaces() const {
   }
 }
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

@@ -17,7 +17,7 @@
 #include "markdown/view/markdown_gesture.h"
 #include "native_drawing/drawing_canvas.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 HarmonyView::HarmonyView()
     : HarmonyView(ArkUINativeAPI::GetNodeApi()->createNode(ARKUI_NODE_CUSTOM)) {
 }
@@ -433,4 +433,4 @@ void HarmonyCustomView::OnDraw(ArkUI_DrawContext* context) {
                   static_cast<float>(size.height), true);
   drawable_->Draw(&canvas, 0, 0);
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

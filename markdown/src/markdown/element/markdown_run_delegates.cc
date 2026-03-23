@@ -13,8 +13,7 @@
 #include "markdown/parser/markdown_parser.h"
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 void MarkdownRefDelegate::Layout() {
   if (layout_)
     return;
@@ -50,8 +49,8 @@ void MarkdownRefDelegate::Layout() {
   layout_ = true;
 }
 
-void lynx::markdown::MarkdownRefDelegate::Draw(tttext::ICanvasHelper* canvas,
-                                               float x, float y) {
+void serval::markdown::MarkdownRefDelegate::Draw(tttext::ICanvasHelper* canvas,
+                                                 float x, float y) {
   canvas->Save();
   canvas->Translate(style_.block_.margin_left_ + x, y);
   auto drawer_painter = canvas->CreatePainter();
@@ -121,9 +120,9 @@ void MarkdownTextDelegate::Draw(tttext::ICanvasHelper* canvas, float x,
 }
 
 MarkdownInlineBorderDelegate::MarkdownInlineBorderDelegate(
-    lynx::markdown::InlineBorderDirection direction,
-    lynx::markdown::MarkdownBorderStylePart border_style,
-    lynx::markdown::MarkdownBlockStylePart block_style,
+    serval::markdown::InlineBorderDirection direction,
+    serval::markdown::MarkdownBorderStylePart border_style,
+    serval::markdown::MarkdownBlockStylePart block_style,
     uint32_t background_color, uint32_t char_offset)
     : direction_(direction),
       border_style_(border_style),
@@ -264,5 +263,4 @@ void ImageWithCaption::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   drawer.DrawLayoutPage(region_.get());
   canvas->Translate(-text_x_offset, -text_y_offset);
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

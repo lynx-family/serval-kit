@@ -12,15 +12,15 @@
 #include "markdown/utils/markdown_value.h"
 #include "napi/native_api.h"
 
-using lynx::markdown::Value;
+using serval::markdown::Value;
 using MarkdownValue = std::unique_ptr<Value>;
-using lynx::markdown::HarmonyEventListener;
-using lynx::markdown::HarmonyExposureListener;
-using lynx::markdown::HarmonyResourceLoaderImpl;
-using lynx::markdown::HarmonyValueRef;
-using lynx::markdown::HarmonyValues;
-using lynx::markdown::NativeServalMarkdownView;
-using lynx::markdown::ValueType;
+using serval::markdown::HarmonyEventListener;
+using serval::markdown::HarmonyExposureListener;
+using serval::markdown::HarmonyResourceLoaderImpl;
+using serval::markdown::HarmonyValueRef;
+using serval::markdown::HarmonyValues;
+using serval::markdown::NativeServalMarkdownView;
+using serval::markdown::ValueType;
 struct NativeMarkdownViewHolder {
   explicit NativeMarkdownViewHolder(napi_env env) {
     view_ = std::make_unique<NativeServalMarkdownView>();

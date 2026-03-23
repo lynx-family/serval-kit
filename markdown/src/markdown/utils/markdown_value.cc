@@ -4,7 +4,7 @@
 
 #include "markdown/utils/markdown_value.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class NullValue : public Value {
  public:
   NullValue() : Value(ValueType::kNull) {}
@@ -180,4 +180,4 @@ Value* Value::GetByKey(const std::string& key) {
   }
   return find->second.get();
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

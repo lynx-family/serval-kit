@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "markdown/utils/markdown_screen_metrics.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 float MarkdownLengthValue::CalculateLengthValue(
     const MarkdownLengthContext& context) const {
   switch (type_) {
@@ -276,4 +276,4 @@ float MarkdownLengthValue::GetPx() const {
   return value_;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

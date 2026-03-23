@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
                             public MarkdownViewContainerHandle {
  public:
@@ -50,6 +50,6 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
   RectF cached_view_rect_in_screen_{};
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_MAIN_VIEW_IOS_H_

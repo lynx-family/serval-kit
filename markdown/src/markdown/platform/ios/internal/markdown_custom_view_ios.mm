@@ -10,10 +10,10 @@
 #import "markdown/platform/ios/MarkdownCustomDrawView.h"
 
 @interface MarkdownCustomDrawView (AttachDrawable)
-- (void)attachDrawable:(lynx::markdown::MarkdownDrawable*)drawable;
+- (void)attachDrawable:(serval::markdown::MarkdownDrawable*)drawable;
 @end
 
-namespace lynx::markdown {
+namespace serval::markdown {
 MarkdownCustomViewIOS::MarkdownCustomViewIOS(
     id<IMarkdownPlatformViewHandle> view)
     : MarkdownPlatformViewIOS(view) {}
@@ -53,4 +53,4 @@ void MarkdownCustomViewIOS::Draw(tttext::ICanvasHelper* canvas, float x,
   }
   drawable_->Draw(canvas, x, y);
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

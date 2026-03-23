@@ -4,10 +4,10 @@
 
 #include "markdown/utils/markdown_screen_metrics.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 MarkdownScreenMetrics& MarkdownScreenMetrics::Ins() {
   static MarkdownScreenMetrics ins;
   return ins;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

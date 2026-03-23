@@ -9,8 +9,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/view/markdown_selection_view.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 enum class SelectionState {
   kEnter,
   kMove,
@@ -32,6 +31,5 @@ class MarkdownEventListener {
                                   SelectionHandleType handle,
                                   SelectionState state) = 0;
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EVENT_LISTENER_H_

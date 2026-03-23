@@ -55,7 +55,7 @@ class MarkdownJNIUtils {
   }
 };
 
-class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
+class AndroidMarkdownView : public serval::markdown::MarkdownPlatformView {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMarkdownView();
@@ -69,38 +69,38 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     SetVisibility(true);
   }
-  bool DispatchTap(lynx::markdown::PointF position,
-                   lynx::markdown::GestureEventType event) {
+  bool DispatchTap(serval::markdown::PointF position,
+                   serval::markdown::GestureEventType event) {
     if (!tap_gesture_listener_) {
       return false;
     }
     return tap_gesture_listener_(position, event);
   }
-  bool DispatchLongPress(lynx::markdown::PointF position,
-                         lynx::markdown::GestureEventType event) {
+  bool DispatchLongPress(serval::markdown::PointF position,
+                         serval::markdown::GestureEventType event) {
     if (!long_press_gesture_listener_) {
       return false;
     }
     return long_press_gesture_listener_(position, event);
   }
-  bool DispatchPan(lynx::markdown::PointF position,
-                   lynx::markdown::PointF motion,
-                   lynx::markdown::GestureEventType event) {
+  bool DispatchPan(serval::markdown::PointF position,
+                   serval::markdown::PointF motion,
+                   serval::markdown::GestureEventType event) {
     if (!pan_gesture_listener_) {
       return false;
     }
     return pan_gesture_listener_(position, motion, event);
   }
-  lynx::markdown::PointF GetAlignedPosition() final;
-  lynx::markdown::SizeF GetMeasuredSize() override;
-  void SetMeasuredSize(lynx::markdown::SizeF size) final;
-  void SetAlignPosition(lynx::markdown::PointF position) final;
+  serval::markdown::PointF GetAlignedPosition() final;
+  serval::markdown::SizeF GetMeasuredSize() override;
+  void SetMeasuredSize(serval::markdown::SizeF size) final;
+  void SetAlignPosition(serval::markdown::PointF position) final;
   void SetVisibility(bool visible) final;
   jobject GetObject() const { return ref_.Get(); }
 
  protected:
-  lynx::markdown::MeasureResult OnMeasure(
-      lynx::markdown::MeasureSpec spec) override;
+  serval::markdown::MeasureResult OnMeasure(
+      serval::markdown::MeasureSpec spec) override;
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> ref_;
 
  protected:
@@ -120,54 +120,55 @@ class AndroidMarkdownView : public lynx::markdown::MarkdownPlatformView {
 };
 
 class AndroidCustomView : public AndroidMarkdownView,
-                          public lynx::markdown::MarkdownCustomViewHandle {
+                          public serval::markdown::MarkdownCustomViewHandle {
  public:
   static void Initialize(JNIEnv* env);
   AndroidCustomView();
   AndroidCustomView(JNIEnv* env, jobject ref);
   void AttachDrawable(
-      std::unique_ptr<lynx::markdown::MarkdownDrawable> drawable) final;
-  lynx::markdown::MarkdownCustomViewHandle* GetCustomViewHandle() final {
+      std::unique_ptr<serval::markdown::MarkdownDrawable> drawable) final;
+  serval::markdown::MarkdownCustomViewHandle* GetCustomViewHandle() final {
     return this;
   }
-  lynx::markdown::SizeF GetMeasuredSize() override;
+  serval::markdown::SizeF GetMeasuredSize() override;
 
  protected:
-  lynx::markdown::MeasureResult OnMeasure(
-      lynx::markdown::MeasureSpec spec) override;
+  serval::markdown::MeasureResult OnMeasure(
+      serval::markdown::MeasureSpec spec) override;
   static struct Methods {
     jmethodID attach_drawable_{};
   } methods_;
 };
 
 class AndroidMainView : public AndroidCustomView,
-                        public lynx::markdown::MarkdownViewContainerHandle {
+                        public serval::markdown::MarkdownViewContainerHandle {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMainView(JNIEnv* env, jobject ref);
-  std::shared_ptr<lynx::markdown::MarkdownPlatformView> CreateCustomSubView()
+  std::shared_ptr<serval::markdown::MarkdownPlatformView> CreateCustomSubView()
       final;
-  std::shared_ptr<lynx::markdown::MarkdownPlatformView> CreateRegionSubView()
+  std::shared_ptr<serval::markdown::MarkdownPlatformView> CreateRegionSubView()
       final;
-  std::shared_ptr<lynx::markdown::MarkdownPlatformView>
-  CreateSelectionHandleSubView(lynx::markdown::SelectionHandleType type,
+  std::shared_ptr<serval::markdown::MarkdownPlatformView>
+  CreateSelectionHandleSubView(serval::markdown::SelectionHandleType type,
                                float size, float margin, uint32_t color) final;
-  std::shared_ptr<lynx::markdown::MarkdownPlatformView>
+  std::shared_ptr<serval::markdown::MarkdownPlatformView>
   CreateSelectionHighlightSubView(uint32_t color) final;
 
  public:
-  void RemoveSubView(lynx::markdown::MarkdownPlatformView* subview) final;
+  void RemoveSubView(serval::markdown::MarkdownPlatformView* subview) final;
   void RemoveAllSubViews() final;
-  lynx::markdown::RectF GetViewRectInScreen() final;
+  serval::markdown::RectF GetViewRectInScreen() final;
   void UpdateCachedViewRectInScreen();
-  lynx::markdown::MarkdownViewContainerHandle* GetViewContainerHandle() final {
+  serval::markdown::MarkdownViewContainerHandle* GetViewContainerHandle()
+      final {
     return this;
   }
 
  protected:
-  lynx::markdown::RectF CalculateViewRectInScreen();
+  serval::markdown::RectF CalculateViewRectInScreen();
   std::list<std::shared_ptr<AndroidMarkdownView>> subviews_;
-  lynx::markdown::RectF cached_view_rect_in_screen_{};
+  serval::markdown::RectF cached_view_rect_in_screen_{};
 
  protected:
   static struct Methods {

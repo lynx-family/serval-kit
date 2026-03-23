@@ -4,8 +4,8 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_TRACE_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_TRACE_H_
-namespace lynx::markdown {
+namespace serval::markdown {
 void TraceEventBegin(const char* name);
 void TraceEventEnd();
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_TRACE_H_

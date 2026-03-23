@@ -1,3 +1,137 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7e4c20f1c12ed4a3dcc2992754a08a477cec7be22505eb68b04665b95cda0ba3
-size 2923
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 340.0,
+      "bottom": 260.0
+    },
+    "need_draw": true,
+    "draw_view_count": 3,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 150.0,
+          "right": 323.0,
+          "bottom": 270.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "This document",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 172.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "introduces the",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 202.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "feature in a normal",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 232.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "writing flow.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 262.6499938964844
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 312.8000183105469,
+          "bottom": 138.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Project",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 52.095001220703125
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 39.099998474121094,
+          "bold": true,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Overview",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 121.09500122070313
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 39.099998474121094,
+          "bold": true,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

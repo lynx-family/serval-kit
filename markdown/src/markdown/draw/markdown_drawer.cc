@@ -8,10 +8,9 @@
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_selection.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 
-void MarkdownDrawer::DrawPage(const lynx::markdown::MarkdownPage& page) {
+void MarkdownDrawer::DrawPage(const serval::markdown::MarkdownPage& page) {
   tttext::LayoutDrawer drawer(canvas_);
   canvas_->Save();
   canvas_->ClipRect(0, 0, std::min(page.GetLayoutWidth(), page.max_width_),
@@ -160,7 +159,7 @@ void MarkdownDrawer::DrawQuoteLine(const MarkdownQuoteBorder& border) {
 }
 
 void MarkdownDrawer::DrawBorder(
-    const lynx::markdown::MarkdownPageRegionBorder& border) {
+    const serval::markdown::MarkdownPageRegionBorder& border) {
   if (border.border_style_.border_color_ == 0)
     return;
   canvas_->Save();
@@ -193,7 +192,7 @@ void MarkdownDrawer::DrawBorder(
 }
 
 void MarkdownDrawer::DrawRegion(
-    const lynx::markdown::MarkdownPageRegion& region,
+    const serval::markdown::MarkdownPageRegion& region,
     tttext::LayoutDrawer* drawer) {
   if (terminated_) {
     return;
@@ -313,9 +312,9 @@ void MarkdownDrawer::DrawCellBackground(const MarkdownTableRegion& table,
   }
 }
 
-void MarkdownDrawer::DrawTable(const lynx::markdown::MarkdownTableRegion& table,
-                               const MarkdownElement& element,
-                               tttext::LayoutDrawer* drawer) {
+void MarkdownDrawer::DrawTable(
+    const serval::markdown::MarkdownTableRegion& table,
+    const MarkdownElement& element, tttext::LayoutDrawer* drawer) {
   if (table.Empty() || terminated_) {
     return;
   }
@@ -376,5 +375,4 @@ void MarkdownDrawer::DrawAttachmentOnRegion(const MarkdownPage& page,
   DrawAttachment(page, attachment);
 }
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

@@ -6,11 +6,14 @@
 #include "markdown/utils/markdown_value.h"
 class MarkdownValueConvert {
  public:
-  static std::unique_ptr<lynx::markdown::Value> ConvertObject(NSObject* object);
-  static std::unique_ptr<lynx::markdown::Value> ConvertMap(
+  static std::unique_ptr<serval::markdown::Value> ConvertObject(
+      NSObject* object);
+  static std::unique_ptr<serval::markdown::Value> ConvertMap(
       NSDictionary* dictionary);
-  static std::unique_ptr<lynx::markdown::Value> ConvertArray(NSArray* array);
-  static std::unique_ptr<lynx::markdown::Value> ConvertString(NSString* string);
-  static std::unique_ptr<lynx::markdown::Value> ConvertNumber(NSNumber* number);
+  static std::unique_ptr<serval::markdown::Value> ConvertArray(NSArray* array);
+  static std::unique_ptr<serval::markdown::Value> ConvertString(
+      NSString* string);
+  static std::unique_ptr<serval::markdown::Value> ConvertNumber(
+      NSNumber* number);
 };
 #endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_VALUE_CONVERT_H_

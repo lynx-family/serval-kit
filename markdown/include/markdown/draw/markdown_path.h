@@ -5,7 +5,7 @@
 #ifndef THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_
 #define THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_
 #include "markdown/utils/markdown_definition.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownPath {
  public:
   MarkdownPath() = default;
@@ -78,5 +78,5 @@ class MarkdownPath {
   };
   std::vector<PathOp> path_ops_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_

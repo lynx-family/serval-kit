@@ -6,31 +6,31 @@
 #include <memory>
 #include <utility>
 
-std::unique_ptr<lynx::markdown::Value> MarkdownBufferReader::ReadValue() {
-  auto type = static_cast<lynx::markdown::ValueType>(stream_.ReadInt32());
+std::unique_ptr<serval::markdown::Value> MarkdownBufferReader::ReadValue() {
+  auto type = static_cast<serval::markdown::ValueType>(stream_.ReadInt32());
   switch (type) {
-    case lynx::markdown::ValueType::kNull:
-      return lynx::markdown::Value::MakeNull();
-    case lynx::markdown::ValueType::kMap:
-      return lynx::markdown::Value::MakeMap(ReadMap());
-    case lynx::markdown::ValueType::kArray:
-      return lynx::markdown::Value::MakeArray(ReadArray());
-    case lynx::markdown::ValueType::kBool:
-      return lynx::markdown::Value::MakeBool(stream_.ReadBool());
-    case lynx::markdown::ValueType::kInt:
-      return lynx::markdown::Value::MakeInt(stream_.ReadInt32());
-    case lynx::markdown::ValueType::kLong:
-      return lynx::markdown::Value::MakeLong(stream_.ReadInt64());
-    case lynx::markdown::ValueType::kDouble:
-      return lynx::markdown::Value::MakeDouble(stream_.ReadDouble());
-    case lynx::markdown::ValueType::kString:
-      return lynx::markdown::Value::MakeString(stream_.ReadStdString());
+    case serval::markdown::ValueType::kNull:
+      return serval::markdown::Value::MakeNull();
+    case serval::markdown::ValueType::kMap:
+      return serval::markdown::Value::MakeMap(ReadMap());
+    case serval::markdown::ValueType::kArray:
+      return serval::markdown::Value::MakeArray(ReadArray());
+    case serval::markdown::ValueType::kBool:
+      return serval::markdown::Value::MakeBool(stream_.ReadBool());
+    case serval::markdown::ValueType::kInt:
+      return serval::markdown::Value::MakeInt(stream_.ReadInt32());
+    case serval::markdown::ValueType::kLong:
+      return serval::markdown::Value::MakeLong(stream_.ReadInt64());
+    case serval::markdown::ValueType::kDouble:
+      return serval::markdown::Value::MakeDouble(stream_.ReadDouble());
+    case serval::markdown::ValueType::kString:
+      return serval::markdown::Value::MakeString(stream_.ReadStdString());
   }
 }
 
-lynx::markdown::ValueMap MarkdownBufferReader::ReadMap() {
+serval::markdown::ValueMap MarkdownBufferReader::ReadMap() {
   auto size = stream_.ReadInt32();
-  lynx::markdown::ValueMap map;
+  serval::markdown::ValueMap map;
   map.reserve(size);
   for (int i = 0; i < size; i++) {
     auto key = stream_.ReadStdString();
@@ -40,9 +40,9 @@ lynx::markdown::ValueMap MarkdownBufferReader::ReadMap() {
   return map;
 }
 
-lynx::markdown::ValueArray MarkdownBufferReader::ReadArray() {
+serval::markdown::ValueArray MarkdownBufferReader::ReadArray() {
   auto size = stream_.ReadInt32();
-  lynx::markdown::ValueArray array;
+  serval::markdown::ValueArray array;
   array.reserve(size);
   for (int i = 0; i < size; i++) {
     auto value = ReadValue();

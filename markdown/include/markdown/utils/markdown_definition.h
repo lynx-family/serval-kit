@@ -8,8 +8,7 @@
 #include <cmath>
 #include <string>
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class RectF {
  public:
   RectF() : RectF(0, 0, 0, 0) {}
@@ -172,6 +171,5 @@ bool IsUtf8StartByte(char byte);
 char32_t GetUnicodeFromUtf8String(const char* string, int32_t* char_len);
 bool IsEmptyChar(char32_t unicode);
 bool IsPunctuation(char32_t unicode);
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_DEFINITION_H_

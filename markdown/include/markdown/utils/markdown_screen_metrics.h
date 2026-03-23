@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_SCREEN_METRICS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_SCREEN_METRICS_H_
 #include <cstdint>
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownScreenMetrics {
  public:
   static float DPToPx(float dp) { return GetDensity() * dp; }
@@ -30,5 +30,5 @@ class MarkdownScreenMetrics {
   int32_t screen_width_{0};
   int32_t screen_height_{0};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_SCREEN_METRICS_H_

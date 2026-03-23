@@ -5,11 +5,11 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_UI_THREAD_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_UI_THREAD_H_
 #include "base/include/fml/task_runner.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownUIThread {
  public:
   static fml::RefPtr<fml::TaskRunner>& GetUITaskRunner();
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_UI_THREAD_H_

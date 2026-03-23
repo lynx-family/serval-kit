@@ -14,20 +14,20 @@
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
 #include "markdown/view/markdown_view.h"
 @interface ServalMarkdownView () {
-  std::unique_ptr<lynx::markdown::MarkdownEventIOS> event_listener_;
-  std::unique_ptr<lynx::markdown::MarkdownExposureIOS> exposure_listener_;
-  std::unique_ptr<lynx::markdown::MarkdownResourceLoaderIOS> resource_loader_;
-  std::unique_ptr<lynx::markdown::MarkdownMainViewIOS> markdown_view_handle_;
+  std::unique_ptr<serval::markdown::MarkdownEventIOS> event_listener_;
+  std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
+  std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
+  std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
 }
 @property(nonatomic, strong) CADisplayLink* displayLink;
 @property(nonatomic, strong) NSMutableArray<UIView*>* customSubviews;
 
 - (MarkdownCustomDrawView*)createCustomView;
 - (MarkdownCustomDrawView*)createRegionView;
-- (void)removeSubview:(lynx::markdown::MarkdownPlatformView*)subview;
+- (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview;
 - (void)removeAllCustomViews;
 
-- (lynx::markdown::MarkdownView*)getMarkdownView;
+- (serval::markdown::MarkdownView*)getMarkdownView;
 @end
 
 @implementation ServalMarkdownView
@@ -36,15 +36,15 @@
   if (self != nil) {
     self.customSubviews = [[NSMutableArray alloc] init];
     markdown_view_handle_ =
-        std::make_unique<lynx::markdown::MarkdownMainViewIOS>(self);
+        std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
     markdown_view_handle_->AttachDrawable(
-        std::make_unique<lynx::markdown::MarkdownView>(
+        std::make_unique<serval::markdown::MarkdownView>(
             markdown_view_handle_.get()));
-    event_listener_ = std::make_unique<lynx::markdown::MarkdownEventIOS>();
+    event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
     resource_loader_ =
-        std::make_unique<lynx::markdown::MarkdownResourceLoaderIOS>();
+        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();
     exposure_listener_ =
-        std::make_unique<lynx::markdown::MarkdownExposureIOS>();
+        std::make_unique<serval::markdown::MarkdownExposureIOS>();
     auto* view = [self getMarkdownView];
     view->SetEventListener(event_listener_.get());
     view->SetResourceLoader(resource_loader_.get());
@@ -82,9 +82,9 @@
   [self.customSubviews addObject:view];
   return view;
 }
-- (void)removeSubview:(lynx::markdown::MarkdownPlatformView*)subview {
+- (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview {
   auto* ios_view =
-      static_cast<lynx::markdown::MarkdownPlatformViewIOS*>(subview);
+      static_cast<serval::markdown::MarkdownPlatformViewIOS*>(subview);
   UIView* view = static_cast<UIView*>(ios_view->GetHandle());
   [self.customSubviews removeObject:view];
   [view removeFromSuperview];
@@ -102,8 +102,8 @@
   const auto timestamp = static_cast<int64_t>(sender.targetTimestamp * 1000);
   markdown_view_handle_->OnVSync(timestamp);
 }
-- (lynx::markdown::MarkdownView*)getMarkdownView {
-  return static_cast<lynx::markdown::MarkdownView*>(
+- (serval::markdown::MarkdownView*)getMarkdownView {
+  return static_cast<serval::markdown::MarkdownView*>(
       markdown_view_handle_->GetDrawable());
 }
 
@@ -152,7 +152,7 @@
 - (void)setAnimationType:(ServalMarkdownAnimationType)animationType {
   auto* view = [self getMarkdownView];
   view->SetAnimationType(
-      static_cast<lynx::markdown::MarkdownAnimationType>(animationType));
+      static_cast<serval::markdown::MarkdownAnimationType>(animationType));
   _animationType = animationType;
 }
 - (void)setAnimationVelocity:(float)animationVelocity {
@@ -167,32 +167,34 @@
 }
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value {
   auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop), value);
+  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
+                      value);
 }
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value {
   auto* view = [self getMarkdownView];
-  view->SetStringProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+  view->SetStringProp(static_cast<serval::markdown::MarkdownProps>(prop),
                       [value UTF8String]);
 }
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value {
   auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
                       value ? 1 : 0);
 }
 - (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color {
   auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<lynx::markdown::MarkdownProps>(prop), color);
+  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
+                      color);
 }
 - (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array {
   auto* view = [self getMarkdownView];
   auto result = MarkdownValueConvert::ConvertArray(array);
-  view->SetArrayProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+  view->SetArrayProp(static_cast<serval::markdown::MarkdownProps>(prop),
                      result->AsArray());
 }
 - (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict {
   auto* view = [self getMarkdownView];
   auto result = MarkdownValueConvert::ConvertMap(dict);
-  view->SetMapProp(static_cast<lynx::markdown::MarkdownProps>(prop),
+  view->SetMapProp(static_cast<serval::markdown::MarkdownProps>(prop),
                    result->AsMap());
 }
 @end

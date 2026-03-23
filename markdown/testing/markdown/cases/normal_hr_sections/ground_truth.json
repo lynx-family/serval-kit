@@ -1,3 +1,202 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0b9491e79bcc43e0298ebba77adb99dd26a5e37b054a62e4db373a6a792e5cb1
-size 4132
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 240.0
+    },
+    "need_draw": true,
+    "draw_view_count": 6,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 190.0,
+          "right": 170.0,
+          "bottom": 250.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Conclusion",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 212.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "paragraph.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 242.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 177.0,
+          "right": 320.0,
+          "bottom": 178.0
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.5,
+          "y": 177.5
+        },
+        "p2": {
+          "x": 319.5,
+          "y": 177.5
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 95.0,
+          "right": 238.0,
+          "bottom": 155.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Middle section",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 117.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "text.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 147.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 82.0,
+          "right": 320.0,
+          "bottom": 83.0
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.5,
+          "y": 82.5
+        },
+        "p2": {
+          "x": 319.5,
+          "y": 82.5
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 204.0,
+          "bottom": 60.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Introduction",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 22.649999618530273
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "paragraph.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 52.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

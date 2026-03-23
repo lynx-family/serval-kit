@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_
 #include <cstdint>
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class MarkdownProps {
   kAnimationType,
   kAnimationVelocity,

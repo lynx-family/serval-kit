@@ -18,7 +18,7 @@ enum class MarkdownRunDelegateType : uint8_t {
   kBackground,
 };
 
-class MarkdownRunDelegate : public lynx::markdown::MarkdownDrawable {
+class MarkdownRunDelegate : public serval::markdown::MarkdownDrawable {
  public:
   MarkdownRunDelegate(float desire_width, float desire_height,
                       MarkdownRunDelegateType type)
@@ -36,8 +36,8 @@ class MarkdownRunDelegate : public lynx::markdown::MarkdownDrawable {
   }
 
  protected:
-  lynx::markdown::MeasureResult OnMeasure(
-      lynx::markdown::MeasureSpec spec) override {
+  serval::markdown::MeasureResult OnMeasure(
+      serval::markdown::MeasureSpec spec) override {
     const float width = desire_width_;
     const float height = desire_height_;
     const float baseline = desire_height_;
@@ -109,8 +109,8 @@ class MarkdownInlineView : public MarkdownRunDelegate {
   id<IMarkdownPlatformViewHandle> GetHandle() const { return handle_; }
 
  protected:
-  lynx::markdown::MeasureResult OnMeasure(
-      lynx::markdown::MeasureSpec spec) override {
+  serval::markdown::MeasureResult OnMeasure(
+      serval::markdown::MeasureSpec spec) override {
     auto result = [handle_
         measureByWidth:spec.width_
              WidthMode:static_cast<ServalMarkdownLayoutMode>(spec.width_mode_)
@@ -129,7 +129,7 @@ class MarkdownInlineView : public MarkdownRunDelegate {
 };
 
 class MarkdownCanvasIOS : public IOSCanvasBase,
-                          public lynx::markdown::MarkdownCanvasExtend {
+                          public serval::markdown::MarkdownCanvasExtend {
  public:
   explicit MarkdownCanvasIOS(CGContextRef context);
   ~MarkdownCanvasIOS() override = default;
@@ -143,21 +143,21 @@ class MarkdownCanvasIOS : public IOSCanvasBase,
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
 
-  void ClipPath(lynx::markdown::MarkdownPath* path) override;
+  void ClipPath(serval::markdown::MarkdownPath* path) override;
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
-                          lynx::markdown::MarkdownPath* path,
+                          serval::markdown::MarkdownPath* path,
                           tttext::Painter* painter) override;
-  void DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
+  void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
                         tttext::Painter* painter) override;
 
  protected:
-  void AddPath(lynx::markdown::MarkdownPath* path, CGMutablePathRef result);
-  CGPathRef CreatePath(lynx::markdown::MarkdownPath* path);
+  void AddPath(serval::markdown::MarkdownPath* path, CGMutablePathRef result);
+  CGPathRef CreatePath(serval::markdown::MarkdownPath* path);
 
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter);
 
  private:
-  std::vector<lynx::markdown::PointF> translate_stack_;
-  lynx::markdown::PointF translate_point_;
+  std::vector<serval::markdown::PointF> translate_stack_;
+  serval::markdown::PointF translate_point_;
 };
 #endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_

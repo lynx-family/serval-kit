@@ -12,7 +12,7 @@
 #include "testing/markdown/mock_markdown_canvas.h"
 #include "testing/markdown/mock_markdown_platform_view.h"
 
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 struct MockMarkdownFrameStep {
   int64_t interval_ms_{16};
@@ -49,6 +49,6 @@ class MockMarkdownFrameDriver {
   int64_t current_timestamp_ms_{0};
 };
 
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing
 
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_FRAME_DRIVER_H_

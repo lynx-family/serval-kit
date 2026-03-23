@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VALUE_REF_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VALUE_REF_H_
 #include "napi/native_api.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyValueRef {
  public:
   HarmonyValueRef() = default;
@@ -71,5 +71,5 @@ class HarmonyValueRef {
   napi_env env_{nullptr};
   napi_ref ref_{nullptr};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VALUE_REF_H_

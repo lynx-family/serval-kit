@@ -11,8 +11,7 @@
 #include "markdown/element/markdown_page.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownTableRegion;
 class MarkdownTextAttachment;
 class MarkdownDrawer {
@@ -51,6 +50,5 @@ class MarkdownDrawer {
   std::unique_ptr<tttext::Painter> painter_;
   bool terminated_{false};
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_DRAWER_H_

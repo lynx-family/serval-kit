@@ -12,7 +12,7 @@
 #include "arkui/native_type.h"
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 #include "markdown/view/markdown_platform_view.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 struct MarginPadding {
   float left_{0};
   float top_{0};
@@ -188,5 +188,5 @@ class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
   void OnDraw(ArkUI_DrawContext* context) final;
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VIEW_H_

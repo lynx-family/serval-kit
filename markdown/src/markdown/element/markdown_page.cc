@@ -3,8 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "markdown/element/markdown_page.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 std::vector<ScrollState> MarkdownPage::GetScrollState() const {
   std::vector<ScrollState> state;
   for (uint32_t i = 0; i < regions_.size(); i++) {
@@ -27,5 +26,4 @@ void MarkdownPage::ApplyScrollState(const std::vector<ScrollState>& states) {
     }
   }
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

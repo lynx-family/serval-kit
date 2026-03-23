@@ -1,3 +1,43 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5f6c4155923e16799f5ad54aa5049e5c971a1cbfccd066e6da751bc8118fae19
-size 803
+[
+  {
+    "step": 0,
+    "timestamp": 0,
+    "interval": 0,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 10.0,
+      "right": 220.0,
+      "bottom": 50.0
+    },
+    "need_draw": true,
+    "draw_view_count": 2,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 204.0,
+          "bottom": 59.999996185302734
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "single frame",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 22.64999771118164
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]
