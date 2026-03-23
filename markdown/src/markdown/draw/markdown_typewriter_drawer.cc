@@ -4,7 +4,6 @@
 
 #include "markdown/draw/markdown_typewriter_drawer.h"
 
-#include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
 namespace serval::markdown {

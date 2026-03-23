@@ -18,6 +18,13 @@ const float kServalMarkdownMaxSize = 1e8;
 
 @implementation MarkdownCustomDrawView
 
+- (instancetype)init {
+  self = [super init];
+  _drawable = nullptr;
+  self.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
+  return self;
+}
+
 - (void)attachDrawable:(serval::markdown::MarkdownDrawable*)drawable {
   _drawable = drawable;
 }

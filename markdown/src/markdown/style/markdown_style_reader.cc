@@ -3,12 +3,12 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/style/markdown_style_reader.h"
 
-#include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
+#include "markdown/utils/markdown_string_utils.h"
 namespace serval::markdown {
 class MarkdownStyleReaderImpl {
  public:
@@ -1491,8 +1491,8 @@ class MarkdownStyleReaderImpl {
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         const auto& str = it->second->AsString();
-        if (lynx::base::BeginsWith(str, "linear-gradient(") ||
-            lynx::base::BeginsWith(str, "radial-gradient(")) {
+        if (BeginsWith(str, "linear-gradient(") ||
+            BeginsWith(str, "radial-gradient(")) {
           if (loader_ != nullptr) {
             *result = loader_->LoadGradient(str.c_str(), 1, 1);
           } else {

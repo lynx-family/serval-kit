@@ -17,11 +17,16 @@ namespace serval::markdown {
 MarkdownCustomViewIOS::MarkdownCustomViewIOS(
     id<IMarkdownPlatformViewHandle> view)
     : MarkdownPlatformViewIOS(view) {}
-
+MarkdownCustomViewIOS::~MarkdownCustomViewIOS() {
+  auto* view = (MarkdownCustomDrawView*)handle_;
+  if (drawable_ != nullptr && view != nil) {
+    [view attachDrawable:nullptr];
+  }
+}
 void MarkdownCustomViewIOS::AttachDrawable(
     std::unique_ptr<MarkdownDrawable> drawable) {
   MarkdownCustomViewHandle::AttachDrawable(std::move(drawable));
-  auto* view = static_cast<MarkdownCustomDrawView*>(handle_);
+  auto* view = (MarkdownCustomDrawView*)handle_;
   if (view != nil) {
     [view attachDrawable:drawable_.get()];
   }

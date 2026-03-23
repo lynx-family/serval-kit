@@ -4,7 +4,6 @@
 #include "markdown/platform/harmony/internal/harmony_event_listener.h"
 #include <string>
 #include <utility>
-#include "base/include/string/string_utils.h"
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 
 namespace serval::markdown {
