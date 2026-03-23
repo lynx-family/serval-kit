@@ -19,8 +19,7 @@
 #include "testing/markdown/mock_markdown_platform_view.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
 #define GROUND_TRUTH_PATH "markdown/testing/markdown/ground_truth"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 namespace testing {
 namespace fs = std::filesystem;
 const fs::path CASES_PATH = "markdown/testing/markdown/cases";
@@ -669,5 +668,4 @@ TEST(MarkdownCaseUnittest, MarkAttachments) {
   }
 }
 }  // namespace testing
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

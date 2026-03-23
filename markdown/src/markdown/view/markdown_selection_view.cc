@@ -6,7 +6,7 @@
 
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_platform_view.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 MeasureResult MarkdownSelectionHandle::OnMeasure(MeasureSpec spec) {
   const auto size = GetSize();
   return {.width_ = size.width_,
@@ -86,4 +86,4 @@ void MarkdownSelectionHighlight::UpdateViewRect(
   view->Align(bounding_box_.GetLeft(), bounding_box_.GetTop());
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

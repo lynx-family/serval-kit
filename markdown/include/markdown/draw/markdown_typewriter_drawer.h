@@ -13,8 +13,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
  public:
   MarkdownCharTypewriterDrawer(tttext::ICanvasHelper* canvas,
@@ -70,7 +69,6 @@ class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
   PointF cursor_position_{0, 0};
   float max_draw_height_{0};
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_TYPEWRITER_DRAWER_H_

@@ -1,3 +1,96 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0582e3977fddb22ac1d778e32a4ed99b59c0b52941e21bbb224f60062b9fd795
-size 1944
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 220.0
+    },
+    "need_draw": true,
+    "draw_view_count": 2,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 12.0,
+          "right": 446.0,
+          "bottom": 104.0
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 320.0,
+          "bottom": 104.0
+        }
+      },
+      {
+        "op": "round rect",
+        "radius": 7.0,
+        "rect": {
+          "left": 0.5,
+          "top": 12.5,
+          "right": 445.5,
+          "bottom": 103.5
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "const x = 1;",
+        "font": "",
+        "origin": {
+          "x": 13.0,
+          "y": 42.29999923706055
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 3205896227,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "const y = x + 2;",
+        "font": "",
+        "origin": {
+          "x": 13.0,
+          "y": 64.30000305175781
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 3205896227,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "// no closing fence on purpose",
+        "font": "",
+        "origin": {
+          "x": 13.0,
+          "y": 86.30000305175781
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 3205896227,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

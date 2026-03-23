@@ -1,3 +1,10 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5f7e60ae171aaee2978880901b087b4f5b3fda50415bb6bfbb76b09509e5639f
-size 216
+{
+  "width": 240,
+  "height": 120,
+  "animation-type": "typewriter",
+  "initial-animation-step": 0,
+  "content-complete": false,
+  "animation-velocity": 40,
+  "frame-step-count": 3,
+  "frame-step-interval-ms": 100
+}

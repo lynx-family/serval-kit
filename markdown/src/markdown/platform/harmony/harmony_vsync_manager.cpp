@@ -9,7 +9,7 @@
 #include <vector>
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 #include "native_vsync/native_vsync.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyVSyncManagerImpl {
  public:
   static HarmonyVSyncManagerImpl& Instance() {
@@ -71,4 +71,4 @@ void HarmonyVSyncManager::AddVSyncCallback(HarmonyVSyncCallback* callback) {
 void HarmonyVSyncManager::RemoveVSyncCallback(HarmonyVSyncCallback* callback) {
   HarmonyVSyncManagerImpl::Instance().RemoveVSyncCallback(callback);
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

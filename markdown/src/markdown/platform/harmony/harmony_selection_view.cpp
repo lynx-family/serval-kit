@@ -7,7 +7,7 @@
 #include "markdown/platform/harmony/serval_markdown_view.h"
 #include "markdown/view/markdown_selection_view.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateSelectionHighlightSubView(
     const uint32_t color) {
@@ -30,4 +30,4 @@ NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
   harmony_view->SetClipByParent(false);
   return view;
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

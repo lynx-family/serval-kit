@@ -1,3 +1,130 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:958849554b9a5bb1e0c74ac83967b2dacc24d671c5fd4d74305d2b88c1609007
-size 2678
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 220.0
+    },
+    "need_draw": true,
+    "draw_view_count": 3,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 88.0,
+          "right": 306.0,
+          "bottom": 208.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Image with caption",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 110.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "and normal",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 140.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "paragraph after",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 170.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "it.",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 200.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 320.0,
+          "bottom": 66.0
+        }
+      },
+      {
+        "op": "image",
+        "src": "test.jpeg",
+        "rect": {
+          "left": 128.0,
+          "top": 0.0,
+          "right": 192.0,
+          "bottom": 36.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "System overview",
+        "font": "",
+        "origin": {
+          "x": 85.0,
+          "y": 55.5
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4286611584,
+          "stroke_color": 0,
+          "text_size": 10.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

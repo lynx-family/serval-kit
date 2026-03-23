@@ -10,8 +10,7 @@
 #include <utility>
 #include "markdown/element/markdown_element.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 
 class MarkdownParagraphElement : public MarkdownElement {
  public:
@@ -30,6 +29,5 @@ class MarkdownParagraphElement : public MarkdownElement {
   std::unique_ptr<tttext::Paragraph> paragraph_{nullptr};
 };
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_PARAGRAPH_H_

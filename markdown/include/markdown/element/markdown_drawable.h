@@ -6,7 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 
 struct MeasureSpec {
   static constexpr float LAYOUT_MAX_SIZE = 1e5;
@@ -39,5 +39,5 @@ class MarkdownDrawable : public tttext::RunDelegate {
   virtual MeasureResult OnMeasure(MeasureSpec spec) = 0;
   mutable MeasureResult measure_result_{};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_

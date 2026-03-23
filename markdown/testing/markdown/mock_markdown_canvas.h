@@ -14,7 +14,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 class MockMarkdownResourceLoader;
 class MockMarkdownCanvas final : public tttext::ICanvasHelper,
                                  public MarkdownCanvasExtend {
@@ -106,5 +106,5 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
 
   rapidjson::Document result_;
 };
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_CANVAS_H_

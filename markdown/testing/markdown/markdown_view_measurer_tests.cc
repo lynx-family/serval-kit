@@ -6,7 +6,7 @@
 
 #include "markdown/view/markdown_view_measurer.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {
   MarkdownViewMeasurer measurer;
@@ -43,4 +43,4 @@ TEST(MarkdownViewMeasurerTest, ContentRangeAffectsHeight) {
   EXPECT_LE(partial.height_, full.height_);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

@@ -8,7 +8,7 @@
 
 #include "markdown/draw/markdown_canvas.h"
 #include "textra/platform/ark_graphics/ag_canvas_helper.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
                               public MarkdownCanvasExtend {
  public:
@@ -23,5 +23,5 @@ class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
  private:
   OH_Drawing_Canvas* canvas_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_MARKDOWN_CANVAS_H_

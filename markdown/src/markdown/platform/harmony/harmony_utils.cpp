@@ -5,7 +5,7 @@
 #include <utility>
 #include "base/include/fml/message_loop.h"
 #include "markdown/utils/markdown_ui_thread.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 thread_local napi_env ENV = nullptr;
 napi_env HarmonyEnv::GetEnv() {
   return ENV;
@@ -26,12 +26,12 @@ void HarmonyUIThread::Init(napi_env env) {
 }
 void HarmonyUIThread::PostTask(std::function<void()> task) {
   fml::TaskRunner::RunNowOrPostTask(MarkdownUIThread::GetUITaskRunner(),
-                                    base::closure(std::move(task)));
+                                    lynx::base::closure(std::move(task)));
 }
 void HarmonyUIThread::PostDelayedTask(std::function<void()> task,
                                       int64_t micro_seconds) {
   MarkdownUIThread::GetUITaskRunner()->PostDelayedTask(
-      base::closure(std::move(task)),
+      lynx::base::closure(std::move(task)),
       fml::TimeDelta::FromMicroseconds(micro_seconds));
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

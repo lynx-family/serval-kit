@@ -21,8 +21,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 enum class MarkdownTouchEventType : uint8_t {
   kUnknown = 0,
   kDown = 1,
@@ -207,7 +206,6 @@ class MarkdownDocument {
   friend class MarkdownParserEmbed;
 };
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DOCUMENT_H_

@@ -14,8 +14,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 
 struct MarkdownTableCell {
   std::unique_ptr<tttext::Paragraph> paragraph_{nullptr};
@@ -162,6 +161,5 @@ class MarkdownPageTableRegion : public MarkdownPageRegion {
  public:
   std::unique_ptr<MarkdownTableRegion> table_{nullptr};
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_TABLE_H_

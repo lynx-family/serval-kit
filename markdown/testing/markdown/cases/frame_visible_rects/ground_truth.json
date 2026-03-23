@@ -1,3 +1,122 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ce24658a1dadef6abcac5be40e3b06d0a621de4895e2bfd7506be57eaaaeb699
-size 2419
+[
+  {
+    "step": 0,
+    "timestamp": 20,
+    "interval": 20,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 280.0,
+      "bottom": 40.0
+    },
+    "need_draw": true,
+    "draw_view_count": 2,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 204.0,
+          "bottom": 124.42726135253906
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "line 1 ",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 30.513635635375977
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "line 2 plain",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 55.37726974487305
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "text",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 85.37726593017578
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "line 3 ",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 122.72726440429688
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  },
+  {
+    "step": 1,
+    "timestamp": 40,
+    "interval": 20,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 40.0,
+      "right": 280.0,
+      "bottom": 120.0
+    },
+    "need_draw": false,
+    "draw_view_count": 0,
+    "ops": []
+  },
+  {
+    "step": 2,
+    "timestamp": 60,
+    "interval": 20,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 280.0,
+      "bottom": 120.0
+    },
+    "need_draw": false,
+    "draw_view_count": 0,
+    "ops": []
+  }
+]

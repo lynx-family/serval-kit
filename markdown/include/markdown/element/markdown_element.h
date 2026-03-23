@@ -12,7 +12,7 @@
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/utils/markdown_definition.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class MarkdownElementType { kNone, kParagraph, kTable, kBlock, kListItem };
 enum class MarkdownBorder {
   kNone,
@@ -114,5 +114,5 @@ class MarkdownBlockElement : public MarkdownElement {
   std::vector<std::unique_ptr<MarkdownElement>> children_;
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_ELEMENT_H_

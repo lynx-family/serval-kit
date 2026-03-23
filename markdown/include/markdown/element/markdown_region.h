@@ -10,7 +10,7 @@
 #include "markdown/element/markdown_element.h"
 #include "markdown/element/markdown_paragraph.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 struct MarkdownPageRegionBorder {
   RectF rect_;
   MarkdownBorderStylePart border_style_;
@@ -52,5 +52,5 @@ class MarkdownPageBlockRegion : public MarkdownPageRegion {
   std::vector<std::unique_ptr<MarkdownPageRegion>> children_;
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_REGION_H_

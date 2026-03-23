@@ -14,7 +14,7 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_view_measurer.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 namespace {
 constexpr float kViewVisibilityTolerant = 5.f;
 
@@ -383,4 +383,4 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
   }
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

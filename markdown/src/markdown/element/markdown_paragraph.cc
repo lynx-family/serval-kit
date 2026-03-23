@@ -4,6 +4,4 @@
 
 #include "markdown/element/markdown_paragraph.h"
 
-namespace lynx {
-namespace markdown {}
-}  // namespace lynx
+namespace serval::markdown {}

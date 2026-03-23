@@ -14,8 +14,7 @@
 #include "markdown/element/markdown_region.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 struct ScrollState {
   uint32_t index_;
   MarkdownElementType type_;
@@ -109,6 +108,5 @@ class MarkdownPage {
   friend class MarkdownSelection;
   friend class MarkdownDocument;
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_PAGE_H_

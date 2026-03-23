@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 #include "markdown/parser/embed/markdown_inline_node.h"
 #include "markdown/parser/embed/markdown_inline_parser.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 struct InlineNodeDescriptor {
   std::string content_;
   MarkdownInlineSyntax syntax_;
@@ -449,4 +449,4 @@ void Expect(std::string_view text, const InlineNodeDescriptor& node) {
   auto result = MarkdownInlineSyntaxParser::Parse(text);
   ExpectNode(result.get(), node);
 }
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing

@@ -7,7 +7,7 @@
 
 #import "markdown/platform/ios/IMarkdownPlatformViewHandle.h"
 #include "markdown/view/markdown_platform_view.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownPlatformViewIOS : public MarkdownPlatformView {
  public:
   explicit MarkdownPlatformViewIOS(id<IMarkdownPlatformViewHandle> handle);
@@ -35,5 +35,5 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
 
   __weak id<IMarkdownPlatformViewHandle> handle_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_PLATFORM_VIEW_IOS_H_

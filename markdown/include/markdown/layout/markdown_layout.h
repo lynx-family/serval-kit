@@ -12,8 +12,7 @@
 #include "markdown/element/markdown_page.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownTable;
 class MarkdownTableRegion;
 class MarkdownLayout {
@@ -50,6 +49,5 @@ class MarkdownLayout {
   MarkdownDocument* document_{nullptr};
   std::shared_ptr<MarkdownPage> page_{nullptr};
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_LAYOUT_MARKDOWN_LAYOUT_H_

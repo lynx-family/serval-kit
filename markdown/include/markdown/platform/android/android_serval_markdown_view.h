@@ -13,14 +13,14 @@
 #include "markdown/view/markdown_view.h"
 class AndroidServalMarkdownView
     : public AndroidMainView,
-      public lynx::markdown::MarkdownResourceLoader,
-      public lynx::markdown::MarkdownEventListener,
-      public lynx::markdown::MarkdownExposureListener {
+      public serval::markdown::MarkdownResourceLoader,
+      public serval::markdown::MarkdownEventListener,
+      public serval::markdown::MarkdownExposureListener {
  public:
   static void Initialize(JNIEnv* env);
   AndroidServalMarkdownView(JNIEnv* env, jobject view);
-  lynx::markdown::MarkdownView* GetMarkdownView() {
-    return static_cast<lynx::markdown::MarkdownView*>(drawable_.get());
+  serval::markdown::MarkdownView* GetMarkdownView() {
+    return static_cast<serval::markdown::MarkdownView*>(drawable_.get());
   }
   int LoadImage(const char* source);
   std::shared_ptr<AndroidMarkdownView> LoadInlineView(const char* id);
@@ -29,19 +29,19 @@ class AndroidServalMarkdownView
   void OnVSync(int64_t time);
 
  public:
-  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadImage(
+  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadImage(
       const char* src, float desire_width, float desire_height, float max_width,
       float max_height, float border_radius) override;
-  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadInlineView(
+  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadInlineView(
       const char* id_selector, float max_width, float max_height) override;
   void* LoadFont(const char* family,
-                 lynx::markdown::MarkdownFontWeight weight) override;
-  std::shared_ptr<lynx::markdown::MarkdownDrawable> LoadReplacementView(
+                 serval::markdown::MarkdownFontWeight weight) override;
+  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) override;
 
  public:
   void OnParseEnd() override;
-  void OnTextOverflow(lynx::markdown::MarkdownTextOverflow overflow) override;
+  void OnTextOverflow(serval::markdown::MarkdownTextOverflow overflow) override;
   void OnDrawStart() override;
   void OnDrawEnd() override;
   void OnAnimationStep(int32_t animation_step,
@@ -49,8 +49,8 @@ class AndroidServalMarkdownView
   void OnLinkClicked(const char* url, const char* content) override;
   void OnImageClicked(const char* url) override;
   void OnSelectionChanged(int32_t start_index, int32_t end_index,
-                          lynx::markdown::SelectionHandleType handle,
-                          lynx::markdown::SelectionState state) override;
+                          serval::markdown::SelectionHandleType handle,
+                          serval::markdown::SelectionState state) override;
 
  public:
   void OnLinkAppear(const char* url, const char* content) override;

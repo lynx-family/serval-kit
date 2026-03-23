@@ -10,7 +10,7 @@
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown_view_measurer.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownPlatformView;
 class MarkdownViewContainerHandle;
 
@@ -52,5 +52,5 @@ class MarkdownViewRenderer {
   bool has_last_view_rect_{false};
   RectF last_view_rect_{};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_RENDERER_H_

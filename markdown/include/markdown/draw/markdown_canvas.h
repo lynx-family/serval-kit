@@ -10,7 +10,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownDrawable;
 class MarkdownPath;
 class MarkdownCanvasExtend {
@@ -23,5 +23,5 @@ class MarkdownCanvasExtend {
   virtual void DrawMarkdownPath(MarkdownPath* path,
                                 tttext::Painter* painter) = 0;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_CANVAS_H_

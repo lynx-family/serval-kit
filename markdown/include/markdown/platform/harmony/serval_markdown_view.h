@@ -14,7 +14,7 @@
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class NativeServalMarkdownView final : public HarmonyCustomView,
                                        public MarkdownViewContainerHandle,
                                        public MarkdownResourceLoader,
@@ -91,5 +91,5 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   std::unordered_map<MarkdownPlatformView*, ArkUI_NodeHandle> handle_cache_;
   RectF cached_view_rect_in_screen_{};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_

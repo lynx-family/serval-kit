@@ -20,11 +20,11 @@
 @interface ServalMarkdownView (MainViewInternal)
 - (MarkdownCustomDrawView*)createCustomView;
 - (MarkdownCustomDrawView*)createRegionView;
-- (void)removeSubview:(lynx::markdown::MarkdownPlatformView*)subview;
+- (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview;
 - (void)removeAllCustomViews;
 @end
 
-namespace lynx::markdown {
+namespace serval::markdown {
 void MarkdownMainViewIOS::RequestMeasure() {
   MarkdownPlatformViewIOS::RequestMeasure();
 }
@@ -121,4 +121,4 @@ RectF MarkdownMainViewIOS::GetViewRectInScreen() {
   return cached_view_rect_in_screen_;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

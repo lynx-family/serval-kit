@@ -12,7 +12,7 @@
 
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class MarkdownDomType : uint8_t {
   kUndefined,
   kParagraph,
@@ -191,5 +191,5 @@ class MarkdownDomPlaceHolder final : public MarkdownDomNode {
  protected:
   void* ud_{nullptr};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_

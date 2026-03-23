@@ -14,11 +14,11 @@
 class MarkdownBufferReader {
  public:
   explicit MarkdownBufferReader(BufferInputStream& stream) : stream_(stream) {}
-  std::unique_ptr<lynx::markdown::Value> ReadValue();
+  std::unique_ptr<serval::markdown::Value> ReadValue();
 
  protected:
-  lynx::markdown::ValueMap ReadMap();
-  lynx::markdown::ValueArray ReadArray();
+  serval::markdown::ValueMap ReadMap();
+  serval::markdown::ValueArray ReadArray();
 
  private:
   BufferInputStream& stream_;

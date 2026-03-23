@@ -4,10 +4,10 @@
 
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
 
-std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertObject(
+std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertObject(
     NSObject* object) {
   if (object == nil) {
-    return lynx::markdown::Value::MakeNull();
+    return serval::markdown::Value::MakeNull();
   }
   if ([object isKindOfClass:NSDictionary.class]) {
     return ConvertMap((NSDictionary*)object);
@@ -18,15 +18,15 @@ std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertObject(
   } else if ([object isKindOfClass:NSString.class]) {
     return ConvertString((NSString*)object);
   } else {
-    return lynx::markdown::Value::MakeNull();
+    return serval::markdown::Value::MakeNull();
   }
 }
 
-std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertMap(
+std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertMap(
     NSDictionary* dictionary) {
-  lynx::markdown::ValueMap map;
+  serval::markdown::ValueMap map;
   if (dictionary == nil) {
-    return lynx::markdown::Value::MakeMap(std::move(map));
+    return serval::markdown::Value::MakeMap(std::move(map));
   }
   map.reserve(dictionary.count);
   auto it = dictionary.keyEnumerator;
@@ -36,29 +36,29 @@ std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertMap(
     auto* key_str = [key UTF8String];
     map.emplace(key_str, ConvertObject(value));
   }
-  return lynx::markdown::Value::MakeMap(std::move(map));
+  return serval::markdown::Value::MakeMap(std::move(map));
 }
 
-std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertArray(
+std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertArray(
     NSArray* array) {
-  lynx::markdown::ValueArray result;
+  serval::markdown::ValueArray result;
   if (array == nil) {
-    return lynx::markdown::Value::MakeArray(std::move(result));
+    return serval::markdown::Value::MakeArray(std::move(result));
   }
   result.reserve(array.count);
   for (int i = 0; i < array.count; i++) {
     result.emplace_back(ConvertObject(array[i]));
   }
-  return lynx::markdown::Value::MakeArray(std::move(result));
+  return serval::markdown::Value::MakeArray(std::move(result));
 }
 
-std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertString(
+std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertString(
     NSString* string) {
   auto cstr = [string UTF8String];
-  return lynx::markdown::Value::MakeString(std::string(cstr));
+  return serval::markdown::Value::MakeString(std::string(cstr));
 }
 
-std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertNumber(
+std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertNumber(
     NSNumber* number) {
   CFNumberType type = CFNumberGetType((CFNumberRef)number);
   switch (type) {
@@ -66,22 +66,22 @@ std::unique_ptr<lynx::markdown::Value> MarkdownValueConvert::ConvertNumber(
     case kCFNumberSInt16Type:
     case kCFNumberSInt32Type:
     case kCFNumberLongType:
-      return lynx::markdown::Value::MakeInt(number.intValue);
+      return serval::markdown::Value::MakeInt(number.intValue);
     case kCFNumberLongLongType:
     case kCFNumberSInt64Type:
     case kCFNumberCFIndexType:
     case kCFNumberNSIntegerType:
-      return lynx::markdown::Value::MakeLong(number.longLongValue);
+      return serval::markdown::Value::MakeLong(number.longLongValue);
     case kCFNumberSInt8Type:
     case kCFNumberCharType:
-      return lynx::markdown::Value::MakeBool(number.boolValue);
+      return serval::markdown::Value::MakeBool(number.boolValue);
     case kCFNumberFloatType:
     case kCFNumberFloat32Type:
     case kCFNumberFloat64Type:
     case kCFNumberDoubleType:
     case kCFNumberCGFloatType:
-      return lynx::markdown::Value::MakeDouble(number.doubleValue);
+      return serval::markdown::Value::MakeDouble(number.doubleValue);
     default:
-      return lynx::markdown::Value::MakeNull();
+      return serval::markdown::Value::MakeNull();
   }
 }

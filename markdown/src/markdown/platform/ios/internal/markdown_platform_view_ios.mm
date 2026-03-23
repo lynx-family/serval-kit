@@ -8,7 +8,7 @@
 - (void*)nativePlatformView;
 @end
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 MarkdownPlatformViewIOS::MarkdownPlatformViewIOS(
     id<IMarkdownPlatformViewHandle> handle)
@@ -141,4 +141,4 @@ void MarkdownPlatformViewIOS::SetVisibility(bool visible) {
     return;
   }
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

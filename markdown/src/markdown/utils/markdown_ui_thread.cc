@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/utils/markdown_ui_thread.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 fml::RefPtr<fml::TaskRunner>& MarkdownUIThread::GetUITaskRunner() {
   static fml::RefPtr<fml::TaskRunner> ui_task_runner;
   return ui_task_runner;
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

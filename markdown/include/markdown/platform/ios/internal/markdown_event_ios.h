@@ -8,8 +8,7 @@
 #import "markdown/platform/ios/IMarkdownEventDelegate.h"
 #import "markdown/platform/ios/IMarkdownResourceDelegate.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownEventIOS final : public MarkdownEventListener {
  public:
   MarkdownEventIOS() {}
@@ -73,6 +72,5 @@ class MarkdownEventIOS final : public MarkdownEventListener {
  private:
   __weak id<IMarkdownEventDelegate> delegate_{nil};
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_EVENT_IOS_H_

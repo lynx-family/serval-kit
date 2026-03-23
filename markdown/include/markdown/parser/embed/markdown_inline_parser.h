@@ -7,12 +7,12 @@
 #include <memory>
 #include <string_view>
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownInlineNode;
 class MarkdownInlineSyntaxParser {
  public:
   static std::unique_ptr<MarkdownInlineNode> Parse(
       const std::string_view content);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_INLINE_PARSER_H_

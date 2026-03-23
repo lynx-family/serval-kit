@@ -8,7 +8,7 @@
 #include "markdown/utils/markdown_platform.h"
 #include "textra/fontmgr_collection.h"
 #include "textra/platform_helper.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
@@ -32,4 +32,4 @@ MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
   return static_cast<HarmonyMarkdownCanvas*>(canvas);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

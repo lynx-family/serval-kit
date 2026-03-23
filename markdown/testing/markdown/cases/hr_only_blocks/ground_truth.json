@@ -1,3 +1,73 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:47c6a1af3e61172fb1536e06b029e8eb0c24eebf1d196d1ac0363e4e66749910
-size 1336
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 220.0,
+      "bottom": 160.0
+    },
+    "need_draw": true,
+    "draw_view_count": 3,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 26.0,
+          "right": 220.0,
+          "bottom": 27.0
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.5,
+          "y": 26.5
+        },
+        "p2": {
+          "x": 219.5,
+          "y": 26.5
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 13.0,
+          "right": 220.0,
+          "bottom": 14.0
+        }
+      },
+      {
+        "op": "line",
+        "p1": {
+          "x": 0.5,
+          "y": 13.5
+        },
+        "p2": {
+          "x": 219.5,
+          "y": 13.5
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 0,
+          "stroke_color": 4278190080,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

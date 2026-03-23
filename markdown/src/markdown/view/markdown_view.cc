@@ -12,7 +12,7 @@
 #include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view_animator.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 MarkdownView::MarkdownView(MarkdownPlatformView* view)
     : view_(view), handle_(view->GetViewContainerHandle()) {
   renderer_.SetViewContainerHandle(handle_);
@@ -848,4 +848,4 @@ void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
 }
 void MarkdownView::SetArrayProp(MarkdownProps prop, const ValueArray& array) {}
 void MarkdownView::SetMapProp(MarkdownProps prop, const ValueMap& map) {}
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

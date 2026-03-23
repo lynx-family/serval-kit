@@ -12,8 +12,7 @@
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/parser/embed/markdown_parser_embed.h"
 #include "markdown/utils/markdown_platform.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 MarkdownLayout::MarkdownLayout(MarkdownDocument* document)
     : document_(document) {}
 std::pair<float, float> MarkdownLayout::Layout(float width, float height,
@@ -217,7 +216,7 @@ void MarkdownLayout::Layout(
 }
 
 std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
-    const lynx::markdown::MarkdownElement& paragraph, int max_lines,
+    const serval::markdown::MarkdownElement& paragraph, int max_lines,
     float region_width, float region_max_height, float region_left,
     float region_top, bool last) {
   if (region_max_height <= 0 || max_lines == 0) {
@@ -301,7 +300,7 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
 }
 
 std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
-    lynx::markdown::MarkdownTable* table, float width, float height,
+    serval::markdown::MarkdownTable* table, float width, float height,
     float min_width, int max_lines, MarkdownTextOverflow overflow,
     bool* full_filled) {
   if (table->Empty()) {
@@ -542,5 +541,4 @@ void MarkdownLayout::SetPaddings(Paddings paddings) {
   paddings_ = paddings;
 }
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

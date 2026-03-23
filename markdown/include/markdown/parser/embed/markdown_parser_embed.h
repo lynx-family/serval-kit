@@ -15,8 +15,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 struct line;
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownDocument;
 class MarkdownResourceLoader;
 struct MarkdownContext {
@@ -206,7 +205,6 @@ class MarkdownParserEmbed {
   friend class MarkdownDocument;
   friend class MarkdownConverter;
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_PARSER_DISCOUNT_H_

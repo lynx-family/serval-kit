@@ -6,8 +6,7 @@
 #define MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_SHAPER_H_
 #include <memory>
 #include "src/textlayout/tt_shaper.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 namespace testing {
 class MockMarkdownTypefaceHelper : public tttext::ITypefaceHelper {
  public:
@@ -79,6 +78,5 @@ class MockMarkdownShaper : public tttext::TTShaper {
   }
 };
 }  // namespace testing
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_SHAPER_H_

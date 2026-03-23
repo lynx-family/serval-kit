@@ -19,7 +19,7 @@ enum class MarkdownCanvasOpExtend : int8_t {
   kDrawDelegateOnPath,
 };
 class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
-                                 public lynx::markdown::MarkdownCanvasExtend {
+                                 public serval::markdown::MarkdownCanvasExtend {
   static constexpr int8_t kCanvasOPExtend = -1;
 
  public:
@@ -30,23 +30,23 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
 
-  void ClipPath(lynx::markdown::MarkdownPath* path) override;
+  void ClipPath(serval::markdown::MarkdownPath* path) override;
 
-  void DrawMarkdownPath(lynx::markdown::MarkdownPath* path,
+  void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
                         tttext::Painter* painter) override;
 
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
-                          lynx::markdown::MarkdownPath* path,
+                          serval::markdown::MarkdownPath* path,
                           tttext::Painter* painter) override;
 
  public:
   void WritePaint(tttext::Painter* painter);
-  void WritePath(lynx::markdown::MarkdownPath* path);
-  void WritePoint(lynx::markdown::PointF point) {
+  void WritePath(serval::markdown::MarkdownPath* path);
+  void WritePoint(serval::markdown::PointF point) {
     stream_->WriteFloat(point.x_);
     stream_->WriteFloat(point.y_);
   }
-  void WriteRect(lynx::markdown::RectF rect) {
+  void WriteRect(serval::markdown::RectF rect) {
     stream_->WriteFloat(rect.GetLeft());
     stream_->WriteFloat(rect.GetTop());
     stream_->WriteFloat(rect.GetRight());

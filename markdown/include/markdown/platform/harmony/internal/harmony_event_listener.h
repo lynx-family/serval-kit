@@ -8,7 +8,7 @@
 #include "markdown/markdown_event_listener.h"
 #include "markdown/platform/harmony/internal/harmony_value_ref.h"
 #include "napi/native_api.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyEventListener : public MarkdownEventListener {
  public:
   explicit HarmonyEventListener(napi_env env);
@@ -40,5 +40,5 @@ class HarmonyEventListener : public MarkdownEventListener {
   HarmonyValueRef image_clicked_;
   HarmonyValueRef selection_changed_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_EVENT_LISTENER_H_

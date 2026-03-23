@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class StyleValuePattern {
   kEmpty,
   kString,
@@ -113,5 +113,5 @@ class MarkdownCalculateValue final : public MarkdownStyleValue {
   std::unique_ptr<MarkdownStyleValue> left_value_;
   std::unique_ptr<MarkdownStyleValue> right_value_;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_VALUE_H_

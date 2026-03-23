@@ -10,7 +10,7 @@
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownPage;
 class MarkdownAttachmentLineStyle {
  public:
@@ -65,6 +65,6 @@ class MarkdownTextAttachment {
   static void DrawRect(tttext::ICanvasHelper* canvas, RectF rect,
                        const MarkdownAttachmentRectStyle& style);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_

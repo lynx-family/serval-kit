@@ -8,10 +8,9 @@
 
 #include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_table.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 Range MarkdownSelection::GetCharRangeByPoint(
-    const lynx::markdown::MarkdownPage* page, PointF point,
+    const serval::markdown::MarkdownPage* page, PointF point,
     CharRangeType type) {
   auto region_index = FindClosestRegionIndex(page, point.y_);
   auto& region = page->regions_[region_index];
@@ -84,7 +83,7 @@ Range MarkdownSelection::GetCharRangeByPoint(
 }
 
 int MarkdownSelection::FindClosestRegionIndex(
-    const lynx::markdown::MarkdownPage* page, float y) {
+    const serval::markdown::MarkdownPage* page, float y) {
   auto lower_iter = std::lower_bound(
       page->regions_.begin(), page->regions_.end(), y,
       [](const std::unique_ptr<MarkdownPageRegion>& region, float y) -> bool {
@@ -155,7 +154,7 @@ int MarkdownSelection::FindRegionLineIndex(tttext::LayoutRegion* region,
 }
 
 int MarkdownSelection::FindTableRowIndex(
-    lynx::markdown::MarkdownTableRegion* table, float y) {
+    serval::markdown::MarkdownTableRegion* table, float y) {
   auto iter = std::lower_bound(
       table->cells_.begin(), table->cells_.end(), y,
       [](const std::vector<MarkdownTableRegionCell>& var, float y) -> bool {
@@ -237,7 +236,7 @@ int MarkdownSelection::GetPageCharCount(const MarkdownPage* page) {
 }
 
 void MarkdownSelection::GetPageRegionSelectionRectByCharPos(
-    lynx::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
+    serval::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
     int32_t char_pos_end, std::vector<RectF>* rect_ptr, PointF offset,
     RectType type, RectCoordinate coordinate) {
   auto clip_rect = RectF::MakeLTRB(
@@ -308,8 +307,8 @@ void MarkdownSelection::GetLayoutRegionSelectionRectByCharPos(
 }
 
 void MarkdownSelection::GetTableSelectionRectByCharPos(
-    lynx::markdown::MarkdownTable* content,
-    lynx::markdown::MarkdownTableRegion* table, int32_t char_pos_start,
+    serval::markdown::MarkdownTable* content,
+    serval::markdown::MarkdownTableRegion* table, int32_t char_pos_start,
     int32_t char_pos_end, std::vector<RectF>* rect_ptr, PointF offset,
     RectType type, RectCoordinate coordinate, RectF clip_rect) {
   for (int row = 0; row < table->GetRowCount(); row++) {
@@ -338,7 +337,7 @@ void MarkdownSelection::GetTableSelectionRectByCharPos(
 }
 
 std::string MarkdownSelection::GetContentByCharPos(
-    const lynx::markdown::MarkdownPage* page, int32_t char_pos_start,
+    const serval::markdown::MarkdownPage* page, int32_t char_pos_start,
     int32_t char_pos_end,
     std::vector<std::pair<uint32_t, std::string>>* inline_element_alt_strings) {
   std::string content;
@@ -361,7 +360,7 @@ std::string MarkdownSelection::GetContentByCharPos(
 }
 
 void MarkdownSelection::GetPageRegionContentByCharPos(
-    lynx::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
+    serval::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
     int32_t char_pos_end, std::string* content,
     std::vector<std::pair<uint32_t, std::string>>* inline_element_alt_strings,
     int32_t char_offset) {
@@ -456,7 +455,7 @@ void MarkdownSelection::GetTableContentByCharPos(
 
 std::vector<MarkdownSelectionRegion>
 MarkdownSelection::GetSelectionRegionsByCharRange(
-    const lynx::markdown::MarkdownPage* page, int32_t char_pos_start,
+    const serval::markdown::MarkdownPage* page, int32_t char_pos_start,
     int32_t char_pos_end) {
   auto iter_begin = std::lower_bound(
       page->regions_.begin(), page->regions_.end(), char_pos_start,
@@ -536,7 +535,7 @@ Range MarkdownSelection::GetSentenceOfChar(tttext::Paragraph* paragraph,
                                            int32_t char_pos) {
   auto content_string =
       paragraph->GetContentString(0, paragraph->GetCharCount());
-  auto byte_pos_start = base::UTF8IndexToCIndex(
+  auto byte_pos_start = lynx::base::UTF8IndexToCIndex(
       content_string.data(), content_string.length(), char_pos);
   size_t sentence_start = std::string::npos, sentence_end = std::string::npos,
          sentence_end_length = 0;
@@ -596,12 +595,11 @@ Range MarkdownSelection::GetSentenceOfChar(tttext::Paragraph* paragraph,
       sentence_end_length = 0;
     }
   }
-  return {.start_ = static_cast<int32_t>(base::CIndexToUTF8Index(
+  return {.start_ = static_cast<int32_t>(lynx::base::CIndexToUTF8Index(
               content_string.data(), content_string.length(), sentence_start)),
-          .end_ = static_cast<int32_t>(base::CIndexToUTF8Index(
+          .end_ = static_cast<int32_t>(lynx::base::CIndexToUTF8Index(
               content_string.data(), content_string.length(),
               sentence_end + sentence_end_length))};
 }
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

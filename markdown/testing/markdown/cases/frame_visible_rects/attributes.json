@@ -1,3 +1,11 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3bbbf5e678f9a409a9d9ffb8b9a15f0f07121768f970d57dd48275557534bbc4
-size 189
+{
+  "width": 280,
+  "height": 80,
+  "frame-step-count": 3,
+  "frame-step-interval-ms": 20,
+  "frame-visible-rects": [
+    [0, 0, 280, 40],
+    [0, 40, 280, 120],
+    [0, 0, 280, 120]
+  ]
+}

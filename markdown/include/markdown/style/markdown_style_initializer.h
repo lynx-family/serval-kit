@@ -9,8 +9,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_screen_metrics.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownStyleInitializer {
  public:
   static float Dp(float dp) { return MarkdownScreenMetrics::DPToPx(dp); }
@@ -475,6 +474,5 @@ class MarkdownStyleInitializer {
   constexpr static MarkdownTextAlign DEFAULT_IMAGE_CAPTION_ALIGN =
       MarkdownTextAlign::kCenter;
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_INITIALIZER_H_

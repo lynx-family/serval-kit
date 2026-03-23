@@ -23,7 +23,7 @@
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "textra/platform_helper.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyEnv::SetEnv(env);
   HarmonyUIThread::Init(env);
@@ -239,4 +239,4 @@ void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   GetMarkdownView()->Align(static_cast<float>(offset_x),
                            static_cast<float>(offset_y));
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

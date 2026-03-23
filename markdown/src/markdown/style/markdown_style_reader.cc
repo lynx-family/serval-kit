@@ -9,7 +9,7 @@
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownStyleReaderImpl {
  public:
   explicit MarkdownStyleReaderImpl(MarkdownResourceLoader* loader)
@@ -1491,8 +1491,8 @@ class MarkdownStyleReaderImpl {
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         const auto& str = it->second->AsString();
-        if (base::BeginsWith(str, "linear-gradient(") ||
-            base::BeginsWith(str, "radial-gradient(")) {
+        if (lynx::base::BeginsWith(str, "linear-gradient(") ||
+            lynx::base::BeginsWith(str, "radial-gradient(")) {
           if (loader_ != nullptr) {
             *result = loader_->LoadGradient(str.c_str(), 1, 1);
           } else {
@@ -1623,7 +1623,7 @@ class MarkdownStyleReaderImpl {
   }
 };
 MarkdownStyle MarkdownStyleReader::ReadStyle(
-    const lynx::markdown::ValueMap& map, MarkdownResourceLoader* loader) {
+    const serval::markdown::ValueMap& map, MarkdownResourceLoader* loader) {
   MarkdownStyleReaderImpl impl(loader);
   MarkdownStyle style;
   impl.ReadMarkdownStyle(map, &style);
@@ -1664,4 +1664,4 @@ uint32_t MarkdownStyleReader::ReadColor(const std::string& color) {
   return MarkdownStyleReaderImpl::ConvertColor(color);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

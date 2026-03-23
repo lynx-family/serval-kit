@@ -7,11 +7,11 @@
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_round_rect.h>
-namespace lynx::markdown {
+namespace serval::markdown {
 void HarmonyMarkdownCanvas::ClipPath(MarkdownPath* path) {}
 void HarmonyMarkdownCanvas::DrawMarkdownPath(MarkdownPath* path,
                                              tttext::Painter* painter) {}
 void HarmonyMarkdownCanvas::DrawDelegateOnPath(
     tttext::RunDelegate* run_delegate, MarkdownPath* path,
     tttext::Painter* painter) {}
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

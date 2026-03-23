@@ -15,7 +15,7 @@
 #include "markdown/parser/embed/markdown_parser_embed.h"
 #include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/parser/markdown_dom_node.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 
 class ParserProviderMap {
  public:
@@ -953,4 +953,4 @@ void MarkdownParserImpl::ConvertDomTree(MarkdownDocument* document,
   converter.Convert(document, root);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

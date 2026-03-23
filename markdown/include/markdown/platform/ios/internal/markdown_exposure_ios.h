@@ -9,7 +9,7 @@
 
 #import "markdown/platform/ios/IMarkdownExposureDelegate.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownExposureIOS final : public MarkdownExposureListener {
  public:
   MarkdownExposureIOS() = default;
@@ -48,6 +48,6 @@ class MarkdownExposureIOS final : public MarkdownExposureListener {
  private:
   __weak id<IMarkdownExposureDelegate> delegate_{nil};
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_EXPOSURE_IOS_H_

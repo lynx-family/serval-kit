@@ -12,7 +12,7 @@
 #include "markdown/view/markdown_view.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 MockMarkdownMainView::MockMarkdownMainView() {
   MockMarkdownCustomView::AttachDrawable(std::make_unique<MarkdownView>(this));
@@ -116,7 +116,7 @@ void MockInlineView::DrawFromFrameDriver(tttext::ICanvasHelper* canvas, float x,
                                          float y) {
   static_cast<MockMarkdownCanvas*>(canvas)->DrawView(id_.c_str(), x, y,
                                                      x + width_, y + height_);
-  lynx::markdown::testing::MockMarkdownPlatformView::Draw(canvas, x, y);
+  serval::markdown::testing::MockMarkdownPlatformView::Draw(canvas, x, y);
 }
 
 std::shared_ptr<MockMarkdownCustomView> MockMarkdownMainView::CreateSubview(
@@ -235,4 +235,4 @@ bool MockMarkdownMainView::ContainsSubview(
              }) != subviews_.end();
 }
 
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing

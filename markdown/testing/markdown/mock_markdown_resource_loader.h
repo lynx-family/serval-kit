@@ -12,8 +12,7 @@
 #include "markdown/parser/markdown_resource_loader.h"
 #include "testing/markdown/mock_markdown_platform_view.h"
 #include "testing/markdown/mock_run_delegate.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 namespace testing {
 
 class MockMarkdownResourceLoader : public MarkdownResourceLoader {
@@ -25,7 +24,7 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
                                               float desire_height,
                                               float max_width, float max_height,
                                               float radius) override {
-    if (base::StringEqual(src, "invalid")) {
+    if (lynx::base::StringEqual(src, "invalid")) {
       return nullptr;
     }
     return std::make_shared<MockImage>(src, desire_width, desire_height,
@@ -70,6 +69,5 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
   MockMarkdownMainView* main_view_{nullptr};
 };
 }  // namespace testing
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_RESOURCE_LOADER_H_

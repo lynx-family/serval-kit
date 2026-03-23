@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include "markdown/utils/markdown_definition.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 enum class GestureEventType : uint8_t {
   kUnknown = 0,
   kDown = 1,
@@ -21,5 +21,5 @@ using LongPressGestureListener =
     std::function<bool(PointF position, GestureEventType event)>;
 using PanGestureListener =
     std::function<bool(PointF position, PointF motion, GestureEventType event)>;
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_GESTURE_H_

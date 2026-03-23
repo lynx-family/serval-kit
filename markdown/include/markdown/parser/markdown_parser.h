@@ -7,7 +7,7 @@
 
 #include <string>
 #include "markdown/utils/markdown_marco.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownDomNode;
 class L_EXPORT MarkdownParser {
  public:
@@ -21,6 +21,6 @@ class L_EXPORT MarkdownParserProvider {
   static void RegisterParserProvider(const std::string& name,
                                      MarkdownParserProvider* parser);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_PARSER_H_

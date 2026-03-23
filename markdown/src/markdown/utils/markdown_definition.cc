@@ -5,8 +5,7 @@
 #include "markdown/utils/markdown_definition.h"
 
 #include "markdown/utils/markdown_float_comparison.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 bool RectF::Contains(float x, float y) const {
   return FloatsLargerOrEqual(x, GetLeft()) && FloatsLarger(GetRight(), x) &&
          FloatsLargerOrEqual(y, GetTop()) && FloatsLarger(GetBottom(), y);
@@ -88,5 +87,4 @@ bool IsPunctuation(const char32_t unicode) {
   }
   return false;
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

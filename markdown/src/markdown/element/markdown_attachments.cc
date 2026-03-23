@@ -8,7 +8,7 @@
 #include "markdown/draw/markdown_path.h"
 #include "markdown/utils/markdown_float_comparison.h"
 #include "markdown/utils/markdown_platform.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 
 void MarkdownTextAttachment::DrawOnMultiLines(
     tttext::ICanvasHelper* canvas, const std::vector<RectF>& lines_rect,
@@ -120,9 +120,9 @@ void MarkdownTextAttachment::DrawRect(
 }
 
 MarkdownPath CreatePath(
-    lynx::markdown::PointF start, lynx::markdown::PointF end,
+    serval::markdown::PointF start, serval::markdown::PointF end,
     const MarkdownLengthContext& context,
-    const lynx::markdown::MarkdownAttachmentLineStyle& style) {
+    const serval::markdown::MarkdownAttachmentLineStyle& style) {
   MarkdownPath path;
   if (style.line_type_ == MarkdownLineType::kSolid) {
     path.MoveTo(start);
@@ -188,4 +188,4 @@ void MarkdownTextAttachment::DrawLine(tttext::ICanvasHelper* canvas,
   }
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

@@ -4,7 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EXPOSURE_LISTENER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EXPOSURE_LISTENER_H_
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownExposureListener {
  public:
   virtual ~MarkdownExposureListener() = default;
@@ -13,5 +13,5 @@ class MarkdownExposureListener {
   virtual void OnImageAppear(const char* url) = 0;
   virtual void OnImageDisappear(const char* url) = 0;
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EXPOSURE_LISTENER_H_

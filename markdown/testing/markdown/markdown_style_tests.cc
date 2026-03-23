@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 #include "markdown/draw/markdown_path.h"
 #include "markdown/style/markdown_style_value.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 
 TEST(MarkdownLengthTest, Calculate) {
   constexpr MarkdownLengthContext ctx{
@@ -97,4 +97,4 @@ TEST(MarkdownPathTest, Create) {
   EXPECT_EQ(path.path_ops_.back().op_, MarkdownPath::PathOpType::kRect);
 }
 
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing

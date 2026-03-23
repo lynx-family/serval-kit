@@ -1,3 +1,111 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c507586c24d41bef2a73a193d8b340eafa28347b7ed2db88d309e4873e232446
-size 2316
+[
+  {
+    "step": 0,
+    "timestamp": 16,
+    "interval": 16,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 220.0
+    },
+    "need_draw": true,
+    "draw_view_count": 2,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 272.0,
+          "bottom": 120.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "paragraph class",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 22.649999618530273
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "path with ",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 52.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "styled",
+        "font": "",
+        "origin": {
+          "x": 170.0,
+          "y": 52.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291899161,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "span",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 82.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4291899161,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "next line",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 112.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  }
+]

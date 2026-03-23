@@ -1,3 +1,117 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c9e890724c9f0028f3634b5a179d90ae6e1f793872dfa7061476efc8c016fe73
-size 2357
+[
+  {
+    "step": 0,
+    "timestamp": 33,
+    "interval": 33,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 200.0
+    },
+    "need_draw": true,
+    "draw_view_count": 3,
+    "ops": [
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 40.0,
+          "right": 272.0,
+          "bottom": 130.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "*literal italic*",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 62.650001525878906
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "[link](https://",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 92.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "example.com)",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 122.6500015258789
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 238.0,
+          "bottom": 30.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "# heading line",
+        "font": "",
+        "origin": {
+          "x": 0.0,
+          "y": 22.649999618530273
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      }
+    ]
+  },
+  {
+    "step": 1,
+    "timestamp": 66,
+    "interval": 33,
+    "visible_rect": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 320.0,
+      "bottom": 200.0
+    },
+    "need_draw": false,
+    "draw_view_count": 0,
+    "ops": []
+  }
+]

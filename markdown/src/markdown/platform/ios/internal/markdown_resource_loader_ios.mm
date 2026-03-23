@@ -6,7 +6,7 @@
 
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 MarkdownResourceLoaderIOS::~MarkdownResourceLoaderIOS() = default;
 
@@ -70,4 +70,4 @@ MarkdownResourceLoaderIOS::LoadReplacementView(void* ud, int32_t id,
   return nullptr;
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

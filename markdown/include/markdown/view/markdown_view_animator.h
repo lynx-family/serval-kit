@@ -9,7 +9,7 @@
 
 #include "markdown/view/markdown_view_measurer.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 
 class MarkdownViewAnimator {
  public:
@@ -87,6 +87,6 @@ class MarkdownViewAnimator {
   int64_t current_transition_time_ms_{0};
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_ANIMATOR_H_

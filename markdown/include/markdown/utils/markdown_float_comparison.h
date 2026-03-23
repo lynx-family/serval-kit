@@ -7,8 +7,7 @@
 
 #include <cmath>
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 constexpr float Epsilon() {
   return 0.0001f;
 }
@@ -35,7 +34,6 @@ inline bool FloatsLarger(const float first, const float second) {
 inline bool FloatsLargerOrEqual(const float first, const float second) {
   return FloatsEqual(first, second) || FloatsLarger(first, second);
 }
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_FLOAT_COMPARISON_H_

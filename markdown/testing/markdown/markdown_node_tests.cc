@@ -8,7 +8,7 @@
 
 #include "gtest/gtest.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 namespace {
 
 void ExpectChain(MarkdownNode* first, const std::vector<MarkdownNode*>& nodes) {
@@ -175,4 +175,4 @@ TEST(MarkdownNodeTest, InsertBeforeWithNullPrepends) {
   EXPECT_EQ(parent.GetChildCount(), 2);
 }
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

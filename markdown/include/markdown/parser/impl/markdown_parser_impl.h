@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_
 #include <string>
-namespace lynx::markdown {
+namespace serval::markdown {
 class MarkdownDocument;
 class MarkdownDomNode;
 class MarkdownParserImpl {
@@ -17,5 +17,5 @@ class MarkdownParserImpl {
  protected:
   static void ConvertDomTree(MarkdownDocument* document, MarkdownDomNode* root);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_

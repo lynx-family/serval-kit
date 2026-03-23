@@ -5,7 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VSYNC_MANAGER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VSYNC_MANAGER_H_
 #include <cstdint>
-namespace lynx::markdown {
+namespace serval::markdown {
 class HarmonyVSyncCallback {
  public:
   virtual ~HarmonyVSyncCallback() = default;
@@ -16,5 +16,5 @@ class HarmonyVSyncManager {
   static void AddVSyncCallback(HarmonyVSyncCallback* callback);
   static void RemoveVSyncCallback(HarmonyVSyncCallback* callback);
 };
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VSYNC_MANAGER_H_

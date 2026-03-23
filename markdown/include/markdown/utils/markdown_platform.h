@@ -5,8 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
 #include "markdown/utils/markdown_textlayout_headers.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 class MarkdownCanvasExtend;
 class MarkdownPlatform {
  public:
@@ -24,6 +23,5 @@ class MarkdownPlatform {
   static MarkdownCanvasExtend* GetMarkdownCanvasExtend(
       tttext::ICanvasHelper* canvas);
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_

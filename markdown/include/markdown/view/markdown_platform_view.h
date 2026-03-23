@@ -12,7 +12,7 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 #include "markdown/view/markdown_gesture.h"
-namespace lynx::markdown {
+namespace serval::markdown {
 
 class MarkdownPlatformView;
 enum class SelectionHandleType : uint8_t;
@@ -88,6 +88,6 @@ class MarkdownPlatformView : public MarkdownDrawable {
   MeasureResult OnMeasure(MeasureSpec spec) override = 0;
 };
 
-}  // namespace lynx::markdown
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PLATFORM_VIEW_H_

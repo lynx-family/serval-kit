@@ -13,8 +13,7 @@
 #include "markdown/element/markdown_table.h"
 #include "markdown/utils/markdown_definition.h"
 
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 
 struct MarkdownSelectionRegion {
   tttext::LayoutRegion* region_;
@@ -173,6 +172,5 @@ class MarkdownSelection {
     return RectF::MakeLTRB(left, top, right, bottom);
   }
 };
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_LAYOUT_MARKDOWN_SELECTION_H_

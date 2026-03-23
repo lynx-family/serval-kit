@@ -7,11 +7,10 @@
 #include "base/include/string/string_utils.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_selection.h"
-namespace lynx {
-namespace markdown {
+namespace serval::markdown {
 
 PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
-    tttext::TextLine* cursor_line, lynx::markdown::PointF cursor_position,
+    tttext::TextLine* cursor_line, serval::markdown::PointF cursor_position,
     PointF region_offset, tttext::RunDelegate* cursor, float page_width,
     MarkdownVerticalAlign align) {
   cursor->Layout();
@@ -241,5 +240,4 @@ void MarkdownCharTypewriterDrawer::DrawAttachmentOnRegion(
   }
 }
 
-}  // namespace markdown
-}  // namespace lynx
+}  // namespace serval::markdown

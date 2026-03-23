@@ -6,7 +6,7 @@
 
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 
-namespace lynx::markdown {
+namespace serval::markdown {
 HarmonyResourceLoaderImpl::HarmonyResourceLoaderImpl(napi_env env)
     : env_(env) {}
 
@@ -62,4 +62,4 @@ void HarmonyResourceLoaderImpl::SetInlineViewLoader(napi_value loader) {
 void HarmonyResourceLoaderImpl::SetReplacementViewLoader(napi_value loader) {
   replacement_view_loader_ = HarmonyValueRef(env_, loader);
 }
-}  // namespace lynx::markdown
+}  // namespace serval::markdown

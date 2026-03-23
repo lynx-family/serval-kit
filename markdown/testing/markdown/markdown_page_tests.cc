@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 #include "gtest/gtest.h"
 #include "markdown/element/markdown_page.h"
-namespace lynx::markdown::testing {
+namespace serval::markdown::testing {
 TEST(MarkdownPageTest, ScrollState) {
   MarkdownPage page;
   auto region_ptr = std::make_unique<MarkdownPageParagraphRegion>();
@@ -21,4 +21,4 @@ TEST(MarkdownPageTest, ScrollState) {
   state.emplace_back(ScrollState{2, MarkdownElementType::kParagraph, 20});
   page.ApplyScrollState(state);
 }
-}  // namespace lynx::markdown::testing
+}  // namespace serval::markdown::testing
