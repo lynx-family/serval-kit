@@ -5,6 +5,8 @@
 #import "markdown/platform/ios/ServalMarkdownView.h"
 #import "markdown/platform/ios/MarkdownCustomDrawView.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <memory>
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
 #include "markdown/platform/ios/internal/markdown_event_ios.h"
@@ -13,11 +15,33 @@
 #include "markdown/platform/ios/internal/markdown_resource_loader_ios.h"
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
 #include "markdown/view/markdown_view.h"
+
+namespace {
+serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
+    ServalMarkdownCharRangeType range_type) {
+  switch (range_type) {
+    case kServalMarkdownCharRangeTypeWord:
+      return serval::markdown::MarkdownSelection::CharRangeType::kWord;
+    case kServalMarkdownCharRangeTypeSentence:
+      return serval::markdown::MarkdownSelection::CharRangeType::kSentence;
+    case kServalMarkdownCharRangeTypeParagraph:
+      return serval::markdown::MarkdownSelection::CharRangeType::kParagraph;
+    case kServalMarkdownCharRangeTypeChar:
+    default:
+      return serval::markdown::MarkdownSelection::CharRangeType::kChar;
+  }
+}
+}  // namespace
+
 @interface ServalMarkdownView () {
   std::unique_ptr<serval::markdown::MarkdownEventIOS> event_listener_;
   std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
   std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
   std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
+  BOOL animationPaused_;
+  int64_t currentTimeMs_;
+  int64_t pauseStartTimeMs_;
+  int64_t totalPausedDurationMs_;
 }
 @property(nonatomic, strong) CADisplayLink* displayLink;
 @property(nonatomic, strong) NSMutableArray<UIView*>* customSubviews;
@@ -54,6 +78,10 @@
                                     selector:@selector(onVSync:)];
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop]
                            forMode:NSRunLoopCommonModes];
+    animationPaused_ = NO;
+    currentTimeMs_ = 0;
+    pauseStartTimeMs_ = 0;
+    totalPausedDurationMs_ = 0;
   }
   return self;
 }
@@ -96,11 +124,15 @@
   [self.customSubviews removeAllObjects];
 }
 - (void)onVSync:(CADisplayLink*)sender {
+  currentTimeMs_ = static_cast<int64_t>(sender.targetTimestamp * 1000);
   if (markdown_view_handle_ == nullptr) {
     return;
   }
-  const auto timestamp = static_cast<int64_t>(sender.targetTimestamp * 1000);
-  markdown_view_handle_->OnVSync(timestamp);
+  if (animationPaused_) {
+    return;
+  }
+  const auto adjusted_time_ms = currentTimeMs_ - totalPausedDurationMs_;
+  markdown_view_handle_->OnVSync(adjusted_time_ms);
 }
 - (serval::markdown::MarkdownView*)getMarkdownView {
   return static_cast<serval::markdown::MarkdownView*>(
@@ -143,6 +175,224 @@
   view->SetContent(str);
   _content = content;
 }
+- (NSString*)getContent:(int)start
+                    end:(int)end
+              indexType:(ServalMarkdownIndexType)indexType {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @"";
+  }
+  int32_t range_start = std::max(0, std::min(start, end));
+  int32_t range_end = std::max(0, std::max(start, end));
+  if (indexType == kServalMarkdownIndexTypeSource) {
+    range_start = view->SourceOffsetToCharOffset(range_start);
+    range_end = view->SourceOffsetToCharOffset(range_end);
+  }
+  const auto content = view->GetParsedContent({range_start, range_end});
+  NSString* content_string =
+      [[NSString alloc] initWithBytes:content.data()
+                               length:content.size()
+                             encoding:NSUTF8StringEncoding];
+  return content_string != nil ? content_string : @"";
+}
+- (NSString*)getSelectedText {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @"";
+  }
+  const auto content = view->GetSelectedText();
+  NSString* content_string =
+      [[NSString alloc] initWithBytes:content.data()
+                               length:content.size()
+                             encoding:NSUTF8StringEncoding];
+  return content_string != nil ? content_string : @"";
+}
+- (NSArray<NSString*>*)getAllImageUrl {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  const auto urls = view->GetAllImageUrl();
+  NSMutableArray<NSString*>* result =
+      [NSMutableArray arrayWithCapacity:urls.size()];
+  for (const auto& url : urls) {
+    NSString* value = [[NSString alloc] initWithBytes:url.data()
+                                               length:url.size()
+                                             encoding:NSUTF8StringEncoding];
+    [result addObject:value != nil ? value : @""];
+  }
+  return result;
+}
+- (NSArray<NSString*>*)getLinkUrl {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  const auto urls = view->GetLinkUrl();
+  NSMutableArray<NSString*>* result =
+      [NSMutableArray arrayWithCapacity:urls.size()];
+  for (const auto& url : urls) {
+    NSString* value = [[NSString alloc] initWithBytes:url.data()
+                                               length:url.size()
+                                             encoding:NSUTF8StringEncoding];
+    [result addObject:value != nil ? value : @""];
+  }
+  return result;
+}
+- (NSArray<NSString*>*)getLinkContent {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  const auto contents = view->GetLinkContent();
+  NSMutableArray<NSString*>* result =
+      [NSMutableArray arrayWithCapacity:contents.size()];
+  for (const auto& content : contents) {
+    NSString* value = [[NSString alloc] initWithBytes:content.data()
+                                               length:content.size()
+                                             encoding:NSUTF8StringEncoding];
+    [result addObject:value != nil ? value : @""];
+  }
+  return result;
+}
+- (NSArray<NSValue*>*)getLinkBoundingRect {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  const auto rects = view->GetLinkBoundingRect();
+  NSMutableArray<NSValue*>* result =
+      [NSMutableArray arrayWithCapacity:rects.size()];
+  for (const auto& rect : rects) {
+    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
+                                                          rect.GetTop(),
+                                                          rect.GetWidth(),
+                                                          rect.GetHeight())]];
+  }
+  return result;
+}
+- (NSArray<NSValue*>*)getSyntaxSourceRanges:(NSString*)tag {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr || tag == nil) {
+    return @[];
+  }
+  const auto* tag_chars = [tag UTF8String];
+  if (tag_chars == nullptr) {
+    return @[];
+  }
+  const auto ranges = view->GetSyntaxSourceRanges(tag_chars);
+  NSMutableArray<NSValue*>* result =
+      [NSMutableArray arrayWithCapacity:ranges.size()];
+  for (const auto& range : ranges) {
+    if (range.start_ < 0 || range.end_ < range.start_) {
+      continue;
+    }
+    [result
+        addObject:[NSValue
+                      valueWithRange:NSMakeRange(
+                                         static_cast<NSUInteger>(range.start_),
+                                         static_cast<NSUInteger>(
+                                             range.end_ - range.start_))]];
+  }
+  return result;
+}
+- (NSRange)getSelectedRange {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return NSMakeRange(NSNotFound, 0);
+  }
+  const auto range = view->GetSelectedRange();
+  if (range.start_ < 0 || range.end_ < range.start_) {
+    return NSMakeRange(NSNotFound, 0);
+  }
+  return NSMakeRange(static_cast<NSUInteger>(range.start_),
+                     static_cast<NSUInteger>(range.end_ - range.start_));
+}
+- (NSArray<NSValue*>*)getSelectedLineBoundingRect {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  const auto& rects = view->GetSelectedLineBoundingRect();
+  NSMutableArray<NSValue*>* result =
+      [NSMutableArray arrayWithCapacity:rects.size()];
+  for (const auto& rect : rects) {
+    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
+                                                          rect.GetTop(),
+                                                          rect.GetWidth(),
+                                                          rect.GetHeight())]];
+  }
+  return result;
+}
+- (NSArray<NSValue*>*)getTextBoundingRect:(int)start
+                                      end:(int)end
+                                indexType:(ServalMarkdownIndexType)indexType {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @[];
+  }
+  int32_t range_start = std::max(0, std::min(start, end));
+  int32_t range_end = std::max(0, std::max(start, end));
+  if (indexType == kServalMarkdownIndexTypeSource) {
+    range_start = view->SourceOffsetToCharOffset(range_start);
+    range_end = view->SourceOffsetToCharOffset(range_end);
+  }
+  const auto rects = view->GetTextLineBoundingRect({range_start, range_end});
+  NSMutableArray<NSValue*>* result =
+      [NSMutableArray arrayWithCapacity:rects.size()];
+  for (const auto& rect : rects) {
+    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
+                                                          rect.GetTop(),
+                                                          rect.GetWidth(),
+                                                          rect.GetHeight())]];
+  }
+  return result;
+}
+- (int)getCharIndexByPoint:(float)x
+                         y:(float)y
+                 indexType:(ServalMarkdownIndexType)indexType {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return -1;
+  }
+  int32_t char_index = view->GetCharIndexByPosition({x, y});
+  if (indexType == kServalMarkdownIndexTypeSource && char_index >= 0) {
+    return view->CharOffsetToSourceOffset(char_index);
+  }
+  return char_index;
+}
+- (NSRange)getCharRangeByPoint:(float)x
+                             y:(float)y
+                     indexType:(ServalMarkdownIndexType)indexType
+                     rangeType:(ServalMarkdownCharRangeType)rangeType {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return NSMakeRange(NSNotFound, 0);
+  }
+  auto char_range =
+      view->GetCharRangeByPosition({x, y}, ConvertCharRangeType(rangeType));
+  if (indexType == kServalMarkdownIndexTypeSource) {
+    if (char_range.start_ >= 0) {
+      char_range.start_ = view->CharOffsetToSourceOffset(char_range.start_);
+    }
+    if (char_range.end_ >= 0) {
+      char_range.end_ = view->CharOffsetToSourceOffset(char_range.end_);
+    }
+  }
+  if (char_range.start_ < 0 || char_range.end_ < char_range.start_) {
+    return NSMakeRange(NSNotFound, 0);
+  }
+  return NSMakeRange(
+      static_cast<NSUInteger>(char_range.start_),
+      static_cast<NSUInteger>(char_range.end_ - char_range.start_));
+}
+- (void)setTextSelection:(int)start end:(int)end {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return;
+  }
+  view->SetTextSelection({start, end});
+}
 - (void)setStyle:(NSDictionary*)style {
   auto* view = [self getMarkdownView];
   auto map = MarkdownValueConvert::ConvertMap(style);
@@ -164,6 +414,28 @@
   _initialAnimationStep = initialAnimationStep;
   auto* view = [self getMarkdownView];
   view->SetAnimationStep(initialAnimationStep);
+}
+- (void)pauseAnimation {
+  if (animationPaused_) {
+    return;
+  }
+  animationPaused_ = YES;
+  pauseStartTimeMs_ = currentTimeMs_;
+}
+- (void)resumeAnimation {
+  [self resumeAnimation:-1];
+}
+- (void)resumeAnimation:(int)animationStep {
+  auto* view = [self getMarkdownView];
+  if (animationStep != -1 && view != nullptr) {
+    view->SetAnimationStep(animationStep);
+  }
+  if (animationPaused_) {
+    animationPaused_ = NO;
+    if (pauseStartTimeMs_ > 0 && currentTimeMs_ > pauseStartTimeMs_) {
+      totalPausedDurationMs_ += currentTimeMs_ - pauseStartTimeMs_;
+    }
+  }
 }
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value {
   auto* view = [self getMarkdownView];

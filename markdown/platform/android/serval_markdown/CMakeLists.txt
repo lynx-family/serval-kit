@@ -51,4 +51,3 @@ target_link_libraries(serval_markdown
 )
 
 target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
-

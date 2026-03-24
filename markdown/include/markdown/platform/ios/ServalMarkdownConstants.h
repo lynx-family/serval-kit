@@ -59,4 +59,16 @@ typedef enum : NSUInteger {
   kServalMarkdownAnimationTypeTypewriter,
 } ServalMarkdownAnimationType;
 
+typedef NS_ENUM(NSUInteger, ServalMarkdownIndexType) {
+  kServalMarkdownIndexTypeChar = 0,
+  kServalMarkdownIndexTypeSource = 1,
+};
+
+typedef NS_ENUM(NSUInteger, ServalMarkdownCharRangeType) {
+  kServalMarkdownCharRangeTypeChar = 0,
+  kServalMarkdownCharRangeTypeWord = 1,
+  kServalMarkdownCharRangeTypeSentence = 2,
+  kServalMarkdownCharRangeTypeParagraph = 3,
+};
+
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_SERVAL_MARKDOWN_PROPS_H_

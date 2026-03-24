@@ -6,6 +6,7 @@ package com.lynx.markdown;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
@@ -27,6 +28,10 @@ public class ServalMarkdownView extends CustomDrawView {
   private final GestureDetector mGestureDetector;
   private float mDownX = 0;
   private float mDownY = 0;
+  private boolean mAnimationPaused = false;
+  private long mCurrentTime = 0;
+  private long mPauseStartTime = 0;
+  private long mTotalPausedDurationMs = 0;
 
   public ServalMarkdownView(Context context) {
     super(context);
@@ -72,6 +77,8 @@ public class ServalMarkdownView extends CustomDrawView {
       nativeDestroyInstance(mInstance);
       mInstance = 0;
     }
+    mAnimationPaused = false;
+    mTotalPausedDurationMs = 0;
   }
   public void setResourceLoader(IResourceLoader loader) { mLoader = loader; }
   public void setEventListener(IMarkdownEventListener listener) {
@@ -129,6 +136,101 @@ public class ServalMarkdownView extends CustomDrawView {
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
   }
+  public String getContent(int start, int end, int indexType) {
+    if (mInstance == 0) {
+      return "";
+    }
+    return nativeGetContent(mInstance, start, end, indexType);
+  }
+  public String getSelectedText() {
+    if (mInstance == 0) {
+      return "";
+    }
+    return nativeGetSelectedText(mInstance);
+  }
+  public String[] getAllImageUrl() {
+    if (mInstance == 0) {
+      return new String[0];
+    }
+    return nativeGetAllImageUrl(mInstance);
+  }
+  public String[] getLinkUrl() {
+    if (mInstance == 0) {
+      return new String[0];
+    }
+    return nativeGetLinkUrl(mInstance);
+  }
+  public String[] getLinkContent() {
+    if (mInstance == 0) {
+      return new String[0];
+    }
+    return nativeGetLinkContent(mInstance);
+  }
+  public ArrayList<RectF> getLinkBoundingRect() {
+    ArrayList<RectF> result = new ArrayList<>();
+    if (mInstance == 0) {
+      return result;
+    }
+    float[] rects = nativeGetLinkBoundingRect(mInstance);
+    for (int i = 0; i + 3 < rects.length; i += 4) {
+      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
+    }
+    return result;
+  }
+  public long[] getSyntaxSourceRanges(String tag) {
+    if (mInstance == 0) {
+      return new long[0];
+    }
+    return nativeGetSyntaxSourceRanges(mInstance, tag);
+  }
+  public long getSelectedRange() {
+    if (mInstance == 0) {
+      return MarkdownValuePack.packIntPair(-1, -1);
+    }
+    return nativeGetSelectedRange(mInstance);
+  }
+  public ArrayList<RectF> getSelectedLineBoundingRect() {
+    ArrayList<RectF> result = new ArrayList<>();
+    if (mInstance == 0) {
+      return result;
+    }
+    float[] rects = nativeGetSelectedLineBoundingRect(mInstance);
+    for (int i = 0; i + 3 < rects.length; i += 4) {
+      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
+    }
+    return result;
+  }
+  public ArrayList<RectF> getTextBoundingRect(int start, int end,
+                                              int indexType) {
+    ArrayList<RectF> result = new ArrayList<>();
+    if (mInstance == 0) {
+      return result;
+    }
+    float[] rects = nativeGetTextBoundingRect(mInstance, start, end, indexType);
+    for (int i = 0; i + 3 < rects.length; i += 4) {
+      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
+    }
+    return result;
+  }
+  public int getCharIndexByPoint(float x, float y, int indexType) {
+    if (mInstance == 0) {
+      return -1;
+    }
+    return nativeGetCharIndexByPoint(mInstance, x, y, indexType);
+  }
+  public long getCharRangeByPoint(float x, float y, int indexType,
+                                  int rangeType) {
+    if (mInstance == 0) {
+      return MarkdownValuePack.packIntPair(-1, -1);
+    }
+    return nativeGetCharRangeByPoint(mInstance, x, y, indexType, rangeType);
+  }
+  public void setTextSelection(int start, int end) {
+    if (mInstance == 0) {
+      return;
+    }
+    nativeSetTextSelection(mInstance, start, end);
+  }
   public void setStyle(HashMap<String, Object> style) {
     MarkdownBufferWriter writer = new MarkdownBufferWriter();
     try {
@@ -148,6 +250,25 @@ public class ServalMarkdownView extends CustomDrawView {
   }
   public void setInitialAnimationStep(int initialStep) {
     setNumberProp(Constants.MARKDOWN_PROPS_INITIAL_ANIMATION_STEP, initialStep);
+  }
+  public void pauseAnimation() {
+    if (mAnimationPaused) {
+      return;
+    }
+    mAnimationPaused = true;
+    mPauseStartTime = mCurrentTime;
+  }
+  public void resumeAnimation() { resumeAnimation(-1); }
+  public void resumeAnimation(int animationStep) {
+    if (animationStep != -1 && mInstance != 0) {
+      nativeSetAnimationStep(mInstance, animationStep);
+    }
+    if (mAnimationPaused) {
+      mAnimationPaused = false;
+      if (mPauseStartTime > 0 && mCurrentTime > mPauseStartTime) {
+        mTotalPausedDurationMs += mCurrentTime - mPauseStartTime;
+      }
+    }
   }
 
   public void setBooleanProp(int key, boolean value) {
@@ -190,7 +311,11 @@ public class ServalMarkdownView extends CustomDrawView {
     Choreographer.getInstance().postFrameCallback(this::onVSync);
   }
   protected void onVSync(long time) {
-    nativeOnVSync(mInstance, time / 1000000);
+    mCurrentTime = time / 1000000;
+    if (!mAnimationPaused && mInstance != 0) {
+      long adjustedTimeMs = mCurrentTime - mTotalPausedDurationMs;
+      nativeOnVSync(mInstance, adjustedTimeMs);
+    }
     Choreographer.getInstance().postFrameCallback(this::onVSync);
   }
 
@@ -311,9 +436,27 @@ public class ServalMarkdownView extends CustomDrawView {
   private native long nativeCreateInstance();
   private native void nativeDestroyInstance(long instance);
   private native void nativeSetContent(long instance, String content);
+  private native String nativeGetContent(long instance, int start, int end,
+                                         int indexType);
+  private native String nativeGetSelectedText(long instance);
+  private native String[] nativeGetAllImageUrl(long instance);
+  private native String[] nativeGetLinkUrl(long instance);
+  private native String[] nativeGetLinkContent(long instance);
+  private native float[] nativeGetLinkBoundingRect(long instance);
+  private native long[] nativeGetSyntaxSourceRanges(long instance, String tag);
+  private native long nativeGetSelectedRange(long instance);
+  private native float[] nativeGetSelectedLineBoundingRect(long instance);
+  private native float[] nativeGetTextBoundingRect(long instance, int start,
+                                                   int end, int indexType);
+  private native int nativeGetCharIndexByPoint(long instance, float x, float y,
+                                               int indexType);
+  private native long nativeGetCharRangeByPoint(long instance, float x, float y,
+                                                int indexType, int rangeType);
+  private native void nativeSetTextSelection(long instance, int start, int end);
   private native void nativeSetDensity(float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnVSync(long instance, long time);
+  private native void nativeSetAnimationStep(long instance, int animationStep);
   private native void nativeSetNumberProp(long instance, int key, double value);
   private native void nativeSetStringProp(long instance, int key, String value);
   private native void nativeSetValueProp(long instance, int key, byte[] value);

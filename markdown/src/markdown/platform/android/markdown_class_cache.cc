@@ -12,6 +12,11 @@
 
 void MarkdownClassCache::Initial(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
+  auto* string_class = env->FindClass("java/lang/String");
+  if (string_class != nullptr) {
+    string_class_.Reset(env, string_class);
+    env->DeleteLocalRef(string_class);
+  }
   AndroidMarkdownView::Initialize(env);
   AndroidCustomView::Initialize(env);
   AndroidMainView::Initialize(env);

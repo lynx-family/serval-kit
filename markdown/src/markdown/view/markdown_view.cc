@@ -622,6 +622,62 @@ const std::vector<RectF>& MarkdownView::GetSelectedLineBoundingRect() {
   return selection_highlight_rects_;
 }
 
+std::vector<std::string> MarkdownView::GetAllImageUrl() {
+  if (document_ == nullptr) {
+    return {};
+  }
+  return document_->GetAllImageUrl();
+}
+
+std::vector<std::string> MarkdownView::GetLinkUrl() {
+  if (document_ == nullptr) {
+    return {};
+  }
+  const auto& links = document_->GetLinks();
+  std::vector<std::string> urls;
+  urls.reserve(links.size());
+  for (const auto& link : links) {
+    urls.emplace_back(link.url_);
+  }
+  return urls;
+}
+
+std::vector<std::string> MarkdownView::GetLinkContent() {
+  if (document_ == nullptr) {
+    return {};
+  }
+  const auto& links = document_->GetLinks();
+  std::vector<std::string> contents;
+  contents.reserve(links.size());
+  for (const auto& link : links) {
+    contents.emplace_back(link.content_);
+  }
+  return contents;
+}
+
+std::vector<RectF> MarkdownView::GetLinkBoundingRect() {
+  if (document_ == nullptr) {
+    return {};
+  }
+  const auto& links = document_->GetLinks();
+  std::vector<RectF> rects;
+  rects.reserve(links.size());
+  for (const auto& link : links) {
+    const int32_t start = static_cast<int32_t>(link.char_start_);
+    const int32_t end =
+        static_cast<int32_t>(link.char_start_ + link.char_count_);
+    rects.emplace_back(GetTextBoundingRect({start, end}));
+  }
+  return rects;
+}
+
+std::vector<Range> MarkdownView::GetSyntaxSourceRanges(std::string_view tag) {
+  if (document_ == nullptr) {
+    return {};
+  }
+  return document_->GetSyntaxSourceRanges(tag);
+}
+
 Range MarkdownView::GetCharRangeByPosition(
     PointF position, MarkdownSelection::CharRangeType char_range_type) {
   if (document_ == nullptr) {
@@ -650,6 +706,20 @@ std::string MarkdownView::GetParsedContent(Range char_range) {
     return {};
   }
   return document_->GetContentByCharPos(char_range.start_, char_range.end_);
+}
+
+int32_t MarkdownView::CharOffsetToSourceOffset(int32_t char_offset) {
+  if (document_ == nullptr) {
+    return 0;
+  }
+  return document_->CharOffsetToMarkdownOffset(char_offset);
+}
+
+int32_t MarkdownView::SourceOffsetToCharOffset(int32_t source_offset) {
+  if (document_ == nullptr) {
+    return 0;
+  }
+  return document_->MarkdownOffsetToCharOffset(source_offset);
 }
 
 std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) {
