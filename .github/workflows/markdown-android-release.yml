@@ -40,6 +40,8 @@ jobs:
     name: Release Android
     needs: get-version
     runs-on: lynx-ubuntu-22.04-large
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - name: Python Setup
@@ -85,3 +87,32 @@ jobs:
         with:
           portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
           artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
+
+      - name: Prepare Android Artifact For GitHub Release
+        shell: bash
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          ASSET_DIR="github-release-assets/android"
+          mkdir -p "$ASSET_DIR"
+          AAR_PATH=$(find markdown/platform/android/serval_markdown/build/outputs/aar -name "*release*.aar" | head -n 1)
+          if [ -z "$AAR_PATH" ]; then
+            echo "No release aar found."
+            exit 1
+          fi
+          cp "$AAR_PATH" "$ASSET_DIR/serval_markdown-android-${VERSION}.aar"
+          ZIP_PATH=$(find markdown/platform/android/serval_markdown/build -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_PATH" ]; then
+            cp "$ZIP_PATH" "$ASSET_DIR/$(basename "$ZIP_PATH")"
+          fi
+
+      - name: Upload Android Artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.version }}
+          files: |
+            github-release-assets/android/serval_markdown-android-${{ needs.get-version.outputs.version }}.aar
+            github-release-assets/android/*.zip
+          fail_on_unmatched_files: false
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

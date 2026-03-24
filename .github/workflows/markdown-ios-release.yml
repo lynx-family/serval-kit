@@ -40,6 +40,8 @@ jobs:
     name: Release iOS
     needs: get-version
     runs-on: lynx-darwin-14-medium
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
 
@@ -58,4 +60,22 @@ jobs:
         run: |-
           export LANG=en_US.UTF-8
           bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push markdown/ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
+
+      - name: Prepare iOS Artifact For GitHub Release
+        shell: bash
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          ASSET_DIR="github-release-assets/ios"
+          mkdir -p "$ASSET_DIR"
+          cp ServalMarkdown.podspec "$ASSET_DIR/ServalMarkdown-${VERSION}.podspec"
+
+      - name: Upload iOS Artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.version }}
+          files: |
+            github-release-assets/ios/ServalMarkdown-${{ needs.get-version.outputs.version }}.podspec
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

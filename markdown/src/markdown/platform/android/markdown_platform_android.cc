@@ -31,4 +31,10 @@ MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
     tttext::ICanvasHelper* canvas) {
   return nullptr;
 }
+
+void MarkdownPlatform::RunOnUIThread(std::function<void()> task,
+                                     int64_t micro_seconds) {
+  (void)task;
+  (void)micro_seconds;
+}
 }  // namespace serval::markdown
