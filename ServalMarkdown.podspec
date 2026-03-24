@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   DESC
   s.homepage         = 'https://github.com/lynx-family/serval-kit'
   s.source           = { :git => 'https://github.com/lynx-family/serval-kit.git', }.tap do |source_hash|
-    source_hash[:commit] = ENV['SERVAL_KIT_COMMIT_ID']
+    source_hash[:tag] = ENV['SERVAL_KIT_TAG'] || ENV['POD_VERSION'] || s.version.to_s
   end
   s.license          = { :type => 'Apache 2.0', :file => "LICENSE" }
   s.author           = 'Lynx'

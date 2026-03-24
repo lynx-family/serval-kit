@@ -56,11 +56,11 @@ jobs:
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}
           POD_VERSION: ${{ needs.get-version.outputs.version }}
-          SERVAL_KIT_COMMIT_ID: ${{ github.sha }}
+          SERVAL_KIT_TAG: ${{ needs.get-version.outputs.version }}
         run: |-
           export LANG=en_US.UTF-8
           bundle exec pod repo add-cdn trunk https://cdn.cocoapods.org/
-          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
+          COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN POD_VERSION=$POD_VERSION SERVAL_KIT_TAG=$SERVAL_KIT_TAG bundle exec pod trunk push ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
 
       - name: Prepare iOS Artifact For GitHub Release
         shell: bash
