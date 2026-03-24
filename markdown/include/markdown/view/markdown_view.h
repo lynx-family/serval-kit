@@ -76,6 +76,11 @@ class MarkdownView final : public MarkdownDrawable {
   std::string GetSelectedText();
   Range GetSelectedRange() const;
   const std::vector<RectF>& GetSelectedLineBoundingRect();
+  std::vector<std::string> GetAllImageUrl();
+  std::vector<std::string> GetLinkUrl();
+  std::vector<std::string> GetLinkContent();
+  std::vector<RectF> GetLinkBoundingRect();
+  std::vector<Range> GetSyntaxSourceRanges(std::string_view tag);
 
   int32_t GetCharIndexByPosition(PointF position);
   Range GetCharRangeByPosition(
@@ -84,6 +89,8 @@ class MarkdownView final : public MarkdownDrawable {
   RectF GetTextBoundingRect(Range range);
 
   std::string GetParsedContent(Range char_range);
+  int32_t CharOffsetToSourceOffset(int32_t char_offset);
+  int32_t SourceOffsetToCharOffset(int32_t source_offset);
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   void Align(float x, float y) override;

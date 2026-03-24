@@ -21,6 +21,31 @@
 @property(nonatomic, weak) id<IMarkdownEventDelegate> eventDelegate;
 @property(nonatomic, weak) id<IMarkdownExposureDelegate> exposureDelegate;
 
+- (NSString*)getContent:(int)start
+                    end:(int)end
+              indexType:(ServalMarkdownIndexType)indexType;
+- (NSString*)getSelectedText;
+- (NSArray<NSString*>*)getAllImageUrl;
+- (NSArray<NSString*>*)getLinkUrl;
+- (NSArray<NSString*>*)getLinkContent;
+- (NSArray<NSValue*>*)getLinkBoundingRect;
+- (NSArray<NSValue*>*)getSyntaxSourceRanges:(NSString*)tag;
+- (NSRange)getSelectedRange;
+- (NSArray<NSValue*>*)getSelectedLineBoundingRect;
+- (NSArray<NSValue*>*)getTextBoundingRect:(int)start
+                                      end:(int)end
+                                indexType:(ServalMarkdownIndexType)indexType;
+- (int)getCharIndexByPoint:(float)x
+                         y:(float)y
+                 indexType:(ServalMarkdownIndexType)indexType;
+- (NSRange)getCharRangeByPoint:(float)x
+                             y:(float)y
+                     indexType:(ServalMarkdownIndexType)indexType
+                     rangeType:(ServalMarkdownCharRangeType)rangeType;
+- (void)setTextSelection:(int)start end:(int)end;
+- (void)pauseAnimation;
+- (void)resumeAnimation;
+- (void)resumeAnimation:(int)animationStep;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value;

@@ -143,6 +143,7 @@ class MarkdownDocument {
   void TrimParagraphSpaces() const;
 
   int32_t MarkdownOffsetToCharOffset(int32_t markdown_offset);
+  int32_t CharOffsetToMarkdownOffset(int32_t char_offset);
 
   const MarkdownTextAttachment* GetTextClickRangeByTouchPosition(
       PointF position);

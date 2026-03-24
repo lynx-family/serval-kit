@@ -362,6 +362,9 @@ void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
 }
 
 int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
+  if (markdown_index_to_char_index_.empty()) {
+    return 0;
+  }
   auto iter =
       std::lower_bound(markdown_index_to_char_index_.begin(),
                        markdown_index_to_char_index_.end(), markdown_offset,
@@ -378,6 +381,28 @@ int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
     return iter->second.end_;
   }
   return iter->second.start_ + (markdown_offset - iter->first.start_);
+}
+
+int32_t MarkdownDocument::CharOffsetToMarkdownOffset(int32_t char_offset) {
+  if (markdown_index_to_char_index_.empty()) {
+    return 0;
+  }
+  auto iter =
+      std::lower_bound(markdown_index_to_char_index_.begin(),
+                       markdown_index_to_char_index_.end(), char_offset,
+                       [](const std::pair<Range, Range>& pair, int32_t offset) {
+                         return pair.second.end_ <= offset;
+                       });
+  if (iter == markdown_index_to_char_index_.end()) {
+    return markdown_index_to_char_index_.back().first.end_;
+  }
+  if (char_offset < iter->second.start_) {
+    return iter->first.start_;
+  }
+  if (char_offset > iter->second.end_) {
+    return iter->first.end_;
+  }
+  return iter->first.start_ + (char_offset - iter->second.start_);
 }
 
 int32_t MarkdownDocument::GetCharIndexByTouchPosition(

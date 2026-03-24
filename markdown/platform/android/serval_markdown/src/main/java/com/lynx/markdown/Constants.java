@@ -14,6 +14,14 @@ public class Constants {
   public static final int VERTICAL_ALIGN_CENTER = 1;
   public static final int VERTICAL_ALIGN_BASELINE = 2;
   public static final int VERTICAL_ALIGN_BOTTOM = 3;
+
+  public static final int INDEX_TYPE_CHAR = 0;
+  public static final int INDEX_TYPE_SOURCE = 1;
+  public static final int CHAR_RANGE_TYPE_CHAR = 0;
+  public static final int CHAR_RANGE_TYPE_WORD = 1;
+  public static final int CHAR_RANGE_TYPE_SENTENCE = 2;
+  public static final int CHAR_RANGE_TYPE_PARAGRAPH = 3;
+
   public static final int MARKDOWN_PROPS_ANIMATION_TYPE = 0;
   public static final int MARKDOWN_PROPS_ANIMATION_VELOCITY = 1;
   public static final int MARKDOWN_PROPS_TEXT_MAXLINE = 2;

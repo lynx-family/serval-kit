@@ -190,6 +190,7 @@ class MarkdownClassCache {
   }
   static JNIEnv* GetEnv() { return GetInstance().GetCurrentJNIEnv(); }
   JavaVM* GetJavaVm() const { return java_vm_; }
+  jclass GetStringClass() const { return string_class_.Get(); }
 
   JNIEnv* GetCurrentJNIEnv() const {
     thread_local JNIEnv* env = nullptr;
@@ -200,6 +201,7 @@ class MarkdownClassCache {
   }
 
  public:
-  JavaVM* java_vm_;
+  JavaVM* java_vm_{nullptr};
+  lynx::base::android::ScopedGlobalJavaRef<jclass> string_class_;
 };
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_CLASS_CACHE_H_
