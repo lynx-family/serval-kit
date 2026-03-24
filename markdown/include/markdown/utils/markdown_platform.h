@@ -4,6 +4,8 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
+#include <cstdint>
+#include <functional>
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 class MarkdownCanvasExtend;
@@ -22,6 +24,8 @@ class MarkdownPlatform {
   }
   static MarkdownCanvasExtend* GetMarkdownCanvasExtend(
       tttext::ICanvasHelper* canvas);
+  static void RunOnUIThread(std::function<void()> task,
+                            int64_t micro_seconds = 0);
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_

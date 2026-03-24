@@ -40,6 +40,8 @@ jobs:
     name: Release Harmony
     needs: get-version
     runs-on: lynx-custom-container
+    permissions:
+      contents: write
     container:
       image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:bf493c3710de3c44bfa84caf402c0727b9310c42497f6e52580ad441ea640ef1
       credentials:
@@ -106,6 +108,7 @@ jobs:
       - name: Publish Harmony SDK
         shell: bash
         working-directory: .
+        if: false
         run: |
           source tools/envsetup.sh
           export PUBLISH_KEY_PASSPHRASE=${{ secrets.HARMONY_PUBLISH_KEY_PASSPHRASE }}
@@ -117,3 +120,33 @@ jobs:
           pushd markdown/platform/harmony/serval_markdown/build/default/outputs/default/
           ohpm publish serval_markdown.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key
           popd
+
+      - name: Prepare Harmony Artifact For GitHub Release
+        shell: bash
+        working-directory: .
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          ASSET_DIR="github-release-assets/harmony"
+          HAR_PATH="markdown/platform/harmony/serval_markdown/build/default/outputs/default/serval_markdown.har"
+          CHANGELOG_PATH="markdown/platform/harmony/serval_markdown/CHANGELOG.md"
+          mkdir -p "$ASSET_DIR"
+          if [ ! -f "$HAR_PATH" ]; then
+            echo "Harmony release artifact not found: $HAR_PATH"
+            exit 1
+          fi
+          cp "$HAR_PATH" "$ASSET_DIR/serval_markdown-harmony-${VERSION}.har"
+          if [ -f "$CHANGELOG_PATH" ]; then
+            cp "$CHANGELOG_PATH" "$ASSET_DIR/markdown-harmony-changelog-${VERSION}.md"
+          fi
+
+      - name: Upload Harmony Artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.version }}
+          files: |
+            github-release-assets/harmony/serval_markdown-harmony-${{ needs.get-version.outputs.version }}.har
+            github-release-assets/harmony/markdown-harmony-changelog-${{ needs.get-version.outputs.version }}.md
+          fail_on_unmatched_files: false
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

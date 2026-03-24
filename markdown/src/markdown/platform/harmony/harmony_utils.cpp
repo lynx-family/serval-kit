@@ -3,8 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 #include <utility>
-#include "base/include/fml/message_loop.h"
-#include "markdown/utils/markdown_ui_thread.h"
+#include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
 thread_local napi_env ENV = nullptr;
 napi_env HarmonyEnv::GetEnv() {
@@ -15,23 +14,14 @@ void HarmonyEnv::SetEnv(napi_env env) {
 }
 
 void HarmonyUIThread::Init(napi_env env) {
-  static std::once_flag instance_once_flag;
-  std::call_once(instance_once_flag, [&env]() {
-    uv_loop_s* loop;
-    napi_get_uv_event_loop(env, &loop);
-    MarkdownUIThread::GetUITaskRunner() =
-        lynx::fml::MessageLoop::EnsureInitializedForCurrentThread(loop)
-            .GetTaskRunner();
-  });
+  (void)env;
+  MarkdownPlatform::RunOnUIThread([]() {});
 }
 void HarmonyUIThread::PostTask(std::function<void()> task) {
-  fml::TaskRunner::RunNowOrPostTask(MarkdownUIThread::GetUITaskRunner(),
-                                    lynx::base::closure(std::move(task)));
+  MarkdownPlatform::RunOnUIThread(std::move(task));
 }
 void HarmonyUIThread::PostDelayedTask(std::function<void()> task,
                                       int64_t micro_seconds) {
-  MarkdownUIThread::GetUITaskRunner()->PostDelayedTask(
-      lynx::base::closure(std::move(task)),
-      fml::TimeDelta::FromMicroseconds(micro_seconds));
+  MarkdownPlatform::RunOnUIThread(std::move(task), micro_seconds);
 }
 }  // namespace serval::markdown
