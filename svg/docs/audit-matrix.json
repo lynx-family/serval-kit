@@ -1,0 +1,2217 @@
+{
+  "schema_version": 2,
+  "generator": "svg/tools/svg_support_audit.py",
+  "role": "internal_audit_matrix",
+  "support_levels": {
+    "recognized": "parser can instantiate the node",
+    "parsed": "attributes are captured into node state",
+    "rendered": "current render path uses the node meaningfully",
+    "platform_ready": "backend-specific readiness: full, partial, or none"
+  },
+  "platform_capabilities": {
+    "android": [
+      "Core shapes, gradients, masks, clip paths, and text have dedicated bridges.",
+      "Filters are not executed because the Android canvas backend does not override SupportsFilters().",
+      "Image rendering depends on a ResourceManager callback."
+    ],
+    "ios": [
+      "Core shapes, gradients, masks, clip paths, and text have Quartz/TextKit implementations.",
+      "Filters are not executed because the iOS canvas backend does not override SupportsFilters().",
+      "Image rendering depends on an image callback."
+    ],
+    "harmony": [
+      "Core shapes, gradients, masks, and clip paths are implemented.",
+      "Text and image backends are currently incomplete.",
+      "Filters are not executed because the Harmony canvas backend does not override SupportsFilters()."
+    ],
+    "skity": [
+      "Core shapes, gradients, masks, clip paths, and image rendering are implemented.",
+      "Text paragraphs are currently stubbed.",
+      "Filter execution is available but limited to a small subset of primitives and heuristics."
+    ]
+  },
+  "global_notes": [
+    "Inline style support is property-by-property. A style declaration only works when its property is parsed by the receiving node.",
+    "A tag being recognized by the parser does not imply full spec support.",
+    "The repository currently relies more on sample SVG assets than on engine-level unit tests for SVG behavior."
+  ],
+  "tags": {
+    "svg": {
+      "node_class": "SrSVGSVG",
+      "category": "root-container",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "viewBox",
+          "preserveAspectRatio"
+        ],
+        "partial": {
+          "width": "Root width is commonly present in input SVG, but the renderer uses the external viewport context instead of parsing svg@width.",
+          "height": "Root height is commonly present in input SVG, but the renderer uses the external viewport context instead of parsing svg@height.",
+          "opacity": "Container opacity is inherited into children instead of using isolated group compositing."
+        },
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [
+        "The root node sets the view box transform and then renders child containers.",
+        "CSS transform inside style is handled specially on the root svg node."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/android/app/src/main/assets/svg/clip_path.svg",
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/image.svg",
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/android/app/src/main/assets/svg/text.svg",
+        "examples/android/app/src/main/assets/svg/transforms.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/image.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/clip_path.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/image.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/basic_shapes.svg",
+        "test_cases/clip_path.svg",
+        "test_cases/defs_use.svg",
+        "test_cases/gradients.svg",
+        "test_cases/image.svg",
+        "test_cases/paths.svg",
+        "test_cases/text.svg",
+        "test_cases/transforms.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGSVG.cc",
+          "svg/src/element/SrSVGContainer.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGSVG.cc": [
+            "viewBox",
+            "preserveAspectRatio",
+            "style",
+            "transform"
+          ],
+          "svg/src/element/SrSVGContainer.cc": [
+            "transform"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "g": {
+      "node_class": "SrSVGG",
+      "category": "container",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style"
+        ],
+        "partial": {
+          "opacity": "Group opacity is inherited into children instead of using isolated group compositing."
+        },
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [
+        "Group attributes such as fill, stroke, mask, and color are propagated to child nodes during render."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/android/app/src/main/assets/svg/transforms.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/defs_use.svg",
+        "test_cases/transforms.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGContainer.cc",
+          "svg/src/element/SrSVGNode.cc",
+          "svg/include/element/SrSVGG.h"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGContainer.cc": [
+            "transform"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "defs": {
+      "node_class": "SrSVGDefs",
+      "category": "definition-container",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "transform": "Defs is a non-rendering container; its own transform is parsed but not applied as a render step."
+        }
+      },
+      "notes": [
+        "Defs is used as a non-rendering container for reusable nodes."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/clip_path.svg",
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/clip_path.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/clip_path.svg",
+        "test_cases/defs_use.svg",
+        "test_cases/gradients.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGContainer.cc",
+          "svg/src/element/SrSVGNode.cc",
+          "svg/include/element/SrSVGDefs.h"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGContainer.cc": [
+            "transform"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "rect": {
+      "node_class": "SrSVGRect",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "x",
+          "y",
+          "rx",
+          "ry",
+          "width",
+          "height"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/android/app/src/main/assets/svg/clip_path.svg",
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/image.svg",
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/transforms.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/image.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/clip_path.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/image.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/basic_shapes.svg",
+        "test_cases/clip_path.svg",
+        "test_cases/defs_use.svg",
+        "test_cases/gradients.svg",
+        "test_cases/image.svg",
+        "test_cases/transforms.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGRect.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGRect.cc": [
+            "x",
+            "y",
+            "rx",
+            "ry",
+            "width",
+            "height"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "circle": {
+      "node_class": "SrSVGCircle",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "cx",
+          "cy",
+          "r"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/android/app/src/main/assets/svg/clip_path.svg",
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/clip_path.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/basic_shapes.svg",
+        "test_cases/clip_path.svg",
+        "test_cases/defs_use.svg",
+        "test_cases/gradients.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGCircle.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGCircle.cc": [
+            "cx",
+            "cy",
+            "r"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "ellipse": {
+      "node_class": "SrSVGEllipse",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "cx",
+          "cy",
+          "rx",
+          "ry"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "test_cases/basic_shapes.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGEllipse.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGEllipse.cc": [
+            "cx",
+            "cy",
+            "rx",
+            "ry"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "line": {
+      "node_class": "SrSVGLine",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "x1",
+          "y1",
+          "x2",
+          "y2"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "fill": "Line rendering only issues a draw call when stroke is present.",
+          "fill-rule": "Line rendering is stroke-driven; fill-rule does not affect the output."
+        }
+      },
+      "notes": [
+        "A line is effectively stroke-only in the current renderer."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "test_cases/basic_shapes.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGLine.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGLine.cc": [
+            "x1",
+            "y1",
+            "x2",
+            "y2"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "polygon": {
+      "node_class": "SrSVGPolygon",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "points"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "test_cases/basic_shapes.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGPolygon.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGPolygon.cc": [
+            "points"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "polyline": {
+      "node_class": "SrSVGPolyLine",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "points"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/basic_shapes.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/basic_shapes.svg",
+        "test_cases/basic_shapes.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGPolyLine.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGPolyLine.cc": [
+            "points"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "path": {
+      "node_class": "SrSVGPath",
+      "category": "shape",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "stroke",
+          "opacity",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style",
+          "fill-rule",
+          "d"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/paths.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGPath.cc",
+          "svg/src/element/SrSVGShape.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGPath.cc": [
+            "d"
+          ],
+          "svg/src/element/SrSVGShape.cc": [
+            "fill-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "use": {
+      "node_class": "SrSVGUse",
+      "category": "reference",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "href",
+          "xlink:href",
+          "x",
+          "y",
+          "fill",
+          "stroke",
+          "stroke-width",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-miterlimit",
+          "fill-opacity",
+          "stroke-opacity",
+          "clip-path",
+          "mask",
+          "filter",
+          "transform",
+          "color",
+          "style"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "width": "Width is parsed but not used by SrSVGUse::renderRealNode().",
+          "height": "Height is parsed but not used by SrSVGUse::renderRealNode().",
+          "opacity": "Opacity is parsed on use but is not forwarded to the referenced node."
+        }
+      },
+      "notes": [
+        "Use renders the referenced node directly from the ID map instead of delegating to platform DrawUse()."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/defs_use.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/defs_use.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "test_cases/defs_use.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGUse.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGUse.cc": [
+            "href",
+            "xlink:href",
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "image": {
+      "node_class": "SrSVGImage",
+      "category": "image",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "none",
+        "skity": "partial"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "href",
+          "xlink:href",
+          "preserveAspectRatio",
+          "transform",
+          "style"
+        ],
+        "partial": {
+          "x": "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+          "y": "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+          "width": "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+          "height": "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited."
+        },
+        "parsed_but_not_rendered": {
+          "fill": "Image drawing bypasses shape fill and stroke state and calls DrawImage() directly.",
+          "stroke": "Image drawing bypasses shape fill and stroke state and calls DrawImage() directly.",
+          "opacity": "Image drawing does not consume SrSVGShape render_state opacity.",
+          "fill-opacity": "Image drawing does not consume SrSVGShape render_state opacity.",
+          "stroke-opacity": "Image drawing does not consume SrSVGShape render_state opacity.",
+          "clip-path": "Image does not provide a real AsPath() implementation, so clip-path geometry is unreliable."
+        }
+      },
+      "notes": [
+        "Android, iOS, and Skity can draw images when the embedding app provides an image callback or resource manager.",
+        "Harmony DrawImage() is currently empty."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/image.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/image.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/image.svg",
+        "test_cases/image.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGImage.cc",
+          "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+          "svg/platform/iOS/SrIOSCanvas.mm",
+          "svg/platform/skity/SrSkityCanvas.cc",
+          "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGImage.cc": [
+            "href",
+            "xlink:href",
+            "x",
+            "y",
+            "width",
+            "height",
+            "preserveAspectRatio"
+          ]
+        }
+      }
+    },
+    "text": {
+      "node_class": "SrSVGText",
+      "category": "text",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "none",
+        "skity": "none"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "color",
+          "font-size",
+          "x",
+          "y",
+          "text-anchor",
+          "transform",
+          "style"
+        ],
+        "partial": {
+          "style": "Inline style is only meaningful for the limited text properties that the paragraph bridge consumes."
+        },
+        "parsed_but_not_rendered": {
+          "stroke": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "stroke-width": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "stroke-linecap": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "stroke-linejoin": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "stroke-dasharray": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "stroke-dashoffset": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "opacity": "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
+          "fill-opacity": "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
+          "clip-path": "Text does not provide a real AsPath() implementation for clip-path geometry."
+        }
+      },
+      "notes": [
+        "Android and iOS have paragraph bridges.",
+        "Skity and Harmony paragraph factories currently return no drawable paragraph output."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/android/app/src/main/assets/svg/text.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/text.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGText.cc",
+          "svg/platform/android/src/main/cpp/SrAndroidParagraphFactory.cc",
+          "svg/platform/iOS/SrIOSParagraph.mm",
+          "svg/include/platform/skity/SrSkityParagraph.h",
+          "svg/include/platform/harmony/sr_harmony_paragraph.h"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGText.cc": [
+            "font-size",
+            "x",
+            "y",
+            "text-anchor"
+          ]
+        }
+      }
+    },
+    "tspan": {
+      "node_class": "SrSVGTextSpan",
+      "category": "text-span",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "direct"
+      },
+      "platform_ready": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "none",
+        "skity": "none"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "fill",
+          "color",
+          "font-size",
+          "style"
+        ],
+        "partial": {
+          "style": "Inline style is only meaningful for the limited text properties that the paragraph bridge consumes."
+        },
+        "parsed_but_not_rendered": {
+          "transform": "TSpan inherits generic node parsing but the paragraph builder does not apply per-span transforms.",
+          "stroke": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
+          "opacity": "Current text rendering does not apply the generic opacity pipeline per span."
+        }
+      },
+      "notes": [
+        "TSpan support is limited to paragraph text style accumulation."
+      ],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGText.cc",
+          "svg/include/element/SrSVGText.h"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGText.cc": [
+            "font-size",
+            "x",
+            "y",
+            "text-anchor"
+          ]
+        }
+      }
+    },
+    "linearGradient": {
+      "node_class": "SrSVGLinearGradient",
+      "category": "gradient-definition",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "gradientTransform",
+          "spreadMethod",
+          "x1",
+          "x2",
+          "y1",
+          "y2",
+          "gradientUnits"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [
+        "Linear gradients are materialized through the canvas UpdateLinearGradient() bridge and then referenced via url(#id)."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/gradients.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGLinearGradient.cc",
+          "svg/platform/android/src/main/java/SVGRender.java",
+          "svg/platform/iOS/SrIOSCanvas.mm",
+          "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGLinearGradient.cc": [
+            "gradientTransform",
+            "spreadMethod",
+            "x1",
+            "x2",
+            "y1",
+            "y2",
+            "gradientUnits"
+          ]
+        }
+      }
+    },
+    "radialGradient": {
+      "node_class": "SrSVGRadialGradient",
+      "category": "gradient-definition",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "gradientTransform",
+          "gradientUnits",
+          "spreadMethod",
+          "cx",
+          "cy",
+          "r",
+          "fx",
+          "fy"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [
+        "Android ignores a distinct radial-gradient focus point in the final shader and uses cx/cy for the center."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/gradients.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGRadialGradient.cc",
+          "svg/platform/android/src/main/java/SVGRender.java",
+          "svg/platform/iOS/SrIOSCanvas.mm",
+          "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGRadialGradient.cc": [
+            "gradientTransform",
+            "gradientUnits",
+            "spreadMethod",
+            "cx",
+            "cy",
+            "r",
+            "fx",
+            "fy"
+          ]
+        }
+      }
+    },
+    "stop": {
+      "node_class": "SrSVGStop",
+      "category": "gradient-stop",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "offset",
+          "stop-color",
+          "stop-opacity",
+          "style"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/gradients.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/gradients.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/gradients.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg",
+        "test_cases/gradients.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGStop.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGStop.cc": [
+            "offset",
+            "stop-color",
+            "stop-opacity",
+            "style"
+          ]
+        }
+      }
+    },
+    "clipPath": {
+      "node_class": "SrSVGClipPath",
+      "category": "clip-definition",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "clipPathUnits",
+          "clip-rule"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "transform": "ClipPath inherits container parsing, but its AsPath() path union does not apply the container transform."
+        }
+      },
+      "notes": [
+        "Clip paths are converted to canvas clip operations through SrSVGNode::OnPrepareToRender()."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/clip_path.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/clip_path.svg",
+        "test_cases/clip_path.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGClipPath.cc",
+          "svg/src/element/SrSVGNode.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGClipPath.cc": [
+            "clipPathUnits",
+            "clip-rule"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "mask": {
+      "node_class": "SrSVGMask",
+      "category": "mask-definition",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "yes",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "full",
+        "ios": "full",
+        "harmony": "full",
+        "skity": "full"
+      },
+      "attributes": {
+        "supported": [
+          "id",
+          "mask-type",
+          "maskUnits",
+          "maskContentUnits",
+          "x",
+          "y",
+          "width",
+          "height",
+          "transform"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {}
+      },
+      "notes": [
+        "Mask rendering uses SaveLayer plus destination-in compositing on all current backends."
+      ],
+      "examples": [
+        "examples/android/app/src/main/assets/svg/mask-alpha-units-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-comprehensive-test.svg",
+        "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-alpha-units-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-comprehensive-test.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-alpha-units-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-comprehensive-test.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
+        "examples/mask-alpha-test.svg",
+        "examples/mask-alpha-units-test.svg",
+        "examples/mask-comprehensive-test.svg",
+        "examples/mask-luminance-gradient-test.svg",
+        "examples/mask-luminance-test.svg"
+      ],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGMask.cc",
+          "svg/src/element/SrSVGNode.cc",
+          "svg/platform/android/src/main/java/SVGRender.java",
+          "svg/platform/iOS/SrIOSCanvas.mm",
+          "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGMask.cc": [
+            "mask-type",
+            "maskUnits",
+            "maskContentUnits",
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "filter": {
+      "node_class": "SrSVGFilter",
+      "category": "filter-definition",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "partial"
+      },
+      "attributes": {
+        "supported": [
+          "id"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "x": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+          "y": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+          "width": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+          "height": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+          "filterUnits": "Filter units are parsed but current backends do not consume them.",
+          "primitiveUnits": "Primitive units are parsed but current backends do not consume them."
+        }
+      },
+      "notes": [
+        "Filters only execute when the canvas backend reports SupportsFilters().",
+        "At present that is the Skity backend."
+      ],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilter.cc",
+          "svg/src/element/SrSVGNode.cc",
+          "svg/include/canvas/SrCanvas.h",
+          "svg/include/platform/skity/SrSkityCanvas.h",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilter.cc": [
+            "x",
+            "y",
+            "width",
+            "height",
+            "filterUnits",
+            "primitiveUnits"
+          ],
+          "svg/src/element/SrSVGNode.cc": [
+            "id",
+            "fill",
+            "stroke",
+            "opacity",
+            "stroke-width",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "fill-opacity",
+            "stroke-opacity",
+            "clip-path",
+            "mask",
+            "filter",
+            "transform",
+            "color",
+            "style"
+          ]
+        }
+      }
+    },
+    "feGaussianBlur": {
+      "node_class": "SrSVGFeGaussianBlur",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "partial"
+      },
+      "attributes": {
+        "supported": [
+          "stdDeviation"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [
+        "Skity supports pure blur and blur-based drop-shadow heuristics."
+      ],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    },
+    "feOffset": {
+      "node_class": "SrSVGFeOffset",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "partial"
+      },
+      "attributes": {
+        "supported": [
+          "dx",
+          "dy"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [
+        "Skity uses feOffset as part of its drop-shadow style filter composition."
+      ],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    },
+    "feColorMatrix": {
+      "node_class": "SrSVGFeColorMatrix",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "partial",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "partial"
+      },
+      "attributes": {
+        "supported": [
+          "type",
+          "values"
+        ],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [
+        "Skity reads color-matrix values only for its shadow-color heuristic."
+      ],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc",
+          "svg/platform/skity/SrSkityCanvas.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    },
+    "feComposite": {
+      "node_class": "SrSVGFeComposite",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "no",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "none"
+      },
+      "attributes": {
+        "supported": [],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "in2": "Composite inputs are parsed but not evaluated.",
+          "operator": "Composite operator is parsed but not evaluated.",
+          "k1": "Arithmetic coefficients are parsed but not evaluated.",
+          "k2": "Arithmetic coefficients are parsed but not evaluated.",
+          "k3": "Arithmetic coefficients are parsed but not evaluated.",
+          "k4": "Arithmetic coefficients are parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    },
+    "feBlend": {
+      "node_class": "SrSVGFeBlend",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "no",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "none"
+      },
+      "attributes": {
+        "supported": [],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "in2": "Blend inputs are parsed but not evaluated.",
+          "mode": "Blend mode is parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    },
+    "feFlood": {
+      "node_class": "SrSVGFeFlood",
+      "category": "filter-primitive",
+      "status": {
+        "recognized": "yes",
+        "parsed": "yes",
+        "rendered": "no",
+        "render_mode": "definition"
+      },
+      "platform_ready": {
+        "android": "none",
+        "ios": "none",
+        "harmony": "none",
+        "skity": "none"
+      },
+      "attributes": {
+        "supported": [],
+        "partial": {},
+        "parsed_but_not_rendered": {
+          "flood-color": "Flood color is parsed but not evaluated by any backend.",
+          "flood-opacity": "Flood opacity is parsed but not evaluated by any backend.",
+          "in": "Filter input graph selection is parsed but not evaluated.",
+          "result": "Filter result chaining is parsed but not evaluated.",
+          "x": "Primitive subregion coordinates are parsed but not evaluated.",
+          "y": "Primitive subregion coordinates are parsed but not evaluated.",
+          "width": "Primitive subregion coordinates are parsed but not evaluated.",
+          "height": "Primitive subregion coordinates are parsed but not evaluated."
+        }
+      },
+      "notes": [],
+      "examples": [],
+      "evidence": {
+        "parser_entry": "svg/src/parser/SrSVGDOM.cc",
+        "source_files": [
+          "svg/src/parser/SrSVGDOM.cc",
+          "svg/src/element/SrSVGFilterPrimitives.cc"
+        ],
+        "local_attribute_extracts": {
+          "svg/src/element/SrSVGFilterPrimitives.cc": [
+            "result",
+            "in",
+            "x",
+            "y",
+            "width",
+            "height",
+            "stdDeviation",
+            "dx",
+            "dy",
+            "type",
+            "values",
+            "in2",
+            "operator",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "mode",
+            "flood-color",
+            "flood-opacity"
+          ]
+        }
+      }
+    }
+  }
+}

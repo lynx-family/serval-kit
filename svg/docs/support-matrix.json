@@ -1,0 +1,799 @@
+{
+  "schema_version": 2,
+  "generator": "svg/tools/svg_support_audit.py",
+  "role": "public_support_contract",
+  "support_classes": {
+    "supported": "Supported for the listed platforms when used with the documented attribute set.",
+    "partial": "Available with backend limits, semantic caveats, or reduced attribute coverage.",
+    "unsupported": "Not part of the supported surface."
+  },
+  "platform_classes": {
+    "supported": "Available on this backend",
+    "partial": "Available with backend-specific caveats",
+    "unsupported": "Not available on this backend"
+  },
+  "policy": {
+    "tag_rule": "Only tags listed in this file are claimed by the public serval-svg skill.",
+    "attribute_rule": "Only attributes listed under supported_attributes or partially_supported_attributes are claimed. Unlisted attributes are not part of the public contract."
+  },
+  "global_caveats": [
+    "Only the tags and attributes listed here are part of the public support contract.",
+    "Unlisted attributes should be treated as unsupported until the expert workflow audits and publishes them.",
+    "Platform differences are part of the support answer. Do not collapse them into a single optimistic claim."
+  ],
+  "tags": {
+    "svg": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "viewBox",
+        "preserveAspectRatio"
+      ],
+      "partially_supported_attributes": {
+        "width": "Root width is commonly present in input SVG, but the renderer uses the external viewport context instead of parsing svg@width.",
+        "height": "Root height is commonly present in input SVG, but the renderer uses the external viewport context instead of parsing svg@height.",
+        "opacity": "Container opacity is inherited into children instead of using isolated group compositing."
+      },
+      "unsupported_attributes": {},
+      "caveats": [
+        "The root svg element applies viewBox and then renders its children.",
+        "CSS transform inside style has special handling on the root svg element."
+      ]
+    },
+    "g": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style"
+      ],
+      "partially_supported_attributes": {
+        "opacity": "Group opacity is inherited into children instead of using isolated group compositing."
+      },
+      "unsupported_attributes": {},
+      "caveats": [
+        "Group attributes such as fill, stroke, mask, and color are propagated to child nodes during render."
+      ]
+    },
+    "defs": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "transform": "Defs is a non-rendering container; its own transform is parsed but not applied as a render step."
+      },
+      "caveats": [
+        "Defs is used as a non-rendering container for reusable nodes."
+      ]
+    },
+    "rect": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "x",
+        "y",
+        "rx",
+        "ry",
+        "width",
+        "height"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "circle": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "cx",
+        "cy",
+        "r"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "ellipse": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "cx",
+        "cy",
+        "rx",
+        "ry"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "line": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "x1",
+        "y1",
+        "x2",
+        "y2"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "fill": "Line rendering only issues a draw call when stroke is present.",
+        "fill-rule": "Line rendering is stroke-driven; fill-rule does not affect the output."
+      },
+      "caveats": [
+        "A line is effectively stroke-only in the current renderer."
+      ]
+    },
+    "polygon": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "points"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "polyline": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "points"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "path": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "fill-rule",
+        "d"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "use": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "href",
+        "xlink:href",
+        "x",
+        "y",
+        "fill",
+        "stroke",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "width": "Width is currently not applied when rendering a referenced node.",
+        "height": "Height is currently not applied when rendering a referenced node.",
+        "opacity": "Opacity is parsed on use but is not forwarded to the referenced node."
+      },
+      "caveats": []
+    },
+    "image": {
+      "support": "partial",
+      "platforms": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "unsupported",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "id",
+        "href",
+        "xlink:href",
+        "preserveAspectRatio",
+        "transform",
+        "style"
+      ],
+      "partially_supported_attributes": {
+        "x": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
+        "y": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
+        "width": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
+        "height": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered."
+      },
+      "unsupported_attributes": {
+        "fill": "Image rendering does not use shape fill or stroke painting.",
+        "stroke": "Image rendering does not use shape fill or stroke painting.",
+        "opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
+        "fill-opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
+        "stroke-opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
+        "clip-path": "clip-path behavior on image is unreliable in the current renderer."
+      },
+      "caveats": [
+        "Android, iOS, and Skity can render images when the host app provides image loading support.",
+        "Harmony does not currently provide image rendering."
+      ]
+    },
+    "text": {
+      "support": "partial",
+      "platforms": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "unsupported",
+        "skity": "unsupported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "color",
+        "font-size",
+        "x",
+        "y",
+        "text-anchor",
+        "transform",
+        "style"
+      ],
+      "partially_supported_attributes": {
+        "style": "Inline style only affects the limited text properties currently supported."
+      },
+      "unsupported_attributes": {
+        "stroke": "Current text support mainly covers fill color and font size.",
+        "stroke-width": "Current text support mainly covers fill color and font size.",
+        "stroke-linecap": "Current text support mainly covers fill color and font size.",
+        "stroke-linejoin": "Current text support mainly covers fill color and font size.",
+        "stroke-dasharray": "Current text support mainly covers fill color and font size.",
+        "stroke-dashoffset": "Current text support mainly covers fill color and font size.",
+        "opacity": "Text opacity is limited in the current renderer.",
+        "fill-opacity": "Text opacity is limited in the current renderer.",
+        "clip-path": "clip-path behavior on text is unreliable in the current renderer."
+      },
+      "caveats": [
+        "Android and iOS provide the current text support path.",
+        "Skity and Harmony do not currently provide usable text rendering."
+      ]
+    },
+    "tspan": {
+      "support": "partial",
+      "platforms": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "unsupported",
+        "skity": "unsupported"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "color",
+        "font-size",
+        "style"
+      ],
+      "partially_supported_attributes": {
+        "style": "Inline style only affects the limited text properties currently supported."
+      },
+      "unsupported_attributes": {
+        "transform": "TSpan inherits generic node parsing but the paragraph builder does not apply per-span transforms.",
+        "stroke": "Current text support mainly covers fill color and font size.",
+        "opacity": "Current text rendering does not apply the generic opacity pipeline per span."
+      },
+      "caveats": [
+        "tspan support is limited to incremental text styling."
+      ]
+    },
+    "linearGradient": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "gradientTransform",
+        "spreadMethod",
+        "x1",
+        "x2",
+        "y1",
+        "y2",
+        "gradientUnits"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": [
+        "Linear gradients are supported through the renderer's gradient pipeline."
+      ]
+    },
+    "radialGradient": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "gradientTransform",
+        "gradientUnits",
+        "spreadMethod",
+        "cx",
+        "cy",
+        "r",
+        "fx",
+        "fy"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": [
+        "Android ignores a distinct radial-gradient focus point in the final shader and uses cx/cy for the center."
+      ]
+    },
+    "stop": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "offset",
+        "stop-color",
+        "stop-opacity",
+        "style"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": []
+    },
+    "clipPath": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "clipPathUnits",
+        "clip-rule"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "transform": "clipPath container transforms are not fully applied."
+      },
+      "caveats": [
+        "clipPath is supported through the renderer's clip pipeline."
+      ]
+    },
+    "mask": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "mask-type",
+        "maskUnits",
+        "maskContentUnits",
+        "x",
+        "y",
+        "width",
+        "height",
+        "transform"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": [
+        "Masking is supported across current backends."
+      ]
+    },
+    "filter": {
+      "support": "partial",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "id"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "x": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+        "y": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+        "width": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+        "height": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
+        "filterUnits": "Filter units are parsed but current backends do not consume them.",
+        "primitiveUnits": "Primitive units are parsed but current backends do not consume them."
+      },
+      "caveats": [
+        "Filters only run on backends with runtime filter support.",
+        "At present that is the Skity backend."
+      ]
+    },
+    "feGaussianBlur": {
+      "support": "partial",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "stdDeviation"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": [
+        "Skity provides limited blur and drop-shadow style filter behavior."
+      ]
+    },
+    "feOffset": {
+      "support": "partial",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "dx",
+        "dy"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": [
+        "Skity uses feOffset only in limited shadow-style filter behavior."
+      ]
+    },
+    "feColorMatrix": {
+      "support": "partial",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "type",
+        "values"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": [
+        "Skity uses color-matrix values only in limited shadow-style filter behavior."
+      ]
+    },
+    "feComposite": {
+      "support": "unsupported",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "unsupported"
+      },
+      "supported_attributes": [],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "in2": "Composite inputs are parsed but not evaluated.",
+        "operator": "Composite operator is parsed but not evaluated.",
+        "k1": "Arithmetic coefficients are parsed but not evaluated.",
+        "k2": "Arithmetic coefficients are parsed but not evaluated.",
+        "k3": "Arithmetic coefficients are parsed but not evaluated.",
+        "k4": "Arithmetic coefficients are parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": []
+    },
+    "feBlend": {
+      "support": "unsupported",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "unsupported"
+      },
+      "supported_attributes": [],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "in2": "Blend inputs are parsed but not evaluated.",
+        "mode": "Blend mode is parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": []
+    },
+    "feFlood": {
+      "support": "unsupported",
+      "platforms": {
+        "android": "unsupported",
+        "ios": "unsupported",
+        "harmony": "unsupported",
+        "skity": "unsupported"
+      },
+      "supported_attributes": [],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {
+        "flood-color": "Flood color is parsed but not evaluated by any backend.",
+        "flood-opacity": "Flood opacity is parsed but not evaluated by any backend.",
+        "in": "Filter input graph selection is parsed but not evaluated.",
+        "result": "Filter result chaining is parsed but not evaluated.",
+        "x": "Primitive subregion coordinates are parsed but not evaluated.",
+        "y": "Primitive subregion coordinates are parsed but not evaluated.",
+        "width": "Primitive subregion coordinates are parsed but not evaluated.",
+        "height": "Primitive subregion coordinates are parsed but not evaluated."
+      },
+      "caveats": []
+    }
+  }
+}
