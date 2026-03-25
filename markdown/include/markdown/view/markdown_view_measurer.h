@@ -28,6 +28,7 @@ class MarkdownViewMeasurer {
 
   void SetContent(std::string_view content);
   void SetContentID(std::string_view id);
+  std::string GetContentID() const;
   void SetContentComplete(bool complete);
   void SetContentRange(Range range);
   void SetParserType(std::string_view parser_type, void* parser_ud = nullptr);

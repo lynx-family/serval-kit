@@ -145,6 +145,35 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetContent(JNIEnv* env,
   env->ReleaseStringUTFChars(content, chars);
 }
 extern "C" JNIEXPORT jstring JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetDocumentContent(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (instance == 0) {
+    return env->NewStringUTF("");
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return env->NewStringUTF("");
+  }
+  auto content = markdown_view->GetContent();
+  return env->NewStringUTF(content.c_str());
+}
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetContentID(JNIEnv* env,
+                                                             jobject thiz,
+                                                             jlong instance) {
+  if (instance == 0) {
+    return env->NewStringUTF("");
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return env->NewStringUTF("");
+  }
+  auto content_id = markdown_view->GetContentID();
+  return env->NewStringUTF(content_id.c_str());
+}
+extern "C" JNIEXPORT jstring JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetContent(JNIEnv* env,
                                                            jobject thiz,
                                                            jlong instance,
@@ -323,6 +352,34 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectedLineBoundingRect(
   env->SetFloatArrayRegion(result, 0, float_count, flatten_rects.data());
   return result;
 }
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectionHandlePosition(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (instance == 0) {
+    return MarkdownJNIUtils::PackIntPair(-1, -1);
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return MarkdownJNIUtils::PackIntPair(-1, -1);
+  }
+  const auto position = markdown_view->GetSelectionHandlePosition();
+  return MarkdownJNIUtils::PackIntPair(static_cast<int32_t>(position.x_),
+                                       static_cast<int32_t>(position.y_));
+}
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectionHandleRadius(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (instance == 0) {
+    return 0;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return 0;
+  }
+  return markdown_view->GetSelectionHandleRadius();
+}
 extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetTextBoundingRect(
     JNIEnv* env, jobject thiz, jlong instance, jint start, jint end,
@@ -448,6 +505,20 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
     return;
   auto view = ConvertView(instance);
   view->OnVSync(time);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetAnimationStep(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (instance == 0) {
+    return 0;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return 0;
+  }
+  return markdown_view->GetAnimationStep();
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -136,6 +136,18 @@ public class ServalMarkdownView extends CustomDrawView {
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
   }
+  public String getContent() {
+    if (mInstance == 0) {
+      return "";
+    }
+    return nativeGetDocumentContent(mInstance);
+  }
+  public String getContentID() {
+    if (mInstance == 0) {
+      return "";
+    }
+    return nativeGetContentID(mInstance);
+  }
   public String getContent(int start, int end, int indexType) {
     if (mInstance == 0) {
       return "";
@@ -200,6 +212,18 @@ public class ServalMarkdownView extends CustomDrawView {
     }
     return result;
   }
+  public long getSelectionHandlePosition() {
+    if (mInstance == 0) {
+      return MarkdownValuePack.packIntPair(-1, -1);
+    }
+    return nativeGetSelectionHandlePosition(mInstance);
+  }
+  public float getSelectionHandleRadius() {
+    if (mInstance == 0) {
+      return 0;
+    }
+    return nativeGetSelectionHandleRadius(mInstance);
+  }
   public ArrayList<RectF> getTextBoundingRect(int start, int end,
                                               int indexType) {
     ArrayList<RectF> result = new ArrayList<>();
@@ -250,6 +274,12 @@ public class ServalMarkdownView extends CustomDrawView {
   }
   public void setInitialAnimationStep(int initialStep) {
     setNumberProp(Constants.MARKDOWN_PROPS_INITIAL_ANIMATION_STEP, initialStep);
+  }
+  public int getAnimationStep() {
+    if (mInstance == 0) {
+      return 0;
+    }
+    return nativeGetAnimationStep(mInstance);
   }
   public void pauseAnimation() {
     if (mAnimationPaused) {
@@ -436,6 +466,8 @@ public class ServalMarkdownView extends CustomDrawView {
   private native long nativeCreateInstance();
   private native void nativeDestroyInstance(long instance);
   private native void nativeSetContent(long instance, String content);
+  private native String nativeGetDocumentContent(long instance);
+  private native String nativeGetContentID(long instance);
   private native String nativeGetContent(long instance, int start, int end,
                                          int indexType);
   private native String nativeGetSelectedText(long instance);
@@ -446,6 +478,8 @@ public class ServalMarkdownView extends CustomDrawView {
   private native long[] nativeGetSyntaxSourceRanges(long instance, String tag);
   private native long nativeGetSelectedRange(long instance);
   private native float[] nativeGetSelectedLineBoundingRect(long instance);
+  private native long nativeGetSelectionHandlePosition(long instance);
+  private native float nativeGetSelectionHandleRadius(long instance);
   private native float[] nativeGetTextBoundingRect(long instance, int start,
                                                    int end, int indexType);
   private native int nativeGetCharIndexByPoint(long instance, float x, float y,
@@ -456,6 +490,7 @@ public class ServalMarkdownView extends CustomDrawView {
   private native void nativeSetDensity(float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnVSync(long instance, long time);
+  private native int nativeGetAnimationStep(long instance);
   private native void nativeSetAnimationStep(long instance, int animationStep);
   private native void nativeSetNumberProp(long instance, int key, double value);
   private native void nativeSetStringProp(long instance, int key, String value);

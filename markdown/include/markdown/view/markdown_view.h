@@ -48,6 +48,7 @@ class MarkdownView final : public MarkdownDrawable {
   void SetTextAttachments(std::unique_ptr<Value> attachments);
 
   void SetAnimationStep(int32_t animation_step);
+  int32_t GetAnimationStep() const { return animator_.GetAnimationStep(); }
   void SetAnimationType(MarkdownAnimationType type);
   void SetAnimationVelocity(float velocity);
   void SetInitialAnimationStep(int32_t step);
@@ -74,8 +75,12 @@ class MarkdownView final : public MarkdownDrawable {
   void SetMapProp(MarkdownProps prop, const ValueMap& map);
 
   std::string GetSelectedText();
+  std::string GetContent();
+  std::string GetContentID() const;
   Range GetSelectedRange() const;
   const std::vector<RectF>& GetSelectedLineBoundingRect();
+  PointF GetSelectionHandlePosition() const;
+  float GetSelectionHandleRadius() const;
   std::vector<std::string> GetAllImageUrl();
   std::vector<std::string> GetLinkUrl();
   std::vector<std::string> GetLinkContent();

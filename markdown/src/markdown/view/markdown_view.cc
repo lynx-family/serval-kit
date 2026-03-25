@@ -618,8 +618,35 @@ std::string MarkdownView::GetSelectedText() {
   return document_->GetContentByCharPos(select_start_index_, select_end_index_);
 }
 
+std::string MarkdownView::GetContent() {
+  if (document_ == nullptr) {
+    return {};
+  }
+  return document_->GetMarkdownContent();
+}
+
+std::string MarkdownView::GetContentID() const {
+  return measurer_.GetContentID();
+}
+
 const std::vector<RectF>& MarkdownView::GetSelectedLineBoundingRect() {
   return selection_highlight_rects_;
+}
+
+PointF MarkdownView::GetSelectionHandlePosition() const {
+  if (!is_in_selection_ || selection_highlight_rects_.empty()) {
+    return {-1, -1};
+  }
+  if (is_adjust_start_pos_) {
+    const auto& rect = selection_highlight_rects_.front();
+    return {rect.GetLeft(), rect.GetBottom()};
+  }
+  const auto& rect = selection_highlight_rects_.back();
+  return {rect.GetRight(), rect.GetBottom()};
+}
+
+float MarkdownView::GetSelectionHandleRadius() const {
+  return selection_handle_size_ * 0.5f;
 }
 
 std::vector<std::string> MarkdownView::GetAllImageUrl() {
