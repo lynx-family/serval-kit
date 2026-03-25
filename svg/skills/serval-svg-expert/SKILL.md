@@ -1,6 +1,6 @@
 ---
 name: serval-svg-expert
-description: Use this skill when auditing the serval-svg repository, regenerating support artifacts, interpreting internal SVG support facts, analyzing whether an SVG can render correctly with code-grounded reasoning, or planning and implementing new SVG features.
+description: "Use this skill when auditing the serval-svg repository, regenerating support artifacts, interpreting internal SVG support facts, analyzing whether an SVG can render correctly with code-grounded reasoning, or planning and implementing new SVG features."
 ---
 
 # Serval SVG Expert
