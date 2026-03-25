@@ -1,6 +1,6 @@
 ---
 name: serval-svg
-description: Use this skill when the user wants a direct, product-facing answer about what serval-svg supports: supported SVG tags, supported attributes, platform coverage, or whether a concrete SVG fits the published support surface, without exposing repository internals.
+description: "Use this skill when the user wants a direct, product-facing answer about what serval-svg supports: supported SVG tags, supported attributes, platform coverage, or whether a concrete SVG fits the published support surface, without exposing repository internals."
 ---
 
 # Serval SVG
