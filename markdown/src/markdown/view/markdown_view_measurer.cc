@@ -39,6 +39,10 @@ void MarkdownViewMeasurer::SetContentID(std::string_view id) {
   content_id_ = id;
 }
 
+std::string MarkdownViewMeasurer::GetContentID() const {
+  return content_id_;
+}
+
 void MarkdownViewMeasurer::SetContentComplete(bool complete) {
   content_complete_ = complete;
 }

@@ -20,6 +20,18 @@ public class MarkdownValuePack {
     return (((long)width & mask) << 42) | (((long)height & mask) << 21) |
         ((long)baseline & mask);
   }
+  public static int unpackMeasureResultWidth(long value) {
+    final long mask = (1L << 21) - 1L;
+    return (int)((value >>> 42) & mask);
+  }
+  public static int unpackMeasureResultHeight(long value) {
+    final long mask = (1L << 21) - 1L;
+    return (int)((value >>> 21) & mask);
+  }
+  public static int unpackMeasureResultBaseline(long value) {
+    final long mask = (1L << 21) - 1L;
+    return (int)(value & mask);
+  }
   public static long packIntPair(int first, int second) {
     long result = 0;
     return ((result | first) << 32) | second;

@@ -31,6 +31,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
       return serval::markdown::MarkdownSelection::CharRangeType::kChar;
   }
 }
+
 }  // namespace
 
 @interface ServalMarkdownView () {
@@ -174,6 +175,30 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   auto* str = [content UTF8String];
   view->SetContent(str);
   _content = content;
+}
+- (NSString*)getContent {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @"";
+  }
+  const auto content = view->GetContent();
+  NSString* content_string =
+      [[NSString alloc] initWithBytes:content.data()
+                               length:content.size()
+                             encoding:NSUTF8StringEncoding];
+  return content_string != nil ? content_string : @"";
+}
+- (NSString*)getContentID {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return @"";
+  }
+  const auto content_id = view->GetContentID();
+  NSString* content_id_string =
+      [[NSString alloc] initWithBytes:content_id.data()
+                               length:content_id.size()
+                             encoding:NSUTF8StringEncoding];
+  return content_id_string != nil ? content_id_string : @"";
 }
 - (NSString*)getContent:(int)start
                     end:(int)end
@@ -324,6 +349,21 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   }
   return result;
 }
+- (CGPoint)getSelectionHandlePosition {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return CGPointMake(-1, -1);
+  }
+  const auto position = view->GetSelectionHandlePosition();
+  return CGPointMake(position.x_, position.y_);
+}
+- (float)getSelectionHandleRadius {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return 0;
+  }
+  return view->GetSelectionHandleRadius();
+}
 - (NSArray<NSValue*>*)getTextBoundingRect:(int)start
                                       end:(int)end
                                 indexType:(ServalMarkdownIndexType)indexType {
@@ -414,6 +454,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   _initialAnimationStep = initialAnimationStep;
   auto* view = [self getMarkdownView];
   view->SetAnimationStep(initialAnimationStep);
+}
+- (int)getAnimationStep {
+  auto* view = [self getMarkdownView];
+  return view == nullptr ? 0 : view->GetAnimationStep();
 }
 - (void)pauseAnimation {
   if (animationPaused_) {

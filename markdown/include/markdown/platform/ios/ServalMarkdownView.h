@@ -24,6 +24,8 @@
 - (NSString*)getContent:(int)start
                     end:(int)end
               indexType:(ServalMarkdownIndexType)indexType;
+- (NSString*)getContent;
+- (NSString*)getContentID;
 - (NSString*)getSelectedText;
 - (NSArray<NSString*>*)getAllImageUrl;
 - (NSArray<NSString*>*)getLinkUrl;
@@ -32,6 +34,8 @@
 - (NSArray<NSValue*>*)getSyntaxSourceRanges:(NSString*)tag;
 - (NSRange)getSelectedRange;
 - (NSArray<NSValue*>*)getSelectedLineBoundingRect;
+- (CGPoint)getSelectionHandlePosition;
+- (float)getSelectionHandleRadius;
 - (NSArray<NSValue*>*)getTextBoundingRect:(int)start
                                       end:(int)end
                                 indexType:(ServalMarkdownIndexType)indexType;
@@ -43,6 +47,7 @@
                      indexType:(ServalMarkdownIndexType)indexType
                      rangeType:(ServalMarkdownCharRangeType)rangeType;
 - (void)setTextSelection:(int)start end:(int)end;
+- (int)getAnimationStep;
 - (void)pauseAnimation;
 - (void)resumeAnimation;
 - (void)resumeAnimation:(int)animationStep;
