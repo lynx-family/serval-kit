@@ -13,8 +13,41 @@
 
 class MarkdownRunDelegate final : public serval::markdown::MarkdownDrawable {
  public:
-  MarkdownRunDelegate(int id, float width, float height, float radius)
-      : id_(id), width_(width), height_(height), radius_(radius) {}
+  MarkdownRunDelegate(int id, float actual_width, float actual_height,
+                      float desire_width, float desire_height, float max_width,
+                      float max_height, float radius)
+      : id_(id), radius_(radius) {
+    if (actual_width > 0 && actual_height > 0) {
+      if (desire_width > 0 && desire_height > 0) {
+        width_ = desire_width;
+        height_ = desire_height;
+      } else if (desire_width > 0) {
+        width_ = desire_width;
+        height_ = desire_width * actual_height / actual_width;
+      } else if (desire_height > 0) {
+        height_ = desire_height;
+        width_ = desire_height * actual_width / actual_height;
+      } else {
+        width_ = actual_width;
+        height_ = actual_height;
+      }
+    } else {
+      width_ = desire_width > 0 ? desire_width : 0;
+      height_ = desire_height > 0 ? desire_height : 0;
+    }
+    if (max_width > 0 && width_ > max_width) {
+      if (width_ > 0) {
+        height_ *= max_width / width_;
+      }
+      width_ = max_width;
+    }
+    if (max_height > 0 && height_ > max_height) {
+      if (height_ > 0) {
+        width_ *= max_height / height_;
+      }
+      height_ = max_height;
+    }
+  }
   ~MarkdownRunDelegate() override = default;
 
  public:

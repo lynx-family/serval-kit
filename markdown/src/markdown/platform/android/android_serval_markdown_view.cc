@@ -15,6 +15,7 @@ void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
   auto clazz = env->FindClass("com/lynx/markdown/ServalMarkdownView");
   methods_.load_image_ =
       env->GetMethodID(clazz, "loadImage", "(Ljava/lang/String;)I");
+  methods_.get_image_size_ = env->GetMethodID(clazz, "getImageSize", "(I)J");
   methods_.load_inline_view_ = env->GetMethodID(
       clazz, "loadInlineView",
       "(Ljava/lang/String;)Lcom/lynx/markdown/IMarkdownViewHandle;");
@@ -61,6 +62,24 @@ int AndroidServalMarkdownView::LoadImage(const char* source) {
   auto jstr =
       lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, source);
   return env->CallIntMethod(view_ref_.Get(), methods_.load_image_, jstr.Get());
+}
+
+serval::markdown::SizeF AndroidServalMarkdownView::GetImageSize(int32_t id) {
+  auto* env = MarkdownClassCache::GetEnv();
+  if (env == nullptr || view_ref_.Get() == nullptr || id <= 0) {
+    return {};
+  }
+  auto packed = env->CallLongMethod(view_ref_.Get(), methods_.get_image_size_,
+                                    static_cast<jint>(id));
+  auto width = static_cast<float>(MarkdownJNIUtils::GetIntPackFirst(packed));
+  auto height = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(packed));
+  if (width < 0) {
+    width = 0;
+  }
+  if (height < 0) {
+    height = 0;
+  }
+  return {.width_ = width, .height_ = height};
 }
 
 std::shared_ptr<AndroidMarkdownView> AndroidServalMarkdownView::LoadInlineView(
@@ -129,8 +148,10 @@ AndroidServalMarkdownView::LoadImage(const char* src, float desire_width,
   if (id == 0) {
     return nullptr;
   }
-  return std::make_shared<MarkdownRunDelegate>(id, desire_width, desire_height,
-                                               border_radius);
+  auto size = GetImageSize(id);
+  return std::make_shared<MarkdownRunDelegate>(
+      id, size.width_, size.height_, desire_width, desire_height, max_width,
+      max_height, border_radius);
 }
 
 std::shared_ptr<serval::markdown::MarkdownDrawable>

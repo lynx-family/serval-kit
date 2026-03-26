@@ -169,7 +169,7 @@ void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
     return;
   }
   view->SetMeasuredSize({rect.GetWidth(), rect.GetHeight()});
-  view->Align(rect.GetLeft(), rect.GetTop());
+  view->SetAlignPosition({rect.GetLeft(), rect.GetTop()});
 }
 
 bool MarkdownViewRenderer::NeedUseRegionView() const {

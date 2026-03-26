@@ -14,5 +14,6 @@ public class CustomDrawable {
   }
   public native static long measure(long drawable, float width, int widthMode,
                                     float height, int heightMode);
+  public native static void align(long drawable, float x, float y);
   private native static byte[] nativeDrawCustomDrawable(long drawable);
 }

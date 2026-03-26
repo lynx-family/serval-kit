@@ -17,8 +17,8 @@
         "rect": {
           "left": 0.0,
           "top": 0.0,
-          "right": 204.0,
-          "bottom": 124.42726135253906
+          "right": 221.0,
+          "bottom": 62.72726821899414
         }
       },
       {
@@ -57,28 +57,11 @@
       },
       {
         "op": "glyphs",
-        "text": "text",
+        "text": "…",
         "font": "",
         "origin": {
-          "x": 0.0,
-          "y": 85.37726593017578
-        },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 4278190080,
-          "stroke_color": 0,
-          "text_size": 17.0,
-          "bold": false,
-          "italic": false
-        }
-      },
-      {
-        "op": "glyphs",
-        "text": "line 3 ",
-        "font": "",
-        "origin": {
-          "x": 0.0,
-          "y": 122.72726440429688
+          "x": 204.0,
+          "y": 55.37726974487305
         },
         "painter": {
           "stroke_width": 1.0,
