@@ -124,10 +124,11 @@ void MarkdownViewMeasurer::InitialDocument() {
 SizeF MarkdownViewMeasurer::Measure(MeasureSpec spec) {
   did_layout_in_last_measure_ = false;
 
-  if (spec.width_mode_ == tttext::LayoutMode::kIndefinite) {
+  if (spec.width_mode_ == tttext::LayoutMode::kIndefinite && spec.width_ <= 0) {
     spec.width_ = MeasureSpec::LAYOUT_MAX_SIZE;
   }
-  if (spec.height_mode_ == tttext::LayoutMode::kIndefinite) {
+  if (spec.height_mode_ == tttext::LayoutMode::kIndefinite &&
+      spec.height_ <= 0) {
     spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
   }
 

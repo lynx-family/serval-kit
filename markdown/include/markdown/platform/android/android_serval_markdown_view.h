@@ -59,6 +59,7 @@ class AndroidServalMarkdownView
   void OnImageDisappear(const char* url) override;
 
  protected:
+  serval::markdown::SizeF GetImageSize(int32_t id);
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> view_ref_;
 
  protected:
@@ -67,6 +68,7 @@ class AndroidServalMarkdownView
  protected:
   static struct Methods {
     jmethodID load_image_{};
+    jmethodID get_image_size_{};
     jmethodID load_inline_view_{};
     jmethodID load_font_{};
     jmethodID on_parse_end_{};

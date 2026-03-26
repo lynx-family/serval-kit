@@ -33,6 +33,11 @@ Java_com_lynx_markdown_CustomDrawable_measure(JNIEnv* env, jclass clazz,
   return MarkdownJNIUtils::PackIntPair(static_cast<int32_t>(size.width_),
                                        static_cast<int32_t>(size.height_));
 }
+extern "C" JNIEXPORT void JNICALL Java_com_lynx_markdown_CustomDrawable_align(
+    JNIEnv* env, jclass clazz, jlong drawable, jfloat x, jfloat y) {
+  auto* drawable_object = reinterpret_cast<MarkdownDrawable*>(drawable);
+  drawable_object->Align(x, y);
+}
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_lynx_markdown_CustomDrawable_nativeDrawCustomDrawable(JNIEnv* env,
                                                                jclass clazz,
@@ -141,7 +146,6 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetContent(JNIEnv* env,
   auto length = env->GetStringUTFLength(content);
   auto* chars = env->GetStringUTFChars(content, nullptr);
   view->GetMarkdownView()->SetContent({chars, static_cast<size_t>(length)});
-  view->GetMarkdownView()->SetStyle({});
   env->ReleaseStringUTFChars(content, chars);
 }
 extern "C" JNIEXPORT jstring JNICALL

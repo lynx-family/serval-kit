@@ -399,6 +399,26 @@ public class ServalMarkdownView extends CustomDrawView {
       return 0;
     return mResourceManager.add(drawable);
   }
+  protected long getImageSize(int id) {
+    Drawable drawable = mResourceManager.getRunDelegate(id);
+    if (drawable == null) {
+      return MarkdownValuePack.packIntPair(0, 0);
+    }
+    Rect bounds = drawable.getBounds();
+    int width = bounds.width();
+    int height = bounds.height();
+    if (width <= 0 || height <= 0) {
+      width = drawable.getIntrinsicWidth();
+      height = drawable.getIntrinsicHeight();
+    }
+    if (width < 0) {
+      width = 0;
+    }
+    if (height < 0) {
+      height = 0;
+    }
+    return MarkdownValuePack.packIntPair(width, height);
+  }
   protected IMarkdownViewHandle loadInlineView(String id) {
     if (mLoader == null)
       return null;

@@ -16,6 +16,15 @@ public class CustomDrawView extends MarkdownView {
   @Override
   protected void onLayout(boolean b, int left, int top, int right, int bottom) {
   }
+
+  @Override
+  public void align(int left, int top) {
+    super.align(left, top);
+    if (mDrawable != 0) {
+      CustomDrawable.align(mDrawable, getLeft(), getTop());
+    }
+  }
+
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
@@ -36,7 +45,6 @@ public class CustomDrawView extends MarkdownView {
     setMeasuredDimension(resultWidth, resultHeight);
     invalidate();
   }
-
   protected void attachDrawable(long instance) { mDrawable = instance; }
   public long getDrawable() { return mDrawable; }
 }
