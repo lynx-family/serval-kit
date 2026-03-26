@@ -10,6 +10,7 @@ struct Index {
   @State files: string[] = [
     'basic_shapes.svg',
     'clip_path.svg',
+    'currentcolor-fill-opacity-use.svg',
     'defs_use.svg',
     'gradients.svg',
     'image.svg',

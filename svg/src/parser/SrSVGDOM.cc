@@ -123,14 +123,26 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
 
 void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  element::SrSVGNode* node) {
-  node->inherit_fill_paint_ = parent_node->fill_;
-  node->inherit_stroke_paint_ = parent_node->stroke_;
-  node->inherit_clip_path_ = parent_node->clip_path_;
-  node->inherit_mask_ = parent_node->mask_;
-  node->inherit_opacity_ = parent_node->opacity_;
-  node->inherit_fill_opacity_ = parent_node->fill_opacity_;
-  node->inherit_stroke_opacity_ = parent_node->stroke_opacity_;
-  node->inherit_stroke_width_ = parent_node->stroke_width_;
+  node->inherit_fill_paint_ =
+      parent_node->fill_ ? parent_node->fill_ : parent_node->inherit_fill_paint_;
+  node->inherit_stroke_paint_ = parent_node->stroke_
+                                   ? parent_node->stroke_
+                                   : parent_node->inherit_stroke_paint_;
+  node->inherit_clip_path_ =
+      parent_node->clip_path_ ? parent_node->clip_path_ : parent_node->inherit_clip_path_;
+  node->inherit_mask_ =
+      parent_node->mask_ ? parent_node->mask_ : parent_node->inherit_mask_;
+  node->inherit_opacity_ =
+      parent_node->opacity_ ? parent_node->opacity_ : parent_node->inherit_opacity_;
+  node->inherit_fill_opacity_ = parent_node->fill_opacity_
+                                   ? parent_node->fill_opacity_
+                                   : parent_node->inherit_fill_opacity_;
+  node->inherit_stroke_opacity_ = parent_node->stroke_opacity_
+                                     ? parent_node->stroke_opacity_
+                                     : parent_node->inherit_stroke_opacity_;
+  node->inherit_stroke_width_ = parent_node->stroke_width_
+                                   ? parent_node->stroke_width_
+                                   : parent_node->inherit_stroke_width_;
 }
 
 void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,

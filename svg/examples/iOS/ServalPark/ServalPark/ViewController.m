@@ -20,7 +20,8 @@
 
   // Initialize file list
   self.svgFiles = @[
-    @"string_test.svg", @"invalid-iri-test.svg", @"mask-comprehensive-test.svg",
+    @"string_test.svg", @"invalid-iri-test.svg",
+    @"currentcolor-fill-opacity-use.svg", @"mask-comprehensive-test.svg",
     @"mask-luminance-gradient-test.svg", @"mask-alpha-units-test.svg",
     @"paths.svg", @"basic_shapes.svg", @"clip_path.svg", @"defs_use.svg",
     @"gradients.svg", @"image.svg", @"text.svg", @"transforms.svg"
