@@ -362,6 +362,10 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
     }
   } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_IRI) {
     const char* iri = renderState.fill->content.iri;
+    if (!iri || iri[0] == '\0') {
+      CGContextRestoreGState(_context);
+      return;
+    }
     auto it1 = lg_models_.find(iri);
     if (it1 != lg_models_.end()) {
       const canvas::LinearGradientModel& lgModel = it1->second;
@@ -433,6 +437,10 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
   } else if (renderState.stroke &&
              renderState.stroke->type == SERVAL_PAINT_IRI) {
     const char* iri = renderState.stroke->content.iri;
+    if (!iri || iri[0] == '\0') {
+      CGContextRestoreGState(_context);
+      return;
+    }
     auto it1 = lg_models_.find(iri);
     if (it1 != lg_models_.end()) {
       const canvas::LinearGradientModel& lgModel = it1->second;

@@ -13,6 +13,7 @@ struct Index {
     'defs_use.svg',
     'gradients.svg',
     'image.svg',
+    'invalid-iri-test.svg',
     'mask-alpha-units-test.svg',
     'mask-comprehensive-test.svg',
     'mask-luminance-gradient-test.svg',

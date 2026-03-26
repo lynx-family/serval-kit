@@ -457,8 +457,13 @@ JavaLocalRef<jobject> SrAndroidCanvas::MakeFillPaint(
     if (render_state.fill->type == SERVAL_PAINT_COLOR) {
       j_color = render_state.fill->content.color.color;
     } else if (render_state.fill->type == SERVAL_PAINT_IRI) {
+      const char* iri = render_state.fill->content.iri;
+      if (iri == nullptr || iri[0] == '\0') {
+        j_fill_type = SERVAL_PAINT_NONE;
+        iri = "";
+      }
       j_iri_ref = JavaLocalRef<jstring>(
-          jni_env_, jni_env_->NewStringUTF(render_state.fill->content.iri));
+          jni_env_, jni_env_->NewStringUTF(iri != nullptr ? iri : ""));
     }
     return {jni_env_, jni_env_->CallStaticObjectMethod(
                           clazz_ref.Get(), j_method, j_fill_type,
@@ -507,8 +512,13 @@ JavaLocalRef<jobject> SrAndroidCanvas::MakeStrokePaint(
     if (render_state.stroke->type == SERVAL_PAINT_COLOR) {
       j_color = render_state.stroke->content.color.color;
     } else if (render_state.stroke->type == SERVAL_PAINT_IRI) {
+      const char* iri = render_state.stroke->content.iri;
+      if (iri == nullptr || iri[0] == '\0') {
+        j_stroke_type = SERVAL_PAINT_NONE;
+        iri = "";
+      }
       j_iri_ref = JavaLocalRef<jstring>(
-          jni_env_, jni_env_->NewStringUTF(render_state.stroke->content.iri));
+          jni_env_, jni_env_->NewStringUTF(iri != nullptr ? iri : ""));
     }
     JavaLocalRef<jfloatArray> array_ref(
         jni_env_, jni_env_->NewFloatArray(dash_array_length));

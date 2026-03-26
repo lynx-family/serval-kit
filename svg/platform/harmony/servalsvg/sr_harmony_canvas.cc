@@ -263,6 +263,10 @@ void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &re
         OH_Drawing_CanvasDetachBrush(context_);
     } else if (render_state.fill && render_state.fill->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.fill->content.iri;
+        if (!iri) {
+            Restore();
+            return;
+        }
         auto it1 = lg_models_.find(iri);
         if (it1 != lg_models_.end()) {
             const canvas::LinearGradientModel &lgModel = it1->second;
@@ -473,6 +477,10 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
         OH_Drawing_CanvasDetachPen(context_);
     } else if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.stroke->content.iri;
+        if (!iri) {
+            Restore();
+            return;
+        }
         auto it1 = lg_models_.find(iri);
         if (it1 != lg_models_.end()) {
             const canvas::LinearGradientModel &lg_model = it1->second;

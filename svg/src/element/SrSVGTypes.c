@@ -440,6 +440,9 @@ static const char* extract_iri(const char* value) {
   while (end_ptr > start_ptr && isspace(*end_ptr)) {
     end_ptr--;  // ignore trailing whitespace
   }
+  if (end_ptr < start_ptr) {
+    return NULL;
+  }
 
   const size_t result_size = (size_t)(end_ptr - start_ptr) + 1;
   char* result = malloc(result_size + 1);
@@ -462,7 +465,14 @@ SrSVGPaint* make_serval_paint(const char* value) {
   } else if (strncmp(value, "url(", 4) == 0) {
     SrSVGPaint* paint = malloc(sizeof(SrSVGPaint));
     const char* iri = extract_iri(value);
-    *paint = (SrSVGPaint){.type = SERVAL_PAINT_IRI, .content.iri = iri};
+    if (iri == NULL || iri[0] == '\0') {
+      *paint = (SrSVGPaint){.type = SERVAL_PAINT_NONE, .content = {0}};
+      if (iri != NULL) {
+        free((void*)iri);
+      }
+    } else {
+      *paint = (SrSVGPaint){.type = SERVAL_PAINT_IRI, .content.iri = iri};
+    }
     return paint;
   } else {
     SrSVGColor color = make_serval_color(value);
