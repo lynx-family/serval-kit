@@ -1,0 +1,12 @@
+<svg viewBox="0 0 300 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" color="blue" fill-opacity="0.6">
+  <defs>
+    <rect id="rect0" width="40" height="40" fill="currentColor"/>
+    <rect id="rect1" width="40" height="40" color="yellow" fill="currentColor"/>
+  </defs>
+  <use xlink:href="#rect0" x="10" y="10" width="40" height="40" color="grey"/>
+  <use xlink:href="#rect1" x="60" y="10" width="40" height="40" color="grey"/>
+  <g color="cyan">
+    <rect id="rect2" x="110" y="10" width="40" height="40" fill="currentColor"/>
+  </g>
+  <use xlink:href="#rect2" x="160" y="10" width="40" height="40"/>
+</svg>
