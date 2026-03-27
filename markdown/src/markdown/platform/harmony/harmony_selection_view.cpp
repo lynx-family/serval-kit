@@ -23,7 +23,8 @@ NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
                                                        uint32_t color) {
   const auto view = CreateCustomSubView();
   auto selection_handle =
-      std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+      std::make_unique<MarkdownSelectionHandle>(GetContext(), size, margin,
+                                                type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   auto harmony_view = static_cast<HarmonyView*>(view.get());
   harmony_view->EnablePanEvent(true, GESTURE_DIRECTION_ALL, PRIORITY);

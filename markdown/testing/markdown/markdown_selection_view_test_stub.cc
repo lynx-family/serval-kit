@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_selection_view.h"
 
 namespace serval::markdown {
@@ -50,6 +51,7 @@ class StubViewContainerHandle : public MarkdownViewContainerHandle {
  public:
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override {
     auto view = std::make_shared<StubPlatformView>();
+    view->SetContext(&context_);
     subviews_.push_back(view);
     return view;
   }
@@ -58,8 +60,8 @@ class StubViewContainerHandle : public MarkdownViewContainerHandle {
       SelectionHandleType type, float size, float margin,
       uint32_t color) override {
     const auto view = CreateCustomSubView();
-    auto drawable =
-        std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+    auto drawable = std::make_unique<MarkdownSelectionHandle>(
+        &context_, size, margin, type, color);
     view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
     return view;
   }
@@ -87,6 +89,7 @@ class StubViewContainerHandle : public MarkdownViewContainerHandle {
   RectF GetViewRectInScreen() override { return {}; }
 
  private:
+  MarkdownContext context_{};
   std::vector<std::shared_ptr<MarkdownPlatformView>> subviews_;
 };
 

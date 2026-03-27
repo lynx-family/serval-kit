@@ -8,24 +8,24 @@
 namespace serval::markdown {
 class MarkdownScreenMetrics {
  public:
-  static float DPToPx(float dp) { return GetDensity() * dp; }
-  static float PxToDp(float px) { return px / GetDensity(); }
-  static float GetDensity() { return Ins().density_; }
-  static void SetDensity(float density) { Ins().density_ = density; }
-  static int32_t GetScreenWidth() { return Ins().screen_width_; }
-  static int32_t GetScreenHeight() { return Ins().screen_height_; }
-  static void SetScreenWidth(int32_t width) { Ins().screen_width_ = width; }
-  static void SetScreenHeight(int32_t height) { Ins().screen_height_ = height; }
-  static float GetScaledScreenWidth() {
-    return PxToDp(static_cast<float>(GetScreenWidth()));
+  float DPToPx(float dp) const { return density_ * dp; }
+  float PxToDp(float px) const {
+    return density_ == 0 ? px : px / density_;
   }
-  static float GetScaledScreenHeight() {
-    return PxToDp(static_cast<float>(GetScreenHeight()));
+  float GetDensity() const { return density_; }
+  void SetDensity(float density) { density_ = density > 0 ? density : 1; }
+  int32_t GetScreenWidth() const { return screen_width_; }
+  int32_t GetScreenHeight() const { return screen_height_; }
+  void SetScreenWidth(int32_t width) { screen_width_ = width; }
+  void SetScreenHeight(int32_t height) { screen_height_ = height; }
+  float GetScaledScreenWidth() const {
+    return PxToDp(static_cast<float>(screen_width_));
+  }
+  float GetScaledScreenHeight() const {
+    return PxToDp(static_cast<float>(screen_height_));
   }
 
  private:
-  static MarkdownScreenMetrics& Ins();
-
   float density_{1};
   int32_t screen_width_{0};
   int32_t screen_height_{0};

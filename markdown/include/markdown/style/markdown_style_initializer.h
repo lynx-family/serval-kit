@@ -8,16 +8,20 @@
 
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
-#include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/utils/markdown_context.h"
 namespace serval::markdown {
 class MarkdownStyleInitializer {
  public:
-  static float Dp(float dp) { return MarkdownScreenMetrics::DPToPx(dp); }
-  static void InitialNormalText(MarkdownNormalTextStyle* style) {
-    ResetBaseStyle(&style->base_);
+  static float Dp(const MarkdownContext* context, float dp) {
+    return context == nullptr ? dp : context->GetScreenMetrics().DPToPx(dp);
+  }
+  static void InitialNormalText(MarkdownNormalTextStyle* style,
+                                const MarkdownContext* context = nullptr) {
+    ResetBaseStyle(&style->base_, context);
     ResetBlockStyle(&style->block_);
   }
-  static void InitialOtherStyleByNormalTextStyle(MarkdownStyle* style) {
+  static void InitialOtherStyleByNormalTextStyle(
+      MarkdownStyle* style, const MarkdownContext* context = nullptr) {
     InitialH1Style(style);
     InitialH2Style(style);
     InitialH3Style(style);
@@ -25,15 +29,15 @@ class MarkdownStyleInitializer {
     InitialH5Style(style);
     InitialH6Style(style);
     InitialLinkStyle(style);
-    InitialInlineCodeStyle(style);
-    InitialCodeBlockStyle(style);
-    InitialQuoteStyle(style);
-    InitialOrderedListStyle(style);
-    InitialUnorderedListStyle(style);
-    InitialRefStyle(style);
-    InitialTableStyle(style);
-    InitialTableCellStyle(style);
-    InitialSplitStyle(style);
+    InitialInlineCodeStyle(style, context);
+    InitialCodeBlockStyle(style, context);
+    InitialQuoteStyle(style, context);
+    InitialOrderedListStyle(style, context);
+    InitialUnorderedListStyle(style, context);
+    InitialRefStyle(style, context);
+    InitialTableStyle(style, context);
+    InitialTableCellStyle(style, context);
+    InitialSplitStyle(style, context);
     InitialTypewriterCursorStyle(style);
     InitialDoubleBracesStyle(style);
     InitialMarkStyle(style);
@@ -46,8 +50,9 @@ class MarkdownStyleInitializer {
     InitialOrderedListNumberStyle(style);
     InitialImageCaptionStyle(style);
   }
-  static void InitialNormalTextStyle(MarkdownStyle* style) {
-    InitialNormalText(&style->normal_text_);
+  static void InitialNormalTextStyle(MarkdownStyle* style,
+                                     const MarkdownContext* context = nullptr) {
+    InitialNormalText(&style->normal_text_, context);
   }
   static void ResetBorderStyle(MarkdownBorderStylePart* border_style) {
     memset(border_style, 0, sizeof(MarkdownBorderStylePart));
@@ -114,60 +119,70 @@ class MarkdownStyleInitializer {
     ResetDecorationStyle(&style->link_.decoration_);
   }
 
-  static void InitialInlineCodeStyle(MarkdownStyle* style) {
+  static void InitialInlineCodeStyle(MarkdownStyle* style,
+                                     const MarkdownContext* context = nullptr) {
     ResetBlockStyle(&style->inline_code_.block_);
     ResetBorderStyle(&style->inline_code_.border_);
     style->inline_code_.base_ = style->normal_text_.base_;
     style->inline_code_.base_.background_color_ =
         DEFAULT_INLINE_CODE_BACKGROUND_COLOR;
     style->inline_code_.border_.border_radius_ =
-        Dp(DEFAULT_INLINE_CODE_BORDER_RADIUS);
+        Dp(context, DEFAULT_INLINE_CODE_BORDER_RADIUS);
   }
 
-  static void InitialCodeBlockStyle(MarkdownStyle* style) {
+  static void InitialCodeBlockStyle(MarkdownStyle* style,
+                                    const MarkdownContext* context = nullptr) {
     style->code_block_.base_ = style->normal_text_.base_;
-    style->code_block_.base_.font_size_ = Dp(DEFAULT_CODE_BLOCK_FONT_SIZE);
-    style->code_block_.base_.line_height_ = Dp(DEFAULT_CODE_BLOCK_LINE_HEIGHT);
+    style->code_block_.base_.font_size_ =
+        Dp(context, DEFAULT_CODE_BLOCK_FONT_SIZE);
+    style->code_block_.base_.line_height_ =
+        Dp(context, DEFAULT_CODE_BLOCK_LINE_HEIGHT);
     style->code_block_.base_.color_ = DEFAULT_CODE_BLOCK_COLOR;
     style->code_block_.base_.text_overflow_ = DEFAULT_CODE_BLOCK_OVERFLOW;
     ResetBlockStyle(&style->code_block_.block_);
     ResetBorderStyle(&style->code_block_.border_);
-    style->code_block_.block_.margin_top_ = Dp(DEFAULT_CODE_BLOCK_MARGIN);
-    style->code_block_.block_.margin_bottom_ = Dp(DEFAULT_CODE_BLOCK_MARGIN);
+    style->code_block_.block_.margin_top_ = Dp(context, DEFAULT_CODE_BLOCK_MARGIN);
+    style->code_block_.block_.margin_bottom_ =
+        Dp(context, DEFAULT_CODE_BLOCK_MARGIN);
     style->code_block_.block_.margin_left_ = 0;
     style->code_block_.block_.margin_right_ = 0;
-    style->code_block_.block_.padding_top_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
-    style->code_block_.block_.padding_bottom_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
-    style->code_block_.block_.padding_left_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
-    style->code_block_.block_.padding_right_ = Dp(DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_top_ = Dp(context, DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_bottom_ =
+        Dp(context, DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_left_ =
+        Dp(context, DEFAULT_CODE_BLOCK_PADDING);
+    style->code_block_.block_.padding_right_ =
+        Dp(context, DEFAULT_CODE_BLOCK_PADDING);
     style->code_block_.border_.border_type_ = DEFAULT_CODE_BLOCK_BORDER_TYPE;
     style->code_block_.border_.border_radius_ =
-        Dp(DEFAULT_CODE_BLOCK_BORDER_RADIUS);
+        Dp(context, DEFAULT_CODE_BLOCK_BORDER_RADIUS);
     style->code_block_.border_.border_color_ = DEFAULT_CODE_BLOCK_BORDER_COLOR;
     style->code_block_.border_.border_width_ =
-        Dp(DEFAULT_CODE_BLOCK_BORDER_WIDTH);
+        Dp(context, DEFAULT_CODE_BLOCK_BORDER_WIDTH);
     style->code_block_.scroll_.scroll_x_ = false;
   }
 
-  static void InitialQuoteStyle(MarkdownStyle* style) {
+  static void InitialQuoteStyle(MarkdownStyle* style,
+                                const MarkdownContext* context = nullptr) {
     style->quote_.base_ = style->normal_text_.base_;
     ResetBlockStyle(&style->quote_.block_);
-    style->quote_.block_.padding_left_ = Dp(DEFAULT_QUOTE_PADDING_LEFT);
-    style->quote_.block_.margin_left_ = Dp(DEFAULT_QUOTE_MARGIN_LEFT);
-    style->quote_.block_.margin_top_ = Dp(DEFAULT_QUOTE_MARGIN_TOP);
-    style->quote_.block_.margin_bottom_ = Dp(DEFAULT_QUOTE_MARGIN_BOTTOM);
+    style->quote_.block_.padding_left_ = Dp(context, DEFAULT_QUOTE_PADDING_LEFT);
+    style->quote_.block_.margin_left_ = Dp(context, DEFAULT_QUOTE_MARGIN_LEFT);
+    style->quote_.block_.margin_top_ = Dp(context, DEFAULT_QUOTE_MARGIN_TOP);
+    style->quote_.block_.margin_bottom_ = Dp(context, DEFAULT_QUOTE_MARGIN_BOTTOM);
     style->quote_.border_.border_type_ = DEFAULT_QUOTE_BORDER_TYPE;
     style->quote_.border_.border_color_ = DEFAULT_QUOTE_BORDER_COLOR;
-    style->quote_.border_.border_width_ = Dp(DEFAULT_QUOTE_BORDER_WIDTH);
+    style->quote_.border_.border_width_ = Dp(context, DEFAULT_QUOTE_BORDER_WIDTH);
     style->quote_.border_.border_radius_ = 0;
-    style->quote_.indent_.indent_ = Dp(DEFAULT_QUOTE_INDENT);
+    style->quote_.indent_.indent_ = Dp(context, DEFAULT_QUOTE_INDENT);
   }
 
-  static void InitialOrderedListStyle(MarkdownStyle* style) {
+  static void InitialOrderedListStyle(MarkdownStyle* style,
+                                      const MarkdownContext* context = nullptr) {
     ResetBlockStyle(&style->ordered_list_.block_);
     style->ordered_list_.base_ = style->normal_text_.base_;
     style->ordered_list_.base_.paragraph_space_ =
-        Dp(DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE);
+        Dp(context, DEFAULT_ORDERED_LIST_PARAGRAPH_SPACE);
     style->ordered_list_.ordered_list_.number_font_ =
         style->ordered_list_.base_.font_;
     style->ordered_list_.ordered_list_.number_font_size_ =
@@ -177,46 +192,50 @@ class MarkdownStyleInitializer {
     style->ordered_list_.ordered_list_.number_type_ =
         DEFAULT_ORDERED_LIST_NUMBER_TYPE;
     style->ordered_list_.ordered_list_.number_margin_right_ =
-        Dp(DEFAULT_ORDERED_LIST_NUMBER_MARGIN);
-    style->ordered_list_.indent_.indent_ = Dp(DEFAULT_ORDERED_LIST_INDENT);
+        Dp(context, DEFAULT_ORDERED_LIST_NUMBER_MARGIN);
+    style->ordered_list_.indent_.indent_ = Dp(context, DEFAULT_ORDERED_LIST_INDENT);
   }
 
-  static void InitialUnorderedListStyle(MarkdownStyle* style) {
+  static void InitialUnorderedListStyle(
+      MarkdownStyle* style, const MarkdownContext* context = nullptr) {
     ResetBlockStyle(&style->unordered_list_.block_);
     style->unordered_list_.base_ = style->normal_text_.base_;
     style->unordered_list_.base_.paragraph_space_ =
-        Dp(DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE);
+        Dp(context, DEFAULT_UNORDERED_LIST_PARAGRAPH_SPACE);
     style->unordered_list_.unordered_list_.mark_color_ =
         DEFAULT_UNORDERED_LIST_MARK_COLOR;
     style->unordered_list_.unordered_list_.mark_margin_right_ =
-        Dp(DEFAULT_UNORDERED_LIST_MARK_MARGIN);
+        Dp(context, DEFAULT_UNORDERED_LIST_MARK_MARGIN);
     style->unordered_list_.unordered_list_.mark_type_ =
         DEFAULT_UNORDERED_LIST_MARK_TYPE;
     style->unordered_list_.unordered_list_.mark_size_ =
-        Dp(DEFAULT_UNORDERED_LIST_MARK_SIZE);
+        Dp(context, DEFAULT_UNORDERED_LIST_MARK_SIZE);
     style->unordered_list_.indent_.indent_ = DEFAULT_UNORDERED_LIST_INDENT;
   }
 
-  static void InitialRefStyle(MarkdownStyle* style) {
+  static void InitialRefStyle(MarkdownStyle* style,
+                              const MarkdownContext* context = nullptr) {
     style->ref_.base_ = style->normal_text_.base_;
-    style->ref_.base_.font_size_ = Dp(DEFAULT_REF_FONT_SIZE);
+    style->ref_.base_.font_size_ = Dp(context, DEFAULT_REF_FONT_SIZE);
     style->ref_.ref_.background_type_ = DEFAULT_REF_BACKGROUND_TYPE;
     style->ref_.base_.color_ = DEFAULT_REF_COLOR;
     style->ref_.base_.background_color_ = DEFAULT_REF_BACKGROUND_COLOR;
     ResetBlockStyle(&(style->ref_.block_));
-    style->ref_.block_.margin_left_ = Dp(DEFAULT_REF_MARGIN);
-    style->ref_.block_.margin_right_ = Dp(DEFAULT_REF_MARGIN);
+    style->ref_.block_.margin_left_ = Dp(context, DEFAULT_REF_MARGIN);
+    style->ref_.block_.margin_right_ = Dp(context, DEFAULT_REF_MARGIN);
   }
 
-  static void InitialTableStyle(MarkdownStyle* style) {
+  static void InitialTableStyle(MarkdownStyle* style,
+                                const MarkdownContext* context = nullptr) {
     ResetBlockStyle(&(style->table_.block_));
     ResetBorderStyle(&style->table_.border_);
     ResetBlockStyle(&(style->table_cell_.block_));
     style->table_.block_.margin_bottom_ =
         style->normal_text_.base_.paragraph_space_;
-    style->table_.border_.border_radius_ = Dp(DEFAULT_TABLE_BORDER_RADIUS);
+    style->table_.border_.border_radius_ =
+        Dp(context, DEFAULT_TABLE_BORDER_RADIUS);
     style->table_.border_.border_color_ = DEFAULT_TABLE_BORDER_COLOR;
-    style->table_.border_.border_width_ = Dp(DEFAULT_TABLE_BORDER_WIDTH);
+    style->table_.border_.border_width_ = Dp(context, DEFAULT_TABLE_BORDER_WIDTH);
     style->table_.scroll_.scroll_x_ = false;
     style->table_.table_.alt_color_ = 0;
     style->table_.table_.table_background_ = MarkdownTableBackground::kNone;
@@ -224,21 +243,27 @@ class MarkdownStyleInitializer {
     style->table_.table_.table_split_ = MarkdownTableSplit::kAll;
   }
 
-  static void InitialTableCellStyle(MarkdownStyle* style) {
+  static void InitialTableCellStyle(MarkdownStyle* style,
+                                    const MarkdownContext* context = nullptr) {
     style->table_cell_.base_ = style->normal_text_.base_;
     style->table_cell_.base_.text_overflow_ = DEFAULT_TABLE_OVERFLOW;
-    style->table_cell_.block_.padding_left_ = Dp(DEFAULT_TABLE_CELL_PADDING);
-    style->table_cell_.block_.padding_right_ = Dp(DEFAULT_TABLE_CELL_PADDING);
-    style->table_cell_.block_.padding_top_ = Dp(DEFAULT_TABLE_CELL_PADDING);
-    style->table_cell_.block_.padding_bottom_ = Dp(DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_left_ =
+        Dp(context, DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_right_ =
+        Dp(context, DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_top_ =
+        Dp(context, DEFAULT_TABLE_CELL_PADDING);
+    style->table_cell_.block_.padding_bottom_ =
+        Dp(context, DEFAULT_TABLE_CELL_PADDING);
     style->table_cell_.align_.vertical_align_ = DEFAULT_CELL_ALIGN;
   }
 
-  static void InitialSplitStyle(MarkdownStyle* style) {
+  static void InitialSplitStyle(MarkdownStyle* style,
+                                const MarkdownContext* context = nullptr) {
     ResetBorderStyle(&style->split_.border_);
     ResetBlockStyle(&style->split_.block_);
     style->split_.border_.border_color_ = DEFAULT_SPLIT_COLOR;
-    style->split_.border_.border_width_ = Dp(DEFAULT_SPLIT_WIDTH);
+    style->split_.border_.border_width_ = Dp(context, DEFAULT_SPLIT_WIDTH);
     style->split_.border_.border_type_ = DEFAULT_SPLIT_BORDER_TYPE;
   }
 
@@ -308,18 +333,19 @@ class MarkdownStyleInitializer {
     style->unordered_list_marker_.align_.vertical_align_ = DEFAULT_MARKER_ALIGN;
   }
 
-  static void ResetBaseStyle(MarkdownBaseStylePart* base) {
-    base->font_size_ = Dp(DEFAULT_TEXT_FONT_SIZE);
+  static void ResetBaseStyle(MarkdownBaseStylePart* base,
+                             const MarkdownContext* context = nullptr) {
+    base->font_size_ = Dp(context, DEFAULT_TEXT_FONT_SIZE);
     base->font_ = DEFAULT_TEXT_FONT;
     base->font_weight_ = DEFAULT_FONT_WEIGHT;
     base->font_style_ = MarkdownFontStyle::kUndefined;
     base->background_color_ = DEFAULT_TEXT_BACKGROUND_COLOR;
     base->color_ = DEFAULT_TEXT_COLOR;
-    base->line_height_ = Dp(DEFAULT_TEXT_LINE_HEIGHT);
-    base->paragraph_space_ = Dp(DEFAULT_TEXT_PARAGRAPH_SPACE);
+    base->line_height_ = Dp(context, DEFAULT_TEXT_LINE_HEIGHT);
+    base->paragraph_space_ = Dp(context, DEFAULT_TEXT_PARAGRAPH_SPACE);
     base->text_overflow_ = DEFAULT_TEXT_OVERFLOW;
     base->text_maxline_ = DEFAULT_PARAGRAPH_MAXLINE;
-    base->line_space_ = Dp(DEFAULT_LINE_SPACE);
+    base->line_space_ = Dp(context, DEFAULT_LINE_SPACE);
     base->word_break_ = MarkdownWordBreak::kNormal;
     base->direction_ = MarkdownDirection::kNormal;
     base->text_align_ = MarkdownTextAlign::kUndefined;

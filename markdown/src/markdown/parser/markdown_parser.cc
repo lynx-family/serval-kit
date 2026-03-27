@@ -717,7 +717,7 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
           (static_cast<int>(MarkdownMarkType::kMixed)));
     }
     auto mark = std::make_shared<MarkdownUnorderedListMarkDelegate>(
-        mark_type, style.unordered_list_marker_);
+        mark_type, style.unordered_list_marker_, document_->GetContext());
     mark->Measure(MeasureSpec{});
     context_.GetListItem()->SetMarker(mark);
     context_.marker_ = mark;

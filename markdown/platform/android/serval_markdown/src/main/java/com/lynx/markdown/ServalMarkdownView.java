@@ -334,7 +334,7 @@ public class ServalMarkdownView extends CustomDrawView {
   protected void updateDisplayMetrics() {
     DisplayMetrics metrics = getResources().getDisplayMetrics();
     if (metrics != null) {
-      nativeSetDensity(metrics.density);
+      nativeSetDensity(mInstance, metrics.density);
     }
   }
   protected void initialVSync() {
@@ -507,7 +507,7 @@ public class ServalMarkdownView extends CustomDrawView {
   private native long nativeGetCharRangeByPoint(long instance, float x, float y,
                                                 int indexType, int rangeType);
   private native void nativeSetTextSelection(long instance, int start, int end);
-  private native void nativeSetDensity(float density);
+  private native void nativeSetDensity(long instance, float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnVSync(long instance, long time);
   private native int nativeGetAnimationStep(long instance);

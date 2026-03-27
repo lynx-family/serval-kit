@@ -4,7 +4,7 @@
 
 #include "markdown/view/markdown_selection_view.h"
 
-#include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_platform_view.h"
 namespace serval::markdown {
 MeasureResult MarkdownSelectionHandle::OnMeasure(MeasureSpec spec) {
@@ -21,13 +21,15 @@ void MarkdownSelectionHandle::Draw(tttext::ICanvasHelper* canvas, float x,
   if (handle_type_ == SelectionHandleType::kLeftHandle) {
     painter->SetFillColor(color_);
     canvas->DrawCircle(r, r, r, painter.get());
-    painter->SetStrokeWidth(MarkdownScreenMetrics::DPToPx(2));
+    painter->SetStrokeWidth(
+        context_ == nullptr ? 2 : context_->GetScreenMetrics().DPToPx(2));
     painter->SetStrokeColor(color_);
     canvas->DrawLine(r, size_, r, size_ + text_height_, painter.get());
   } else {
     painter->SetFillColor(color_);
     canvas->DrawCircle(r, text_height_ + r, r, painter.get());
-    painter->SetStrokeWidth(MarkdownScreenMetrics::DPToPx(2));
+    painter->SetStrokeWidth(
+        context_ == nullptr ? 2 : context_->GetScreenMetrics().DPToPx(2));
     painter->SetStrokeColor(color_);
     canvas->DrawLine(r, 0, r, text_height_, painter.get());
   }

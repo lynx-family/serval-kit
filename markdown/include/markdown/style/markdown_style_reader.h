@@ -7,17 +7,20 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_value.h"
 namespace serval::markdown {
+class MarkdownContext;
 class MarkdownResourceLoader;
 class MarkdownTextAttachment;
 class MarkdownDocument;
 class MarkdownStyleReader {
  public:
   static MarkdownStyle ReadStyle(const ValueMap& map,
-                                 MarkdownResourceLoader* loader);
+                                 MarkdownResourceLoader* loader,
+                                 MarkdownContext* context = nullptr);
   static std::vector<std::unique_ptr<MarkdownTextAttachment>>
   ReadTextAttachments(Value* array, MarkdownDocument* document);
   static MarkdownBaseStylePart ReadBaseStyle(const ValueMap& map,
-                                             MarkdownResourceLoader* loader);
+                                             MarkdownResourceLoader* loader,
+                                             MarkdownContext* context = nullptr);
   static uint32_t ReadColor(const std::string& color);
 };
 }  // namespace serval::markdown

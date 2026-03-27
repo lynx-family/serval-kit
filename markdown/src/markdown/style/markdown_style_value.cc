@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/utils/markdown_context.h"
 namespace serval::markdown {
 float MarkdownLengthValue::CalculateLengthValue(
     const MarkdownLengthContext& context) const {
@@ -269,9 +269,10 @@ std::unique_ptr<MarkdownStyleValue> MarkdownStyleValue::ParseValue(
   return nullptr;
 }
 
-float MarkdownLengthValue::GetPx() const {
+float MarkdownLengthValue::GetPx(const MarkdownContext* context) const {
   if (unit_ == StyleValuePattern::kDp) {
-    return MarkdownScreenMetrics::DPToPx(value_);
+    return context == nullptr ? value_
+                              : context->GetScreenMetrics().DPToPx(value_);
   }
   return value_;
 }

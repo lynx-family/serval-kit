@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_platform_view.h"
 
 namespace serval::markdown {
@@ -184,6 +185,7 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
  private:
   std::vector<std::shared_ptr<MockMarkdownPlatformView>> subviews_;
   RectF cached_view_rect_in_screen_{MakeDefaultViewRectInScreen()};
+  MarkdownContext context_{};
 };
 
 }  // namespace serval::markdown::testing

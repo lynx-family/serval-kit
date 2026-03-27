@@ -8,6 +8,7 @@
 #include <memory>
 #include <string_view>
 namespace serval::markdown {
+class MarkdownContext;
 enum class StyleValuePattern {
   kEmpty,
   kString,
@@ -63,7 +64,7 @@ class MarkdownLengthValue final : public MarkdownStyleValue {
 
   float CalculateLengthValue(
       const MarkdownLengthContext& context) const override;
-  float GetPx() const;
+  float GetPx(const MarkdownContext* context = nullptr) const;
   static MarkdownLengthValue FromDp(float value) {
     return {value, StyleValuePattern::kDp};
   }

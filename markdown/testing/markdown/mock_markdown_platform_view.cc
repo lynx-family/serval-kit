@@ -15,7 +15,9 @@
 namespace serval::markdown::testing {
 
 MockMarkdownMainView::MockMarkdownMainView() {
-  MockMarkdownCustomView::AttachDrawable(std::make_unique<MarkdownView>(this));
+  SetContext(&context_);
+  MockMarkdownCustomView::AttachDrawable(
+      std::make_unique<MarkdownView>(this, &context_));
 }
 
 void MockMarkdownPlatformView::RequestMeasure() {
@@ -122,6 +124,7 @@ void MockInlineView::DrawFromFrameDriver(tttext::ICanvasHelper* canvas, float x,
 std::shared_ptr<MockMarkdownCustomView> MockMarkdownMainView::CreateSubview(
     bool insert_front) {
   auto subview = std::make_shared<MockMarkdownCustomView>();
+  subview->SetContext(GetContext());
   if (insert_front) {
     subviews_.insert(subviews_.begin(), subview);
   } else {
@@ -144,6 +147,7 @@ std::shared_ptr<MockInlineView> MockMarkdownMainView::CreateInlineSubView(
     const char* id_selector, float max_width, float max_height) {
   auto subview =
       std::make_shared<MockInlineView>(id_selector, max_width, max_height);
+  subview->SetContext(GetContext());
   subviews_.push_back(subview);
   return subview;
 }
@@ -155,8 +159,8 @@ MockMarkdownMainView::CreateSelectionHandleSubView(SelectionHandleType type,
   const auto view = CreateCustomSubView();
   auto* handle = view->GetCustomViewHandle();
   if (handle != nullptr) {
-    auto drawable =
-        std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+    auto drawable = std::make_unique<MarkdownSelectionHandle>(
+        GetContext(), size, margin, type, color);
     handle->AttachDrawable(std::move(drawable));
   }
   return view;

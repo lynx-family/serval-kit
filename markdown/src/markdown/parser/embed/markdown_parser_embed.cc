@@ -758,7 +758,7 @@ void MarkdownParserEmbed::AppendUnorderedListMark() {
         (static_cast<int>(MarkdownMarkType::kMixed)));
   }
   auto mark = std::make_unique<MarkdownUnorderedListMarkDelegate>(
-      mark_type, style_.unordered_list_marker_);
+      mark_type, style_.unordered_list_marker_, document_->GetContext());
   context_.indent_ = mark->GetAdvance();
   context_.current_paragraph_->GetParagraphStyle().SetHangingIndentInPx(
       mark->GetAdvance());

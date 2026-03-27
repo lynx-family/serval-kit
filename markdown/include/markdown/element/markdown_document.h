@@ -22,6 +22,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 
 namespace serval::markdown {
+class MarkdownContext;
 enum class MarkdownTouchEventType : uint8_t {
   kUnknown = 0,
   kDown = 1,
@@ -54,9 +55,11 @@ struct MarkdownInlineView {
 };
 class MarkdownDocument {
  public:
-  MarkdownDocument() : MarkdownDocument(nullptr) {}
+  MarkdownDocument() : MarkdownDocument(nullptr, nullptr) {}
   explicit MarkdownDocument(MarkdownResourceLoader* loader)
-      : loader_(loader), touch_state_(MarkdownTouchState::kNone) {}
+      : MarkdownDocument(nullptr, loader) {}
+  MarkdownDocument(MarkdownContext* context, MarkdownResourceLoader* loader)
+      : context_(context), loader_(loader), touch_state_(MarkdownTouchState::kNone) {}
   const std::string& GetMarkdownContent() const { return markdown_content_; }
   void SetMarkdownContent(std::string_view content) {
     markdown_content_ = content;
@@ -81,6 +84,8 @@ class MarkdownDocument {
   }
   void SetResourceLoader(MarkdownResourceLoader* loader) { loader_ = loader; }
   MarkdownResourceLoader* GetResourceLoader() const { return loader_; }
+  void SetContext(MarkdownContext* context) { context_ = context; }
+  MarkdownContext* GetContext() const { return context_; }
   void SetMarkdownEventListener(MarkdownEventListener* event) {
     event_ = event;
   }
@@ -185,6 +190,7 @@ class MarkdownDocument {
   MarkdownStyle style_{};
 
   MarkdownResourceLoader* loader_{nullptr};
+  MarkdownContext* context_{nullptr};
   MarkdownEventListener* event_{nullptr};
 
   std::u16string truncation_text_;

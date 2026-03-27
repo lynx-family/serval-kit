@@ -15,6 +15,7 @@
 namespace serval::markdown {
 
 class MarkdownPlatformView;
+class MarkdownContext;
 enum class SelectionHandleType : uint8_t;
 class MarkdownViewContainerHandle {
  public:
@@ -63,6 +64,9 @@ class MarkdownPlatformView : public MarkdownDrawable {
 
   virtual void SetVisibility(bool visible) = 0;
 
+  void SetContext(MarkdownContext* context) { context_ = context; }
+  MarkdownContext* GetContext() const { return context_; }
+
   void SetTapListener(TapGestureListener tap_gesture_listener) {
     tap_gesture_listener_ = tap_gesture_listener;
   }
@@ -80,6 +84,7 @@ class MarkdownPlatformView : public MarkdownDrawable {
   virtual MarkdownCustomViewHandle* GetCustomViewHandle() { return nullptr; }
 
  protected:
+  MarkdownContext* context_{nullptr};
   TapGestureListener tap_gesture_listener_{};
   LongPressGestureListener long_press_gesture_listener_{};
   PanGestureListener pan_gesture_listener_{};

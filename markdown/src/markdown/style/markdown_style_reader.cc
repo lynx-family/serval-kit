@@ -12,12 +12,14 @@
 namespace serval::markdown {
 class MarkdownStyleReaderImpl {
  public:
-  explicit MarkdownStyleReaderImpl(MarkdownResourceLoader* loader)
-      : loader_(loader) {}
+  explicit MarkdownStyleReaderImpl(MarkdownResourceLoader* loader,
+                                   MarkdownContext* context)
+      : loader_(loader), context_(context) {}
   ~MarkdownStyleReaderImpl() = default;
 
  private:
   MarkdownResourceLoader* loader_;
+  MarkdownContext* context_;
 
  public:
   // AUTO GEN START
@@ -1237,7 +1239,7 @@ class MarkdownStyleReaderImpl {
   }
   void ReadMarkdownStyle(const ValueMap& map, MarkdownStyle* style) {
     auto value = map.find(ToString(MarkdownStyleTag::kNormalText));
-    MarkdownStyleInitializer::InitialNormalTextStyle(style);
+    MarkdownStyleInitializer::InitialNormalTextStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownNormalTextStyle(value->second->AsMap(),
                                   &(style->normal_text_));
@@ -1278,50 +1280,50 @@ class MarkdownStyleReaderImpl {
       ReadMarkdownLinkStyle(value->second->AsMap(), &(style->link_));
     }
     value = map.find(ToString(MarkdownStyleTag::kInlineCode));
-    MarkdownStyleInitializer::InitialInlineCodeStyle(style);
+    MarkdownStyleInitializer::InitialInlineCodeStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownInlineCodeStyle(value->second->AsMap(),
                                   &(style->inline_code_));
     }
     value = map.find(ToString(MarkdownStyleTag::kCodeBlock));
-    MarkdownStyleInitializer::InitialCodeBlockStyle(style);
+    MarkdownStyleInitializer::InitialCodeBlockStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownCodeBlockStyle(value->second->AsMap(), &(style->code_block_));
     }
     value = map.find(ToString(MarkdownStyleTag::kQuote));
-    MarkdownStyleInitializer::InitialQuoteStyle(style);
+    MarkdownStyleInitializer::InitialQuoteStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownQuoteStyle(value->second->AsMap(), &(style->quote_));
     }
     value = map.find(ToString(MarkdownStyleTag::kOrderedList));
-    MarkdownStyleInitializer::InitialOrderedListStyle(style);
+    MarkdownStyleInitializer::InitialOrderedListStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownOrderedListStyle(value->second->AsMap(),
                                    &(style->ordered_list_));
     }
     value = map.find(ToString(MarkdownStyleTag::kUnorderedList));
-    MarkdownStyleInitializer::InitialUnorderedListStyle(style);
+    MarkdownStyleInitializer::InitialUnorderedListStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownUnorderedListStyle(value->second->AsMap(),
                                      &(style->unordered_list_));
     }
     value = map.find(ToString(MarkdownStyleTag::kRef));
-    MarkdownStyleInitializer::InitialRefStyle(style);
+    MarkdownStyleInitializer::InitialRefStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownRefStyle(value->second->AsMap(), &(style->ref_));
     }
     value = map.find(ToString(MarkdownStyleTag::kTable));
-    MarkdownStyleInitializer::InitialTableStyle(style);
+    MarkdownStyleInitializer::InitialTableStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownTableStyle(value->second->AsMap(), &(style->table_));
     }
     value = map.find(ToString(MarkdownStyleTag::kTableCell));
-    MarkdownStyleInitializer::InitialTableCellStyle(style);
+    MarkdownStyleInitializer::InitialTableCellStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownTableCellStyle(value->second->AsMap(), &(style->table_cell_));
     }
     value = map.find(ToString(MarkdownStyleTag::kSplit));
-    MarkdownStyleInitializer::InitialSplitStyle(style);
+    MarkdownStyleInitializer::InitialSplitStyle(style, context_);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownSplitStyle(value->second->AsMap(), &(style->split_));
     }
@@ -1454,7 +1456,8 @@ class MarkdownStyleReaderImpl {
                        float* result) {
     auto it = map.find(key);
     if (it != map.end()) {
-      *result = MarkdownLengthValue::FromDp(it->second->GetDouble()).GetPx();
+      *result =
+          MarkdownLengthValue::FromDp(it->second->GetDouble()).GetPx(context_);
     }
   }
   void ReadStringValue(const ValueMap& map, const std::string& key,
@@ -1623,8 +1626,9 @@ class MarkdownStyleReaderImpl {
   }
 };
 MarkdownStyle MarkdownStyleReader::ReadStyle(
-    const serval::markdown::ValueMap& map, MarkdownResourceLoader* loader) {
-  MarkdownStyleReaderImpl impl(loader);
+    const serval::markdown::ValueMap& map, MarkdownResourceLoader* loader,
+    MarkdownContext* context) {
+  MarkdownStyleReaderImpl impl(loader, context);
   MarkdownStyle style;
   impl.ReadMarkdownStyle(map, &style);
   return style;
@@ -1639,7 +1643,8 @@ MarkdownStyleReader::ReadTextAttachments(Value* array,
   auto& values = array->AsArray();
   for (auto& value : values) {
     if (value->GetType() == ValueType::kMap) {
-      MarkdownStyleReaderImpl impl(document->GetResourceLoader());
+      MarkdownStyleReaderImpl impl(document->GetResourceLoader(),
+                                   document->GetContext());
       auto attachment = std::make_unique<MarkdownTextAttachment>();
       impl.ReadMarkdownAttachment(value->AsMap(), attachment.get());
       if (attachment->index_type_ == CharIndexType::kSource) {
@@ -1654,8 +1659,9 @@ MarkdownStyleReader::ReadTextAttachments(Value* array,
   return attachments;
 }
 MarkdownBaseStylePart MarkdownStyleReader::ReadBaseStyle(
-    const ValueMap& map, MarkdownResourceLoader* loader) {
-  MarkdownStyleReaderImpl impl(loader);
+    const ValueMap& map, MarkdownResourceLoader* loader,
+    MarkdownContext* context) {
+  MarkdownStyleReaderImpl impl(loader, context);
   MarkdownBaseStylePart base_style_part;
   impl.ReadMarkdownBaseStylePart(map, &base_style_part);
   return base_style_part;

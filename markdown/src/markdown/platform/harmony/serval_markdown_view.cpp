@@ -21,42 +21,49 @@
 #include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
 #include "markdown/style/markdown_style_reader.h"
-#include "markdown/utils/markdown_screen_metrics.h"
 #include "textra/platform_helper.h"
+
 namespace serval::markdown {
 void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyEnv::SetEnv(env);
   HarmonyUIThread::Init(env);
-  UpdateDisplayMetrics();
 }
 NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
-  AttachDrawable(std::make_unique<MarkdownView>(this));
+  SetContext(&context_);
+  AttachDrawable(std::make_unique<MarkdownView>(this, &context_));
+  auto* context = GetContext();
+  UpdateDisplayMetrics();
   GetMarkdownView()->SetResourceLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);
   EnableLongPressEvent(true, NORMAL);
   EnablePanEvent(true, GESTURE_DIRECTION_HORIZONTAL, NORMAL);
-  GetMarkdownView()->SetSelectionHandleSize(MarkdownScreenMetrics::DPToPx(10));
+  GetMarkdownView()->SetSelectionHandleSize(
+      context->GetScreenMetrics().DPToPx(10));
   GetMarkdownView()->SetSelectionHandleTouchMargin(
-      MarkdownScreenMetrics::DPToPx(5));
+      context->GetScreenMetrics().DPToPx(5));
 }
 NativeServalMarkdownView::~NativeServalMarkdownView() {
   HarmonyVSyncManager::RemoveVSyncCallback(this);
 }
-void NativeServalMarkdownView::UpdateDisplayMetrics() {
+void NativeServalMarkdownView::UpdateDisplayMetrics() const {
+  auto* context = GetContext();
+  if (context == nullptr) {
+    return;
+  }
   float density;
   auto err = OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&density);
   if (err == DISPLAY_MANAGER_OK) {
-    MarkdownScreenMetrics::SetDensity(density);
+    context->GetScreenMetrics().SetDensity(density);
   }
   int32_t width, height;
   err = OH_NativeDisplayManager_GetDefaultDisplayWidth(&width);
   if (err == DISPLAY_MANAGER_OK) {
-    MarkdownScreenMetrics::SetScreenWidth(width);
+    context->GetScreenMetrics().SetScreenWidth(width);
   }
   err = OH_NativeDisplayManager_GetDefaultDisplayHeight(&height);
   if (err == DISPLAY_MANAGER_OK) {
-    MarkdownScreenMetrics::SetScreenHeight(height);
+    context->GetScreenMetrics().SetScreenHeight(height);
   }
 }
 void NativeServalMarkdownView::AttachToNodeContent(
@@ -81,8 +88,15 @@ RectF NativeServalMarkdownView::CalculateViewRectInScreen() {
   offset.x = -offset.x;
   offset.y = -offset.y;
   auto size = GetMeasuredSize();
-  float screen_w = static_cast<float>(MarkdownScreenMetrics::GetScreenWidth());
-  float screen_h = static_cast<float>(MarkdownScreenMetrics::GetScreenHeight());
+  const auto* context = GetContext();
+  float screen_w = context == nullptr
+                       ? 0
+                       : static_cast<float>(
+                             context->GetScreenMetrics().GetScreenWidth());
+  float screen_h = context == nullptr
+                       ? 0
+                       : static_cast<float>(
+                             context->GetScreenMetrics().GetScreenHeight());
   float left = static_cast<float>(std::max(0, offset.x));
   float top = static_cast<float>(std::max(0, offset.y));
   float right = std::min(static_cast<float>(offset.x) + screen_w, size.width_);
@@ -114,6 +128,7 @@ std::shared_ptr<MarkdownPlatformView> NativeServalMarkdownView::InsertEtsView(
     return find->second;
   }
   auto view = std::make_shared<EtsViewHolder>(handle);
+  view->SetContext(GetContext());
   auto* view_ptr = view.get();
   AddChild(view);
   view_cache_.emplace(handle, view);
@@ -224,6 +239,7 @@ void NativeServalMarkdownView::SetConfig(const ValueMap& config) {
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateCustomSubView() {
   auto custom_view = std::make_shared<HarmonyCustomView>();
+  custom_view->SetContext(GetContext());
   AddChild(custom_view);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
@@ -231,6 +247,7 @@ NativeServalMarkdownView::CreateCustomSubView() {
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateRegionSubView() {
   auto custom_view = std::make_shared<HarmonyCustomView>();
+  custom_view->SetContext(GetContext());
   InsertChild(custom_view, 0);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }

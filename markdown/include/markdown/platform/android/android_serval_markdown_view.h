@@ -10,7 +10,9 @@
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/platform/android/markdown_class_cache.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_view.h"
+
 class AndroidServalMarkdownView
     : public AndroidMainView,
       public serval::markdown::MarkdownResourceLoader,
@@ -64,6 +66,7 @@ class AndroidServalMarkdownView
 
  protected:
   bool exposure_listener_enabled_{false};
+  serval::markdown::MarkdownContext context_{};
 
  protected:
   static struct Methods {

@@ -14,6 +14,7 @@
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
@@ -21,8 +22,9 @@ namespace serval::markdown {
 class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
  public:
   MarkdownUnorderedListMarkDelegate(
-      MarkdownMarkType type, const MarkdownUnorderedListMarkerStyle& style)
-      : type_(type), style_(style) {
+      MarkdownMarkType type, const MarkdownUnorderedListMarkerStyle& style,
+      MarkdownContext* context)
+      : type_(type), style_(style), context_(context) {
     height_ = style.size_.width_ + style.block_.margin_top_ +
               style.block_.margin_bottom_;
     width_ = style.size_.width_ + style.block_.margin_left_ +
@@ -39,7 +41,8 @@ class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
     canvas->Translate(x, y);
     canvas->Translate(style_.block_.margin_left_, style_.block_.margin_top_);
     auto painter = canvas->CreatePainter();
-    painter->SetStrokeWidth(MarkdownScreenMetrics::DPToPx(1));
+    painter->SetStrokeWidth(
+        context_ == nullptr ? 1 : context_->GetScreenMetrics().DPToPx(1));
     switch (type_) {
       case MarkdownMarkType::kCircle:
         painter->SetFillColor(style_.marker_.color_);
@@ -67,6 +70,7 @@ class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
   float height_;
   MarkdownMarkType type_;
   MarkdownUnorderedListMarkerStyle style_;
+  MarkdownContext* context_;
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override {

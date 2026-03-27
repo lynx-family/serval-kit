@@ -13,7 +13,7 @@
 
 #include "arkui/native_gesture.h"
 #include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
-#include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_gesture.h"
 #include "native_drawing/drawing_canvas.h"
 
@@ -67,10 +67,13 @@ void HarmonyView::NodeEventDispatcher(ArkUI_NodeEvent* event) {
     case NODE_TOUCH_EVENT: {
       auto* input = OH_ArkUI_NodeEvent_GetInputEvent(event);
       int32_t action = OH_ArkUI_UIInputEvent_GetAction(input);
-      float x =
-          MarkdownScreenMetrics::DPToPx(OH_ArkUI_PointerEvent_GetX(input));
-      float y =
-          MarkdownScreenMetrics::DPToPx(OH_ArkUI_PointerEvent_GetY(input));
+      const auto* context = view->GetContext();
+      float x = OH_ArkUI_PointerEvent_GetX(input);
+      float y = OH_ArkUI_PointerEvent_GetY(input);
+      if (context != nullptr) {
+        x = context->GetScreenMetrics().DPToPx(x);
+        y = context->GetScreenMetrics().DPToPx(y);
+      }
       if (!view->OnTouchEvent(action, x, y)) {
         OH_ArkUI_PointerEvent_SetStopPropagation(input, false);
       }

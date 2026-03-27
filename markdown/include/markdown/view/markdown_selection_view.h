@@ -7,18 +7,21 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "vector"
 namespace serval::markdown {
+class MarkdownContext;
 enum class SelectionHandleType : uint8_t {
   kLeftHandle,
   kRightHandle,
 };
 class MarkdownSelectionHandle final : public MarkdownDrawable {
  public:
-  MarkdownSelectionHandle(const float size, const float margin,
-                          const SelectionHandleType type, const uint32_t color)
+  MarkdownSelectionHandle(MarkdownContext* context, const float size,
+                          const float margin, const SelectionHandleType type,
+                          const uint32_t color)
       : size_(size),
         margin_(margin),
         color_(color),
         handle_type_(type),
+        context_(context),
         text_height_(0) {}
   ~MarkdownSelectionHandle() override = default;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
@@ -35,6 +38,7 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
   float margin_;
   uint32_t color_;
   SelectionHandleType handle_type_;
+  MarkdownContext* context_{nullptr};
   float text_height_;
 };
 

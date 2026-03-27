@@ -46,7 +46,9 @@ void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
 
 AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view), view_ref_(env, view) {
-  AttachDrawable(std::make_unique<serval::markdown::MarkdownView>(this));
+  SetContext(&context_);
+  AttachDrawable(
+      std::make_unique<serval::markdown::MarkdownView>(this, &context_));
   auto* markdown_view = GetMarkdownView();
   markdown_view->SetResourceLoader(
       static_cast<serval::markdown::MarkdownResourceLoader*>(this));
@@ -96,6 +98,7 @@ std::shared_ptr<AndroidMarkdownView> AndroidServalMarkdownView::LoadInlineView(
     return nullptr;
   }
   auto subview = std::make_shared<AndroidMarkdownView>(env, object);
+  subview->SetContext(GetContext());
   subviews_.insert(subviews_.end(), subview);
   env->DeleteLocalRef(object);
   return subview;

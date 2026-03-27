@@ -14,6 +14,7 @@
 #include "markdown/platform/ios/internal/markdown_main_view_ios.h"
 #include "markdown/platform/ios/internal/markdown_resource_loader_ios.h"
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/view/markdown_view.h"
 
 namespace {
@@ -35,6 +36,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }  // namespace
 
 @interface ServalMarkdownView () {
+  serval::markdown::MarkdownContext context_;
   std::unique_ptr<serval::markdown::MarkdownEventIOS> event_listener_;
   std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
   std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
@@ -62,9 +64,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     self.customSubviews = [[NSMutableArray alloc] init];
     markdown_view_handle_ =
         std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
+    markdown_view_handle_->SetContext(&context_);
     markdown_view_handle_->AttachDrawable(
         std::make_unique<serval::markdown::MarkdownView>(
-            markdown_view_handle_.get()));
+            markdown_view_handle_.get(), &context_));
     event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
     resource_loader_ =
         std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();

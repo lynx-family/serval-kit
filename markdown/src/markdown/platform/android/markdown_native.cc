@@ -13,7 +13,6 @@
 #include "markdown/platform/android/android_serval_markdown_view.h"
 #include "markdown/platform/android/markdown_buffer_reader.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
-#include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_gesture.h"
 using serval::markdown::MarkdownDrawable;
 using serval::markdown::MeasureSpec;
@@ -479,8 +478,17 @@ Java_com_lynx_markdown_Markdown_initialClassCache(JNIEnv* env, jclass clazz) {
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetDensity(JNIEnv* env,
                                                            jobject thiz,
+                                                           jlong instance,
                                                            jfloat density) {
-  serval::markdown::MarkdownScreenMetrics::SetDensity(density);
+  if (instance == 0) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  auto* markdown_view = view->GetMarkdownView();
+  if (markdown_view == nullptr || markdown_view->GetContext() == nullptr) {
+    return;
+  }
+  markdown_view->GetContext()->GetScreenMetrics().SetDensity(density);
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,

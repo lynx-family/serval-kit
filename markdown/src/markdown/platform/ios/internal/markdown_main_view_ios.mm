@@ -35,6 +35,7 @@ std::shared_ptr<MarkdownPlatformView>
 MarkdownMainViewIOS::CreateCustomSubView() {
   MarkdownCustomDrawView* view = [GetServalView() createCustomView];
   auto subview = std::make_shared<MarkdownCustomViewIOS>(view);
+  subview->SetContext(GetContext());
   subviews_.push_back(subview);
   return std::static_pointer_cast<MarkdownPlatformView>(subview);
 }
@@ -43,6 +44,7 @@ std::shared_ptr<MarkdownPlatformView>
 MarkdownMainViewIOS::CreateRegionSubView() {
   MarkdownCustomDrawView* view = [GetServalView() createRegionView];
   auto subview = std::make_shared<MarkdownCustomViewIOS>(view);
+  subview->SetContext(GetContext());
   subviews_.push_back(subview);
   return std::static_pointer_cast<MarkdownPlatformView>(subview);
 }
@@ -53,7 +55,8 @@ MarkdownMainViewIOS::CreateSelectionHandleSubView(SelectionHandleType type,
                                                   uint32_t color) {
   const auto view = CreateCustomSubView();
   auto selection_handle =
-      std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+      std::make_unique<MarkdownSelectionHandle>(GetContext(), size, margin,
+                                                type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   return view;
 }

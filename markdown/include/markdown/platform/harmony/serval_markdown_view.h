@@ -12,6 +12,7 @@
 #include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
 namespace serval::markdown {
@@ -81,10 +82,11 @@ class NativeServalMarkdownView final : public HarmonyCustomView,
   RectF CalculateViewRectInScreen();
   std::shared_ptr<MarkdownPlatformView> InsertEtsView(ArkUI_NodeHandle handle);
 
-  static void UpdateDisplayMetrics();
+  void UpdateDisplayMetrics() const;
 
   ArkUI_NodeContentHandle node_content_handle_{nullptr};
   IHarmonyResourceLoader* loader_;
+  MarkdownContext context_{};
 
   std::unordered_map<ArkUI_NodeHandle, std::shared_ptr<MarkdownPlatformView>>
       view_cache_;

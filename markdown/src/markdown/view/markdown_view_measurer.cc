@@ -12,9 +12,10 @@
 namespace serval::markdown {
 
 MarkdownViewMeasurer::MarkdownViewMeasurer(
-    MarkdownResourceLoader* resource_loader)
-    : resource_loader_(resource_loader) {
-  style_ = MarkdownStyleReader::ReadStyle(ValueMap{}, resource_loader_);
+    MarkdownContext* context, MarkdownResourceLoader* resource_loader)
+    : context_(context), resource_loader_(resource_loader) {
+  style_ = MarkdownStyleReader::ReadStyle(ValueMap{}, resource_loader_,
+                                          context_);
 }
 
 void MarkdownViewMeasurer::SetResourceLoader(
@@ -69,7 +70,8 @@ void MarkdownViewMeasurer::SetSourceType(SourceType type) {
 }
 
 void MarkdownViewMeasurer::SetStyle(const ValueMap& style_map) {
-  style_ = MarkdownStyleReader::ReadStyle(style_map, resource_loader_);
+  style_ = MarkdownStyleReader::ReadStyle(style_map, resource_loader_,
+                                          context_);
   NeedsMeasure();
 }
 
@@ -85,7 +87,7 @@ void MarkdownViewMeasurer::ApplyStyleInRange(const ValueMap& style_map,
     return;
   }
   const auto base_style =
-      MarkdownStyleReader::ReadBaseStyle(style_map, resource_loader_);
+      MarkdownStyleReader::ReadBaseStyle(style_map, resource_loader_, context_);
   document_->ApplyStyleInRange(base_style, {char_start, char_end});
 }
 
@@ -109,7 +111,7 @@ void MarkdownViewMeasurer::SetPaddings(Paddings paddings) {
 }
 
 void MarkdownViewMeasurer::InitialDocument() {
-  auto new_document = std::make_shared<MarkdownDocument>();
+  auto new_document = std::make_shared<MarkdownDocument>(context_, nullptr);
   new_document->InheritState(document_.get());
   document_ = std::move(new_document);
   document_->SetMarkdownContent(content_);

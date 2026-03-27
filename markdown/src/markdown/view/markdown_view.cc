@@ -13,8 +13,15 @@
 #include "markdown/view/markdown_view_animator.h"
 
 namespace serval::markdown {
-MarkdownView::MarkdownView(MarkdownPlatformView* view)
-    : view_(view), handle_(view->GetViewContainerHandle()) {
+MarkdownView::MarkdownView(MarkdownPlatformView* view, MarkdownContext* context)
+    : view_(view),
+      handle_(view == nullptr ? nullptr : view->GetViewContainerHandle()),
+      context_(context),
+      measurer_(context) {
+  if (view_ == nullptr) {
+    return;
+  }
+  view_->SetContext(context_);
   renderer_.SetViewContainerHandle(handle_);
   view_->SetTapListener([this](PointF position, GestureEventType event) {
     return OnTap(position, event);

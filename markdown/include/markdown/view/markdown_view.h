@@ -16,6 +16,7 @@
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/utils/markdown_context.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_props.h"
@@ -26,7 +27,7 @@
 namespace serval::markdown {
 class MarkdownView final : public MarkdownDrawable {
  public:
-  explicit MarkdownView(MarkdownPlatformView* view);
+  MarkdownView(MarkdownPlatformView* view, MarkdownContext* context);
   ~MarkdownView() override;
   void SetResourceLoader(MarkdownResourceLoader* loader);
   MarkdownResourceLoader* GetResourceLoader() const;
@@ -73,6 +74,9 @@ class MarkdownView final : public MarkdownDrawable {
   void SetStringProp(MarkdownProps prop, std::string_view value);
   void SetArrayProp(MarkdownProps prop, const ValueArray& array);
   void SetMapProp(MarkdownProps prop, const ValueMap& map);
+
+  MarkdownContext* GetContext() { return context_; }
+  const MarkdownContext* GetContext() const { return context_; }
 
   std::string GetSelectedText();
   std::string GetContent();
@@ -170,6 +174,7 @@ class MarkdownView final : public MarkdownDrawable {
 
   std::shared_ptr<MarkdownDocument> document_;
   bool document_updated_{false};
+  MarkdownContext* context_{nullptr};
   MarkdownViewMeasurer measurer_;
   MarkdownViewAnimator animator_;
   MarkdownViewRenderer renderer_;
