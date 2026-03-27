@@ -29,9 +29,13 @@ public class ServalMarkdownView extends CustomDrawView {
   private float mDownX = 0;
   private float mDownY = 0;
   private boolean mAnimationPaused = false;
+  private boolean mDisableInternalVSync = false;
+  private boolean mInternalVSyncPosted = false;
   private long mCurrentTime = 0;
   private long mPauseStartTime = 0;
   private long mTotalPausedDurationMs = 0;
+  private final Choreographer.FrameCallback mInternalVSyncCallback =
+      this::onVSync;
 
   public ServalMarkdownView(Context context) {
     super(context);
@@ -73,6 +77,7 @@ public class ServalMarkdownView extends CustomDrawView {
         });
   }
   public void destroy() {
+    clearInternalVSync();
     if (mInstance != 0) {
       nativeDestroyInstance(mInstance);
       mInstance = 0;
@@ -337,16 +342,55 @@ public class ServalMarkdownView extends CustomDrawView {
       nativeSetDensity(metrics.density);
     }
   }
-  protected void initialVSync() {
-    Choreographer.getInstance().postFrameCallback(this::onVSync);
+  protected void initialVSync() { postInternalVSync(); }
+  protected void onVSync(long frameTimeNanos) {
+    mInternalVSyncPosted = false;
+    onLayoutFrame(frameTimeNanos);
+    onRendererFrame(frameTimeNanos);
+    postInternalVSync();
   }
-  protected void onVSync(long time) {
-    mCurrentTime = time / 1000000;
+
+  public void disableInternalVSync(boolean disable) {
+    if (mDisableInternalVSync == disable) {
+      return;
+    }
+    mDisableInternalVSync = disable;
+    if (disable) {
+      clearInternalVSync();
+    } else {
+      postInternalVSync();
+    }
+  }
+
+  public void onLayoutFrame(long frameTimeNanos) {
+    mCurrentTime = frameTimeNanos / 1000000;
     if (!mAnimationPaused && mInstance != 0) {
       long adjustedTimeMs = mCurrentTime - mTotalPausedDurationMs;
-      nativeOnVSync(mInstance, adjustedTimeMs);
+      nativeOnLayoutFrame(mInstance, adjustedTimeMs);
     }
-    Choreographer.getInstance().postFrameCallback(this::onVSync);
+  }
+
+  public void onRendererFrame(long frameTimeNanos) {
+    if (mInstance != 0) {
+      long adjustedTimeMs = frameTimeNanos / 1000000;
+      nativeOnRendererFrame(mInstance, adjustedTimeMs);
+    }
+  }
+
+  private void postInternalVSync() {
+    if (mDisableInternalVSync || mInternalVSyncPosted) {
+      return;
+    }
+    mInternalVSyncPosted = true;
+    Choreographer.getInstance().postFrameCallback(mInternalVSyncCallback);
+  }
+
+  private void clearInternalVSync() {
+    if (!mInternalVSyncPosted) {
+      return;
+    }
+    Choreographer.getInstance().removeFrameCallback(mInternalVSyncCallback);
+    mInternalVSyncPosted = false;
   }
 
   @Override
@@ -509,7 +553,8 @@ public class ServalMarkdownView extends CustomDrawView {
   private native void nativeSetTextSelection(long instance, int start, int end);
   private native void nativeSetDensity(float density);
   private native void nativeSetStyle(long instance, byte[] buffer);
-  private native void nativeOnVSync(long instance, long time);
+  private native void nativeOnLayoutFrame(long instance, long time);
+  private native void nativeOnRendererFrame(long instance, long time);
   private native int nativeGetAnimationStep(long instance);
   private native void nativeSetAnimationStep(long instance, int animationStep);
   private native void nativeSetNumberProp(long instance, int key, double value);

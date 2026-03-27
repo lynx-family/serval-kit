@@ -4,6 +4,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_
 #import <UIKit/UIKit.h>
+#include <stdint.h>
 
 #import <ServalMarkdown/IMarkdownEventDelegate.h>
 #import <ServalMarkdown/IMarkdownExposureDelegate.h>
@@ -51,6 +52,9 @@
 - (void)pauseAnimation;
 - (void)resumeAnimation;
 - (void)resumeAnimation:(int)animationStep;
+- (void)disableInternalVSync:(BOOL)disable;
+- (void)onLayoutFrame:(int64_t)frameTimeNanos;
+- (void)onRendererFrame:(int64_t)frameTimeNanos;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value;

@@ -109,12 +109,24 @@ RectF MarkdownMainViewIOS::CalculateViewRectInScreen() {
   return RectF::MakeLTRB(left, top, right, bottom);
 }
 
-void MarkdownMainViewIOS::OnVSync(int64_t timestamp) {
+void MarkdownMainViewIOS::OnLayoutFrame(int64_t timestamp) {
+  auto* markdown_view = static_cast<MarkdownView*>(GetDrawable());
+  if (markdown_view != nullptr) {
+    markdown_view->OnLayoutFrame(timestamp);
+  }
+}
+
+void MarkdownMainViewIOS::OnRendererFrame(int64_t timestamp) {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();
   auto* markdown_view = static_cast<MarkdownView*>(GetDrawable());
   if (markdown_view != nullptr) {
-    markdown_view->OnNextFrame(timestamp);
+    markdown_view->OnRendererFrame(timestamp);
   }
+}
+
+void MarkdownMainViewIOS::OnVSync(int64_t timestamp) {
+  OnLayoutFrame(timestamp);
+  OnRendererFrame(timestamp);
 }
 
 RectF MarkdownMainViewIOS::GetViewRectInScreen() {

@@ -33,6 +33,8 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
   void RemoveAllSubViews() override;
 
   RectF GetViewRectInScreen() override;
+  void OnLayoutFrame(int64_t timestamp);
+  void OnRendererFrame(int64_t timestamp);
   void OnVSync(int64_t timestamp);
 
   MarkdownViewContainerHandle* GetViewContainerHandle() override {

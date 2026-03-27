@@ -103,7 +103,8 @@ class MarkdownView final : public MarkdownDrawable {
   float GetMeasureWidth() const { return measurer_.GetMeasuredSize().width_; }
   float GetMeasureHeight() const { return measurer_.GetMeasuredSize().height_; }
 
-  void OnNextFrame(int64_t timestamp);
+  void OnLayoutFrame(int64_t timestamp);
+  void OnRendererFrame(int64_t timestamp);
 
   void NeedsMeasure();
   void NeedsAlign() const;

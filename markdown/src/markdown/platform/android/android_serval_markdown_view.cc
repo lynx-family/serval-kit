@@ -131,13 +131,26 @@ void AndroidServalMarkdownView::SetExposureListenerEnabled(bool enabled) {
   }
 }
 
-void AndroidServalMarkdownView::OnVSync(int64_t time) {
+void AndroidServalMarkdownView::OnLayoutFrame(int64_t time) {
+  auto* markdown_view = GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return;
+  }
+  markdown_view->OnLayoutFrame(time);
+}
+
+void AndroidServalMarkdownView::OnRendererFrame(int64_t time) {
   UpdateCachedViewRectInScreen();
   auto* markdown_view = GetMarkdownView();
   if (markdown_view == nullptr) {
     return;
   }
-  markdown_view->OnNextFrame(time);
+  markdown_view->OnRendererFrame(time);
+}
+
+void AndroidServalMarkdownView::OnVSync(int64_t time) {
+  OnLayoutFrame(time);
+  OnRendererFrame(time);
 }
 
 std::shared_ptr<serval::markdown::MarkdownDrawable>

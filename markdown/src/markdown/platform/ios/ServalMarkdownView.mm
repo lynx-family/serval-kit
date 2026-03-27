@@ -40,6 +40,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
   std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
   BOOL animationPaused_;
+  BOOL disableInternalVSync_;
   int64_t currentTimeMs_;
   int64_t pauseStartTimeMs_;
   int64_t totalPausedDurationMs_;
@@ -51,6 +52,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (MarkdownCustomDrawView*)createRegionView;
 - (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview;
 - (void)removeAllCustomViews;
+- (void)updateInternalDisplayLinkState;
 
 - (serval::markdown::MarkdownView*)getMarkdownView;
 @end
@@ -80,9 +82,11 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop]
                            forMode:NSRunLoopCommonModes];
     animationPaused_ = NO;
+    disableInternalVSync_ = NO;
     currentTimeMs_ = 0;
     pauseStartTimeMs_ = 0;
     totalPausedDurationMs_ = 0;
+    [self updateInternalDisplayLinkState];
   }
   return self;
 }
@@ -124,16 +128,14 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   }
   [self.customSubviews removeAllObjects];
 }
+- (void)updateInternalDisplayLinkState {
+  self.displayLink.paused = disableInternalVSync_;
+}
 - (void)onVSync:(CADisplayLink*)sender {
-  currentTimeMs_ = static_cast<int64_t>(sender.targetTimestamp * 1000);
-  if (markdown_view_handle_ == nullptr) {
-    return;
-  }
-  if (animationPaused_) {
-    return;
-  }
-  const auto adjusted_time_ms = currentTimeMs_ - totalPausedDurationMs_;
-  markdown_view_handle_->OnVSync(adjusted_time_ms);
+  const int64_t frame_time_nanos =
+      static_cast<int64_t>(sender.targetTimestamp * 1000000000.0);
+  [self onLayoutFrame:frame_time_nanos];
+  [self onRendererFrame:frame_time_nanos];
 }
 - (serval::markdown::MarkdownView*)getMarkdownView {
   return static_cast<serval::markdown::MarkdownView*>(
@@ -458,6 +460,28 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (int)getAnimationStep {
   auto* view = [self getMarkdownView];
   return view == nullptr ? 0 : view->GetAnimationStep();
+}
+- (void)disableInternalVSync:(BOOL)disable {
+  if (disableInternalVSync_ == disable) {
+    return;
+  }
+  disableInternalVSync_ = disable;
+  [self updateInternalDisplayLinkState];
+}
+- (void)onLayoutFrame:(int64_t)frameTimeNanos {
+  currentTimeMs_ = frameTimeNanos / 1000000;
+  if (markdown_view_handle_ == nullptr || animationPaused_) {
+    return;
+  }
+  const auto adjusted_time_ms = currentTimeMs_ - totalPausedDurationMs_;
+  markdown_view_handle_->OnLayoutFrame(adjusted_time_ms);
+}
+- (void)onRendererFrame:(int64_t)frameTimeNanos {
+  if (markdown_view_handle_ == nullptr) {
+    return;
+  }
+  const int64_t current_time_ms = frameTimeNanos / 1000000;
+  markdown_view_handle_->OnRendererFrame(current_time_ms);
 }
 - (void)pauseAnimation {
   if (animationPaused_) {

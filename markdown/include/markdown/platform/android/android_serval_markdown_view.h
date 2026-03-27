@@ -26,6 +26,8 @@ class AndroidServalMarkdownView
   std::shared_ptr<AndroidMarkdownView> LoadInlineView(const char* id);
   int64_t LoadFont(const char* family, int32_t weight, int32_t style);
   void SetExposureListenerEnabled(bool enabled);
+  void OnLayoutFrame(int64_t time);
+  void OnRendererFrame(int64_t time);
   void OnVSync(int64_t time);
 
  public:
