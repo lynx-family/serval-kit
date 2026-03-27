@@ -196,7 +196,8 @@ MarkdownView* MockMarkdownMainView::GetMarkdownView() {
 void MockMarkdownMainView::OnVSync(int64_t timestamp) {
   auto* markdown_view = GetMarkdownView();
   if (markdown_view != nullptr) {
-    markdown_view->OnNextFrame(timestamp);
+    markdown_view->OnLayoutFrame(timestamp);
+    markdown_view->OnRendererFrame(timestamp);
   }
 }
 

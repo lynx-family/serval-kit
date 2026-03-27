@@ -511,6 +511,30 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
   view->OnVSync(time);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeOnLayoutFrame(JNIEnv* env,
+                                                              jobject thiz,
+                                                              jlong instance,
+                                                              jlong time) {
+  if (instance == 0) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  view->OnLayoutFrame(time);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(JNIEnv* env,
+                                                                jobject thiz,
+                                                                jlong instance,
+                                                                jlong time) {
+  if (instance == 0) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  view->OnRendererFrame(time);
+}
+
 extern "C" JNIEXPORT jint JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetAnimationStep(
     JNIEnv* env, jobject thiz, jlong instance) {

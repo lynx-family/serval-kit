@@ -253,10 +253,12 @@ void MarkdownView::NeedsAlign() const {
 void MarkdownView::NeedsDraw() const {
   view_->RequestDraw();
 }
-void MarkdownView::OnNextFrame(int64_t timestamp) {
+void MarkdownView::OnLayoutFrame(int64_t timestamp) {
   animator_.UpdateCurrentTime(timestamp);
   UpdateAnimationStep();
   UpdateTransitionHeight();
+}
+void MarkdownView::OnRendererFrame(int64_t /*timestamp*/) {
   UpdateExposure();
   renderer_.OnNextFrame();
 }

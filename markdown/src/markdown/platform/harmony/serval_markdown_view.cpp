@@ -146,7 +146,8 @@ std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadReplacementView(
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();
-  GetMarkdownView()->OnNextFrame(time_stamp / 1000 / 1000);
+  GetMarkdownView()->OnLayoutFrame(time_stamp / 1000 / 1000);
+  GetMarkdownView()->OnRendererFrame(time_stamp / 1000 / 1000);
 }
 
 std::string GetStringValue(const ValueMap& config, const std::string& key,
