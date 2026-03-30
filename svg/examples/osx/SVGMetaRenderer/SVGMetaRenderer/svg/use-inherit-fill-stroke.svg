@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet" >
+      
+      <defs>
+        <path id="leaf" d="M 20 0 C 55 10 65 42 25 76 C 10 62 0 40 8 18 Z" stroke-width="4" />
+      </defs>
+      <g fill="#34c759" stroke="#1c1c1e">
+        <use href="#leaf" x="35" y="55" />
+      </g>
+      <use href="#leaf" x="130" y="55" fill="#ff3b30" stroke="#1c1c1e" />
+      <use href="#leaf" x="225" y="55" fill="none" stroke="#0a84ff" />
+    
+    </svg>

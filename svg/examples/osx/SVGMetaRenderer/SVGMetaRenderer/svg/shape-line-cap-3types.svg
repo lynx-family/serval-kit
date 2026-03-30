@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <line x1="40" y1="40" x2="260" y2="40" stroke="#ff3b30" stroke-width="16" stroke-linecap="butt" />
+      <line x1="40" y1="100" x2="260" y2="100" stroke="#34c759" stroke-width="16" stroke-linecap="round" />
+      <line x1="40" y1="160" x2="260" y2="160" stroke="#0a84ff" stroke-width="16" stroke-linecap="square" />
+    
+    </svg>

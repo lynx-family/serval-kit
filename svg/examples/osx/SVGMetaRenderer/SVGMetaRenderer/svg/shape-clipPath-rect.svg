@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <defs>
+        <clipPath id="clipRect" clipPathUnits="userSpaceOnUse">
+          <rect x="40" y="30" width="120" height="90" rx="16" />
+        </clipPath>
+      </defs>
+      <rect x="20" y="10" width="170" height="140" fill="#0a84ff" clip-path="url(#clipRect)" />
+      <circle cx="120" cy="80" r="52" fill="#ffcc00" clip-path="url(#clipRect)" />
+    
+    </svg>

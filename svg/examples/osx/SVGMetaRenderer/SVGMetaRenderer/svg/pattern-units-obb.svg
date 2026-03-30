@@ -1,0 +1,12 @@
+<svg width="180" height="180" viewBox="-10 -10 180 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="obbPattern" x="0" y="0" width="0.25" height="0.25" patternUnits="objectBoundingBox">
+      <rect x="0" y="0" width="20" height="20" fill="#fff8e1" />
+      <rect x="0.5" y="0.5" width="19" height="19" fill="none" stroke="#c7b98b" stroke-width="1" />
+      <path d="M0 20 L20 0" stroke="#3949ab" stroke-width="4" />
+      <circle cx="4" cy="4" r="2.5" fill="#3949ab" />
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="160" height="160" fill="url(#obbPattern)" stroke="#616161" stroke-width="1" />
+</svg>

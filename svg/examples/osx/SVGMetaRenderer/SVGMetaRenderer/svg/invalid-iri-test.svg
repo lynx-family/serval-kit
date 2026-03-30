@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120">
+  <rect x="10" y="10" width="70" height="70" rx="10" fill="url()" stroke="#EF4444" stroke-width="4"/>
+  <text x="45" y="100" font-size="12" text-anchor="middle" fill="#111827">url()</text>
+
+  <rect x="85" y="10" width="70" height="70" rx="10" fill="url(" stroke="#3B82F6" stroke-width="4"/>
+  <text x="120" y="100" font-size="12" text-anchor="middle" fill="#111827">url(</text>
+
+  <rect x="160" y="10" width="70" height="70" rx="10" fill="url(#grad1" stroke="#10B981" stroke-width="4"/>
+  <text x="195" y="100" font-size="12" text-anchor="middle" fill="#111827">url(#grad1</text>
+</svg>

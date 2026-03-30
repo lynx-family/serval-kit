@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <rect x="20" y="40" width="70" height="70" fill="#ff3b30" fill-opacity="0.35" stroke="#1c1c1e" stroke-width="8" stroke-opacity="1" />
+      <rect x="120" y="40" width="70" height="70" fill="#34c759" fill-opacity="1" stroke="#1c1c1e" stroke-width="8" stroke-opacity="0.35" />
+      <rect x="220" y="40" width="70" height="70" fill="#0a84ff" opacity="0.35" stroke="#1c1c1e" stroke-width="8" />
+    
+    </svg>

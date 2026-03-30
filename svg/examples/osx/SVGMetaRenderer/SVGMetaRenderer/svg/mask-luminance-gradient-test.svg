@@ -1,0 +1,62 @@
+<svg width="780" height="260" viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="maskFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="black" />
+      <stop offset="50%" stop-color="#7f7f7f" />
+      <stop offset="100%" stop-color="white" />
+    </linearGradient>
+
+    <radialGradient id="softReveal" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="white" />
+      <stop offset="65%" stop-color="#bfbfbf" />
+      <stop offset="100%" stop-color="black" />
+    </radialGradient>
+
+    <linearGradient id="paintWarm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff7a18" />
+      <stop offset="100%" stop-color="#ffb347" />
+    </linearGradient>
+
+    <linearGradient id="paintCool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00c6ff" />
+      <stop offset="100%" stop-color="#0072ff" />
+    </linearGradient>
+
+    <mask id="gradientMask" mask-type="luminance">
+      <rect x="0" y="0" width="200" height="200" fill="url(#maskFade)" />
+    </mask>
+
+    <mask id="radialMask" mask-type="luminance">
+      <rect x="0" y="0" width="200" height="200" fill="black" />
+      <circle cx="100" cy="100" r="92" fill="url(#softReveal)" />
+    </mask>
+
+    <mask id="strokeMask" mask-type="luminance">
+      <rect x="0" y="0" width="200" height="200" fill="black" />
+      <g transform="translate(100 100) rotate(-14)">
+        <path
+            d="M0,-72 L18,-18 L72,0 L18,18 L0,72 L-18,18 L-72,0 L-18,-18 Z"
+            fill="none"
+            stroke="white"
+            stroke-width="28"
+            stroke-linecap="round"
+            stroke-linejoin="round" />
+      </g>
+    </mask>
+  </defs>
+
+  <g transform="translate(0, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">Luma Gradient</text>
+    <rect x="0" y="0" width="200" height="200" rx="24" fill="url(#paintWarm)" mask="url(#gradientMask)" />
+  </g>
+
+  <g transform="translate(260, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">Soft Luma</text>
+    <rect x="0" y="0" width="200" height="200" rx="24" fill="url(#paintCool)" mask="url(#radialMask)" />
+  </g>
+
+  <g transform="translate(520, 28)">
+    <text x="100" y="-10" text-anchor="middle" font-size="16">Stroke Mask</text>
+    <circle cx="100" cy="100" r="94" fill="#ff4d6d" mask="url(#strokeMask)" />
+  </g>
+</svg>
