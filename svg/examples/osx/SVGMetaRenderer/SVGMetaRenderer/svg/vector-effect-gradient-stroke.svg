@@ -1,0 +1,32 @@
+<svg width="520" height="210" viewBox="0 0 520 210" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="veStrokeGradient" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#1e88e5" />
+      <stop offset="50%" stop-color="#8e24aa" />
+      <stop offset="100%" stop-color="#ef6c00" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="520" height="210" fill="#f5f5f5" />
+
+  <g transform="translate(24 24)">
+    <text x="0" y="0" font-size="18" fill="#424242">gradient stroke none</text>
+    <rect x="0" y="18" width="220" height="150" rx="10" ry="10" fill="#fafafa" stroke="#bdbdbd" stroke-dasharray="6 6" />
+    <g transform="translate(36 38) scale(2.3)">
+      <rect x="0" y="0" width="54" height="54" rx="10" ry="10"
+            fill="none"
+            stroke="url(#veStrokeGradient)"
+            stroke-width="7" />
+    </g>
+
+    <text x="258" y="0" font-size="18" fill="#424242">gradient non-scaling</text>
+    <rect x="258" y="18" width="220" height="150" rx="10" ry="10" fill="#fafafa" stroke="#bdbdbd" stroke-dasharray="6 6" />
+    <g transform="translate(294 38) scale(2.3)">
+      <rect x="0" y="0" width="54" height="54" rx="10" ry="10"
+            fill="none"
+            stroke="url(#veStrokeGradient)"
+            stroke-width="7"
+            vector-effect="non-scaling-stroke" />
+    </g>
+  </g>
+</svg>

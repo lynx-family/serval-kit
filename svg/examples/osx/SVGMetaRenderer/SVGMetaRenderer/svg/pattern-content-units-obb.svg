@@ -1,0 +1,13 @@
+<svg width="180" height="160" viewBox="0 0 180 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="contentObbPattern" x="20" y="20" width="40" height="40"
+             patternUnits="userSpaceOnUse" patternContentUnits="objectBoundingBox">
+      <rect x="0.05" y="0.05" width="0.22" height="0.22" fill="#ffd54f" />
+      <rect x="0.05" y="0.05" width="0.22" height="0.22" fill="none" stroke="#ef6c00" stroke-width="0.03" />
+      <circle cx="0.16" cy="0.16" r="0.06" fill="#00897b" />
+      <circle cx="0.09" cy="0.09" r="0.025" fill="#00897b" />
+    </pattern>
+  </defs>
+
+  <rect x="20" y="20" width="120" height="120" fill="url(#contentObbPattern)" stroke="#616161" stroke-width="1" />
+</svg>
