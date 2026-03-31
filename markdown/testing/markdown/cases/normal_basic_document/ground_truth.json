@@ -17,8 +17,8 @@
         "rect": {
           "left": 0.0,
           "top": 150.0,
-          "right": 340.0,
-          "bottom": 240.0
+          "right": 323.0,
+          "bottom": 270.0
         }
       },
       {
@@ -74,11 +74,11 @@
       },
       {
         "op": "glyphs",
-        "text": "…",
+        "text": "writing flow.",
         "font": "",
         "origin": {
-          "x": 323.0,
-          "y": 232.64999389648438
+          "x": 0.0,
+          "y": 262.6499938964844
         },
         "painter": {
           "stroke_width": 1.0,

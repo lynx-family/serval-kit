@@ -21,12 +21,11 @@ class MarkdownViewRenderer {
 
   void Draw(tttext::ICanvasHelper* canvas, float left, float top) const;
   void SetDocument(std::shared_ptr<MarkdownDocument> document);
+  const std::shared_ptr<MarkdownDocument>& GetDocument() const;
   void SetViewContainerHandle(MarkdownViewContainerHandle* handle);
   void SetMarkdownAnimationType(MarkdownAnimationType type);
   void SetMarkdownAnimationStep(int32_t step);
-  void SetTypewriterCursor(std::shared_ptr<MarkdownDrawable> cursor) {
-    cursor_ = std::move(cursor);
-  }
+  void SetContentComplete(bool complete);
   void OnNextFrame();
 
  private:
@@ -42,7 +41,6 @@ class MarkdownViewRenderer {
   MarkdownViewContainerHandle* handle_{nullptr};
   MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
   int32_t animation_step_{0};
-  std::shared_ptr<MarkdownDrawable> cursor_{nullptr};
   std::unordered_map<int32_t, std::shared_ptr<MarkdownPlatformView>>
       region_views_;
   std::unordered_map<int32_t, std::shared_ptr<MarkdownPlatformView>>
@@ -50,7 +48,8 @@ class MarkdownViewRenderer {
   bool region_views_dirty_{true};
   bool full_redraw_required_{true};
   bool has_last_view_rect_{false};
+  bool content_complete_{true};
   RectF last_view_rect_{};
 };
 }  // namespace serval::markdown
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_RENDERER_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_RENDERER_H_

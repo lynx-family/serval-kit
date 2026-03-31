@@ -32,13 +32,13 @@ class MarkdownPage {
   float GetMaxWidth() const { return max_width_; }
   float GetMaxHeight() const { return max_height_; }
   int GetLineCount() const { return line_count_; }
-  bool FullFilled() { return full_filled_; }
+  bool FullFilled() const { return full_filled_; }
   void SetCustomTypewriterCursor(
       std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor) {
     custom_typewriter_cursor_ = std::move(custom_typewriter_cursor);
   }
-  MarkdownDrawable* GetCustomTypewriterCursor() {
-    return custom_typewriter_cursor_.get();
+  std::shared_ptr<MarkdownDrawable> GetCustomTypewriterCursor() const {
+    return custom_typewriter_cursor_;
   }
   MarkdownPageRegion* GetRegion(uint32_t index) const {
     if (index >= regions_.size())
@@ -94,10 +94,10 @@ class MarkdownPage {
   std::vector<std::unique_ptr<MarkdownTextAttachment>> border_attachments_;
   int line_count_{0};
   bool full_filled_{false};
-  float layout_width_;
-  float layout_height_;
-  float max_width_;
-  float max_height_;
+  float layout_width_{};
+  float layout_height_{};
+  float max_width_{};
+  float max_height_{};
   std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor_{nullptr};
   // TODO(zhouchaoying): temporarily fix quote border, will be removed next
   // commit

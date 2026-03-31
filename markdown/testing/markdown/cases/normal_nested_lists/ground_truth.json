@@ -10,14 +10,57 @@
       "bottom": 220.0
     },
     "need_draw": true,
-    "draw_view_count": 6,
+    "draw_view_count": 7,
     "ops": [
       {
         "op": "clip",
         "rect": {
           "left": 20.0,
+          "top": 200.0,
+          "right": 160.0,
+          "bottom": 230.0
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "2.",
+        "font": "",
+        "origin": {
+          "x": 20.0,
+          "y": 222.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "glyphs",
+        "text": "Mobile",
+        "font": "",
+        "origin": {
+          "x": 58.0,
+          "y": 222.64999389648438
+        },
+        "painter": {
+          "stroke_width": 1.0,
+          "fill_color": 4278190080,
+          "stroke_color": 0,
+          "text_size": 17.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
+        "op": "clip",
+        "rect": {
+          "left": 20.0,
           "top": 160.0,
-          "right": 126.0,
+          "right": 109.0,
           "bottom": 190.0
         }
       },
@@ -44,23 +87,6 @@
         "font": "",
         "origin": {
           "x": 58.0,
-          "y": 182.64999389648438
-        },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 4278190080,
-          "stroke_color": 0,
-          "text_size": 17.0,
-          "bold": false,
-          "italic": false
-        }
-      },
-      {
-        "op": "glyphs",
-        "text": "…",
-        "font": "",
-        "origin": {
-          "x": 109.0,
           "y": 182.64999389648438
         },
         "painter": {

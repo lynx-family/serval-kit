@@ -5,7 +5,9 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_MEASURER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_MEASURER_H_
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <string>
 #include <string_view>
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_drawable.h"
@@ -29,8 +31,9 @@ class MarkdownViewMeasurer {
   void SetContent(std::string_view content);
   void SetContentID(std::string_view id);
   std::string GetContentID() const;
-  void SetContentComplete(bool complete);
   void SetContentRange(Range range);
+  int32_t GetContentStart() const { return content_start_; }
+  int32_t GetContentEnd() const { return content_end_; }
   void SetParserType(std::string_view parser_type, void* parser_ud = nullptr);
   void SetSourceType(SourceType type);
 
@@ -83,4 +86,4 @@ class MarkdownViewMeasurer {
   MarkdownEventListener* event_listener_{nullptr};
 };
 }  // namespace serval::markdown
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_MEASURER_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_MEASURER_H_
