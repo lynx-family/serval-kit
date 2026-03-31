@@ -11,7 +11,6 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view_animator.h"
-
 namespace serval::markdown {
 MarkdownView::MarkdownView(MarkdownPlatformView* view)
     : view_(view), handle_(view->GetViewContainerHandle()) {
@@ -52,11 +51,18 @@ void MarkdownView::SetContentID(std::string_view id) {
   measurer_.SetContentID(id);
 }
 void MarkdownView::SetContentComplete(bool complete) {
-  measurer_.SetContentComplete(complete);
+  layout_data_.content_complete_ = complete;
+  NeedsMeasure();
 }
 void MarkdownView::SetContentRange(Range range) {
   measurer_.SetContentRange(range);
   NeedsMeasure();
+}
+void MarkdownView::SetContentRangeStart(int32_t start) {
+  SetContentRange({start, measurer_.GetContentEnd()});
+}
+void MarkdownView::SetContentRangeEnd(int32_t end) {
+  SetContentRange({measurer_.GetContentStart(), end});
 }
 void MarkdownView::SetStyle(const ValueMap& style_map) {
   measurer_.SetStyle(style_map);
@@ -83,7 +89,12 @@ void MarkdownView::SetAnimationType(const MarkdownAnimationType type) {
 }
 void MarkdownView::SetAnimationStep(int32_t animation_step) {
   animator_.SetAnimationStep(animation_step);
-  NeedsMeasure();
+  if (animator_.GetTypewriterDynamicHeight()) {
+    view_->RequestMeasure();
+  } else {
+    view_->RequestDraw();
+    PublishRendererBundle();
+  }
 }
 void MarkdownView::SetTypewriterDynamicHeight(bool enable) {
   animator_.SetTypewriterDynamicHeight(enable);
@@ -180,22 +191,19 @@ void MarkdownView::CreateSelectionHandles() {
 MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
   measurer_.Measure(spec);
   if (measurer_.DidLayoutInLastMeasure()) {
-    ClearForParse();
     auto before_views = GetInlineViews();
-    document_ = measurer_.GetDocument();
-    document_updated_ = true;
+    layout_data_.document_ = measurer_.GetDocument();
+    draw_end_sent_ = false;
     auto after_views = GetInlineViews();
     RemoveUnusedViews(before_views, after_views);
     animator_.SetMaxAnimationStep(GetCharCount());
-    draw_end_sent_ = false;
   }
 
   const auto measured = measurer_.GetMeasuredSize();
   float result_width = measured.width_;
   float result_height = measured.height_;
   float transition_target_height = result_height;
-  SendDrawStart();
-  if (document_ != nullptr &&
+  if (layout_data_.document_ != nullptr &&
       animator_.GetAnimationType() == MarkdownAnimationType::kTypewriter &&
       animator_.GetTypewriterDynamicHeight()) {
     result_height = CalculateHeightByAnimationStep();
@@ -211,37 +219,30 @@ MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
   if (animator_.GetHeightTransitionDuration() > 0) {
     result_height = animator_.UpdateHeightTransition(transition_target_height);
   }
+  PublishRendererBundle();
   return {.width_ = result_width,
           .height_ = result_height,
           .baseline_ = result_height};
 }
 void MarkdownView::Align(float x, float y) {
   measurer_.Align();
-  if (custom_typewriter_cursor_ != nullptr &&
-      custom_cursor_position_ != PointF{0, 0}) {
-    custom_typewriter_cursor_->Align(custom_cursor_position_.x_,
-                                     custom_cursor_position_.y_);
+  if (layout_data_.document_ == nullptr ||
+      layout_data_.custom_cursor_position_ == PointF{0, 0}) {
+    return;
+  }
+  const auto page = layout_data_.document_->GetPage();
+  if (page == nullptr) {
+    return;
+  }
+  const auto cursor = page->GetCustomTypewriterCursor();
+  if (cursor != nullptr) {
+    cursor->Align(layout_data_.custom_cursor_position_.x_,
+                  layout_data_.custom_cursor_position_.y_);
   }
 }
 void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
-  const float left = x;
-  const float top = y;
-  SendDrawStart();
-  if (document_updated_) {
-    renderer_.SetDocument(document_);
-    document_updated_ = false;
-  }
-  renderer_.SetTypewriterCursor(custom_typewriter_cursor_);
-  renderer_.SetMarkdownAnimationType(animator_.GetAnimationType());
-  renderer_.SetMarkdownAnimationStep(animator_.GetAnimationStep());
-  renderer_.Draw(canvas, left, top);
-  if (animator_.GetAnimationType() == MarkdownAnimationType::kNone) {
-    SendDrawEnd();
-  } else if (animator_.GetAnimationType() ==
-                 MarkdownAnimationType::kTypewriter &&
-             animator_.GetAnimationStep() >= animator_.GetMaxAnimationStep()) {
-    SendDrawEnd();
-  }
+  ConsumeRendererBundleIfNeeded();
+  renderer_.Draw(canvas, x, y);
 }
 void MarkdownView::NeedsMeasure() {
   measurer_.NeedsMeasure();
@@ -257,8 +258,10 @@ void MarkdownView::OnLayoutFrame(int64_t timestamp) {
   animator_.UpdateCurrentTime(timestamp);
   UpdateAnimationStep();
   UpdateTransitionHeight();
+  UpdateDrawEventsByAnimation();
 }
 void MarkdownView::OnRendererFrame(int64_t /*timestamp*/) {
+  ConsumeRendererBundleIfNeeded();
   UpdateExposure();
   renderer_.OnNextFrame();
 }
@@ -368,8 +371,8 @@ void MarkdownView::UpdateSelectionViews() const {
 
 void MarkdownView::UpdateSelectionRects(SelectionState state) {
   selection_highlight_rects_.clear();
-  if (is_in_selection_ && document_ != nullptr) {
-    auto page = document_->GetPage();
+  if (is_in_selection_ && renderer_data_.document_ != nullptr) {
+    auto page = renderer_data_.document_->GetPage();
     if (page != nullptr) {
       selection_highlight_rects_ = MarkdownSelection::GetSelectionRectByCharPos(
           page.get(), select_start_index_, select_end_index_);
@@ -379,11 +382,11 @@ void MarkdownView::UpdateSelectionRects(SelectionState state) {
   SendSelectionChanged(state);
 }
 
-int32_t MarkdownView::GetCharIndexByPosition(PointF position) {
-  if (document_ == nullptr) {
+int32_t MarkdownView::GetCharIndexByPosition(PointF position) const {
+  if (renderer_data_.document_ == nullptr) {
     return -1;
   }
-  auto page = document_->GetPage();
+  auto page = renderer_data_.document_->GetPage();
   if (!page)
     return -1;
   auto [start, end] = MarkdownSelection::GetCharRangeByPoint(
@@ -398,6 +401,7 @@ void MarkdownView::UpdateAnimationStep() {
       view_->RequestMeasure();
     } else {
       view_->RequestDraw();
+      PublishRendererBundle();
     }
   }
 }
@@ -407,13 +411,57 @@ void MarkdownView::UpdateTransitionHeight() const {
     view_->RequestMeasure();
   }
 }
-void MarkdownView::SendImageClicked(const char* url) {
+
+void MarkdownView::UpdateDrawEventsByAnimation() {
+  SendDrawStart();
+  const int32_t animation_step = animator_.GetAnimationStep();
+  const int32_t max_animation_step = animator_.GetMaxAnimationStep();
+  if (animator_.GetAnimationType() != MarkdownAnimationType::kTypewriter ||
+      (animation_step >= max_animation_step &&
+       layout_data_.content_complete_)) {
+    SendDrawEnd();
+  }
+}
+
+void MarkdownView::PublishRendererBundle() {
+  auto bundle = std::make_unique<RendererBundle>();
+  bundle->document_ = layout_data_.document_;
+  bundle->animation_type_ = animator_.GetAnimationType();
+  bundle->animation_step_ = animator_.GetAnimationStep();
+  bundle->content_complete_ = layout_data_.content_complete_;
+  std::lock_guard<std::mutex> guard(renderer_bundle_mutex_);
+  renderer_bundle_ = std::move(bundle);
+}
+
+void MarkdownView::ConsumeRendererBundleIfNeeded() {
+  std::unique_ptr<RendererBundle> bundle;
+  {
+    std::lock_guard<std::mutex> guard(renderer_bundle_mutex_);
+    if (renderer_bundle_ == nullptr) {
+      return;
+    }
+    bundle = std::move(renderer_bundle_);
+  }
+  if (renderer_data_.document_.get() != bundle->document_.get()) {
+    renderer_.SetDocument(bundle->document_);
+    renderer_data_.document_ = bundle->document_;
+    UpdateExposure();
+    if (is_in_selection_) {
+      UpdateSelectionRects(SelectionState::kMove);
+    }
+  }
+  renderer_.SetMarkdownAnimationType(bundle->animation_type_);
+  renderer_.SetMarkdownAnimationStep(bundle->animation_step_);
+  renderer_.SetContentComplete(bundle->content_complete_);
+}
+
+void MarkdownView::SendImageClicked(const char* url) const {
   if (event_listener_ == nullptr) {
     return;
   }
   event_listener_->OnImageClicked(url);
 }
-void MarkdownView::SendLinkClicked(const char* url, const char* content) {
+void MarkdownView::SendLinkClicked(const char* url, const char* content) const {
   if (event_listener_ == nullptr) {
     return;
   }
@@ -439,62 +487,67 @@ void MarkdownView::UpdateExposure() {
   if (exposure_listener_ == nullptr) {
     return;
   }
-  if (document_ == nullptr) {
+  if (renderer_data_.document_ == nullptr) {
     return;
   }
   auto rect_in_screen = handle_->GetViewRectInScreen();
-  auto images = document_->GetImageByViewRect(rect_in_screen);
+  auto images = renderer_data_.document_->GetImageByViewRect(rect_in_screen);
+  std::unordered_set<ExposureKey, ExposureKey::Hash> current_images;
   for (auto* image : images) {
-    auto find = exposure_images_.find(image);
-    if (find == exposure_images_.end()) {
-      exposure_listener_->OnImageAppear(image->url_.c_str());
-    } else {
-      exposure_images_.erase(image);
+    if (image == nullptr) {
+      continue;
+    }
+    ExposureKey key;
+    key.url_ = image->url_;
+    key.char_index_ = image->char_index_;
+    current_images.emplace(key);
+    if (renderer_data_.exposure_images_.find(key) ==
+        renderer_data_.exposure_images_.end()) {
+      exposure_listener_->OnImageAppear(key.url_.c_str());
     }
   }
-  for (auto* image : exposure_images_) {
-    exposure_listener_->OnImageDisappear(image->url_.c_str());
-  }
-  for (auto* image : images) {
-    exposure_images_.emplace(image);
-  }
-
-  auto links = document_->GetLinksByViewRect(rect_in_screen);
-  for (auto* item : links) {
-    auto find = exposure_links_.find(item);
-    if (find == exposure_links_.end()) {
-      exposure_listener_->OnLinkAppear(item->url_.c_str(),
-                                       item->content_.c_str());
-    } else {
-      exposure_links_.erase(item);
+  for (const auto& image_key : renderer_data_.exposure_images_) {
+    if (current_images.find(image_key) == current_images.end()) {
+      exposure_listener_->OnImageDisappear(image_key.url_.c_str());
     }
   }
-  for (auto* item : exposure_links_) {
-    exposure_listener_->OnLinkDisappear(item->url_.c_str(),
-                                        item->content_.c_str());
-  }
-  exposure_links_.clear();
+  renderer_data_.exposure_images_ = std::move(current_images);
+
+  auto links = renderer_data_.document_->GetLinksByViewRect(rect_in_screen);
+  std::unordered_set<ExposureKey, ExposureKey::Hash> current_links;
   for (auto* item : links) {
-    exposure_links_.emplace(item);
+    if (item == nullptr) {
+      continue;
+    }
+    ExposureKey key;
+    key.url_ = item->url_;
+    key.char_index_ = static_cast<int32_t>(item->char_start_);
+    key.content_ = item->content_;
+    current_links.emplace(key);
+    if (renderer_data_.exposure_links_.find(key) ==
+        renderer_data_.exposure_links_.end()) {
+      exposure_listener_->OnLinkAppear(key.url_.c_str(), key.content_.c_str());
+    }
   }
+  for (const auto& link_key : renderer_data_.exposure_links_) {
+    if (current_links.find(link_key) == current_links.end()) {
+      exposure_listener_->OnLinkDisappear(link_key.url_.c_str(),
+                                          link_key.content_.c_str());
+    }
+  }
+  renderer_data_.exposure_links_ = std::move(current_links);
 }
-
-void MarkdownView::ClearForParse() {
-  exposure_images_.clear();
-  exposure_links_.clear();
-}
-
-std::set<MarkdownPlatformView*> MarkdownView::GetInlineViews() {
-  if (document_ == nullptr) {
+std::set<MarkdownPlatformView*> MarkdownView::GetInlineViews() const {
+  if (layout_data_.document_ == nullptr) {
     return {};
   }
   std::set<MarkdownPlatformView*> views;
-  for (auto& image : document_->GetImages()) {
+  for (auto& image : layout_data_.document_->GetImages()) {
     if (image.image_ != nullptr) {
       views.emplace(static_cast<MarkdownPlatformView*>(image.image_));
     }
   }
-  for (auto& inline_view : document_->GetInlineViews()) {
+  for (auto& inline_view : layout_data_.document_->GetInlineViews()) {
     if (inline_view.view_ != nullptr) {
       views.emplace(static_cast<MarkdownPlatformView*>(inline_view.view_));
     }
@@ -513,11 +566,11 @@ void MarkdownView::RemoveUnusedViews(
   }
 }
 
-int32_t MarkdownView::GetCharCount() {
-  if (document_ == nullptr) {
+int32_t MarkdownView::GetCharCount() const {
+  if (layout_data_.document_ == nullptr) {
     return 0;
   }
-  const auto page = document_->GetPage();
+  const auto page = layout_data_.document_->GetPage();
   if (page == nullptr) {
     return 0;
   }
@@ -525,54 +578,30 @@ int32_t MarkdownView::GetCharCount() {
 }
 
 float MarkdownView::CalculateHeightByAnimationStep() {
-  if (document_ == nullptr) {
+  if (layout_data_.document_ == nullptr) {
     return measurer_.GetMeasuredSize().height_;
   }
-  if (resource_loader_ == nullptr) {
-    custom_typewriter_cursor_.reset();
-    custom_cursor_position_ = {0, 0};
-    return measurer_.GetMeasuredSize().height_;
-  }
-  EnsureTypewriterCursor();
   return CalculateHeightByAnimationStep(animator_.GetAnimationStep(), true);
-}
-
-void MarkdownView::EnsureTypewriterCursor() {
-  auto& cursor_style = document_->GetStyle().typewriter_cursor_;
-  const auto& selector = cursor_style.typewriter_cursor_.custom_cursor_;
-  if (selector.empty()) {
-    custom_typewriter_cursor_.reset();
-    custom_typewriter_cursor_selector_.clear();
-    return;
-  }
-  if (custom_typewriter_cursor_ != nullptr &&
-      custom_typewriter_cursor_selector_ == selector) {
-    return;
-  }
-  custom_typewriter_cursor_ = resource_loader_->LoadInlineView(
-      selector.c_str(), document_->GetMaxWidth(), document_->GetMaxHeight());
-  custom_typewriter_cursor_selector_ = selector;
 }
 
 float MarkdownView::CalculateHeightByAnimationStep(
     int32_t animation_step, bool update_cursor_position) {
-  if (document_ == nullptr) {
+  if (layout_data_.document_ == nullptr) {
     return measurer_.GetMeasuredSize().height_;
   }
-  if (resource_loader_ == nullptr) {
-    return measurer_.GetMeasuredSize().height_;
-  }
-  auto& cursor_style = document_->GetStyle().typewriter_cursor_;
-  auto page = document_->GetPage();
+  auto& cursor_style = layout_data_.document_->GetStyle().typewriter_cursor_;
+  auto page = layout_data_.document_->GetPage();
   if (page == nullptr) {
     if (update_cursor_position) {
-      custom_cursor_position_ = {0, 0};
+      layout_data_.custom_cursor_position_ = {0, 0};
     }
     return measurer_.GetMeasuredSize().height_;
   }
+  const auto cursor = page->GetCustomTypewriterCursor();
   MarkdownCharTypewriterDrawer drawer(
-      nullptr, animation_step, document_->GetResourceLoader(), cursor_style,
-      false, custom_typewriter_cursor_.get());
+      nullptr, animation_step, layout_data_.document_->GetResourceLoader(),
+      cursor_style, !layout_data_.content_complete_,
+      cursor == nullptr ? nullptr : cursor.get());
   drawer.CalculateCursorPosition(page.get());
   float typewriter_height = 0;
   if (animation_step < animator_.GetMaxAnimationStep()) {
@@ -581,7 +610,7 @@ float MarkdownView::CalculateHeightByAnimationStep(
     typewriter_height = measurer_.GetMeasuredSize().height_;
   }
   if (update_cursor_position) {
-    custom_cursor_position_ = drawer.GetCursorPosition();
+    layout_data_.custom_cursor_position_ = drawer.GetCursorPosition();
   }
   return typewriter_height;
 }
@@ -613,18 +642,19 @@ Range MarkdownView::GetSelectedRange() const {
   return {select_start_index_, select_end_index_};
 }
 
-std::string MarkdownView::GetSelectedText() {
-  if (document_ == nullptr) {
+std::string MarkdownView::GetSelectedText() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  return document_->GetContentByCharPos(select_start_index_, select_end_index_);
+  return renderer_data_.document_->GetContentByCharPos(select_start_index_,
+                                                       select_end_index_);
 }
 
-std::string MarkdownView::GetContent() {
-  if (document_ == nullptr) {
+std::string MarkdownView::GetContent() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  return document_->GetMarkdownContent();
+  return renderer_data_.document_->GetMarkdownContent();
 }
 
 std::string MarkdownView::GetContentID() const {
@@ -651,18 +681,18 @@ float MarkdownView::GetSelectionHandleRadius() const {
   return selection_handle_size_ * 0.5f;
 }
 
-std::vector<std::string> MarkdownView::GetAllImageUrl() {
-  if (document_ == nullptr) {
+std::vector<std::string> MarkdownView::GetAllImageUrl() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  return document_->GetAllImageUrl();
+  return renderer_data_.document_->GetAllImageUrl();
 }
 
-std::vector<std::string> MarkdownView::GetLinkUrl() {
-  if (document_ == nullptr) {
+std::vector<std::string> MarkdownView::GetLinkUrl() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  const auto& links = document_->GetLinks();
+  const auto& links = renderer_data_.document_->GetLinks();
   std::vector<std::string> urls;
   urls.reserve(links.size());
   for (const auto& link : links) {
@@ -671,11 +701,11 @@ std::vector<std::string> MarkdownView::GetLinkUrl() {
   return urls;
 }
 
-std::vector<std::string> MarkdownView::GetLinkContent() {
-  if (document_ == nullptr) {
+std::vector<std::string> MarkdownView::GetLinkContent() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  const auto& links = document_->GetLinks();
+  const auto& links = renderer_data_.document_->GetLinks();
   std::vector<std::string> contents;
   contents.reserve(links.size());
   for (const auto& link : links) {
@@ -684,78 +714,79 @@ std::vector<std::string> MarkdownView::GetLinkContent() {
   return contents;
 }
 
-std::vector<RectF> MarkdownView::GetLinkBoundingRect() {
-  if (document_ == nullptr) {
+std::vector<RectF> MarkdownView::GetLinkBoundingRect() const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  const auto& links = document_->GetLinks();
+  const auto& links = renderer_data_.document_->GetLinks();
   std::vector<RectF> rects;
   rects.reserve(links.size());
   for (const auto& link : links) {
-    const int32_t start = static_cast<int32_t>(link.char_start_);
-    const int32_t end =
-        static_cast<int32_t>(link.char_start_ + link.char_count_);
+    const auto start = static_cast<int32_t>(link.char_start_);
+    const auto end = static_cast<int32_t>(link.char_start_ + link.char_count_);
     rects.emplace_back(GetTextBoundingRect({start, end}));
   }
   return rects;
 }
 
-std::vector<Range> MarkdownView::GetSyntaxSourceRanges(std::string_view tag) {
-  if (document_ == nullptr) {
+std::vector<Range> MarkdownView::GetSyntaxSourceRanges(
+    std::string_view tag) const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  return document_->GetSyntaxSourceRanges(tag);
+  return renderer_data_.document_->GetSyntaxSourceRanges(tag);
 }
 
 Range MarkdownView::GetCharRangeByPosition(
-    PointF position, MarkdownSelection::CharRangeType char_range_type) {
-  if (document_ == nullptr) {
+    PointF position, MarkdownSelection::CharRangeType char_range_type) const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  auto page = document_->GetPage();
+  auto page = renderer_data_.document_->GetPage();
   if (page == nullptr)
     return {};
   return MarkdownSelection::GetCharRangeByPoint(page.get(), position,
                                                 char_range_type);
 }
 
-RectF MarkdownView::GetTextBoundingRect(Range range) {
-  if (document_ == nullptr) {
+RectF MarkdownView::GetTextBoundingRect(Range range) const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  auto page = document_->GetPage();
+  auto page = renderer_data_.document_->GetPage();
   if (page == nullptr)
     return {};
   return MarkdownSelection::GetSelectionClosedRectByCharPos(
       page.get(), range.start_, range.end_);
 }
 
-std::string MarkdownView::GetParsedContent(Range char_range) {
-  if (document_ == nullptr) {
+std::string MarkdownView::GetParsedContent(Range char_range) const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  return document_->GetContentByCharPos(char_range.start_, char_range.end_);
+  return renderer_data_.document_->GetContentByCharPos(char_range.start_,
+                                                       char_range.end_);
 }
 
-int32_t MarkdownView::CharOffsetToSourceOffset(int32_t char_offset) {
-  if (document_ == nullptr) {
+int32_t MarkdownView::CharOffsetToSourceOffset(int32_t char_offset) const {
+  if (renderer_data_.document_ == nullptr) {
     return 0;
   }
-  return document_->CharOffsetToMarkdownOffset(char_offset);
+  return renderer_data_.document_->CharOffsetToMarkdownOffset(char_offset);
 }
 
-int32_t MarkdownView::SourceOffsetToCharOffset(int32_t source_offset) {
-  if (document_ == nullptr) {
+int32_t MarkdownView::SourceOffsetToCharOffset(int32_t source_offset) const {
+  if (renderer_data_.document_ == nullptr) {
     return 0;
   }
-  return document_->MarkdownOffsetToCharOffset(source_offset);
+  return renderer_data_.document_->MarkdownOffsetToCharOffset(source_offset);
 }
 
-std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) {
-  if (document_ == nullptr) {
+std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) const {
+  if (renderer_data_.document_ == nullptr) {
     return {};
   }
-  auto page = document_->GetPage();
+  auto page = renderer_data_.document_->GetPage();
   if (page == nullptr)
     return {};
   return MarkdownSelection::GetSelectionRectByCharPos(page.get(), range.start_,
@@ -778,16 +809,18 @@ bool MarkdownView::OnTap(PointF position, GestureEventType event) {
       ExitSelection();
       return true;
     }
-    if (document_ == nullptr || event_listener_ == nullptr) {
+    if (renderer_data_.document_ == nullptr || event_listener_ == nullptr) {
       return false;
     }
-    const auto* link = document_->GetLinkByTouchPosition(position);
+    const auto* link =
+        renderer_data_.document_->GetLinkByTouchPosition(position);
     if (link != nullptr) {
       event_listener_->OnLinkClicked(link->url_.c_str(),
                                      link->content_.c_str());
       return true;
     }
-    const auto image = document_->GetImageByTouchPosition(position);
+    const auto image =
+        renderer_data_.document_->GetImageByTouchPosition(position);
     if (!image.empty()) {
       event_listener_->OnImageClicked(image.c_str());
       return true;
@@ -797,7 +830,7 @@ bool MarkdownView::OnTap(PointF position, GestureEventType event) {
 }
 
 bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
-  if (document_ == nullptr) {
+  if (renderer_data_.document_ == nullptr) {
     return false;
   }
   if (event == GestureEventType::kDown && enable_selection_ &&
@@ -813,17 +846,20 @@ bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
 }
 
 bool MarkdownView::OnPan(PointF position, PointF motion,
-                         GestureEventType event) {
-  if (document_ == nullptr) {
+                         GestureEventType event) const {
+  if (renderer_data_.document_ == nullptr) {
     return false;
   }
   auto state = MarkdownTouchState::kNone;
   if (event == GestureEventType::kDown) {
-    state = document_->OnTouchEvent(MarkdownTouchEventType::kDown, position);
+    state = renderer_data_.document_->OnTouchEvent(
+        MarkdownTouchEventType::kDown, position);
   } else if (event == GestureEventType::kMove) {
-    state = document_->OnTouchEvent(MarkdownTouchEventType::kMove, position);
+    state = renderer_data_.document_->OnTouchEvent(
+        MarkdownTouchEventType::kMove, position);
   } else {
-    state = document_->OnTouchEvent(MarkdownTouchEventType::kUp, position);
+    state = renderer_data_.document_->OnTouchEvent(MarkdownTouchEventType::kUp,
+                                                   position);
   }
   if (state == MarkdownTouchState::kOnScroll) {
     NeedsAlign();
@@ -906,8 +942,10 @@ void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {
       SetInitialAnimationStep(static_cast<int32_t>(value));
       break;
     case MarkdownProps::kContentRangeStart:
+      SetContentRangeStart(static_cast<int32_t>(value));
       break;
     case MarkdownProps::kContentRangeEnd:
+      SetContentRangeEnd(static_cast<int32_t>(value));
       break;
     case MarkdownProps::kTypewriterHeightTransitionDuration:
       SetHeightTransitionDuration(static_cast<float>(value));
@@ -916,6 +954,7 @@ void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {
       SetTypewriterHeightTransitionPrefetch(static_cast<bool>(value));
       break;
     case MarkdownProps::kAllowBreakAroundPunctuation:
+      SetEnableBreakAroundPunctuation(static_cast<bool>(value));
       break;
     case MarkdownProps::kEnableTextSelection:
       SetEnableSelection(static_cast<bool>(value));

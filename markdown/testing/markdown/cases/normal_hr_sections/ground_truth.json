@@ -17,8 +17,8 @@
         "rect": {
           "left": 0.0,
           "top": 190.0,
-          "right": 187.0,
-          "bottom": 220.0
+          "right": 170.0,
+          "bottom": 250.0
         }
       },
       {
@@ -40,11 +40,11 @@
       },
       {
         "op": "glyphs",
-        "text": "…",
+        "text": "paragraph.",
         "font": "",
         "origin": {
-          "x": 170.0,
-          "y": 212.64999389648438
+          "x": 0.0,
+          "y": 242.64999389648438
         },
         "painter": {
           "stroke_width": 1.0,

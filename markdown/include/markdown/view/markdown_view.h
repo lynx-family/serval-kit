@@ -4,6 +4,9 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_H_
+#include <cstdint>
+#include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <string_view>
@@ -74,28 +77,28 @@ class MarkdownView final : public MarkdownDrawable {
   void SetArrayProp(MarkdownProps prop, const ValueArray& array);
   void SetMapProp(MarkdownProps prop, const ValueMap& map);
 
-  std::string GetSelectedText();
-  std::string GetContent();
+  std::string GetSelectedText() const;
+  std::string GetContent() const;
   std::string GetContentID() const;
   Range GetSelectedRange() const;
   const std::vector<RectF>& GetSelectedLineBoundingRect();
   PointF GetSelectionHandlePosition() const;
   float GetSelectionHandleRadius() const;
-  std::vector<std::string> GetAllImageUrl();
-  std::vector<std::string> GetLinkUrl();
-  std::vector<std::string> GetLinkContent();
-  std::vector<RectF> GetLinkBoundingRect();
-  std::vector<Range> GetSyntaxSourceRanges(std::string_view tag);
+  std::vector<std::string> GetAllImageUrl() const;
+  std::vector<std::string> GetLinkUrl() const;
+  std::vector<std::string> GetLinkContent() const;
+  std::vector<RectF> GetLinkBoundingRect() const;
+  std::vector<Range> GetSyntaxSourceRanges(std::string_view tag) const;
 
-  int32_t GetCharIndexByPosition(PointF position);
+  int32_t GetCharIndexByPosition(PointF position) const;
   Range GetCharRangeByPosition(
-      PointF position, MarkdownSelection::CharRangeType char_range_type);
-  std::vector<RectF> GetTextLineBoundingRect(Range range);
-  RectF GetTextBoundingRect(Range range);
+      PointF position, MarkdownSelection::CharRangeType char_range_type) const;
+  std::vector<RectF> GetTextLineBoundingRect(Range range) const;
+  RectF GetTextBoundingRect(Range range) const;
 
-  std::string GetParsedContent(Range char_range);
-  int32_t CharOffsetToSourceOffset(int32_t char_offset);
-  int32_t SourceOffsetToCharOffset(int32_t source_offset);
+  std::string GetParsedContent(Range char_range) const;
+  int32_t CharOffsetToSourceOffset(int32_t char_offset) const;
+  int32_t SourceOffsetToCharOffset(int32_t source_offset) const;
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   void Align(float x, float y) override;
@@ -112,29 +115,32 @@ class MarkdownView final : public MarkdownDrawable {
 
   bool OnLongPress(PointF position, GestureEventType event);
   bool OnTap(PointF position, GestureEventType event);
-  bool OnPan(PointF position, PointF motion, GestureEventType event);
+  bool OnPan(PointF position, PointF motion, GestureEventType event) const;
 
  protected:
+  void SetContentRangeStart(int32_t start);
+  void SetContentRangeEnd(int32_t end);
   MeasureResult OnMeasure(MeasureSpec spec) override;
-  int32_t GetCharCount();
+  int32_t GetCharCount() const;
   float CalculateHeightByAnimationStep();
-  void EnsureTypewriterCursor();
   float CalculateHeightByAnimationStep(int32_t animation_step,
                                        bool update_cursor_position);
   void UpdateAnimationStep();
   void UpdateTransitionHeight() const;
+  void UpdateDrawEventsByAnimation();
   void UpdateExposure();
+  void PublishRendererBundle();
+  void ConsumeRendererBundleIfNeeded();
 
-  void ClearForParse();
-  std::set<MarkdownPlatformView*> GetInlineViews();
+  std::set<MarkdownPlatformView*> GetInlineViews() const;
   void RemoveUnusedViews(const std::set<MarkdownPlatformView*>& before,
                          const std::set<MarkdownPlatformView*>& after) const;
 
  protected:
   void SendDrawStart();
   void SendDrawEnd();
-  void SendLinkClicked(const char* url, const char* content);
-  void SendImageClicked(const char* url);
+  void SendLinkClicked(const char* url, const char* content) const;
+  void SendImageClicked(const char* url) const;
   void SendSelectionChanged(SelectionState state) const;
 
  protected:
@@ -169,20 +175,55 @@ class MarkdownView final : public MarkdownDrawable {
   bool enable_selection_{false};
   std::unique_ptr<Value> attachments_;
 
-  std::shared_ptr<MarkdownDocument> document_;
-  bool document_updated_{false};
+  struct LayoutData {
+    std::shared_ptr<MarkdownDocument> document_{nullptr};
+    PointF custom_cursor_position_{0, 0};
+    bool content_complete_{true};
+  };
+
+  struct RendererBundle {
+    std::shared_ptr<MarkdownDocument> document_{nullptr};
+    MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
+    int32_t animation_step_{0};
+    bool content_complete_{true};
+  };
+
+  struct ExposureKey {
+    std::string url_{};
+    int32_t char_index_{0};
+    std::string content_{};
+
+    bool operator==(const ExposureKey& other) const {
+      return url_ == other.url_ && char_index_ == other.char_index_ &&
+             content_ == other.content_;
+    }
+    struct Hash {
+      size_t operator()(const ExposureKey& key) const {
+        auto hash = std::hash<std::string>{}(key.url_);
+        hash ^= std::hash<std::string>{}(key.content_) << 1;
+        hash ^= std::hash<int>{}(key.char_index_) << 2;
+        return hash;
+      }
+    };
+  };
+
+  struct RendererData {
+    std::shared_ptr<MarkdownDocument> document_{nullptr};
+    std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_links_;
+    std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_images_;
+  };
+
+  LayoutData layout_data_{};
+  RendererData renderer_data_{};
+  std::mutex renderer_bundle_mutex_{};
+  std::unique_ptr<RendererBundle> renderer_bundle_{nullptr};
+
   MarkdownViewMeasurer measurer_;
   MarkdownViewAnimator animator_;
   MarkdownViewRenderer renderer_;
   MarkdownExposureListener* exposure_listener_{nullptr};
   MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
-
-  std::shared_ptr<MarkdownDrawable> custom_typewriter_cursor_{};
-  std::string custom_typewriter_cursor_selector_{};
-  PointF custom_cursor_position_{0, 0};
-  bool draw_start_sent_{false};
-  bool draw_end_sent_{false};
 
   struct SelectionHandles {
     std::shared_ptr<MarkdownPlatformView> left_;
@@ -209,10 +250,9 @@ class MarkdownView final : public MarkdownDrawable {
 
   bool trim_paragraph_spaces_{false};
 
-  std::unordered_set<MarkdownLink*> exposure_links_;
-  std::unordered_set<MarkdownImage*> exposure_images_;
-
   bool typewriter_height_transition_prefetch_{false};
+  bool draw_start_sent_{false};
+  bool draw_end_sent_{false};
 };
 
 }  // namespace serval::markdown

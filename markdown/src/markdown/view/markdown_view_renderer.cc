@@ -23,13 +23,11 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
   MarkdownRegionDrawable(std::shared_ptr<MarkdownDocument> document,
                          uint32_t region_index,
                          const MarkdownAnimationType* animation_type,
-                         const int32_t* animation_step,
-                         const std::shared_ptr<MarkdownDrawable>* cursor)
+                         const int32_t* animation_step)
       : document_(std::move(document)),
         region_index_(region_index),
         animation_type_(animation_type),
-        animation_step_(animation_step),
-        cursor_(cursor) {}
+        animation_step_(animation_step) {}
   ~MarkdownRegionDrawable() override = default;
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
@@ -45,11 +43,12 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
     canvas->Translate(-region_rect.GetLeft(), -region_rect.GetTop());
     if (animation_type_ != nullptr &&
         *animation_type_ == MarkdownAnimationType::kTypewriter) {
+      const auto cursor = page->GetCustomTypewriterCursor();
       MarkdownCharTypewriterDrawer drawer(
           canvas, animation_step_ == nullptr ? 0 : *animation_step_,
           document_->GetResourceLoader(),
-          document_->GetStyle().typewriter_cursor_, false,
-          cursor_ == nullptr ? nullptr : cursor_->get());
+          document_->GetStyle().typewriter_cursor_, !content_complete_,
+          cursor == nullptr ? nullptr : cursor.get());
       drawer.DrawRegion(*page, region_index_);
     } else {
       MarkdownDrawer drawer(canvas);
@@ -57,6 +56,7 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
     }
     canvas->Restore();
   }
+  void SetContentComplete(bool complete) { content_complete_ = complete; }
 
  private:
   MeasureResult OnMeasure(MeasureSpec spec) override {
@@ -78,7 +78,7 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
   uint32_t region_index_{0};
   const MarkdownAnimationType* animation_type_{nullptr};
   const int32_t* animation_step_{nullptr};
-  const std::shared_ptr<MarkdownDrawable>* cursor_{nullptr};
+  bool content_complete_{true};
 };
 
 class MarkdownBorderDrawable final : public MarkdownDrawable {
@@ -135,6 +135,10 @@ void MarkdownViewRenderer::SetDocument(
   full_redraw_required_ = true;
   has_last_view_rect_ = false;
 }
+const std::shared_ptr<MarkdownDocument>& MarkdownViewRenderer::GetDocument()
+    const {
+  return document_;
+}
 
 void MarkdownViewRenderer::SetViewContainerHandle(
     MarkdownViewContainerHandle* handle) {
@@ -162,7 +166,17 @@ void MarkdownViewRenderer::SetMarkdownAnimationStep(int32_t step) {
   animation_step_ = step;
   UpdateRegionViewsByAnimationStep(previous_step);
 }
-
+void MarkdownViewRenderer::SetContentComplete(bool complete) {
+  if (content_complete_ == complete)
+    return;
+  content_complete_ = complete;
+  for (auto& region : region_views_) {
+    static_cast<MarkdownRegionDrawable*>(
+        region.second->GetCustomViewHandle()->GetDrawable())
+        ->SetContentComplete(content_complete_);
+    region.second->RequestDraw();
+  }
+}
 void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
                                              const RectF& rect) {
   if (view == nullptr) {
@@ -171,11 +185,9 @@ void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
   view->SetMeasuredSize({rect.GetWidth(), rect.GetHeight()});
   view->SetAlignPosition({rect.GetLeft(), rect.GetTop()});
 }
-
 bool MarkdownViewRenderer::NeedUseRegionView() const {
   return handle_ != nullptr;
 }
-
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {
   if (region_views_dirty_ || !has_last_view_rect_) {
@@ -212,7 +224,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
   const float visible_top = view_rect.GetTop() - kViewVisibilityTolerant;
   const float visible_bottom = view_rect.GetBottom() + kViewVisibilityTolerant;
 
-  const int32_t region_count = static_cast<int32_t>(page->GetRegionCount());
+  const auto region_count = static_cast<int32_t>(page->GetRegionCount());
   const auto visible_regions =
       document_->GetShowedRegions(visible_top, visible_bottom);
   int32_t visible_region_start =
@@ -231,7 +243,8 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
         if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
           auto drawable = std::make_unique<MarkdownRegionDrawable>(
               document_, static_cast<uint32_t>(i), &animation_type_,
-              &animation_step_, &cursor_);
+              &animation_step_);
+          drawable->SetContentComplete(content_complete_);
           view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
           iter = region_views_.emplace(i, view).first;
           created = true;
@@ -259,8 +272,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
     }
   }
 
-  const int32_t border_count =
-      static_cast<int32_t>(page->GetExtraBorderCount());
+  const auto border_count = static_cast<int32_t>(page->GetExtraBorderCount());
   const auto visible_borders =
       document_->GetShowedExtraContents(visible_top, visible_bottom);
   int32_t visible_border_start =
@@ -345,7 +357,7 @@ void MarkdownViewRenderer::UpdateRegionViewsByAnimationStep(
     return;
   }
   const auto range = document_->GetChangedRegionsWhenAnimationUpdated(
-      previous_step, animation_step_);
+      std::max(0, previous_step - 1), animation_step_);
   for (auto& [index, view] : region_views_) {
     if (index >= range.start_ && index <= range.end_) {
       view->RequestDraw();
@@ -373,13 +385,16 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
     }
   }
   if (animation_type_ == MarkdownAnimationType::kTypewriter) {
+    auto page = document_->GetPage();
+    if (page == nullptr) {
+      return;
+    }
+    const auto cursor = page->GetCustomTypewriterCursor();
     MarkdownCharTypewriterDrawer drawer(
         canvas, animation_step_, document_->GetResourceLoader(),
-        document_->GetStyle().typewriter_cursor_, false, cursor_.get());
-    auto page = document_->GetPage();
-    if (page != nullptr) {
-      drawer.DrawPage(*page);
-    }
+        document_->GetStyle().typewriter_cursor_, !content_complete_,
+        cursor == nullptr ? nullptr : cursor.get());
+    drawer.DrawPage(*page);
   }
 }
 

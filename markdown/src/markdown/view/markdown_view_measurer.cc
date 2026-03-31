@@ -43,10 +43,6 @@ std::string MarkdownViewMeasurer::GetContentID() const {
   return content_id_;
 }
 
-void MarkdownViewMeasurer::SetContentComplete(bool complete) {
-  content_complete_ = complete;
-}
-
 void MarkdownViewMeasurer::SetContentRange(Range range) {
   content_start_ = range.start_;
   content_end_ = range.end_;
@@ -127,8 +123,7 @@ SizeF MarkdownViewMeasurer::Measure(MeasureSpec spec) {
   if (spec.width_mode_ == tttext::LayoutMode::kIndefinite && spec.width_ <= 0) {
     spec.width_ = MeasureSpec::LAYOUT_MAX_SIZE;
   }
-  if (spec.height_mode_ == tttext::LayoutMode::kIndefinite &&
-      spec.height_ <= 0) {
+  if (spec.height_mode_ == tttext::LayoutMode::kIndefinite) {
     spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
   }
 
