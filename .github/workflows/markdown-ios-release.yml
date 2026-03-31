@@ -63,6 +63,7 @@ jobs:
           COCOAPODS_TRUNK_TOKEN=$COCOAPODS_TRUNK_TOKEN  POD_VERSION=$POD_VERSION SERVAL_KIT_COMMIT_ID=$SERVAL_KIT_COMMIT_ID bundle exec pod trunk push ServalMarkdown.podspec --skip-import-validation --allow-warnings --verbose
 
       - name: Prepare iOS Artifact For GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         shell: bash
         run: |
           VERSION="${{ needs.get-version.outputs.version }}"
@@ -71,6 +72,7 @@ jobs:
           cp ServalMarkdown.podspec "$ASSET_DIR/ServalMarkdown-${VERSION}.podspec"
 
       - name: Upload iOS Artifact to GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.get-version.outputs.version }}
