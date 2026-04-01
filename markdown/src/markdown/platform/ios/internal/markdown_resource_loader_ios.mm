@@ -7,6 +7,35 @@
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 
 namespace serval::markdown {
+namespace {
+int32_t ConvertToPlatformFontWeight(MarkdownFontWeight weight) {
+  switch (weight) {
+    case MarkdownFontWeight::kBold:
+      return 700;
+    case MarkdownFontWeight::k100:
+      return 100;
+    case MarkdownFontWeight::k200:
+      return 200;
+    case MarkdownFontWeight::k300:
+      return 300;
+    case MarkdownFontWeight::k400:
+      return 400;
+    case MarkdownFontWeight::k500:
+      return 500;
+    case MarkdownFontWeight::k600:
+      return 600;
+    case MarkdownFontWeight::k700:
+      return 700;
+    case MarkdownFontWeight::k800:
+      return 800;
+    case MarkdownFontWeight::k900:
+      return 900;
+    case MarkdownFontWeight::kNormal:
+    default:
+      return 400;
+  }
+}
+}  // namespace
 
 MarkdownResourceLoaderIOS::~MarkdownResourceLoaderIOS() = default;
 
@@ -46,7 +75,7 @@ void* MarkdownResourceLoaderIOS::LoadFont(const char* family,
 
   UIFont* font =
       [delegate_ loadFontByFamilyName:[NSString stringWithUTF8String:family]
-                               Weight:static_cast<int>(weight)
+                               Weight:ConvertToPlatformFontWeight(weight)
                                 Style:0];
   if (font == nil) {
     return nullptr;

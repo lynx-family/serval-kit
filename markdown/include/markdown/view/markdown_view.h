@@ -117,6 +117,9 @@ class MarkdownView final : public MarkdownDrawable {
   bool OnTap(PointF position, GestureEventType event);
   bool OnPan(PointF position, PointF motion, GestureEventType event) const;
 
+  void OnFontLoaded(std::string_view family, int weight, int style);
+  void OnImageLoaded(std::string_view url);
+
  protected:
   void SetContentRangeStart(int32_t start);
   void SetContentRangeEnd(int32_t end);
@@ -250,7 +253,7 @@ class MarkdownView final : public MarkdownDrawable {
 
   bool trim_paragraph_spaces_{false};
 
-  bool typewriter_height_transition_prefetch_{false};
+  bool typewriter_height_transition_prefetch_{true};
   bool draw_start_sent_{false};
   bool draw_end_sent_{false};
 };

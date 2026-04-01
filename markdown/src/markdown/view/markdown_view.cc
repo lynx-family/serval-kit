@@ -986,4 +986,12 @@ void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
 }
 void MarkdownView::SetArrayProp(MarkdownProps prop, const ValueArray& array) {}
 void MarkdownView::SetMapProp(MarkdownProps prop, const ValueMap& map) {}
+
+void MarkdownView::OnFontLoaded(std::string_view family, int weight,
+                                int style) {
+  measurer_.NeedsMeasure();
+}
+void MarkdownView::OnImageLoaded(std::string_view url) {
+  measurer_.NeedsMeasure();
+}
 }  // namespace serval::markdown

@@ -535,6 +535,36 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(JNIEnv* env,
   view->OnRendererFrame(time);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeOnFontLoaded(
+    JNIEnv* env, jobject thiz, jlong instance, jstring family, jint weight,
+    jint style) {
+  if (instance == 0 || family == nullptr) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  const auto length = env->GetStringUTFLength(family);
+  const auto* chars = env->GetStringUTFChars(family, nullptr);
+  view->OnFontLoaded({chars, static_cast<size_t>(length)},
+                     static_cast<int32_t>(weight), static_cast<int32_t>(style));
+  env->ReleaseStringUTFChars(family, chars);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeOnImageLoaded(JNIEnv* env,
+                                                              jobject thiz,
+                                                              jlong instance,
+                                                              jstring url) {
+  if (instance == 0 || url == nullptr) {
+    return;
+  }
+  auto* view = ConvertView(instance);
+  const auto length = env->GetStringUTFLength(url);
+  const auto* chars = env->GetStringUTFChars(url, nullptr);
+  view->OnImageLoaded({chars, static_cast<size_t>(length)});
+  env->ReleaseStringUTFChars(url, chars);
+}
+
 extern "C" JNIEXPORT jint JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetAnimationStep(
     JNIEnv* env, jobject thiz, jlong instance) {

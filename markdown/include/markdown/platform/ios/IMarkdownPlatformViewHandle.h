@@ -33,7 +33,7 @@ typedef struct {
 - (void)setVisibility:(BOOL)visible;
 
 @optional
-- (NSInteger)getVerticalAlign;
+- (ServalMarkdownVerticalAlign)getVerticalAlign;
 @end
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_IMARKDOWNPLATFORMVIEWHANDLE_H_

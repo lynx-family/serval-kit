@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_
 #include <cstdint>
 #include <memory>
+#include <string_view>
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
@@ -29,6 +30,8 @@ class AndroidServalMarkdownView
   void OnLayoutFrame(int64_t time);
   void OnRendererFrame(int64_t time);
   void OnVSync(int64_t time);
+  void OnFontLoaded(std::string_view family, int32_t weight, int32_t style);
+  void OnImageLoaded(std::string_view url);
 
  public:
   std::shared_ptr<serval::markdown::MarkdownDrawable> LoadImage(

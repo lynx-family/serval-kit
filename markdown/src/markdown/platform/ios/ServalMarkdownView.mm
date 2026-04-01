@@ -133,7 +133,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 - (void)onVSync:(CADisplayLink*)sender {
   const int64_t frame_time_nanos =
-      static_cast<int64_t>(sender.targetTimestamp * 1000000000.0);
+      static_cast<int64_t>(sender.timestamp * 1000000000.0);
   [self onLayoutFrame:frame_time_nanos];
   [self onRendererFrame:frame_time_nanos];
 }
@@ -455,7 +455,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (void)setInitialAnimationStep:(int)initialAnimationStep {
   _initialAnimationStep = initialAnimationStep;
   auto* view = [self getMarkdownView];
-  view->SetAnimationStep(initialAnimationStep);
+  if (view == nullptr) {
+    return;
+  }
+  view->SetInitialAnimationStep(initialAnimationStep);
 }
 - (int)getAnimationStep {
   auto* view = [self getMarkdownView];
@@ -512,8 +515,14 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value {
   auto* view = [self getMarkdownView];
-  view->SetStringProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                      [value UTF8String]);
+  if (view == nullptr) {
+    return;
+  }
+  const char* utf8 = value == nil ? "" : [value UTF8String];
+  if (utf8 == nullptr) {
+    utf8 = "";
+  }
+  view->SetStringProp(static_cast<serval::markdown::MarkdownProps>(prop), utf8);
 }
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value {
   auto* view = [self getMarkdownView];
@@ -536,5 +545,35 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   auto result = MarkdownValueConvert::ConvertMap(dict);
   view->SetMapProp(static_cast<serval::markdown::MarkdownProps>(prop),
                    result->AsMap());
+}
+- (void)onFontLoaded:(NSString*)family Weight:(int)weight Style:(int)style {
+  if (family == nil) {
+    return;
+  }
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return;
+  }
+  const auto* family_utf8 = [family UTF8String];
+  if (family_utf8 == nullptr) {
+    return;
+  }
+  [self requestMeasure];
+  view->OnFontLoaded(family_utf8, weight, style);
+}
+- (void)onImageLoaded:(NSString*)url {
+  if (url == nil) {
+    return;
+  }
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return;
+  }
+  const auto* url_utf8 = [url UTF8String];
+  if (url_utf8 == nullptr) {
+    return;
+  }
+  [self requestMeasure];
+  view->OnImageLoaded(url_utf8);
 }
 @end
