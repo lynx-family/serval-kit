@@ -61,5 +61,7 @@
 - (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color;
 - (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array;
 - (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict;
+- (void)onImageLoaded:(NSString*)url;
+- (void)onFontLoaded:(NSString*)family Weight:(int)weight Style:(int)style;
 @end
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_SERVAL_MARKDOWN_VIEW_H_

@@ -377,6 +377,22 @@ public class ServalMarkdownView extends CustomDrawView {
     }
   }
 
+  public void onFontLoaded(String family, int weight, int style) {
+    if (mInstance == 0 || family == null) {
+      return;
+    }
+    requestMeasure();
+    nativeOnFontLoaded(mInstance, family, weight, style);
+  }
+
+  public void onImageLoaded(String url) {
+    if (mInstance == 0 || url == null) {
+      return;
+    }
+    requestMeasure();
+    nativeOnImageLoaded(mInstance, url);
+  }
+
   private void postInternalVSync() {
     if (mDisableInternalVSync || mInternalVSyncPosted) {
       return;
@@ -555,6 +571,9 @@ public class ServalMarkdownView extends CustomDrawView {
   private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnLayoutFrame(long instance, long time);
   private native void nativeOnRendererFrame(long instance, long time);
+  private native void nativeOnFontLoaded(long instance, String family,
+                                         int weight, int style);
+  private native void nativeOnImageLoaded(long instance, String url);
   private native int nativeGetAnimationStep(long instance);
   private native void nativeSetAnimationStep(long instance, int animationStep);
   private native void nativeSetNumberProp(long instance, int key, double value);

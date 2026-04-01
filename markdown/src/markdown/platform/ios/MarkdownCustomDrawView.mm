@@ -29,12 +29,6 @@ const float kServalMarkdownMaxSize = 1e8;
   _drawable = drawable;
 }
 
-- (void)requestMeasure {
-  [self invalidateIntrinsicContentSize];
-  [self setNeedsLayout];
-  [self setNeedsDisplay];
-}
-
 - (void)layoutSubviews {
   [super layoutSubviews];
   if (_drawable != nullptr) {
@@ -57,6 +51,12 @@ const float kServalMarkdownMaxSize = 1e8;
   spec.height_mode_ = static_cast<tttext::LayoutMode>(heightMode);
   const auto size = _drawable->Measure(spec);
   return {size.width_, size.height_, size.baseline_};
+}
+
+- (void)align:(CGFloat)left top:(CGFloat)top {
+  if (_drawable != nullptr) {
+    _drawable->Align(self.frame.origin.x, self.frame.origin.y);
+  }
 }
 
 - (CGSize)sizeThatFits:(CGSize)size {

@@ -259,8 +259,8 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
   self.hidden = !visible;
 }
 
-- (NSInteger)getVerticalAlign {
-  return 0;
+- (ServalMarkdownVerticalAlign)getVerticalAlign {
+  return kServalMarkdownVerticalAlignBaseline;
 }
 
 @end

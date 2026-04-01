@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'Apache 2.0', :file => "LICENSE" }
   s.author           = 'Lynx'
 
-  s.ios.deployment_target    = "12.0"
+  s.ios.deployment_target    = "10.0"
   s.requires_arc             = true
   s.static_framework         = true
 
@@ -51,11 +51,11 @@ Pod::Spec.new do |s|
     'CLANG_ENABLE_MODULES' => 'YES',
     'CLANG_ENABLE_OBJC_ARC' => 'YES',
     'GCC_C_LANGUAGE_STANDARD' => 'c11',
-    'HEADER_SEARCH_PATHS' => '$(inherited) "$(PODS_TARGET_SRCROOT)" "$(PODS_TARGET_SRCROOT)/markdown/include" "$(PODS_TARGET_SRCROOT)/markdown/third_party" "$(PODS_ROOT)/Headers/Public" "$(PODS_ROOT)/Headers/Public/LynxTextra" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/LynxTextra/LynxTextra.framework/Headers"'
+    'HEADER_SEARCH_PATHS' => '$(inherited) "$(PODS_TARGET_SRCROOT)" "$(PODS_TARGET_SRCROOT)/markdown/include" "$(PODS_TARGET_SRCROOT)/markdown/third_party" "$(PODS_ROOT)/Headers/Public" "$(PODS_ROOT)/Headers/Public/LynxTextra" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/LynxTextra/LynxTextra.framework/Headers" "$(PODS_ROOT)/LynxTextra/public"'
   }
 
   s.xcconfig = {
-    "USER_HEADER_SEARCH_PATHS" => '$(inherited) "$(PODS_TARGET_SRCROOT)/markdown/include" "$(PODS_ROOT)/Headers/Public" "$(PODS_ROOT)/Headers/Public/LynxTextra" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/LynxTextra/LynxTextra.framework/Headers"',
+    "USER_HEADER_SEARCH_PATHS" => '$(inherited) "$(PODS_TARGET_SRCROOT)/markdown/include" "$(PODS_ROOT)/Headers/Public" "$(PODS_ROOT)/Headers/Public/LynxTextra" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/LynxTextra/LynxTextra.framework/Headers" "$(PODS_ROOT)/LynxTextra/public"',
     "OTHER_CPLUSPLUSFLAGS" => "-std=c++17 -stdlib=libc++"
   }
   s.libraries = 'stdc++', 'c++'

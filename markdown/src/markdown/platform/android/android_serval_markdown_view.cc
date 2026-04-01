@@ -153,6 +153,23 @@ void AndroidServalMarkdownView::OnVSync(int64_t time) {
   OnRendererFrame(time);
 }
 
+void AndroidServalMarkdownView::OnFontLoaded(std::string_view family,
+                                             int32_t weight, int32_t style) {
+  auto* markdown_view = GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return;
+  }
+  markdown_view->OnFontLoaded(family, weight, style);
+}
+
+void AndroidServalMarkdownView::OnImageLoaded(std::string_view url) {
+  auto* markdown_view = GetMarkdownView();
+  if (markdown_view == nullptr) {
+    return;
+  }
+  markdown_view->OnImageLoaded(url);
+}
+
 std::shared_ptr<serval::markdown::MarkdownDrawable>
 AndroidServalMarkdownView::LoadImage(const char* src, float desire_width,
                                      float desire_height, float max_width,
