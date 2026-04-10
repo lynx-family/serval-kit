@@ -40,9 +40,9 @@ public class ServalMarkdownView extends CustomDrawView {
   public ServalMarkdownView(Context context) {
     super(context);
     Markdown.ensureInitialized();
+    updateDisplayMetrics();
     mInstance = nativeCreateInstance();
     mResourceManager = new MarkdownResourceManager();
-    updateDisplayMetrics();
     initialVSync();
     setClipChildren(false);
     setClipToPadding(false);
