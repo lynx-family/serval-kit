@@ -14,6 +14,30 @@ namespace serval {
 namespace svg {
 namespace harmony {
 
+static inline void MultiplyTransform(const float (&lhs)[6], const float (&rhs)[6], float (&out)[6]) {
+    out[0] = lhs[0] * rhs[0] + lhs[2] * rhs[1];
+    out[1] = lhs[1] * rhs[0] + lhs[3] * rhs[1];
+    out[2] = lhs[0] * rhs[2] + lhs[2] * rhs[3];
+    out[3] = lhs[1] * rhs[2] + lhs[3] * rhs[3];
+    out[4] = lhs[0] * rhs[4] + lhs[2] * rhs[5] + lhs[4];
+    out[5] = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
+}
+
+static inline void ResolveObjectBoundingBoxTransform(const float (&form)[6], float left, float top, float width,
+                                                     float height, float (&out)[6]) {
+    if (width == 0.f || height == 0.f) {
+        for (int i = 0; i < 6; i++) {
+            out[i] = form[i];
+        }
+        return;
+    }
+    const float bboxToUser[6] = {width, 0.f, 0.f, height, left, top};
+    const float userToBbox[6] = {1.f / width, 0.f, 0.f, 1.f / height, -left / width, -top / height};
+    float temp[6];
+    MultiplyTransform(bboxToUser, form, temp);
+    MultiplyTransform(temp, userToBbox, out);
+}
+
 SrHarmonyCanvas::SrHarmonyCanvas(OH_Drawing_Canvas *context) {
     context_ = context;
     pen_ = OH_Drawing_PenCreate();
@@ -337,8 +361,22 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
         mode = REPEAT;
     }
     auto transform = OH_Drawing_MatrixCreate();
-    auto form = lg_model.gradient_transformer_;
-    OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+    const auto &form = lg_model.gradient_transformer_;
+    float resolved_form[6];
+    if (lg_model.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+        auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
+        OH_Drawing_PathGetBounds(path, rect);
+        auto width = OH_Drawing_RectGetWidth(rect);
+        auto height = OH_Drawing_RectGetHeight(rect);
+        auto left = OH_Drawing_RectGetLeft(rect);
+        auto top = OH_Drawing_RectGetTop(rect);
+        OH_Drawing_RectDestroy(rect);
+        ResolveObjectBoundingBoxTransform(form, left, top, width, height, resolved_form);
+        OH_Drawing_MatrixSetMatrix(transform, resolved_form[0], resolved_form[2], resolved_form[4], resolved_form[1],
+                                   resolved_form[3], resolved_form[5], 0.f, 0.f, 1.f);
+    } else {
+        OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+    }
 
     if (shader_) {
         OH_Drawing_ShaderEffectDestroy(shader_);
@@ -428,8 +466,16 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         mode = REPEAT;
     }
     auto transform = OH_Drawing_MatrixCreate();
-    auto form = rg_model.gradient_transformer_;
-    OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+    const auto &form = rg_model.gradient_transformer_;
+    float resolved_form[6];
+    if (rg_model.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+        auto max_size = std::max(width, height);
+        ResolveObjectBoundingBoxTransform(form, left, top, max_size, max_size, resolved_form);
+        OH_Drawing_MatrixSetMatrix(transform, resolved_form[0], resolved_form[2], resolved_form[4], resolved_form[1],
+                                   resolved_form[3], resolved_form[5], 0.f, 0.f, 1.f);
+    } else {
+        OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+    }
 
     OH_Drawing_MatrixConcat(matrix, matrix, transform);
     shader_ = OH_Drawing_ShaderEffectCreateTwoPointConicalGradient(
@@ -495,13 +541,12 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
     Restore();
 }
 
-void SrHarmonyCanvas::SaveLayer(const SrSVGBox* bounds) {
+void SrHarmonyCanvas::SaveLayer(const SrSVGBox *bounds) {
     // OH_Drawing_CanvasSaveLayer creates an off-screen compositing layer.
     // All drawing until RestoreLayer() goes to this temporary buffer.
-    OH_Drawing_Rect* rect = nullptr;
+    OH_Drawing_Rect *rect = nullptr;
     if (bounds) {
-        rect = OH_Drawing_RectCreate(bounds->left, bounds->top,
-                                     bounds->left + bounds->width,
+        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
                                      bounds->top + bounds->height);
     }
     OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
@@ -510,18 +555,15 @@ void SrHarmonyCanvas::SaveLayer(const SrSVGBox* bounds) {
     }
 }
 
-void SrHarmonyCanvas::RestoreLayer() {
-    OH_Drawing_CanvasRestore(context_);
-}
+void SrHarmonyCanvas::RestoreLayer() { OH_Drawing_CanvasRestore(context_); }
 
 void SrHarmonyCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
     auto prev = blend_mode_;
     blend_mode_ = blend_mode;
-    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn &&
-        prev != canvas::SrCanvasBlendMode::kDstIn) {
-        OH_Drawing_Brush* blend_brush = OH_Drawing_BrushCreate();
-        OH_Drawing_Filter* blend_filter = nullptr;
-        OH_Drawing_ColorFilter* color_filter = nullptr;
+    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn && prev != canvas::SrCanvasBlendMode::kDstIn) {
+        OH_Drawing_Brush *blend_brush = OH_Drawing_BrushCreate();
+        OH_Drawing_Filter *blend_filter = nullptr;
+        OH_Drawing_ColorFilter *color_filter = nullptr;
         OH_Drawing_BrushSetBlendMode(blend_brush, BLEND_MODE_DST_IN);
         if (mask_is_luminance_) {
             blend_filter = OH_Drawing_FilterCreate();
@@ -537,15 +579,12 @@ void SrHarmonyCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
             OH_Drawing_FilterDestroy(blend_filter);
         }
         OH_Drawing_BrushDestroy(blend_brush);
-    } else if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver &&
-               prev == canvas::SrCanvasBlendMode::kDstIn) {
+    } else if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver && prev == canvas::SrCanvasBlendMode::kDstIn) {
         OH_Drawing_CanvasRestore(context_);
     }
 }
 
-void SrHarmonyCanvas::SetMaskIsLuminance(bool is_luminance) {
-    mask_is_luminance_ = is_luminance;
-}
+void SrHarmonyCanvas::SetMaskIsLuminance(bool is_luminance) { mask_is_luminance_ = is_luminance; }
 
 void SrHarmonyCanvas::ApplyLuminanceToAlpha() {
     // Harmony applies luminance-to-alpha in the mask layer restore brush, so
