@@ -39,8 +39,6 @@ static CGFloat GetAlphaFromI32(uint32_t color, float opacity) {
   return ((color & 0xFF000000) >> 24) / 255.f * opacity;
 }
 
-
-
 static void SRSVGArcToBezier(CGMutablePathRef p, double cx, double cy, double a,
                              double b, double e1x, double e1y, double theta,
                              double start, double sweep) {
@@ -192,12 +190,23 @@ static void DrawLinearGradient(CGContextRef cgContext,
   CGGradientRef gradientRef = CGGradientCreateWithColorComponents(
       cgColorSpace, colors.data(), offsets.data(), lgModel.stop_size());
   CGRect boundingBox = CGPathGetBoundingBox(cgPath);
-  // TODO: support gradient transform
-
   auto form = lgModel.gradient_transformer_;
   CGAffineTransform gradient_transform = CGAffineTransformMake(
       form[0], form[1], form[2], form[3], form[4], form[5]);
-  CGContextConcatCTM(cgContext, gradient_transform);
+  if (lgModel.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+    CGFloat width = CGRectGetWidth(boundingBox);
+    CGFloat height = CGRectGetHeight(boundingBox);
+    if (width != 0 && height != 0) {
+      CGFloat minX = CGRectGetMinX(boundingBox);
+      CGFloat minY = CGRectGetMinY(boundingBox);
+      CGAffineTransform bboxToUser =
+          CGAffineTransformMake(width, 0, 0, height, minX, minY);
+      gradient_transform = CGAffineTransformConcat(
+          CGAffineTransformConcat(CGAffineTransformInvert(bboxToUser),
+                                  gradient_transform),
+          bboxToUser);
+    }
+  }
 
   CGFloat x1 = lgModel.x1_;
   CGFloat y1 = lgModel.y1_;
@@ -224,6 +233,7 @@ static void DrawLinearGradient(CGContextRef cgContext,
   } else {
     CGContextClip(cgContext);
   }
+  CGContextConcatCTM(cgContext, gradient_transform);
   CGContextDrawLinearGradient(
       cgContext, gradientRef, startPoint, endPoint,
       kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
@@ -249,11 +259,24 @@ static void DrawRadialGradient(CGContextRef cgContext,
       cgColorSpace, colors.data(), offsets.data(), rgModel.stop_size());
   CGRect boundingBox = CGPathGetBoundingBox(cgPath);
 
-  // TODO: support gradient transform
   auto form = rgModel.gradient_transformer_;
   CGAffineTransform gradient_transform = CGAffineTransformMake(
       form[0], form[1], form[2], form[3], form[4], form[5]);
-  CGContextConcatCTM(cgContext, gradient_transform);
+  if (rgModel.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+    CGFloat width = CGRectGetWidth(boundingBox);
+    CGFloat height = CGRectGetHeight(boundingBox);
+    CGFloat maxSize = MAX(width, height);
+    if (maxSize != 0) {
+      CGFloat minX = CGRectGetMinX(boundingBox);
+      CGFloat minY = CGRectGetMinY(boundingBox);
+      CGAffineTransform bboxToUser =
+          CGAffineTransformMake(maxSize, 0, 0, maxSize, minX, minY);
+      gradient_transform = CGAffineTransformConcat(
+          CGAffineTransformConcat(CGAffineTransformInvert(bboxToUser),
+                                  gradient_transform),
+          bboxToUser);
+    }
+  }
 
   CGFloat minX = CGRectGetMinX(boundingBox);
   CGFloat minY = CGRectGetMinY(boundingBox);
@@ -283,6 +306,7 @@ static void DrawRadialGradient(CGContextRef cgContext,
   } else {
     CGContextClip(cgContext);
   }
+  CGContextConcatCTM(cgContext, gradient_transform);
   CGContextTranslateCTM(cgContext, minX, minY);
   if (width > height) {
     CGContextScaleCTM(cgContext, 1.f, height / width);
@@ -352,7 +376,8 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
       CGContextEOFillPath(_context);
     }
   } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_COLOR) {
-    UIColor* fill_color = GetUIColorFromI32(renderState.fill->content.color.color);
+    UIColor* fill_color =
+        GetUIColorFromI32(renderState.fill->content.color.color);
     CGContextSetFillColorWithColor(_context, fill_color.CGColor);
     CGContextAddPath(_context, cgPath);
     if (renderState.fill_rule == SR_SVG_FILL) {
@@ -430,7 +455,8 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
     }
   }
   if (renderState.stroke && renderState.stroke->type == SERVAL_PAINT_COLOR) {
-    UIColor* stroke_color = GetUIColorFromI32(renderState.stroke->content.color.color);
+    UIColor* stroke_color =
+        GetUIColorFromI32(renderState.stroke->content.color.color);
     CGContextSetStrokeColorWithColor(_context, stroke_color.CGColor);
     CGContextAddPath(_context, cgPath);
     CGContextStrokePath(_context);
@@ -742,9 +768,8 @@ void SrIOSCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
     size_t w = CGBitmapContextGetWidth(_context);
     size_t h = CGBitmapContextGetHeight(_context);
     if (w == 0 || h == 0) {
-      CGRect deviceBounds =
-          CGContextConvertRectToDeviceSpace(_context,
-                                            CGContextGetClipBoundingBox(_context));
+      CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
+          _context, CGContextGetClipBoundingBox(_context));
       w = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
       h = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
     }

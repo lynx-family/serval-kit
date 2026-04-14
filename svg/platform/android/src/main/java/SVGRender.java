@@ -49,10 +49,8 @@ import java.util.HashMap;
 
 public class SVGRender {
   private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
-      0f, 0f, 0f, 0f, 0f,
-      0f, 0f, 0f, 0f, 0f,
-      0f, 0f, 0f, 0f, 0f,
-      0.2126f, 0.7152f, 0.0722f, 0f, 0f,
+      0f, 0f, 0f, 0f, 0f, 0f,      0f,      0f,      0f, 0f,
+      0f, 0f, 0f, 0f, 0f, 0.2126f, 0.7152f, 0.0722f, 0f, 0f,
   };
 
   public interface BitmapRequestCallBack {
@@ -371,22 +369,6 @@ public class SVGRender {
       colors[i] = getColorWithOpacity(stopModel.mColor, stopModel.mStopOpacity);
     }
     RectF boundingBox = calculatePathBounds(path);
-    float r = rgModel.mFr;
-    float cx = rgModel.mCx;
-    float cy = rgModel.mCy;
-    if (rgModel.mType == GRADIENT_TYPE_OBJECT_BOUNDING_BOX) {
-      float width = boundingBox.width();
-      float height = boundingBox.height();
-      float maxSize = Math.max(width, height);
-      r = r * maxSize;
-      cx = boundingBox.left + cx * maxSize;
-      cy = boundingBox.top + cy * maxSize;
-    }
-    // If gradient vector is zero length, we instead fill with last stop color
-    if (r == 0.f || stopSize == 1) {
-      paint.setColor(colors[stopSize - 1]);
-      return paint;
-    }
 
     // Convert spreadMode to tileMode
     Shader.TileMode tileMode = Shader.TileMode.CLAMP;
@@ -395,19 +377,61 @@ public class SVGRender {
     } else if (rgModel.mSpreadMode == GradientModel.GRADIENT_SPREAD_REPEAT) {
       tileMode = Shader.TileMode.REPEAT;
     }
-    // Create shader instance
+
+    float[] form = rgModel.mTransform;
+
+    if (rgModel.mType == GRADIENT_TYPE_OBJECT_BOUNDING_BOX) {
+      float width = boundingBox.width();
+      float height = boundingBox.height();
+      if (width == 0.f || height == 0.f) {
+        paint.setColor(colors[stopSize - 1]);
+        return paint;
+      }
+
+      float r = rgModel.mFr;
+      if (r == 0.f || stopSize == 1) {
+        paint.setColor(colors[stopSize - 1]);
+        return paint;
+      }
+
+      // Create shader in objectBoundingBox coordinate space, then map to user
+      // space via local matrix. This matches SVG semantics where cx/cy/r and
+      // gradientTransform are defined in the gradient coordinate system.
+      RadialGradient radialGradient = new RadialGradient(
+          rgModel.mCx, rgModel.mCy, r, colors, positions, tileMode);
+
+      Matrix shaderMatrix = new Matrix();
+      shaderMatrix.setValues(new float[] {width, 0.f, boundingBox.left, 0.f,
+                                          height, boundingBox.top, 0.f, 0.f,
+                                          1.f});
+
+      if (form != null) {
+        Matrix gradientTransform = new Matrix();
+        gradientTransform.setValues(new float[] {form[0], form[2], form[4],
+                                                 form[1], form[3], form[5], 0.f,
+                                                 0.f, 1.f});
+        shaderMatrix.preConcat(gradientTransform);
+      }
+      radialGradient.setLocalMatrix(shaderMatrix);
+      paint.setShader(radialGradient);
+      return paint;
+    }
+
+    float r = rgModel.mFr;
+    if (r == 0.f || stopSize == 1) {
+      paint.setColor(colors[stopSize - 1]);
+      return paint;
+    }
+
+    // Create shader in user space.
     // fx and fy are ignored because Android RadialGradient doesn't support a
     // 'focus' point that is different from cx,cy.
-    RadialGradient radialGradient =
-        new RadialGradient(cx, cy, r, colors, positions, tileMode);
-    // Calculate the gradient transform matrix
-    float[] form = rgModel.mTransform;
+    RadialGradient radialGradient = new RadialGradient(
+        rgModel.mCx, rgModel.mCy, r, colors, positions, tileMode);
     if (form != null) {
-      // support gradient transform
       Matrix gradientTransform = new Matrix();
-      float[] formValue = new float[] {
-          form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f};
-      gradientTransform.setValues(formValue);
+      gradientTransform.setValues(new float[] {
+          form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f});
       radialGradient.setLocalMatrix(gradientTransform);
     }
     paint.setShader(radialGradient);
@@ -481,13 +505,22 @@ public class SVGRender {
 
     float[] form = lgModel.mTransform;
     if (form != null) {
-      //support gradient transform
+      float[] resolvedForm = form;
+      if (lgModel.mType == GRADIENT_TYPE_OBJECT_BOUNDING_BOX) {
+        resolvedForm = resolveObjectBoundingBoxTransform(
+            form, boundingBox.left, boundingBox.top, boundingBox.width(),
+            boundingBox.height());
+      }
       Matrix matrix = new Matrix();
-      matrix.preTranslate(boundingBox.left, boundingBox.top);
-      matrix.preScale(boundingBox.width(), boundingBox.height());
-
-      float[] formValue = new float[] {
-          form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f};
+      float[] formValue = new float[] {resolvedForm[0],
+                                       resolvedForm[2],
+                                       resolvedForm[4],
+                                       resolvedForm[1],
+                                       resolvedForm[3],
+                                       resolvedForm[5],
+                                       0.f,
+                                       0.f,
+                                       1.f};
       matrix.setValues(formValue);
       linearGradient.setLocalMatrix(matrix);
     }
@@ -622,8 +655,8 @@ public class SVGRender {
     Paint compositePaint = new Paint();
     compositePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
     if (isLuminanceMask) {
-      compositePaint.setColorFilter(
-          new ColorMatrixColorFilter(new ColorMatrix(LUMINANCE_TO_ALPHA_MATRIX)));
+      compositePaint.setColorFilter(new ColorMatrixColorFilter(
+          new ColorMatrix(LUMINANCE_TO_ALPHA_MATRIX)));
     }
     return compositePaint;
   }
@@ -650,5 +683,29 @@ public class SVGRender {
       matrix.setValues(formValue);
       path.transform(matrix);
     }
+  }
+
+  private static float[] resolveObjectBoundingBoxTransform(
+      float[] form, float left, float top, float width, float height) {
+    if (form == null || form.length != 6) {
+      return form;
+    }
+    if (width == 0f || height == 0f) {
+      return form;
+    }
+    float[] bboxToUser = new float[] {width, 0f, 0f, height, left, top};
+    float[] userToBbox = new float[] {
+        1f / width, 0f, 0f, 1f / height, -left / width, -top / height};
+    return multiply(multiply(bboxToUser, form), userToBbox);
+  }
+
+  private static float[] multiply(float[] lhs, float[] rhs) {
+    float a = lhs[0] * rhs[0] + lhs[2] * rhs[1];
+    float b = lhs[1] * rhs[0] + lhs[3] * rhs[1];
+    float c = lhs[0] * rhs[2] + lhs[2] * rhs[3];
+    float d = lhs[1] * rhs[2] + lhs[3] * rhs[3];
+    float e = lhs[0] * rhs[4] + lhs[2] * rhs[5] + lhs[4];
+    float f = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
+    return new float[] {a, b, c, d, e, f};
   }
 }
