@@ -11,6 +11,25 @@ namespace serval {
 namespace svg {
 namespace element {
 
+static void NormalizeCornerRadii(float& rx, float& ry, float width,
+                                 float height) {
+  if (FloatLess(rx, 0.f) && FloatLess(ry, 0.f)) {
+    rx = 0.f;
+    ry = 0.f;
+  } else if (FloatLessOrEqual(rx, 0.f) && FloatsLarger(ry, 0.f)) {
+    rx = ry;
+  } else if (FloatLessOrEqual(ry, 0.f) && FloatsLarger(rx, 0.f)) {
+    ry = rx;
+  }
+
+  if (FloatsLarger(rx, width / 2.0f)) {
+    rx = width / 2.0f;
+  }
+  if (FloatsLarger(ry, height / 2.0f)) {
+    ry = height / 2.0f;
+  }
+}
+
 bool SrSVGRect::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "x") == 0) {
     x_ = make_serval_length(value);
@@ -51,18 +70,7 @@ void SrSVGRect::onDraw(canvas::SrCanvas* const canvas,
   float hf = convert_serval_length_to_float(&height_, &context,
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
 
-  if (FloatLess(rx, 0.f) && FloatLess(ry, 0.f)) {
-    rx = 0.f;
-    ry = 0.f;
-  } else if (FloatLessOrEqual(rx, 0.f) && FloatsLarger(ry, 0.f)) {
-    rx = ry;
-  } else if (FloatLessOrEqual(ry, 0.f) && FloatsLarger(rx, 0.f)) {
-    ry = rx;
-  } else if (FloatsLarger(rx, wf / 2.0f)) {
-    rx = wf / 2.0f;
-  } else if (FloatsLarger(ry, hf / 2.0f)) {
-    ry = wf / 2.0f;
-  }
+  NormalizeCornerRadii(rx, ry, wf, hf);
 
   // TODO: separate the draw function to fill() and stroke; And separate the
   // commands in base class since it's a common logic for all shapes.
@@ -90,6 +98,7 @@ std::unique_ptr<canvas::Path> SrSVGRect::AsPath(
                                             SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float hf = convert_serval_length_to_float(&height_, context,
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
+  NormalizeCornerRadii(rx, ry, wf, hf);
   auto path = path_factory->CreateRect(xf, yf, rx, ry, wf, hf);
   if (path) {
     path->Transform(transform_);
