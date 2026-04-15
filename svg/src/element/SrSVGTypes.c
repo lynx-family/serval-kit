@@ -174,9 +174,22 @@ static uint32_t parse_color_rgba(const char* str, float* opacity);
 static uint32_t parse_color_hex(const char* hex, float* opacity);
 
 SrSVGUnits make_serval_length_unit(const char* c) {
-  // todo(renzhongyue): support other units.
   if (strcmp(c, "px") == 0) {
     return SR_SVG_UNITS_PX;
+  } else if (strcmp(c, "pt") == 0) {
+    return SR_SVG_UNITS_PT;
+  } else if (strcmp(c, "pc") == 0) {
+    return SR_SVG_UNITS_PC;
+  } else if (strcmp(c, "mm") == 0) {
+    return SR_SVG_UNITS_MM;
+  } else if (strcmp(c, "cm") == 0) {
+    return SR_SVG_UNITS_CM;
+  } else if (strcmp(c, "in") == 0) {
+    return SR_SVG_UNITS_IN;
+  } else if (strcmp(c, "em") == 0) {
+    return SR_SVG_UNITS_EM;
+  } else if (strcmp(c, "ex") == 0) {
+    return SR_SVG_UNITS_EX;
   } else if (strcmp(c, "%") == 0) {
     return SR_SVG_UNITS_PERCENTAGE;
   }
@@ -187,7 +200,8 @@ SrSVGLength make_serval_length(const char* value) {
   char* end;
   const double a = strtod(value, &end);
   if (*end) {
-    return (SrSVGLength){.value = a, .unit = make_serval_length_unit(end)};
+    SrSVGUnits unit = make_serval_length_unit(end);
+    return (SrSVGLength){.value = a, .unit = unit};
   }
   return (SrSVGLength){.value = a, .unit = SR_SVG_UNITS_NUMBER};
 }
