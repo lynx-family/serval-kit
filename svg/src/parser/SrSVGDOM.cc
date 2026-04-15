@@ -27,6 +27,7 @@
 #include "element/SrSVGText.h"
 #include "element/SrSVGUse.h"
 #include "parser/SrDOM.h"
+#include "utils/SrFloatComparison.h"
 #include "utils/SrSVGLog.h"
 
 namespace serval {
@@ -123,26 +124,29 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
 
 void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  element::SrSVGNode* node) {
-  node->inherit_fill_paint_ =
-      parent_node->fill_ ? parent_node->fill_ : parent_node->inherit_fill_paint_;
+  node->inherit_fill_paint_ = parent_node->fill_
+                                  ? parent_node->fill_
+                                  : parent_node->inherit_fill_paint_;
   node->inherit_stroke_paint_ = parent_node->stroke_
-                                   ? parent_node->stroke_
-                                   : parent_node->inherit_stroke_paint_;
-  node->inherit_clip_path_ =
-      parent_node->clip_path_ ? parent_node->clip_path_ : parent_node->inherit_clip_path_;
+                                    ? parent_node->stroke_
+                                    : parent_node->inherit_stroke_paint_;
+  node->inherit_clip_path_ = parent_node->clip_path_
+                                 ? parent_node->clip_path_
+                                 : parent_node->inherit_clip_path_;
   node->inherit_mask_ =
       parent_node->mask_ ? parent_node->mask_ : parent_node->inherit_mask_;
-  node->inherit_opacity_ =
-      parent_node->opacity_ ? parent_node->opacity_ : parent_node->inherit_opacity_;
+  node->inherit_opacity_ = parent_node->opacity_
+                               ? parent_node->opacity_
+                               : parent_node->inherit_opacity_;
   node->inherit_fill_opacity_ = parent_node->fill_opacity_
-                                   ? parent_node->fill_opacity_
-                                   : parent_node->inherit_fill_opacity_;
+                                    ? parent_node->fill_opacity_
+                                    : parent_node->inherit_fill_opacity_;
   node->inherit_stroke_opacity_ = parent_node->stroke_opacity_
-                                     ? parent_node->stroke_opacity_
-                                     : parent_node->inherit_stroke_opacity_;
+                                      ? parent_node->stroke_opacity_
+                                      : parent_node->inherit_stroke_opacity_;
   node->inherit_stroke_width_ = parent_node->stroke_width_
-                                   ? parent_node->stroke_width_
-                                   : parent_node->inherit_stroke_width_;
+                                    ? parent_node->stroke_width_
+                                    : parent_node->inherit_stroke_width_;
 }
 
 void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,
@@ -282,8 +286,9 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
 void SrSVGDOM::Render(canvas::SrCanvas* canvas) const {
   if (root_) {
     SrSVGBox view_box = root_->viewBox();
+    float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
     SrSVGRenderContext context = (SrSVGRenderContext){
-        this->dpi_, view_box.width, view_box.height, 0, id_mapper_};
+        local_dpi, view_box.width, view_box.height, 0, id_mapper_};
     root_->Render(canvas, context);
   }
 }
@@ -291,8 +296,9 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas) const {
 void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
   if (root_) {
     SrSVGBox view_box = root_->viewBox();
+    float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
     SrSVGRenderContext context{
-        .dpi = dpi_,
+        .dpi = local_dpi,
         .id_mapper = id_mapper_,
         .view_port = view_port,
         .view_box = view_box,
