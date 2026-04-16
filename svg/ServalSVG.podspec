@@ -30,6 +30,7 @@ Pod::Spec.new do |s|
                    "include/utils/**/*.h",
                    "src/element/**/*.{c,cc,cpp}",
                    "src/parser/**/*.{c,cc,cpp}",
+                   "src/utils/**/*.{c,cc,cpp}",
                    "platform/iOS/**/*.{mm,m,cc,cpp,c}"
 
   # s.exclude_files = "src/canvas/android/*.h",

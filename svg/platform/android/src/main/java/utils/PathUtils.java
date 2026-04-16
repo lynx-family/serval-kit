@@ -20,8 +20,16 @@ public class PathUtils {
                                   float h, float right, float bottom) {
     Path p = new Path();
     if (rx == 0 || ry == 0) {
-      // Simple rect
-      p.addRect(x, y, right, bottom, Path.Direction.CW);
+      // Simple rect. This is semantically equivalent to addRect(), but we
+      // intentionally build the contour with generic path segments because
+      // addRect() showed inconsistent behavior in Android pattern offscreen
+      // rendering with objectBoundingBox content units, while an explicit
+      // move/line/close path matches other SVG shape/path rendering paths.
+      p.moveTo(x, y);
+      p.lineTo(right, y);
+      p.lineTo(right, bottom);
+      p.lineTo(x, bottom);
+      p.close();
     } else {
       // Rounded rect
       float cpx = rx * BEZIER_ARC_FACTOR;

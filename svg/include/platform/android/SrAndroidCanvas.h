@@ -6,9 +6,12 @@
 #define SVG_INCLUDE_PLATFORM_ANDROID_SRANDROIDCANVAS_H_
 
 #include <memory>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGPatternResolver.h"
 #include "platform/android/SrAndroidPathFactory.h"
 #include "platform/android/SrScopedJavaRef.h"
 
@@ -30,6 +33,9 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   };
   ~SrAndroidCanvas() override = default;
 
+  void SetRenderContext(const SrSVGRenderContext* context) override {
+    current_render_context_ = context;
+  }
   void SetViewBox(float x, float y, float width, float height) override;
   void Save() override;
   void Restore() override;
@@ -68,6 +74,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
       const char* url, float x, float y, float width, float height,
       const SrSVGPreserveAspectRatio& preserve_aspect_radio) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
+  void ClipRect(float left, float top, float right, float bottom);
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
   void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
@@ -76,11 +83,22 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   canvas::PathFactory* PathFactory() override { return path_factory_.get(); }
 
  private:
-  JavaLocalRef<jobject> MakeFillPaint(const SrSVGRenderState& render_state);
-  JavaLocalRef<jobject> MakeStrokePaint(const SrSVGRenderState& render_state);
+  JavaLocalRef<jobject> MakeFillPaint(JavaLocalRef<jobject>& path_ref,
+                                      const SrSVGRenderState& render_state);
+  JavaLocalRef<jobject> MakeStrokePaint(JavaLocalRef<jobject>& path_ref,
+                                        const SrSVGRenderState& render_state);
   JavaLocalRef<jobject> MakeStopModel(const SrStop& stop);
   void Draw(JavaLocalRef<jobject>& path_ref,
             const SrSVGRenderState& render_state);
+  bool RenderPatternFill(JavaLocalRef<jobject>& path_ref,
+                         const SrSVGRenderState& render_state, const char* iri);
+  bool RenderPatternStroke(JavaLocalRef<jobject>& path_ref,
+                           const SrSVGRenderState& render_state,
+                           const char* iri);
+  void RenderPatternTiles(JavaLocalRef<jobject>& clip_path_ref,
+                          const element::ResolvedPattern& resolved_pattern,
+                          const SrSVGBox& target_bounds);
+  bool CalculatePathBounds(JavaLocalRef<jobject>& path_ref, SrSVGBox* bounds);
 
  public:
   std::unique_ptr<SrAndroidPathFactory> path_factory_;
@@ -108,6 +126,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRender_draw_;
   static intptr_t g_SVGRender_draw_image_;
   static intptr_t g_SVGRender_clipPath_;
+  static intptr_t g_SVGRender_clipRect_;
   static intptr_t g_SVGRender_saveLayer_;
   static intptr_t g_SVGRender_restoreLayer_;
   static intptr_t g_SVGRender_setBlendMode_;
@@ -124,6 +143,8 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   jobject j_render_;
   JNIEnv* jni_env_;
   bool mask_is_luminance_{false};
+  const SrSVGRenderContext* current_render_context_{nullptr};
+  std::unordered_set<std::string> active_pattern_ids_;
 
  public:
   JNIEnv* GetJNIEnv() const { return jni_env_; }

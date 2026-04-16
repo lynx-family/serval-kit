@@ -109,6 +109,9 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGImage.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLinearGradient.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGRadialGradient.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGPattern.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGPatternResolver.h
+        ${SVG_SRC_DIRECTORY}/include/utils/SrSVGPatternUtils.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGClipPath.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGMask.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGG.h
@@ -131,6 +134,9 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGTypes.c
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGLinearGradient.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGRadialGradient.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGPattern.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGPatternResolver.cc
+        ${SVG_SRC_DIRECTORY}/src/utils/SrSVGPatternUtils.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGDefs.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGUse.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGImage.cc

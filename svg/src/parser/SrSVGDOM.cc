@@ -19,6 +19,7 @@
 #include "element/SrSVGLinearGradient.h"
 #include "element/SrSVGMask.h"
 #include "element/SrSVGPath.h"
+#include "element/SrSVGPattern.h"
 #include "element/SrSVGPolyLine.h"
 #include "element/SrSVGPolygon.h"
 #include "element/SrSVGRadialGradient.h"
@@ -66,6 +67,7 @@ static bool IsNonRenderingTag(element::SrSVGTag tag) {
     case element::SrSVGTag::kClipPath:
     case element::SrSVGTag::kMask:
     case element::SrSVGTag::kFilter:
+    case element::SrSVGTag::kPattern:
     case element::SrSVGTag::kFeBlend:
     case element::SrSVGTag::kFeColorMatrix:
     case element::SrSVGTag::kFeComposite:
@@ -97,6 +99,7 @@ static bool ShouldAppendChild(const element::SrSVGNodeBase* parent,
     case element::SrSVGTag::kFilter:
     case element::SrSVGTag::kLinearGradient:
     case element::SrSVGTag::kRadialGradient:
+    case element::SrSVGTag::kPattern:
       return true;
     default:
       return false;
@@ -187,6 +190,8 @@ element::SrSVGNodeBase* construct_svg_node(
     node = element::SrSVGPolyLine::Make();
   } else if (strcmp(el, "path") == 0) {
     node = element::SrSVGPath::Make();
+  } else if (strcmp(el, "pattern") == 0) {
+    node = element::SrSVGPattern::Make();
   } else if (strcmp(el, "ellipse") == 0) {
     node = element::SrSVGEllipse::Make();
   } else if (strcmp(el, "defs") == 0) {

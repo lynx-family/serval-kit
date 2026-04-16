@@ -1,0 +1,16 @@
+<svg width="240" height="160" viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="openStrokePattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="20" height="20" fill="#e3f2fd" />
+      <circle cx="10" cy="10" r="5" fill="#1e88e5" />
+      <rect x="2" y="2" width="4" height="4" fill="#1e88e5" />
+    </pattern>
+  </defs>
+
+  <path d="M 30 120 Q 80 20 130 120 T 210 120"
+        fill="none"
+        stroke="url(#openStrokePattern)"
+        stroke-width="18"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+</svg>

@@ -5,6 +5,9 @@
 #include "platform/harmony/path_factory_harmony_impl.h"
 #include "canvas/SrCanvas.h"
 #include "platform/harmony/path_harmony_impl.h"
+#include "utils/SrFloatComparison.h"
+#include <cmath>
+#include <native_drawing/drawing_path_effect.h>
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_round_rect.h>
@@ -124,6 +127,13 @@ void PathFactoryHarmonyImpl::Op(canvas::Path *path1, canvas::Path *path2, canvas
 std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const canvas::Path *path, float width,
                                                                        SrSVGStrokeCap cap, SrSVGStrokeJoin join,
                                                                        float miter_limit) {
+    return CreateStrokePath(path, width, cap, join, miter_limit, 0.f, nullptr, 0);
+}
+
+std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const canvas::Path *path, float width,
+                                                                       SrSVGStrokeCap cap, SrSVGStrokeJoin join,
+                                                                       float miter_limit, float dash_offset,
+                                                                       float *dash_array, size_t dash_array_length) {
     auto *harmony_path = static_cast<const PathHarmonyImpl *>(path);
     if (!harmony_path || !harmony_path->GetPath()) {
         return nullptr;
@@ -157,8 +167,30 @@ std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const can
         break;
     }
 
+    OH_Drawing_PathEffect *path_effect = nullptr;
+    if (dash_array && dash_array_length > 0) {
+        auto length = (dash_array_length % 2 == 0) ? dash_array_length : dash_array_length * 2;
+        float interval_sum = 0.f;
+        std::vector<float> intervals(length, 0.f);
+        for (size_t i = 0; i < length; ++i) {
+            intervals[i] = dash_array[i % dash_array_length];
+            interval_sum += intervals[i];
+        }
+        if (!FloatsEqual(interval_sum, 0.f)) {
+            float offset = dash_offset;
+            if (FloatLess(offset, 0.f)) {
+                offset = interval_sum + std::fmod(offset, interval_sum);
+            }
+            path_effect = OH_Drawing_CreateDashPathEffect(intervals.data(), intervals.size(), offset);
+            OH_Drawing_PenSetPathEffect(pen, path_effect);
+        }
+    }
+
     OH_Drawing_Path *dst_path = OH_Drawing_PathCreate();
     bool ret = OH_Drawing_PenGetFillPath(pen, harmony_path->GetPath(), dst_path, nullptr, nullptr);
+    if (path_effect) {
+        OH_Drawing_PathEffectDestroy(path_effect);
+    }
     OH_Drawing_PenDestroy(pen);
 
     if (ret) {

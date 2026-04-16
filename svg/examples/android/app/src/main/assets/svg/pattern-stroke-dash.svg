@@ -1,0 +1,16 @@
+<svg width="240" height="150" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="strokeDashPattern" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="18" height="18" fill="#fff3e0" />
+      <path d="M0 18 L18 0" stroke="#ef6c00" stroke-width="3" />
+      <circle cx="5" cy="5" r="2.5" fill="#ef6c00" />
+    </pattern>
+  </defs>
+
+  <path d="M 25 120 C 60 20 180 20 215 120"
+        fill="none"
+        stroke="url(#strokeDashPattern)"
+        stroke-width="16"
+        stroke-linecap="round"
+        stroke-dasharray="18 12" />
+</svg>
