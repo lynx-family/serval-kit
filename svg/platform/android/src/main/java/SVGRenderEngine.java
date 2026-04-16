@@ -4,7 +4,9 @@
 
 package com.lynx.serval.svg;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Path;
 import android.os.Build;
 import android.text.BoringLayout;
@@ -168,7 +170,8 @@ public class SVGRenderEngine {
   }
 
   public static Path makeStrokePath(Path src, float width, int cap, int join,
-                                    float miter) {
+                                    float miter, float dashOffset,
+                                    float[] dashArray) {
     if (src == null)
       return null;
     android.graphics.Paint paint = new android.graphics.Paint();
@@ -190,6 +193,9 @@ public class SVGRenderEngine {
       paint.setStrokeJoin(android.graphics.Paint.Join.BEVEL);
 
     paint.setStrokeMiter(miter);
+    if (dashArray != null && dashArray.length > 0) {
+      paint.setPathEffect(new DashPathEffect(dashArray, dashOffset));
+    }
 
     Path dst = new Path();
     paint.getFillPath(src, dst);

@@ -7,6 +7,7 @@
 #include "element/SrSVGTypes.h"
 #include "platform/iOS/SrIOSCanvas.h"
 #include "utils/SrFloatComparison.h"
+#include "utils/SrSVGPatternUtils.h"
 
 #define LYNX_DEGREE_TO_RADIANS(X) ((M_PI * X) / 180)
 #ifdef __cplusplus
@@ -391,6 +392,10 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
       CGContextRestoreGState(_context);
       return;
     }
+    if (RenderPatternFill(cgPath, renderState, iri)) {
+      CGContextRestoreGState(_context);
+      return;
+    }
     auto it1 = lg_models_.find(iri);
     if (it1 != lg_models_.end()) {
       const canvas::LinearGradientModel& lgModel = it1->second;
@@ -405,6 +410,224 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
     }
   }
   CGContextRestoreGState(_context);
+}
+
+bool SrIOSCanvas::CalculatePathBounds(CGPathRef cgPath, SrSVGBox* bounds) {
+  if (!cgPath || !bounds) {
+    return false;
+  }
+  CGRect box = CGPathGetBoundingBox(cgPath);
+  bounds->left = static_cast<float>(CGRectGetMinX(box));
+  bounds->top = static_cast<float>(CGRectGetMinY(box));
+  bounds->width = static_cast<float>(CGRectGetWidth(box));
+  bounds->height = static_cast<float>(CGRectGetHeight(box));
+  return true;
+}
+
+void SrIOSCanvas::RenderPatternTiles(
+    const element::ResolvedPattern& resolved_pattern,
+    const SrSVGBox& target_bounds) {
+  bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
+
+  SrSVGBox pattern_area = target_bounds;
+  if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
+    Transform(resolved_pattern.pattern_transform);
+    float inverse[6];
+    if (element::InvertAffineTransform(resolved_pattern.pattern_transform,
+                                       inverse)) {
+      pattern_area = element::MapBounds(target_bounds, inverse);
+    }
+  }
+
+  float origin_x =
+      resolved_pattern.x + std::floor((pattern_area.left - resolved_pattern.x) /
+                                      resolved_pattern.width) *
+                               resolved_pattern.width;
+  float origin_y =
+      resolved_pattern.y + std::floor((pattern_area.top - resolved_pattern.y) /
+                                      resolved_pattern.height) *
+                               resolved_pattern.height;
+  float right = pattern_area.left + pattern_area.width;
+  float bottom = pattern_area.top + pattern_area.height;
+  const bool has_resolved_view_box =
+      resolved_pattern.has_view_box &&
+      FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
+      FloatsLarger(resolved_pattern.view_box.height, 0.f);
+  const bool uses_object_bounding_box_content_units =
+      resolved_pattern.pattern_content_units ==
+      SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
+  SrSVGRenderContext base_tile_context = *current_render_context_;
+
+  for (float step_y = origin_y; step_y < bottom;
+       step_y += resolved_pattern.height) {
+    for (float step_x = origin_x; step_x < right;
+         step_x += resolved_pattern.width) {
+      Save();
+      CGContextClipToRect(_context,
+                          CGRectMake(step_x, step_y, resolved_pattern.width,
+                                     resolved_pattern.height));
+
+      SrSVGRenderContext tile_context = base_tile_context;
+      if (has_resolved_view_box) {
+        SrSVGBox tile_view_port{step_x, step_y, resolved_pattern.width,
+                                resolved_pattern.height};
+        tile_context.view_port = tile_view_port;
+        tile_context.view_box = resolved_pattern.view_box;
+        float view_box_xform[6];
+        calculate_view_box_transform(
+            &tile_view_port, &resolved_pattern.view_box,
+            resolved_pattern.preserve_aspect_ratio, view_box_xform);
+        Transform(view_box_xform);
+      } else {
+        Translate(step_x, step_y);
+        if (uses_object_bounding_box_content_units) {
+          float scale_xform[6];
+          xform_set_scale(scale_xform, target_bounds.width,
+                          target_bounds.height);
+          Transform(scale_xform);
+        }
+      }
+
+      auto* previous_render_context = current_render_context_;
+      resolved_pattern.content_pattern->RenderContent(this, tile_context);
+      current_render_context_ = previous_render_context;
+      Restore();
+    }
+  }
+
+  if (inserted) {
+    active_pattern_ids_.erase(resolved_pattern.id);
+  }
+}
+
+bool SrIOSCanvas::RenderPatternFill(CGPathRef cgPath,
+                                    const SrSVGRenderState& render_state,
+                                    const char* iri) {
+  if (!current_render_context_ || !cgPath || !iri || iri[0] != '#' ||
+      !element::IsPatternIri(iri, *current_render_context_)) {
+    return false;
+  }
+
+  SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+  if (!CalculatePathBounds(cgPath, &bounds)) {
+    return false;
+  }
+  element::ResolvedPattern resolved_pattern;
+  if (!element::ResolvePatternFromIri(iri, *current_render_context_, bounds,
+                                      active_pattern_ids_, &resolved_pattern)) {
+    return false;
+  }
+
+  Save();
+  CGContextAddPath(_context, cgPath);
+  if (render_state.fill_rule == SR_SVG_EO_FILL) {
+    CGContextEOClip(_context);
+  } else {
+    CGContextClip(_context);
+  }
+  RenderPatternTiles(resolved_pattern, bounds);
+  Restore();
+  return true;
+}
+
+CGPathRef SrIOSCanvas::CreateStrokeClipPath(
+    CGPathRef cgPath, const SrSVGRenderState& render_state) {
+  if (!cgPath || !FloatsLarger(render_state.stroke_width, 0.f)) {
+    return nullptr;
+  }
+
+  CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+  CGContextRef temp_context = CGBitmapContextCreate(
+      NULL, 1, 1, 8, 4, color_space,
+      kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+  CGColorSpaceRelease(color_space);
+  if (!temp_context) {
+    return nullptr;
+  }
+
+  CGContextAddPath(temp_context, cgPath);
+  CGContextSetLineWidth(temp_context, render_state.stroke_width);
+  if (render_state.stroke_state) {
+    switch (render_state.stroke_state->stroke_line_cap) {
+      case SR_SVG_STROKE_CAP_ROUND:
+        CGContextSetLineCap(temp_context, kCGLineCapRound);
+        break;
+      case SR_SVG_STROKE_CAP_SQUARE:
+        CGContextSetLineCap(temp_context, kCGLineCapSquare);
+        break;
+      default:
+        CGContextSetLineCap(temp_context, kCGLineCapButt);
+        break;
+    }
+    switch (render_state.stroke_state->stroke_line_join) {
+      case SR_SVG_STROKE_JOIN_ROUND:
+        CGContextSetLineJoin(temp_context, kCGLineJoinRound);
+        break;
+      case SR_SVG_STROKE_JOIN_BEVEL:
+        CGContextSetLineJoin(temp_context, kCGLineJoinBevel);
+        break;
+      default:
+        CGContextSetLineJoin(temp_context, kCGLineJoinMiter);
+        break;
+    }
+    CGContextSetMiterLimit(temp_context,
+                           render_state.stroke_state->stroke_miter_limit);
+    const float* stroke_dash_array = render_state.stroke_state->dash_array;
+    size_t dash_count = render_state.stroke_state->dash_array_length;
+    if (stroke_dash_array && dash_count > 0) {
+      CGFloat dash_array[dash_count];
+      for (size_t i = 0; i < dash_count; ++i) {
+        dash_array[i] = stroke_dash_array[i];
+      }
+      CGContextSetLineDash(temp_context,
+                           render_state.stroke_state->stroke_dash_offset,
+                           dash_array, dash_count);
+    }
+  }
+
+  CGContextReplacePathWithStrokedPath(temp_context);
+  CGPathRef stroked_path = CGContextCopyPath(temp_context);
+  CGContextRelease(temp_context);
+  return stroked_path;
+}
+
+bool SrIOSCanvas::RenderPatternStroke(CGPathRef cgPath,
+                                      const SrSVGRenderState& render_state,
+                                      const char* iri) {
+  if (!current_render_context_ || !cgPath || !iri || iri[0] != '#' ||
+      !render_state.stroke || !FloatsLarger(render_state.stroke_width, 0.f) ||
+      !element::IsPatternIri(iri, *current_render_context_)) {
+    return false;
+  }
+
+  SrSVGBox object_bounds{0.f, 0.f, 0.f, 0.f};
+  if (!CalculatePathBounds(cgPath, &object_bounds)) {
+    return false;
+  }
+  element::ResolvedPattern resolved_pattern;
+  if (!element::ResolvePatternFromIri(iri, *current_render_context_,
+                                      object_bounds, active_pattern_ids_,
+                                      &resolved_pattern)) {
+    return false;
+  }
+
+  CGPathRef stroked_path = CreateStrokeClipPath(cgPath, render_state);
+  if (!stroked_path) {
+    return false;
+  }
+
+  Save();
+  CGContextAddPath(_context, stroked_path);
+  CGContextClip(_context);
+  CGRect stroke_box = CGPathGetBoundingBox(stroked_path);
+  SrSVGBox stroke_bounds{static_cast<float>(CGRectGetMinX(stroke_box)),
+                         static_cast<float>(CGRectGetMinY(stroke_box)),
+                         static_cast<float>(CGRectGetWidth(stroke_box)),
+                         static_cast<float>(CGRectGetHeight(stroke_box))};
+  RenderPatternTiles(resolved_pattern, stroke_bounds);
+  Restore();
+  CGPathRelease(stroked_path);
+  return true;
 }
 
 void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
@@ -464,6 +687,10 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
              renderState.stroke->type == SERVAL_PAINT_IRI) {
     const char* iri = renderState.stroke->content.iri;
     if (!iri || iri[0] == '\0') {
+      CGContextRestoreGState(_context);
+      return;
+    }
+    if (RenderPatternStroke(cgPath, renderState, iri)) {
       CGContextRestoreGState(_context);
       return;
     }

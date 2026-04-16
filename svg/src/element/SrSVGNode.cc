@@ -27,6 +27,7 @@ const float SrSVGNode::s_stroke_miter_limit = 4.f;
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
   canvas->Save();
+  canvas->SetRenderContext(&context);
   OnPrepareToRender(canvas, context);
   bool filtered = false;
   bool render_original = false;
@@ -40,56 +41,65 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
         // Apply transform to path for correct bounds calculation
         bool has_transform = false;
         for (int i = 0; i < 6; ++i) {
-           // Indices 0 and 3 are scale factors (diagonal), should be 1.0
-           if (i == 0 || i == 3) {
-              if (fabs(svg_node->transform_[i] - 1.0f) > 1e-5f) has_transform = true;
-           } else {
-              if (fabs(svg_node->transform_[i]) > 1e-5f) has_transform = true;
-           }
+          // Indices 0 and 3 are scale factors (diagonal), should be 1.0
+          if (i == 0 || i == 3) {
+            if (fabs(svg_node->transform_[i] - 1.0f) > 1e-5f)
+              has_transform = true;
+          } else {
+            if (fabs(svg_node->transform_[i]) > 1e-5f)
+              has_transform = true;
+          }
         }
-        
+
         if (has_transform) {
-           path = path->CreateTransformCopy(svg_node->transform_);
+          path = path->CreateTransformCopy(svg_node->transform_);
         }
-        
+
         bounds = path->GetBounds();
         has_bounds = bounds.width > 0.f && bounds.height > 0.f;
-        
+
         // Expand bounds by stroke width
         float stroke_w = 0.f;
         if (svg_node->stroke_width_.has_value()) {
-           stroke_w = convert_serval_length_to_float(&*svg_node->stroke_width_, &context, SR_SVG_LENGTH_TYPE_OTHER);
+          stroke_w = convert_serval_length_to_float(
+              &*svg_node->stroke_width_, &context, SR_SVG_LENGTH_TYPE_OTHER);
         } else if (svg_node->inherit_stroke_width_.has_value()) {
-            stroke_w = convert_serval_length_to_float(&*svg_node->inherit_stroke_width_, &context, SR_SVG_LENGTH_TYPE_OTHER);
+          stroke_w = convert_serval_length_to_float(
+              &*svg_node->inherit_stroke_width_, &context,
+              SR_SVG_LENGTH_TYPE_OTHER);
         }
-        
+
         // Check if stroke is actually drawn
         bool has_stroke = false;
         if (svg_node->stroke_ && svg_node->stroke_->type != SERVAL_PAINT_NONE) {
+          has_stroke = true;
+        } else if (svg_node->inherit_stroke_paint_ &&
+                   svg_node->inherit_stroke_paint_->type != SERVAL_PAINT_NONE) {
+          // If not overridden locally
+          if (!svg_node->stroke_)
             has_stroke = true;
-        } else if (svg_node->inherit_stroke_paint_ && svg_node->inherit_stroke_paint_->type != SERVAL_PAINT_NONE) {
-             // If not overridden locally
-             if (!svg_node->stroke_) has_stroke = true;
         }
 
         if (has_stroke) {
-             // Default stroke width is 1.0 if not specified but stroke is present? 
-             // Logic in Render usually handles defaults. Here we just want to be safe.
-             if (stroke_w <= 0.f && (!svg_node->stroke_width_.has_value() && !svg_node->inherit_stroke_width_.has_value())) {
-                 stroke_w = 1.f;
-             }
-             
-             if (stroke_w > 0.f) {
-                 float half_w = stroke_w * 0.5f;
-                 bounds.left -= half_w;
-                 bounds.top -= half_w;
-                 bounds.width += stroke_w;
-                 bounds.height += stroke_w;
-             }
+          // Default stroke width is 1.0 if not specified but stroke is present?
+          // Logic in Render usually handles defaults. Here we just want to be safe.
+          if (stroke_w <= 0.f &&
+              (!svg_node->stroke_width_.has_value() &&
+               !svg_node->inherit_stroke_width_.has_value())) {
+            stroke_w = 1.f;
+          }
+
+          if (stroke_w > 0.f) {
+            float half_w = stroke_w * 0.5f;
+            bounds.left -= half_w;
+            bounds.top -= half_w;
+            bounds.width += stroke_w;
+            bounds.height += stroke_w;
+          }
         }
       }
-      canvas->SaveLayerWithFilter(has_bounds ? &bounds : nullptr, svg_node->filter_,
-                                  context.id_mapper);
+      canvas->SaveLayerWithFilter(has_bounds ? &bounds : nullptr,
+                                  svg_node->filter_, context.id_mapper);
       filtered = true;
 
       // Hack for DropShadow: check if we should render original image
@@ -110,8 +120,7 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
   // Mask rendering via off-screen compositing (SaveLayer + DstIn blend).
   // All platforms implement SaveLayer for alpha-accurate masking
   bool masked = false;
-  if (IsSVGNode() &&
-      Tag() != SrSVGTag::kMask) {
+  if (IsSVGNode() && Tag() != SrSVGTag::kMask) {
     auto* svg_node = static_cast<SrSVGNode*>(this);
     SrSVGPaint* local_mask =
         svg_node->mask_ != nullptr ? svg_node->mask_ : svg_node->inherit_mask_;
@@ -136,8 +145,8 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
           canvas->SetBlendMode(canvas::SrCanvasBlendMode::kDstIn);
           canvas->Save();
           if (has_bounds && mask_node->mask_content_units() ==
-                               SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-            float xform[6] = {bounds.width, 0.f, 0.f,
+                                SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+            float xform[6] = {bounds.width,  0.f,         0.f,
                               bounds.height, bounds.left, bounds.top};
             canvas->Transform(xform);
           }

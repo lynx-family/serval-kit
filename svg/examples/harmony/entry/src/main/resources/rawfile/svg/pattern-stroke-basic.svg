@@ -1,0 +1,14 @@
+<svg width="220" height="140" viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="strokeBasicPattern" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="16" height="16" fill="#fff8e1" />
+      <path d="M0 16 L16 0" stroke="#3949ab" stroke-width="3" />
+      <circle cx="4" cy="4" r="2.2" fill="#3949ab" />
+    </pattern>
+  </defs>
+
+  <rect x="20" y="20" width="180" height="100"
+        fill="#eeeeee"
+        stroke="url(#strokeBasicPattern)"
+        stroke-width="16" />
+</svg>

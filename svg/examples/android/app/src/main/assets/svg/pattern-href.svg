@@ -1,0 +1,15 @@
+<svg width="240" height="120" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="basePattern" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="24" height="24" fill="#f5f5f5" />
+      <circle cx="12" cy="12" r="6" fill="#4caf50" />
+    </pattern>
+
+    <pattern id="derivedPattern" href="#basePattern" patternTransform="rotate(20)">
+      <rect x="0" y="0" width="12" height="12" fill="#ff7043" />
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="120" height="120" fill="url(#basePattern)" />
+  <rect x="120" y="0" width="120" height="120" fill="url(#derivedPattern)" />
+</svg>

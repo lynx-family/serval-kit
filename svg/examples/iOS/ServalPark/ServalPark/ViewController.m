@@ -18,14 +18,22 @@
 - (void)viewDidLoad {
   [super viewDidLoad];
 
-  // Initialize file list
-  self.svgFiles = @[
-    @"string_test.svg", @"invalid-iri-test.svg",
-    @"currentcolor-fill-opacity-use.svg", @"mask-comprehensive-test.svg",
-    @"mask-luminance-gradient-test.svg", @"mask-alpha-units-test.svg",
-    @"paths.svg", @"basic_shapes.svg", @"clip_path.svg", @"defs_use.svg",
-    @"gradients.svg", @"image.svg", @"text.svg", @"transforms.svg"
-  ];
+  NSMutableArray<NSString*>* svgFiles =
+      [NSMutableArray arrayWithObject:@"string_test.svg"];
+  NSString* svgDirectory = [[[NSBundle mainBundle] resourcePath]
+      stringByAppendingPathComponent:@"svg"];
+  NSArray<NSString*>* bundleFiles =
+      [[NSFileManager defaultManager] contentsOfDirectoryAtPath:svgDirectory
+                                                          error:nil];
+  NSArray<NSString*>* sortedBundleFiles = [bundleFiles
+      sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
+  for (NSString* fileName in sortedBundleFiles) {
+    if ([[fileName pathExtension] isEqualToString:@"svg"] &&
+        ![fileName isEqualToString:@"string_test.svg"]) {
+      [svgFiles addObject:fileName];
+    }
+  }
+  self.svgFiles = svgFiles;
 
   // Setup Picker View
   self.pickerView = [[UIPickerView alloc]

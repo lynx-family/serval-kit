@@ -5,8 +5,14 @@
 #include "platform/android/SrAndroidCanvas.h"
 
 #include <jni.h>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <vector>
 #include "element/SrSVGNode.h"
+#include "element/SrSVGPattern.h"
+#include "utils/SrFloatComparison.h"
+#include "utils/SrSVGPatternUtils.h"
 
 #include "platform/android/SrAndroidPath.h"
 
@@ -38,6 +44,7 @@ intptr_t SrAndroidCanvas::g_SVGRender_transform_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_draw_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_draw_image_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_clipPath_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_clipRect_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_saveLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_restoreLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_setBlendMode_ = 0;
@@ -388,6 +395,201 @@ void SrAndroidCanvas::UpdateRadialGradient(
   }
 }
 
+bool SrAndroidCanvas::CalculatePathBounds(JavaLocalRef<jobject>& path_ref,
+                                          SrSVGBox* bounds) {
+  if (!bounds || path_ref.IsNull()) {
+    return false;
+  }
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return false;
+  }
+  jmethodID j_calculate_path_bounds =
+      GetMethod(jni_env_, render_clazz_ref.Get(), STATIC_METHOD,
+                "calculatePathBoundsArray", "(Landroid/graphics/Path;)[F",
+                &(SrAndroidCanvas::g_SVGRender_calculatePathBoundsArray_));
+  if (!j_calculate_path_bounds) {
+    return false;
+  }
+  JavaLocalRef<jfloatArray> j_bounds_ref(
+      jni_env_,
+      static_cast<jfloatArray>(jni_env_->CallStaticObjectMethod(
+          render_clazz_ref.Get(), j_calculate_path_bounds, path_ref.Get())));
+  if (j_bounds_ref.IsNull() ||
+      jni_env_->GetArrayLength(j_bounds_ref.Get()) < 4) {
+    return false;
+  }
+  float raw_bounds[4] = {0.f, 0.f, 0.f, 0.f};
+  jni_env_->GetFloatArrayRegion(j_bounds_ref.Get(), 0, 4, raw_bounds);
+  bounds->left = raw_bounds[0];
+  bounds->top = raw_bounds[1];
+  bounds->width = raw_bounds[2];
+  bounds->height = raw_bounds[3];
+  return true;
+}
+
+void SrAndroidCanvas::RenderPatternTiles(
+    JavaLocalRef<jobject>& clip_path_ref,
+    const element::ResolvedPattern& resolved_pattern,
+    const SrSVGBox& target_bounds) {
+  (void)clip_path_ref;
+  bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
+
+  SrSVGBox pattern_area = target_bounds;
+  if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
+    Transform(resolved_pattern.pattern_transform);
+    float inverse[6];
+    if (element::InvertAffineTransform(resolved_pattern.pattern_transform,
+                                       inverse)) {
+      pattern_area = element::MapBounds(target_bounds, inverse);
+    }
+  }
+
+  float origin_x =
+      resolved_pattern.x + std::floor((pattern_area.left - resolved_pattern.x) /
+                                      resolved_pattern.width) *
+                               resolved_pattern.width;
+  float origin_y =
+      resolved_pattern.y + std::floor((pattern_area.top - resolved_pattern.y) /
+                                      resolved_pattern.height) *
+                               resolved_pattern.height;
+  float right = pattern_area.left + pattern_area.width;
+  float bottom = pattern_area.top + pattern_area.height;
+  const bool has_resolved_view_box =
+      resolved_pattern.has_view_box &&
+      FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
+      FloatsLarger(resolved_pattern.view_box.height, 0.f);
+  const bool uses_object_bounding_box_content_units =
+      resolved_pattern.pattern_content_units ==
+      SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
+  SrSVGRenderContext base_tile_context = *current_render_context_;
+
+  // TODO: optimize this tile loop further.
+  for (float step_y = origin_y; step_y < bottom;
+       step_y += resolved_pattern.height) {
+    for (float step_x = origin_x; step_x < right;
+         step_x += resolved_pattern.width) {
+      Save();
+      ClipRect(step_x, step_y, step_x + resolved_pattern.width,
+               step_y + resolved_pattern.height);
+
+      SrSVGRenderContext tile_context = base_tile_context;
+      if (has_resolved_view_box) {
+        SrSVGBox tile_view_port{step_x, step_y, resolved_pattern.width,
+                                resolved_pattern.height};
+        tile_context.view_port = tile_view_port;
+        tile_context.view_box = resolved_pattern.view_box;
+        float view_box_xform[6];
+        calculate_view_box_transform(
+            &tile_view_port, &resolved_pattern.view_box,
+            resolved_pattern.preserve_aspect_ratio, view_box_xform);
+        Transform(view_box_xform);
+      } else {
+        Translate(step_x, step_y);
+        if (uses_object_bounding_box_content_units) {
+          float scale_xform[6];
+          xform_set_scale(scale_xform, target_bounds.width,
+                          target_bounds.height);
+          Transform(scale_xform);
+        }
+      }
+
+      auto* previous_render_context = current_render_context_;
+      resolved_pattern.content_pattern->RenderContent(this, tile_context);
+      current_render_context_ = previous_render_context;
+      Restore();
+    }
+  }
+
+  if (inserted) {
+    active_pattern_ids_.erase(resolved_pattern.id);
+  }
+}
+
+bool SrAndroidCanvas::RenderPatternFill(JavaLocalRef<jobject>& path_ref,
+                                        const SrSVGRenderState& render_state,
+                                        const char* iri) {
+  if (!current_render_context_ || !iri || iri[0] != '#' ||
+      !element::IsPatternIri(iri, *current_render_context_)) {
+    return false;
+  }
+
+  SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+  if (!CalculatePathBounds(path_ref, &bounds)) {
+    return false;
+  }
+
+  element::ResolvedPattern resolved_pattern;
+  if (!element::ResolvePatternFromIri(iri, *current_render_context_, bounds,
+                                      active_pattern_ids_, &resolved_pattern)) {
+    return false;
+  }
+
+  Save();
+  SrAndroidPath clip_path(jni_env_, path_ref.Get(), path_factory_.get());
+  ClipPath(&clip_path, render_state.fill_rule);
+  RenderPatternTiles(path_ref, resolved_pattern, bounds);
+  Restore();
+  return true;
+}
+
+bool SrAndroidCanvas::RenderPatternStroke(JavaLocalRef<jobject>& path_ref,
+                                          const SrSVGRenderState& render_state,
+                                          const char* iri) {
+  if (!current_render_context_ || !iri || iri[0] != '#' ||
+      !render_state.stroke || !FloatsLarger(render_state.stroke_width, 0.f) ||
+      !element::IsPatternIri(iri, *current_render_context_)) {
+    return false;
+  }
+
+  SRSVGStrokeState* stroke_state = render_state.stroke_state;
+  SrSVGBox object_bounds{0.f, 0.f, 0.f, 0.f};
+  if (!CalculatePathBounds(path_ref, &object_bounds)) {
+    return false;
+  }
+
+  element::ResolvedPattern resolved_pattern;
+  if (!element::ResolvePatternFromIri(iri, *current_render_context_,
+                                      object_bounds, active_pattern_ids_,
+                                      &resolved_pattern)) {
+    return false;
+  }
+
+  SrSVGStrokeCap stroke_line_cap = SR_SVG_STROKE_CAP_BUTT;
+  SrSVGStrokeJoin stroke_line_join = SR_SVG_STROKE_JOIN_MITER;
+  float stroke_miter_limit = element::SrSVGNode::s_stroke_miter_limit;
+  if (stroke_state) {
+    stroke_line_cap = stroke_state->stroke_line_cap;
+    stroke_line_join = stroke_state->stroke_line_join;
+    stroke_miter_limit = stroke_state->stroke_miter_limit;
+  }
+
+  SrAndroidPath source_path(jni_env_, path_ref.Get(), path_factory_.get());
+  float stroke_dash_offset = 0.f;
+  float* dash_array = nullptr;
+  size_t dash_array_length = 0;
+  if (stroke_state) {
+    stroke_dash_offset = stroke_state->stroke_dash_offset;
+    dash_array = stroke_state->dash_array;
+    dash_array_length = stroke_state->dash_array_length;
+  }
+  std::unique_ptr<canvas::Path> stroke_clip_path =
+      path_factory_->CreateStrokePath(&source_path, render_state.stroke_width,
+                                      stroke_line_cap, stroke_line_join,
+                                      stroke_miter_limit, stroke_dash_offset,
+                                      dash_array, dash_array_length);
+  if (!stroke_clip_path) {
+    return false;
+  }
+
+  Save();
+  ClipPath(stroke_clip_path.get(), SR_SVG_FILL);
+  SrSVGBox stroke_bounds = stroke_clip_path->GetBounds();
+  RenderPatternTiles(path_ref, resolved_pattern, stroke_bounds);
+  Restore();
+  return true;
+}
+
 void SrAndroidCanvas::Draw(JavaLocalRef<jobject>& path_ref,
                            const SrSVGRenderState& render_state) {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
@@ -402,16 +604,57 @@ void SrAndroidCanvas::Draw(JavaLocalRef<jobject>& path_ref,
                 ")V",
                 &(SrAndroidCanvas::g_SVGRender_draw_));
   if (j_draw) {
-    // make fill paint
-    LOGD("draw: makeFillPaint");
-    JavaLocalRef<jobject> fill_paint_ref = MakeFillPaint(render_state);
+    const bool rendered_pattern_fill =
+        render_state.fill && render_state.fill->type == SERVAL_PAINT_IRI &&
+        RenderPatternFill(path_ref, render_state,
+                          render_state.fill->content.iri);
+    const bool rendered_pattern_stroke =
+        render_state.stroke && render_state.stroke->type == SERVAL_PAINT_IRI &&
+        FloatsLarger(render_state.stroke_width, 0.f) &&
+        element::IsPatternIri(render_state.stroke->content.iri,
+                              *current_render_context_);
+
+    JavaLocalRef<jobject> fill_paint_ref(jni_env_, nullptr);
+    if (rendered_pattern_fill) {
+      JavaLocalRef<jclass> engine_clazz_ref = GetClass(jni_env_, j_engine_);
+      if (!engine_clazz_ref.IsNull()) {
+        jmethodID j_make_fill_none = GetMethod(
+            jni_env_, engine_clazz_ref.Get(), STATIC_METHOD,
+            "makeFillPaintModel",
+            "(ILjava/lang/String;JIF)"
+            "Lcom/lynx/serval/svg/model/FillPaintModel;",
+            &(SrAndroidCanvas::g_SVGRenderEngine_makeFillPaintModel_));
+        if (j_make_fill_none) {
+          JavaLocalRef<jstring> j_empty_iri(jni_env_,
+                                            jni_env_->NewStringUTF(""));
+          fill_paint_ref = {
+              jni_env_, jni_env_->CallStaticObjectMethod(
+                            engine_clazz_ref.Get(), j_make_fill_none,
+                            static_cast<jint>(SERVAL_PAINT_NONE),
+                            j_empty_iri.Get(), static_cast<jlong>(0),
+                            static_cast<jint>(render_state.fill_rule),
+                            static_cast<jfloat>(render_state.fill_opacity))};
+        }
+      }
+    } else {
+      // make fill paint
+      LOGD("draw: makeFillPaint");
+      fill_paint_ref = MakeFillPaint(path_ref, render_state);
+    }
     // make stroke paint
     LOGD("draw: makeStrokePaint");
-    JavaLocalRef<jobject> stroke_paint_ref = MakeStrokePaint(render_state);
+    JavaLocalRef<jobject> stroke_paint_ref(jni_env_, nullptr);
+    if (!rendered_pattern_stroke) {
+      stroke_paint_ref = MakeStrokePaint(path_ref, render_state);
+    }
     // invoke draw
     LOGD("draw: invoke");
     jni_env_->CallVoidMethod(j_render_, j_draw, path_ref.Get(),
                              fill_paint_ref.Get(), stroke_paint_ref.Get());
+    if (rendered_pattern_stroke) {
+      RenderPatternStroke(path_ref, render_state,
+                          render_state.stroke->content.iri);
+    }
   }
 }
 
@@ -438,7 +681,7 @@ void SrAndroidCanvas::DrawImage(
 }
 
 JavaLocalRef<jobject> SrAndroidCanvas::MakeFillPaint(
-    const SrSVGRenderState& render_state) {
+    JavaLocalRef<jobject>& path_ref, const SrSVGRenderState& render_state) {
   JavaLocalRef<jclass> clazz_ref = GetClass(jni_env_, j_engine_);
   if (clazz_ref.IsNull() || !render_state.fill) {
     return {jni_env_, nullptr};
@@ -476,7 +719,7 @@ void SrAndroidCanvas::DrawUse(const char* href, float x, float y, float width,
                               float height) {}
 
 JavaLocalRef<jobject> SrAndroidCanvas::MakeStrokePaint(
-    const SrSVGRenderState& render_state) {
+    JavaLocalRef<jobject>& path_ref, const SrSVGRenderState& render_state) {
   JavaLocalRef<jclass> clazz_ref = GetClass(jni_env_, j_engine_);
   if (clazz_ref.IsNull() || !render_state.stroke) {
     return {jni_env_, nullptr};
@@ -577,6 +820,20 @@ void SrAndroidCanvas::ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) {
   }
 }
 
+void SrAndroidCanvas::ClipRect(float left, float top, float right,
+                               float bottom) {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_clip_rect =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "clipRect",
+                "(FFFF)V", &(SrAndroidCanvas::g_SVGRender_clipRect_));
+  if (j_clip_rect) {
+    jni_env_->CallVoidMethod(j_render_, j_clip_rect, left, top, right, bottom);
+  }
+}
+
 void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull()) {
@@ -587,14 +844,12 @@ void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
                 "(FFFF)V", &(SrAndroidCanvas::g_SVGRender_saveLayer_));
   if (j_save_layer) {
     if (bounds) {
-      jni_env_->CallVoidMethod(j_render_, j_save_layer,
-                               bounds->left, bounds->top,
-                               bounds->left + bounds->width,
+      jni_env_->CallVoidMethod(j_render_, j_save_layer, bounds->left,
+                               bounds->top, bounds->left + bounds->width,
                                bounds->top + bounds->height);
     } else {
       // Pass zeros to indicate full-canvas layer
-      jni_env_->CallVoidMethod(j_render_, j_save_layer,
-                               0.f, 0.f, 0.f, 0.f);
+      jni_env_->CallVoidMethod(j_render_, j_save_layer, 0.f, 0.f, 0.f, 0.f);
     }
   }
 }
@@ -604,9 +859,9 @@ void SrAndroidCanvas::RestoreLayer() {
   if (render_clazz_ref.IsNull()) {
     return;
   }
-  jmethodID j_restore_layer =
-      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "restoreLayer",
-                "()V", &(SrAndroidCanvas::g_SVGRender_restoreLayer_));
+  jmethodID j_restore_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "restoreLayer", "()V",
+      &(SrAndroidCanvas::g_SVGRender_restoreLayer_));
   if (j_restore_layer) {
     jni_env_->CallVoidMethod(j_render_, j_restore_layer);
   }
@@ -617,9 +872,9 @@ void SrAndroidCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
   if (render_clazz_ref.IsNull()) {
     return;
   }
-  jmethodID j_set_blend_mode =
-      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setBlendMode",
-                "(I)V", &(SrAndroidCanvas::g_SVGRender_setBlendMode_));
+  jmethodID j_set_blend_mode = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setBlendMode", "(I)V",
+      &(SrAndroidCanvas::g_SVGRender_setBlendMode_));
   if (j_set_blend_mode) {
     // 0 = SrcOver, 1 = DstIn
     int mode = (blend_mode == canvas::SrCanvasBlendMode::kDstIn) ? 1 : 0;
@@ -633,10 +888,9 @@ void SrAndroidCanvas::SetMaskIsLuminance(bool is_luminance) {
   if (render_clazz_ref.IsNull()) {
     return;
   }
-  jmethodID j_set_mask_is_luminance =
-      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
-                "setMaskIsLuminance", "(Z)V",
-                &(SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_));
+  jmethodID j_set_mask_is_luminance = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setMaskIsLuminance",
+      "(Z)V", &(SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_));
   if (j_set_mask_is_luminance) {
     jni_env_->CallVoidMethod(j_render_, j_set_mask_is_luminance,
                              static_cast<jboolean>(is_luminance));
@@ -644,9 +898,11 @@ void SrAndroidCanvas::SetMaskIsLuminance(bool is_luminance) {
 }
 
 void SrAndroidCanvas::ApplyLuminanceToAlpha() {
-  if (!mask_is_luminance_) return;
+  if (!mask_is_luminance_)
+    return;
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
-  if (render_clazz_ref.IsNull()) return;
+  if (render_clazz_ref.IsNull())
+    return;
   jmethodID j_apply_luma =
       GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
                 "applyLuminanceToAlpha", "()V");

@@ -1,0 +1,13 @@
+<svg width="240" height="120" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="viewBoxPattern" x="0" y="0" width="48" height="32"
+             patternUnits="userSpaceOnUse" viewBox="0 0 24 24"
+             preserveAspectRatio="xMidYMid meet">
+      <rect x="0" y="0" width="24" height="24" fill="#e3f2fd" />
+      <circle cx="12" cy="12" r="9" fill="#1e88e5" />
+      <rect x="10" y="2" width="4" height="20" fill="#ffffff" />
+    </pattern>
+  </defs>
+
+  <rect x="10" y="10" width="220" height="100" fill="url(#viewBoxPattern)" />
+</svg>

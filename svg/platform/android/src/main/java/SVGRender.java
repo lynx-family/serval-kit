@@ -231,6 +231,12 @@ public class SVGRender {
     }
   }
 
+  public void clipRect(float left, float top, float right, float bottom) {
+    if (mPictureCanvas != null) {
+      mPictureCanvas.clipRect(left, top, right, bottom);
+    }
+  }
+
   public void saveLayer(float left, float top, float right, float bottom) {
     if (mPictureCanvas != null) {
       if (left == 0 && top == 0 && right == 0 && bottom == 0) {

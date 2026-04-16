@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <native_drawing/drawing_brush.h>
@@ -16,6 +17,7 @@
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGPatternResolver.h"
 #include "platform/harmony/path_factory_harmony_impl.h"
 
 namespace serval {
@@ -25,6 +27,9 @@ namespace harmony {
 class SrHarmonyCanvas : public canvas::SrCanvas {
  public:
   explicit SrHarmonyCanvas(OH_Drawing_Canvas* canvas);
+  void SetRenderContext(const SrSVGRenderContext* context) override {
+    current_render_context_ = context;
+  }
   void Reset(OH_Drawing_Canvas* canvas);
   canvas::PathFactory* PathFactory() override;
   ~SrHarmonyCanvas() override;
@@ -109,6 +114,18 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   void InitStrokePaint(const SrSVGRenderState& render_state, bool anti_alias);
 
   void InitFillPaint(const SrSVGRenderState& render_state, bool anti_alias);
+  bool CalculatePathBounds(OH_Drawing_Path* path, SrSVGBox* bounds);
+  void RenderPatternTiles(const element::ResolvedPattern& resolved_pattern,
+                          const SrSVGBox& target_bounds);
+  bool RenderPatternFill(OH_Drawing_Path* path,
+                         const SrSVGRenderState& render_state, const char* iri);
+  bool RenderPatternStroke(OH_Drawing_Path* path,
+                           const SrSVGRenderState& render_state,
+                           const char* iri);
+  void ClipRect(float left, float top, float right, float bottom);
+
+  const SrSVGRenderContext* current_render_context_{nullptr};
+  std::unordered_set<std::string> active_pattern_ids_;
 };
 }  // namespace harmony
 }  // namespace svg

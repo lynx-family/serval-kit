@@ -1,0 +1,18 @@
+<svg width="240" height="140" viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="strokeTransformPattern"
+             x="0" y="0" width="18" height="18"
+             patternUnits="userSpaceOnUse"
+             patternTransform="rotate(25) scale(1.1)">
+      <rect x="0" y="0" width="18" height="18" fill="#f3e5f5" />
+      <rect x="0" y="0" width="9" height="9" fill="#8e24aa" />
+      <circle cx="13" cy="5" r="2.5" fill="#8e24aa" />
+    </pattern>
+  </defs>
+
+  <path d="M 30 30 H 210 V 110 H 30 Z"
+        fill="none"
+        stroke="url(#strokeTransformPattern)"
+        stroke-width="20"
+        stroke-linejoin="bevel" />
+</svg>

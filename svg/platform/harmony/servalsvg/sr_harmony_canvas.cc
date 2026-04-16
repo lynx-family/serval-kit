@@ -3,8 +3,10 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "platform/harmony/sr_harmony_canvas.h"
+#include "element/SrSVGNode.h"
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
+#include "utils/SrSVGPatternUtils.h"
 #include <native_drawing/drawing_color_filter.h>
 #include <native_drawing/drawing_filter.h>
 #include <native_drawing/drawing_matrix.h>
@@ -195,6 +197,162 @@ void SrHarmonyCanvas::ClipPath(canvas::Path *path, SrSVGFillRule clip_rule) {
     }
 }
 
+void SrHarmonyCanvas::ClipRect(float left, float top, float right, float bottom) {
+    auto rect_path = path_factory_->CreateRect(left, top, 0.f, 0.f, right - left, bottom - top);
+    if (rect_path) {
+        ClipPath(rect_path.get(), SR_SVG_FILL);
+    }
+}
+
+bool SrHarmonyCanvas::CalculatePathBounds(OH_Drawing_Path *path, SrSVGBox *bounds) {
+    if (!path || !bounds) {
+        return false;
+    }
+    auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
+    OH_Drawing_PathGetBounds(path, rect);
+    bounds->left = OH_Drawing_RectGetLeft(rect);
+    bounds->top = OH_Drawing_RectGetTop(rect);
+    bounds->width = OH_Drawing_RectGetWidth(rect);
+    bounds->height = OH_Drawing_RectGetHeight(rect);
+    OH_Drawing_RectDestroy(rect);
+    return true;
+}
+
+void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolved_pattern,
+                                         const SrSVGBox &target_bounds) {
+    bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
+
+    SrSVGBox pattern_area = target_bounds;
+    if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
+        Transform(resolved_pattern.pattern_transform);
+        float inverse[6];
+        if (element::InvertAffineTransform(resolved_pattern.pattern_transform, inverse)) {
+            pattern_area = element::MapBounds(target_bounds, inverse);
+        }
+    }
+
+    float origin_x =
+        resolved_pattern.x +
+        std::floor((pattern_area.left - resolved_pattern.x) / resolved_pattern.width) * resolved_pattern.width;
+    float origin_y =
+        resolved_pattern.y +
+        std::floor((pattern_area.top - resolved_pattern.y) / resolved_pattern.height) * resolved_pattern.height;
+    float right = pattern_area.left + pattern_area.width;
+    float bottom = pattern_area.top + pattern_area.height;
+    const bool has_resolved_view_box = resolved_pattern.has_view_box &&
+                                       FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
+                                       FloatsLarger(resolved_pattern.view_box.height, 0.f);
+    const bool uses_object_bounding_box_content_units =
+        resolved_pattern.pattern_content_units == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
+    SrSVGRenderContext base_tile_context = *current_render_context_;
+
+    for (float step_y = origin_y; step_y < bottom; step_y += resolved_pattern.height) {
+        for (float step_x = origin_x; step_x < right; step_x += resolved_pattern.width) {
+            Save();
+            ClipRect(step_x, step_y, step_x + resolved_pattern.width, step_y + resolved_pattern.height);
+
+            SrSVGRenderContext tile_context = base_tile_context;
+            if (has_resolved_view_box) {
+                SrSVGBox tile_view_port{step_x, step_y, resolved_pattern.width, resolved_pattern.height};
+                tile_context.view_port = tile_view_port;
+                tile_context.view_box = resolved_pattern.view_box;
+                float view_box_xform[6];
+                calculate_view_box_transform(&tile_view_port, &resolved_pattern.view_box,
+                                             resolved_pattern.preserve_aspect_ratio, view_box_xform);
+                Transform(view_box_xform);
+            } else {
+                Translate(step_x, step_y);
+                if (uses_object_bounding_box_content_units) {
+                    float scale_xform[6];
+                    xform_set_scale(scale_xform, target_bounds.width, target_bounds.height);
+                    Transform(scale_xform);
+                }
+            }
+
+            auto *previous_render_context = current_render_context_;
+            resolved_pattern.content_pattern->RenderContent(this, tile_context);
+            current_render_context_ = previous_render_context;
+            Restore();
+        }
+    }
+
+    if (inserted) {
+        active_pattern_ids_.erase(resolved_pattern.id);
+    }
+}
+
+bool SrHarmonyCanvas::RenderPatternFill(OH_Drawing_Path *path, const SrSVGRenderState &render_state, const char *iri) {
+    if (!current_render_context_ || !path || !iri || iri[0] != '#' ||
+        !element::IsPatternIri(iri, *current_render_context_)) {
+        return false;
+    }
+    SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+    if (!CalculatePathBounds(path, &bounds)) {
+        return false;
+    }
+    element::ResolvedPattern resolved_pattern;
+    if (!element::ResolvePatternFromIri(iri, *current_render_context_, bounds, active_pattern_ids_,
+                                        &resolved_pattern)) {
+        return false;
+    }
+
+    Save();
+    auto clip_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+    ClipPath(clip_path.get(), render_state.fill_rule);
+    RenderPatternTiles(resolved_pattern, bounds);
+    Restore();
+    return true;
+}
+
+bool SrHarmonyCanvas::RenderPatternStroke(OH_Drawing_Path *path, const SrSVGRenderState &render_state,
+                                          const char *iri) {
+    if (!current_render_context_ || !path || !iri || iri[0] != '#' || !render_state.stroke ||
+        !FloatsLarger(render_state.stroke_width, 0.f) || !element::IsPatternIri(iri, *current_render_context_)) {
+        return false;
+    }
+
+    SrSVGBox object_bounds{0.f, 0.f, 0.f, 0.f};
+    if (!CalculatePathBounds(path, &object_bounds)) {
+        return false;
+    }
+    element::ResolvedPattern resolved_pattern;
+    if (!element::ResolvePatternFromIri(iri, *current_render_context_, object_bounds, active_pattern_ids_,
+                                        &resolved_pattern)) {
+        return false;
+    }
+
+    SrSVGStrokeCap stroke_line_cap = SR_SVG_STROKE_CAP_BUTT;
+    SrSVGStrokeJoin stroke_line_join = SR_SVG_STROKE_JOIN_MITER;
+    float stroke_miter_limit = element::SrSVGNode::s_stroke_miter_limit;
+    float stroke_dash_offset = 0.f;
+    float *dash_array = nullptr;
+    size_t dash_array_length = 0;
+    if (render_state.stroke_state) {
+        stroke_line_cap = render_state.stroke_state->stroke_line_cap;
+        stroke_line_join = render_state.stroke_state->stroke_line_join;
+        stroke_miter_limit = render_state.stroke_state->stroke_miter_limit;
+        stroke_dash_offset = render_state.stroke_state->stroke_dash_offset;
+        dash_array = render_state.stroke_state->dash_array;
+        dash_array_length = render_state.stroke_state->dash_array_length;
+    }
+
+    auto source_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+    auto *path_factory = static_cast<PathFactoryHarmonyImpl *>(path_factory_.get());
+    std::unique_ptr<canvas::Path> stroke_clip_path =
+        path_factory->CreateStrokePath(source_path.get(), render_state.stroke_width, stroke_line_cap, stroke_line_join,
+                                       stroke_miter_limit, stroke_dash_offset, dash_array, dash_array_length);
+    if (!stroke_clip_path) {
+        return false;
+    }
+
+    Save();
+    ClipPath(stroke_clip_path.get(), SR_SVG_FILL);
+    SrSVGBox stroke_bounds = stroke_clip_path->GetBounds();
+    RenderPatternTiles(resolved_pattern, stroke_bounds);
+    Restore();
+    return true;
+}
+
 void SrHarmonyCanvas::InitStrokePaint(const SrSVGRenderState &render_state, bool anti_alias) {
     OH_Drawing_PenReset(pen_);
     OH_Drawing_PenSetAntiAlias(pen_, anti_alias);
@@ -288,6 +446,10 @@ void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &re
     } else if (render_state.fill && render_state.fill->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.fill->content.iri;
         if (!iri) {
+            Restore();
+            return;
+        }
+        if (RenderPatternFill(path, render_state, iri)) {
             Restore();
             return;
         }
@@ -524,6 +686,10 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
     } else if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.stroke->content.iri;
         if (!iri) {
+            Restore();
+            return;
+        }
+        if (RenderPatternStroke(path, render_state, iri)) {
             Restore();
             return;
         }

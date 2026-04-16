@@ -137,6 +137,7 @@ class RadialGradientModel : public GradientModel {
 class SrCanvas {
  public:
   virtual ~SrCanvas() = default;
+  virtual void SetRenderContext(const SrSVGRenderContext* context) {}
   virtual void SetViewBox(float x, float y, float width, float height) = 0;
   virtual void DrawRect(const char* id, float x, float y, float rx, float ry,
                         float width, float height,
@@ -181,7 +182,9 @@ class SrCanvas {
   // Default is no-op; Skity handles this in ConvertToPaint() instead.
   virtual void ApplyLuminanceToAlpha() {}
   virtual void SaveLayer(const SrSVGBox* bounds = nullptr) { Save(); }
-  virtual void SaveLayerWithFilter(const SrSVGBox* bounds, const SrSVGPaint* filter, void* id_mapper = nullptr) {
+  virtual void SaveLayerWithFilter(const SrSVGBox* bounds,
+                                   const SrSVGPaint* filter,
+                                   void* id_mapper = nullptr) {
     SaveLayer(bounds);
   }
   virtual void RestoreLayer() { Restore(); }

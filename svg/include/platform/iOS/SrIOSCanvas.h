@@ -11,9 +11,11 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGPatternResolver.h"
 #include "element/SrSVGTypes.h"
 
 namespace serval {
@@ -83,6 +85,9 @@ class SrIOSCanvas : public canvas::SrCanvas {
   SrIOSCanvas(CGContextRef context);
   SrIOSCanvas(CGContextRef context, ImageCallback callback);
   SrIOSCanvas(CGFloat width, CGFloat height);
+  void SetRenderContext(const SrSVGRenderContext* context) override {
+    current_render_context_ = context;
+  }
   canvas::PathFactory* PathFactory() override;
   ~SrIOSCanvas();
 #pragma mark PreparingContext
@@ -144,6 +149,16 @@ class SrIOSCanvas : public canvas::SrCanvas {
  private:
   void FillPath(CGMutablePathRef cgPath, const SrSVGRenderState& renderState);
   void StrokePath(CGMutablePathRef cgPath, const SrSVGRenderState& renderState);
+  bool CalculatePathBounds(CGPathRef cgPath, SrSVGBox* bounds);
+  void RenderPatternTiles(const element::ResolvedPattern& resolved_pattern,
+                          const SrSVGBox& target_bounds);
+  bool RenderPatternFill(CGPathRef cgPath, const SrSVGRenderState& render_state,
+                         const char* iri);
+  bool RenderPatternStroke(CGPathRef cgPath,
+                           const SrSVGRenderState& render_state,
+                           const char* iri);
+  CGPathRef CreateStrokeClipPath(CGPathRef cgPath,
+                                 const SrSVGRenderState& render_state);
 
   // Todo: add more drawing methods as needed
  private:
@@ -155,6 +170,8 @@ class SrIOSCanvas : public canvas::SrCanvas {
   canvas::SrCanvasBlendMode blend_mode_{canvas::SrCanvasBlendMode::kSrcOver};
   bool dst_in_layer_active_{false};
   bool mask_is_luminance_{false};
+  const SrSVGRenderContext* current_render_context_{nullptr};
+  std::unordered_set<std::string> active_pattern_ids_;
   // Temporary bitmap context for SVG mask rendering.
   // Mask content is drawn here with normal Source-Over semantics, then
   // alpha masks are composited back with DestinationIn and luminance masks
