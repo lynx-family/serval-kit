@@ -261,11 +261,17 @@ void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolve
                                              resolved_pattern.preserve_aspect_ratio, view_box_xform);
                 Transform(view_box_xform);
             } else {
-                Translate(step_x, step_y);
                 if (uses_object_bounding_box_content_units) {
+                    tile_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
+                    tile_context.view_box = SrSVGBox{0.f, 0.f, 0.f, 0.f};
+                    Translate(step_x, step_y);
                     float scale_xform[6];
                     xform_set_scale(scale_xform, target_bounds.width, target_bounds.height);
                     Transform(scale_xform);
+                } else {
+                    tile_context.view_port = resolved_pattern.view_port;
+                    tile_context.view_box = resolved_pattern.view_port;
+                    Translate(step_x, step_y);
                 }
             }
 

@@ -21,6 +21,8 @@ struct Index {
     'paths.svg',
     'pattern-basic.svg',
     'pattern-content-units-obb.svg',
+    'pattern-content-units-obb-numeric.svg',
+    'pattern-content-units-obb-percent.svg',
     'pattern-href.svg',
     'pattern-stroke-basic.svg',
     'pattern-stroke-dash.svg',
