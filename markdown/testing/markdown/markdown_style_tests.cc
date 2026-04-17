@@ -3,8 +3,24 @@
 // LICENSE file in the root directory of this source tree.
 #include "gtest/gtest.h"
 #include "markdown/draw/markdown_path.h"
+#include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style_value.h"
 namespace serval::markdown::testing {
+
+namespace {
+
+Value* ArrayAt(Value* value, size_t index) {
+  if (value == nullptr || value->GetType() != ValueType::kArray) {
+    return nullptr;
+  }
+  auto& array = value->AsArray();
+  if (index >= array.size()) {
+    return nullptr;
+  }
+  return array[index].get();
+}
+
+}  // namespace
 
 TEST(MarkdownLengthTest, Calculate) {
   constexpr MarkdownLengthContext ctx{
@@ -95,6 +111,149 @@ TEST(MarkdownPathTest, Create) {
   path.AddRect(rect);
   EXPECT_EQ(path.path_ops_.size(), 8ull);
   EXPECT_EQ(path.path_ops_.back().op_, MarkdownPath::PathOpType::kRect);
+}
+
+TEST(MarkdownGradientTest, ParseLinearGradientDirection) {
+  const MarkdownLengthContext ctx{
+      .screen_width_ = 1000,
+      .screen_height_ = 2000,
+      .font_size_ = 20,
+      .root_font_size_ = 10,
+      .base_length_ = 100,
+  };
+  auto value =
+      ParseGradientValue("linear-gradient(to right, red 25%, blue 75%)", ctx);
+  ASSERT_NE(value, nullptr);
+  ASSERT_EQ(value->GetType(), ValueType::kArray);
+  ASSERT_EQ(value->AsArray().size(), 2u);
+  EXPECT_EQ(ArrayAt(value.get(), 0)->GetInt(),
+            static_cast<int32_t>(MarkdownGradientType::kLinear));
+
+  auto* data = ArrayAt(value.get(), 1);
+  ASSERT_NE(data, nullptr);
+  ASSERT_EQ(data->AsArray().size(), 4u);
+  EXPECT_DOUBLE_EQ(ArrayAt(data, 0)->GetDouble(), 90);
+  EXPECT_EQ(ArrayAt(data, 3)->GetInt(),
+            static_cast<int32_t>(MarkdownLinearGradientDirection::kToRight));
+
+  auto* colors = ArrayAt(data, 1);
+  ASSERT_NE(colors, nullptr);
+  ASSERT_EQ(colors->AsArray().size(), 2u);
+  EXPECT_EQ(ArrayAt(colors, 0)->GetLong(), 0xffff0000);
+  EXPECT_EQ(ArrayAt(colors, 1)->GetLong(), 0xff0000ff);
+
+  auto* stops = ArrayAt(data, 2);
+  ASSERT_NE(stops, nullptr);
+  ASSERT_EQ(stops->AsArray().size(), 2u);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 0)->GetDouble(), 25);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 1)->GetDouble(), 75);
+}
+
+TEST(MarkdownGradientTest, ParseLinearGradientClampStops) {
+  const MarkdownLengthContext ctx{
+      .screen_width_ = 1000,
+      .screen_height_ = 2000,
+      .font_size_ = 20,
+      .root_font_size_ = 10,
+      .base_length_ = 100,
+  };
+  auto value = ParseGradientValue(
+      "linear-gradient(to left, red -10%, blue 10%, green)", ctx);
+  ASSERT_NE(value, nullptr);
+
+  auto* data = ArrayAt(value.get(), 1);
+  auto* colors = ArrayAt(data, 1);
+  auto* stops = ArrayAt(data, 2);
+  ASSERT_NE(colors, nullptr);
+  ASSERT_NE(stops, nullptr);
+  ASSERT_EQ(colors->AsArray().size(), 3u);
+  ASSERT_EQ(stops->AsArray().size(), 3u);
+  EXPECT_EQ(ArrayAt(colors, 0)->GetLong(), 0xff800080);
+  EXPECT_EQ(ArrayAt(colors, 1)->GetLong(), 0xff0000ff);
+  EXPECT_EQ(ArrayAt(colors, 2)->GetLong(), 0xff008000);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 0)->GetDouble(), 0);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 1)->GetDouble(), 10);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 2)->GetDouble(), 100);
+}
+
+TEST(MarkdownGradientTest, ParseRadialGradient) {
+  const MarkdownLengthContext ctx{
+      .screen_width_ = 1000,
+      .screen_height_ = 2000,
+      .font_size_ = 20,
+      .root_font_size_ = 10,
+      .base_length_ = 100,
+  };
+  auto value = ParseGradientValue(
+      "radial-gradient(ellipse 10px 5px at top, red, transparent)", ctx);
+  ASSERT_NE(value, nullptr);
+  EXPECT_EQ(ArrayAt(value.get(), 0)->GetInt(),
+            static_cast<int32_t>(MarkdownGradientType::kRadial));
+
+  auto* data = ArrayAt(value.get(), 1);
+  auto* shape = ArrayAt(data, 0);
+  ASSERT_NE(shape, nullptr);
+  ASSERT_EQ(shape->AsArray().size(), 14u);
+  EXPECT_EQ(ArrayAt(shape, 0)->GetInt(),
+            static_cast<int32_t>(MarkdownRadialGradientShapeType::kEllipse));
+  EXPECT_EQ(ArrayAt(shape, 1)->GetInt(),
+            static_cast<int32_t>(MarkdownRadialGradientSizeType::kLength));
+  EXPECT_EQ(ArrayAt(shape, 2)->GetInt(),
+            -static_cast<int32_t>(MarkdownBackgroundPositionType::kCenter));
+  EXPECT_EQ(ArrayAt(shape, 3)->GetInt(),
+            static_cast<int32_t>(MarkdownBackgroundPositionType::kCenter));
+  EXPECT_EQ(ArrayAt(shape, 4)->GetInt(),
+            -static_cast<int32_t>(MarkdownBackgroundPositionType::kTop));
+  EXPECT_EQ(ArrayAt(shape, 5)->GetInt(),
+            static_cast<int32_t>(MarkdownBackgroundPositionType::kTop));
+  EXPECT_EQ(ArrayAt(shape, 6)->GetInt(),
+            static_cast<int32_t>(StyleValuePattern::kPx));
+  EXPECT_DOUBLE_EQ(ArrayAt(shape, 7)->GetDouble(), 10);
+  EXPECT_EQ(ArrayAt(shape, 8)->GetInt(),
+            static_cast<int32_t>(StyleValuePattern::kPx));
+  EXPECT_DOUBLE_EQ(ArrayAt(shape, 9)->GetDouble(), 5);
+  EXPECT_DOUBLE_EQ(ArrayAt(shape, 10)->GetDouble(), 10);
+  EXPECT_EQ(ArrayAt(shape, 11)->GetInt(),
+            static_cast<int32_t>(MarkdownPlatformLengthUnit::kNumber));
+  EXPECT_DOUBLE_EQ(ArrayAt(shape, 12)->GetDouble(), 5);
+  EXPECT_EQ(ArrayAt(shape, 13)->GetInt(),
+            static_cast<int32_t>(MarkdownPlatformLengthUnit::kNumber));
+}
+
+TEST(MarkdownGradientTest, ParseConicGradient) {
+  const MarkdownLengthContext ctx{
+      .screen_width_ = 1000,
+      .screen_height_ = 2000,
+      .font_size_ = 20,
+      .root_font_size_ = 10,
+      .base_length_ = 100,
+  };
+  auto value = ParseGradientValue(
+      "conic-gradient(from 50deg at top right, red 0%, blue 90%)", ctx);
+  ASSERT_NE(value, nullptr);
+  EXPECT_EQ(ArrayAt(value.get(), 0)->GetInt(),
+            static_cast<int32_t>(MarkdownGradientType::kConic));
+
+  auto* data = ArrayAt(value.get(), 1);
+  ASSERT_NE(data, nullptr);
+  ASSERT_EQ(data->AsArray().size(), 4u);
+  EXPECT_DOUBLE_EQ(ArrayAt(data, 0)->GetDouble(), 50);
+
+  auto* center = ArrayAt(data, 1);
+  ASSERT_NE(center, nullptr);
+  ASSERT_EQ(center->AsArray().size(), 4u);
+  EXPECT_DOUBLE_EQ(ArrayAt(center, 0)->GetDouble(), 100);
+  EXPECT_EQ(ArrayAt(center, 1)->GetInt(),
+            static_cast<int32_t>(MarkdownPlatformLengthUnit::kPercentage));
+  EXPECT_DOUBLE_EQ(ArrayAt(center, 2)->GetDouble(), 0);
+  EXPECT_EQ(ArrayAt(center, 3)->GetInt(),
+            static_cast<int32_t>(MarkdownPlatformLengthUnit::kPercentage));
+
+  auto* stops = ArrayAt(data, 3);
+  ASSERT_NE(stops, nullptr);
+  ASSERT_EQ(stops->AsArray().size(), 2u);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 0)->GetDouble(), 0);
+  EXPECT_DOUBLE_EQ(ArrayAt(stops, 1)->GetDouble(), 90);
 }
 
 }  // namespace serval::markdown::testing

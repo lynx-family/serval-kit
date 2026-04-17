@@ -4,10 +4,12 @@
 
 #ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_RUN_DELEGATE_H_
 #define MARKDOWN_TESTING_MARKDOWN_MOCK_RUN_DELEGATE_H_
+#include <memory>
 #include <string>
 
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
+#include "markdown/utils/markdown_value.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown::testing {
@@ -59,10 +61,13 @@ class MockImage : public MockDelegate {
 };
 class MockGradient : public MockDelegate {
  public:
-  explicit MockGradient(const char* gradient)
-      : MockDelegate(MockDelegateType::kGradient), gradient_(gradient) {}
+  MockGradient(const char* gradient, std::unique_ptr<Value> parsed_gradient)
+      : MockDelegate(MockDelegateType::kGradient),
+        gradient_(gradient),
+        parsed_gradient_(std::move(parsed_gradient)) {}
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
   std::string gradient_;
+  std::unique_ptr<Value> parsed_gradient_;
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override {

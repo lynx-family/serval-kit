@@ -7,6 +7,7 @@
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/markdown_resource_loader.h"
+#include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"

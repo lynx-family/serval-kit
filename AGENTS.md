@@ -1,5 +1,11 @@
 ## Markdown
 
+### env prepare
+
+run `source tools/envsetup.sh` script to initialize env.
+run `./hab sync .` to download deps. for c++ unittests, add extra `--target testing` param.
+these two step must be ran before build or unittests.
+
 ### build ios
 
 run `markdown/tools/ios_build.sh` script to build ios example.
