@@ -50,6 +50,12 @@ class MarkdownSelection {
       std::vector<std::pair<uint32_t, std::string>>*
           inline_element_alt_strings);
   static int GetPageCharCount(const MarkdownPage* page);
+  static int GetLineCount(const MarkdownPage* page);
+  static std::vector<int32_t> GetLineEndCharIndices(const MarkdownPage* page);
+  static int GetCharIndexByLineIndex(const MarkdownPage* page,
+                                     int32_t line_index);
+  static int GetLineIndexByCharIndex(const MarkdownPage* page,
+                                     int32_t char_index);
   static int FindClosestRegionIndex(const MarkdownPage* page, float y);
   static std::vector<MarkdownSelectionRegion> GetSelectionRegionsByCharRange(
       const MarkdownPage* page, int32_t char_pos_start, int32_t char_pos_end);

@@ -142,7 +142,7 @@ class MarkdownCaseUnittest {
     }
   }
   void Draw() const {
-    if (typewriter_ && !region_view_) {
+    if (animation_type_ != MarkdownAnimationType::kNone && !region_view_) {
       auto cursor = document_->GetStyle()
                         .typewriter_cursor_.typewriter_cursor_.custom_cursor_;
       auto cursor_delegate = cursor.empty() ? nullptr
@@ -166,7 +166,7 @@ class MarkdownCaseUnittest {
         auto region_rect = document_->GetPage()->GetRegionRect(i);
         canvas_->Save();
         canvas_->Translate(-region_rect.GetLeft(), -region_rect.GetTop());
-        if (typewriter_) {
+        if (animation_type_ != MarkdownAnimationType::kNone) {
           auto cursor =
               document_->GetStyle()
                   .typewriter_cursor_.typewriter_cursor_.custom_cursor_;
@@ -206,7 +206,14 @@ class MarkdownCaseUnittest {
         height_ = iter->second->AsDouble();
       }
       if (const auto iter = map.find("animation-type"); iter != map.end()) {
-        typewriter_ = iter->second->AsString() == "typewriter";
+        const auto& type = iter->second->AsString();
+        if (type == "typewriter") {
+          animation_type_ = MarkdownAnimationType::kTypewriter;
+        } else if (type == "line-expand") {
+          animation_type_ = MarkdownAnimationType::kLineExpand;
+        } else {
+          animation_type_ = MarkdownAnimationType::kNone;
+        }
       }
       if (const auto iter = map.find("use-char-based-drawer");
           iter != map.end()) {
@@ -355,8 +362,7 @@ class MarkdownCaseUnittest {
     if (attachments_ != nullptr) {
       view_ptr->SetTextAttachments(std::move(attachments_));
     }
-    view_ptr->SetAnimationType(typewriter_ ? MarkdownAnimationType::kTypewriter
-                                           : MarkdownAnimationType::kNone);
+    view_ptr->SetAnimationType(animation_type_);
     view_ptr->SetInitialAnimationStep(animation_step_);
     view_ptr->SetAnimationVelocity(static_cast<float>(animation_velocity_));
 
@@ -474,7 +480,7 @@ class MarkdownCaseUnittest {
   float width_ = 0;
   float height_ = 0;
   int32_t max_lines_ = -1;
-  bool typewriter_ = false;
+  MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
   bool use_char_based_drawer_ = false;
   bool draw_cursor_if_complete_ = false;
   bool content_complete_ = true;
@@ -611,6 +617,74 @@ TEST(MarkdownCaseUnittest, EmptyContent) {
 )";
   unittest.ParseLayoutAndDraw();
 }
+
+TEST(MarkdownCaseUnittest, LineIndexEmptyPage) {
+  MarkdownPage page;
+  EXPECT_EQ(MarkdownSelection::GetLineCount(&page), 0);
+  EXPECT_EQ(MarkdownSelection::GetCharIndexByLineIndex(&page, -1), 0);
+  EXPECT_EQ(MarkdownSelection::GetCharIndexByLineIndex(&page, 0), 0);
+  EXPECT_EQ(MarkdownSelection::GetLineIndexByCharIndex(&page, -1), 0);
+  EXPECT_EQ(MarkdownSelection::GetLineIndexByCharIndex(&page, 0), 0);
+}
+
+TEST(MarkdownCaseUnittest, LineIndexCharIndexConvert) {
+  MarkdownCaseUnittest unittest;
+  unittest.markdown_ =
+      "aa\n\n"
+      "bb\n\n"
+      "cc\n\n"
+      "|h1|h2|\n"
+      "|-|-|\n"
+      "|r1c1|r1c2|\n"
+      "|r2c1|r2c2|\n";
+  unittest.width_ = 1000;
+  unittest.height_ = 1000;
+  unittest.ParseLayoutAndDraw();
+
+  auto page = unittest.document_->GetPage();
+  ASSERT_NE(page, nullptr);
+
+  const int line_count = MarkdownSelection::GetLineCount(page.get());
+  EXPECT_EQ(line_count, unittest.document_->GetLineCount());
+
+  const int total_char_count = MarkdownSelection::GetPageCharCount(page.get());
+  EXPECT_GT(total_char_count, 0);
+
+  EXPECT_EQ(MarkdownSelection::GetCharIndexByLineIndex(page.get(), -1), 0);
+  EXPECT_EQ(MarkdownSelection::GetCharIndexByLineIndex(page.get(), line_count),
+            total_char_count);
+  EXPECT_EQ(MarkdownSelection::GetLineIndexByCharIndex(page.get(), -1), 0);
+  EXPECT_EQ(
+      MarkdownSelection::GetLineIndexByCharIndex(page.get(), total_char_count),
+      line_count);
+
+  const std::vector<int> expected_line_end_char_indices{
+      2, 4, 6, 10, 18, 26,
+  };
+  const auto line_end_char_indices =
+      unittest.document_->GetLineEndCharIndices();
+  ASSERT_EQ(static_cast<size_t>(line_count),
+            expected_line_end_char_indices.size());
+  EXPECT_EQ(total_char_count, expected_line_end_char_indices.back());
+  ASSERT_EQ(line_end_char_indices.size(),
+            expected_line_end_char_indices.size());
+
+  for (int i = 0; i < line_count; ++i) {
+    const int char_index =
+        MarkdownSelection::GetCharIndexByLineIndex(page.get(), i);
+    EXPECT_EQ(char_index, expected_line_end_char_indices[i]);
+    EXPECT_EQ(line_end_char_indices[static_cast<size_t>(i)],
+              expected_line_end_char_indices[static_cast<size_t>(i)]);
+    EXPECT_EQ(unittest.document_->GetCharIndexByLineIndex(i), char_index);
+    if (char_index > 0) {
+      EXPECT_EQ(MarkdownSelection::GetLineIndexByCharIndex(page.get(),
+                                                           char_index - 1),
+                i);
+      EXPECT_EQ(unittest.document_->GetLineIndexByCharIndex(char_index - 1), i);
+    }
+  }
+}
+
 TEST(MarkdownCaseUnittest, OffsetConvert) {
   MarkdownCaseUnittest unittest;
   unittest.markdown_ = R"(  ### Below Are Headings

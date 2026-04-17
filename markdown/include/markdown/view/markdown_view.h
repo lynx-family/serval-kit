@@ -138,6 +138,9 @@ class MarkdownView final : public MarkdownDrawable {
   std::set<MarkdownPlatformView*> GetInlineViews() const;
   void RemoveUnusedViews(const std::set<MarkdownPlatformView*>& before,
                          const std::set<MarkdownPlatformView*>& after) const;
+  std::vector<int32_t> GetLineExpandAnimationSteps() const;
+  bool IsStepAnimatedHeightEnabled() const;
+  bool IsAnimationComplete() const;
 
  protected:
   void SendDrawStart();

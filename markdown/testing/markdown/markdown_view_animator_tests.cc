@@ -79,6 +79,47 @@ TEST(MarkdownViewAnimatorTest, GetAnimationStepAfterUsesVelocityAndClamps) {
   EXPECT_EQ(animator.GetAnimationStepAfter(0.0f), 10);
 }
 
+TEST(MarkdownViewAnimatorTest, UpdateLineExpandStepAdvancesByShownLines) {
+  MarkdownViewAnimator animator;
+  animator.SetAnimationType(MarkdownAnimationType::kLineExpand);
+  animator.SetAnimationVelocity(2.0f);
+  animator.SetMaxAnimationStep(10);
+  animator.SetLineExpandLineEndSteps({2, 5, 10});
+  animator.SetAnimationStep(0);
+
+  animator.UpdateCurrentTime(100);
+  auto r1 = animator.UpdateAnimationStep();
+  EXPECT_EQ(r1, 1);
+  EXPECT_EQ(animator.GetLineExpandShownLines(), 1);
+  EXPECT_EQ(animator.GetAnimationStep(), 2);
+
+  animator.UpdateCurrentTime(600);
+  auto r2 = animator.UpdateAnimationStep();
+  EXPECT_EQ(r2, 1);
+  EXPECT_EQ(animator.GetLineExpandShownLines(), 2);
+  EXPECT_EQ(animator.GetAnimationStep(), 5);
+
+  animator.UpdateCurrentTime(1700);
+  auto r3 = animator.UpdateAnimationStep();
+  EXPECT_EQ(r3, 2);
+  EXPECT_EQ(animator.GetLineExpandShownLines(), 3);
+  EXPECT_EQ(animator.GetAnimationStep(), 10);
+  EXPECT_TRUE(animator.IsLineExpandComplete());
+}
+
+TEST(MarkdownViewAnimatorTest, GetAnimationStepAfterMapsLineExpandToCharStep) {
+  MarkdownViewAnimator animator;
+  animator.SetAnimationType(MarkdownAnimationType::kLineExpand);
+  animator.SetAnimationVelocity(2.0f);
+  animator.SetMaxAnimationStep(10);
+  animator.SetLineExpandLineEndSteps({2, 5, 10});
+  animator.SetAnimationStep(2);
+
+  EXPECT_EQ(animator.GetAnimationStepAfter(0.1f), 2);
+  EXPECT_EQ(animator.GetAnimationStepAfter(0.6f), 5);
+  EXPECT_EQ(animator.GetAnimationStepAfter(1.5f), 10);
+}
+
 TEST(MarkdownViewAnimatorTest, UpdateHeightTransitionInterpolatesLinearly) {
   MarkdownViewAnimator animator;
   animator.SetHeightTransitionDuration(1.0f);

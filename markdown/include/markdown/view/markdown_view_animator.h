@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_ANIMATOR_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "markdown/view/markdown_view_measurer.h"
 
@@ -18,7 +19,7 @@ class MarkdownViewAnimator {
   void SetEventListener(MarkdownEventListener* event_listener) {
     event_listener_ = event_listener;
   }
-  void SetAnimationType(MarkdownAnimationType type) { animation_type_ = type; }
+  void SetAnimationType(MarkdownAnimationType type);
   MarkdownAnimationType GetAnimationType() const { return animation_type_; }
 
   void SetAnimationVelocity(float velocity) { animation_velocity_ = velocity; }
@@ -42,8 +43,12 @@ class MarkdownViewAnimator {
     return height_transition_duration_;
   }
 
-  void SetMaxAnimationStep(int32_t max_step) { max_animation_step_ = max_step; }
+  void SetMaxAnimationStep(int32_t max_step);
   int32_t GetMaxAnimationStep() const { return max_animation_step_; }
+  void SetLineExpandLineEndSteps(std::vector<int32_t> line_end_steps);
+  int32_t GetMaxAnimationLine() const { return max_animation_line_; }
+  int32_t GetLineExpandShownLines() const { return line_expand_shown_lines_; }
+  bool IsLineExpandComplete() const;
 
   void SetAnimationStep(int32_t step);
   int32_t GetAnimationStep() const { return current_animation_step_; }
@@ -53,6 +58,7 @@ class MarkdownViewAnimator {
   }
   int64_t GetCurrentFrameTimeMs() const { return current_frame_time_ms_; }
 
+  int32_t UpdateAnimationStep();
   int32_t UpdateTypewriterStep();
   int32_t GetAnimationStepAfter(float seconds) const;
 
@@ -62,6 +68,11 @@ class MarkdownViewAnimator {
   void ResetAnimationRuntime();
 
  private:
+  int32_t ClampAnimationStep(int32_t step) const;
+  int32_t CalculateAnimationAdvanceCount();
+  int32_t LineExpandShownLinesToCharStep(int32_t shown_lines) const;
+  int32_t LineExpandCharStepToShownLines(int32_t char_step) const;
+  void SyncLineExpandStateFromAnimationStep();
   void SendAnimationStep(int32_t animation_step,
                          int32_t max_animation_step) const;
 
@@ -77,6 +88,9 @@ class MarkdownViewAnimator {
   int64_t current_frame_time_ms_{0};
   int32_t current_animation_step_{0};
   int32_t max_animation_step_{0};
+  int32_t max_animation_line_{0};
+  int32_t line_expand_shown_lines_{0};
+  std::vector<int32_t> line_expand_line_end_steps_;
   int64_t current_animation_step_time_ms_{0};
   int32_t last_sent_step_{-1};
 

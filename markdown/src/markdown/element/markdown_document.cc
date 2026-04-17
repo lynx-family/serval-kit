@@ -178,6 +178,38 @@ std::string MarkdownDocument::GetContentByCharPos(int32_t char_pos_start,
       page.get(), char_pos_start, char_pos_end, &shape_run_alt_strings_);
 }
 
+int32_t MarkdownDocument::GetLineCount() {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return 0;
+  }
+  return MarkdownSelection::GetLineCount(page.get());
+}
+
+std::vector<int32_t> MarkdownDocument::GetLineEndCharIndices() {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return {};
+  }
+  return MarkdownSelection::GetLineEndCharIndices(page.get());
+}
+
+int32_t MarkdownDocument::GetCharIndexByLineIndex(int32_t line_index) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return 0;
+  }
+  return MarkdownSelection::GetCharIndexByLineIndex(page.get(), line_index);
+}
+
+int32_t MarkdownDocument::GetLineIndexByCharIndex(int32_t char_index) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return 0;
+  }
+  return MarkdownSelection::GetLineIndexByCharIndex(page.get(), char_index);
+}
+
 void MarkdownDocument::SetShapeRunAltString(uint32_t char_offset,
                                             std::string_view content) {
   shape_run_alt_strings_.emplace_back(char_offset, content);

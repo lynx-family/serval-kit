@@ -17,6 +17,7 @@ namespace serval::markdown {
 enum class MarkdownAnimationType {
   kNone,
   kTypewriter,
+  kLineExpand,
 };
 enum class SourceType { kPlainText, kMarkdown };
 class MarkdownViewMeasurer {

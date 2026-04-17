@@ -42,7 +42,8 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
     canvas->Save();
     canvas->Translate(-region_rect.GetLeft(), -region_rect.GetTop());
     if (animation_type_ != nullptr &&
-        *animation_type_ == MarkdownAnimationType::kTypewriter) {
+        (*animation_type_ == MarkdownAnimationType::kTypewriter ||
+         *animation_type_ == MarkdownAnimationType::kLineExpand)) {
       const auto cursor = page->GetCustomTypewriterCursor();
       MarkdownCharTypewriterDrawer drawer(
           canvas, animation_step_ == nullptr ? 0 : *animation_step_,
@@ -352,8 +353,7 @@ void MarkdownViewRenderer::UpdateRegionViewsByAnimationStep(
   if (animation_type_ == MarkdownAnimationType::kNone) {
     return;
   }
-  if (animation_type_ != MarkdownAnimationType::kTypewriter ||
-      previous_step == animation_step_) {
+  if (previous_step == animation_step_) {
     return;
   }
   const auto range = document_->GetChangedRegionsWhenAnimationUpdated(
@@ -384,7 +384,8 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
       drawer.DrawPage(*page);
     }
   }
-  if (animation_type_ == MarkdownAnimationType::kTypewriter) {
+  if (animation_type_ == MarkdownAnimationType::kTypewriter ||
+      animation_type_ == MarkdownAnimationType::kLineExpand) {
     auto page = document_->GetPage();
     if (page == nullptr) {
       return;
