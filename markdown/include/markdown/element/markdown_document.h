@@ -94,6 +94,10 @@ class MarkdownDocument {
   const MarkdownLink* GetLinkByTouchPosition(PointF point);
   std::vector<MarkdownLink*> GetLinksByViewRect(RectF view_rect);
   std::string GetContentByCharPos(int32_t char_pos_start, int32_t char_pos_end);
+  int32_t GetLineCount();
+  std::vector<int32_t> GetLineEndCharIndices();
+  int32_t GetCharIndexByLineIndex(int32_t line_index);
+  int32_t GetLineIndexByCharIndex(int32_t char_index);
   const std::vector<MarkdownLink>& GetLinks() { return links_; }
   const std::vector<std::shared_ptr<MarkdownElement>>& GetParagraphs() const {
     return para_vec_;

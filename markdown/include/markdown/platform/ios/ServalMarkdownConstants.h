@@ -64,6 +64,7 @@ typedef NS_ENUM(NSUInteger, ServalMarkdownVerticalAlign) {
 typedef enum : NSUInteger {
   kServalMarkdownAnimationTypeNone,
   kServalMarkdownAnimationTypeTypewriter,
+  kServalMarkdownAnimationTypeLineExpand,
 } ServalMarkdownAnimationType;
 
 typedef NS_ENUM(NSUInteger, ServalMarkdownIndexType) {

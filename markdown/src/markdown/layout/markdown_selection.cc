@@ -235,6 +235,212 @@ int MarkdownSelection::GetPageCharCount(const MarkdownPage* page) {
   return last_element->GetCharStart() + char_count;
 }
 
+int MarkdownSelection::GetLineCount(const MarkdownPage* page) {
+  if (page == nullptr) {
+    return 0;
+  }
+  return page->GetLineCount();
+}
+
+std::vector<int32_t> MarkdownSelection::GetLineEndCharIndices(
+    const MarkdownPage* page) {
+  std::vector<int32_t> line_end_char_indices;
+  if (page == nullptr || page->regions_.empty()) {
+    return line_end_char_indices;
+  }
+
+  line_end_char_indices.reserve(static_cast<size_t>(GetLineCount(page)));
+  for (auto& region : page->regions_) {
+    auto* element = region->element_.get();
+    if (element == nullptr) {
+      continue;
+    }
+    const uint32_t element_char_start = element->GetCharStart();
+    if (element->GetType() == MarkdownElementType::kParagraph) {
+      auto* para_region =
+          static_cast<MarkdownPageParagraphRegion*>(region.get());
+      if (para_region->region_ == nullptr || para_region->region_->IsEmpty()) {
+        continue;
+      }
+      auto* layout_region = para_region->region_.get();
+      for (int line_index = 0; line_index < layout_region->GetLineCount();
+           ++line_index) {
+        auto* line = layout_region->GetLine(line_index);
+        line_end_char_indices.emplace_back(
+            static_cast<int32_t>(element_char_start + line->GetEndCharPos()));
+      }
+      continue;
+    }
+    if (element->GetType() == MarkdownElementType::kTable) {
+      auto* table_region = static_cast<MarkdownPageTableRegion*>(region.get());
+      auto* table_element = static_cast<MarkdownTableElement*>(element);
+      auto* table = table_element->GetTable();
+      if (table_region->table_ == nullptr || table == nullptr) {
+        continue;
+      }
+      const int row_count = table_region->table_->GetRowCount();
+      const int col_count = table->GetColumnCount();
+      for (int row = 0; row < row_count; ++row) {
+        uint32_t row_end = 0;
+        if (col_count <= 0) {
+          row_end = 0;
+        } else if (row + 1 < row_count) {
+          row_end = table->GetCell(row + 1, 0).char_start_;
+        } else {
+          row_end = static_cast<uint32_t>(table->GetCharCount());
+        }
+        line_end_char_indices.emplace_back(
+            static_cast<int32_t>(element_char_start + row_end));
+      }
+    }
+  }
+  return line_end_char_indices;
+}
+
+int MarkdownSelection::GetCharIndexByLineIndex(const MarkdownPage* page,
+                                               int32_t line_index) {
+  if (page == nullptr) {
+    return 0;
+  }
+  if (line_index < 0) {
+    return 0;
+  }
+  const int total_line_count = GetLineCount(page);
+  if (line_index >= total_line_count || page->regions_.empty()) {
+    return GetPageCharCount(page);
+  }
+
+  int current_line_index = 0;
+  for (auto& region : page->regions_) {
+    auto* element = region->element_.get();
+    if (element == nullptr) {
+      continue;
+    }
+    const uint32_t element_char_start = element->GetCharStart();
+    if (element->GetType() == MarkdownElementType::kParagraph) {
+      auto* para_region =
+          static_cast<MarkdownPageParagraphRegion*>(region.get());
+      if (para_region->region_ == nullptr || para_region->region_->IsEmpty()) {
+        continue;
+      }
+      auto* layout_region = para_region->region_.get();
+      const int region_line_count = layout_region->GetLineCount();
+      if (line_index >= current_line_index + region_line_count) {
+        current_line_index += region_line_count;
+        continue;
+      }
+      const int target_line = line_index - current_line_index;
+      auto* line = layout_region->GetLine(target_line);
+      return static_cast<int>(element_char_start + line->GetEndCharPos());
+    }
+    if (element->GetType() == MarkdownElementType::kTable) {
+      auto* table_region = static_cast<MarkdownPageTableRegion*>(region.get());
+      auto* table_element = static_cast<MarkdownTableElement*>(element);
+      auto* table = table_element->GetTable();
+      if (table_region->table_ == nullptr || table == nullptr) {
+        continue;
+      }
+      const int row_count = table_region->table_->GetRowCount();
+      if (line_index >= current_line_index + row_count) {
+        current_line_index += row_count;
+        continue;
+      }
+      const int target_row = line_index - current_line_index;
+      const int col_count = table->GetColumnCount();
+      if (col_count <= 0) {
+        return static_cast<int>(element_char_start);
+      }
+      uint32_t row_end = 0;
+      if (target_row + 1 < row_count) {
+        row_end = table->GetCell(target_row + 1, 0).char_start_;
+      } else {
+        row_end = static_cast<uint32_t>(table->GetCharCount());
+      }
+      return static_cast<int>(element_char_start + row_end);
+    }
+  }
+  return GetPageCharCount(page);
+}
+
+int MarkdownSelection::GetLineIndexByCharIndex(const MarkdownPage* page,
+                                               int32_t char_index) {
+  if (page == nullptr) {
+    return 0;
+  }
+  if (char_index < 0) {
+    return 0;
+  }
+  const int total_char_count = GetPageCharCount(page);
+  if (char_index >= total_char_count || page->regions_.empty()) {
+    return GetLineCount(page);
+  }
+
+  int current_line_index = 0;
+  for (auto& region : page->regions_) {
+    auto* element = region->element_.get();
+    if (element == nullptr) {
+      continue;
+    }
+    const uint32_t element_char_start = element->GetCharStart();
+    if (element->GetType() == MarkdownElementType::kParagraph) {
+      auto* para_region =
+          static_cast<MarkdownPageParagraphRegion*>(region.get());
+      if (para_region->region_ == nullptr || para_region->region_->IsEmpty()) {
+        continue;
+      }
+      auto* layout_region = para_region->region_.get();
+      const int region_line_count = layout_region->GetLineCount();
+      auto* last_line = layout_region->GetLine(region_line_count - 1);
+      const uint32_t region_end =
+          element_char_start +
+          static_cast<uint32_t>(last_line->GetEndCharPos());
+      if (static_cast<uint32_t>(char_index) > region_end) {
+        current_line_index += region_line_count;
+        continue;
+      }
+      for (int line_index = 0; line_index < region_line_count; ++line_index) {
+        auto* line = layout_region->GetLine(line_index);
+        const uint32_t line_end =
+            element_char_start + static_cast<uint32_t>(line->GetEndCharPos());
+        if (line_end >= static_cast<uint32_t>(char_index)) {
+          return current_line_index + line_index;
+        }
+      }
+      current_line_index += region_line_count;
+      continue;
+    }
+    if (element->GetType() == MarkdownElementType::kTable) {
+      auto* table_region = static_cast<MarkdownPageTableRegion*>(region.get());
+      auto* table_element = static_cast<MarkdownTableElement*>(element);
+      auto* table = table_element->GetTable();
+      if (table_region->table_ == nullptr || table == nullptr) {
+        continue;
+      }
+      const int row_count = table_region->table_->GetRowCount();
+      const int col_count = table->GetColumnCount();
+      const uint32_t table_end =
+          element_char_start + static_cast<uint32_t>(table->GetCharCount());
+      if (static_cast<uint32_t>(char_index) > table_end || col_count <= 0) {
+        current_line_index += row_count;
+        continue;
+      }
+      for (int row = 0; row < row_count; ++row) {
+        uint32_t row_end = 0;
+        if (row + 1 < row_count) {
+          row_end = table->GetCell(row + 1, 0).char_start_;
+        } else {
+          row_end = static_cast<uint32_t>(table->GetCharCount());
+        }
+        if (element_char_start + row_end >= static_cast<uint32_t>(char_index)) {
+          return current_line_index + row;
+        }
+      }
+      current_line_index += row_count;
+    }
+  }
+  return GetLineCount(page);
+}
+
 void MarkdownSelection::GetPageRegionSelectionRectByCharPos(
     serval::markdown::MarkdownPageRegion* region, int32_t char_pos_start,
     int32_t char_pos_end, std::vector<RectF>* rect_ptr, PointF offset,

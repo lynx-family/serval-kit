@@ -197,15 +197,14 @@ MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
     auto after_views = GetInlineViews();
     RemoveUnusedViews(before_views, after_views);
     animator_.SetMaxAnimationStep(GetCharCount());
+    animator_.SetLineExpandLineEndSteps(GetLineExpandAnimationSteps());
   }
 
   const auto measured = measurer_.GetMeasuredSize();
   float result_width = measured.width_;
   float result_height = measured.height_;
   float transition_target_height = result_height;
-  if (layout_data_.document_ != nullptr &&
-      animator_.GetAnimationType() == MarkdownAnimationType::kTypewriter &&
-      animator_.GetTypewriterDynamicHeight()) {
+  if (layout_data_.document_ != nullptr && IsStepAnimatedHeightEnabled()) {
     result_height = CalculateHeightByAnimationStep();
     transition_target_height = result_height;
     if (typewriter_height_transition_prefetch_ &&
@@ -395,7 +394,7 @@ int32_t MarkdownView::GetCharIndexByPosition(PointF position) const {
 }
 
 void MarkdownView::UpdateAnimationStep() {
-  const auto result = animator_.UpdateTypewriterStep();
+  const auto result = animator_.UpdateAnimationStep();
   if (result > 0) {
     if (animator_.GetTypewriterDynamicHeight()) {
       view_->RequestMeasure();
@@ -414,11 +413,8 @@ void MarkdownView::UpdateTransitionHeight() const {
 
 void MarkdownView::UpdateDrawEventsByAnimation() {
   SendDrawStart();
-  const int32_t animation_step = animator_.GetAnimationStep();
-  const int32_t max_animation_step = animator_.GetMaxAnimationStep();
-  if (animator_.GetAnimationType() != MarkdownAnimationType::kTypewriter ||
-      (animation_step >= max_animation_step &&
-       layout_data_.content_complete_)) {
+  if (animator_.GetAnimationType() == MarkdownAnimationType::kNone ||
+      (IsAnimationComplete() && layout_data_.content_complete_)) {
     SendDrawEnd();
   }
 }
@@ -613,6 +609,28 @@ float MarkdownView::CalculateHeightByAnimationStep(
     layout_data_.custom_cursor_position_ = drawer.GetCursorPosition();
   }
   return typewriter_height;
+}
+
+std::vector<int32_t> MarkdownView::GetLineExpandAnimationSteps() const {
+  if (layout_data_.document_ == nullptr) {
+    return {};
+  }
+  return layout_data_.document_->GetLineEndCharIndices();
+}
+
+bool MarkdownView::IsStepAnimatedHeightEnabled() const {
+  const auto animation_type = animator_.GetAnimationType();
+  return animator_.GetTypewriterDynamicHeight() &&
+         (animation_type == MarkdownAnimationType::kTypewriter ||
+          animation_type == MarkdownAnimationType::kLineExpand);
+}
+
+bool MarkdownView::IsAnimationComplete() const {
+  if (animator_.GetAnimationType() == MarkdownAnimationType::kLineExpand) {
+    return animator_.IsLineExpandComplete() ||
+           animator_.GetAnimationStep() >= animator_.GetMaxAnimationStep();
+  }
+  return animator_.GetAnimationStep() >= animator_.GetMaxAnimationStep();
 }
 
 void MarkdownView::SetTextSelection(const Range char_range) {
@@ -979,6 +997,8 @@ void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
   if (prop == MarkdownProps::kAnimationType) {
     if (value == "typewriter") {
       SetAnimationType(MarkdownAnimationType::kTypewriter);
+    } else if (value == "line-expand") {
+      SetAnimationType(MarkdownAnimationType::kLineExpand);
     } else {
       SetAnimationType(MarkdownAnimationType::kNone);
     }

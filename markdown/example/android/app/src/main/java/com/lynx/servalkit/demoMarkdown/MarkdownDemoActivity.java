@@ -217,12 +217,12 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     // set markdown content
     mMarkdownView.setContent(mContent1);
     mMarkdownView.setStyle(generateMarkdownStyle());
-    mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_TYPEWRITER);
-    mMarkdownView.setAnimationVelocity(100);
+    mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_LINE_EXPAND);
+    mMarkdownView.setAnimationVelocity(2);
     mMarkdownView.setInitialAnimationStep(4);
     mMarkdownView.setNumberProp(
-        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_DURATION, 1);
+        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_DURATION, 0.5);
     mMarkdownView.setBooleanProp(
-        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_PREFETCH, true);
+        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_PREFETCH, false);
   }
 }

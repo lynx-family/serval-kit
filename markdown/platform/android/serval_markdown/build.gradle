@@ -4,9 +4,41 @@
 apply plugin: 'com.android.library'
 apply from: './publish.gradle'
 
+def findLlvmBin() {
+    def ndkRoot = null
+    try {
+        ndkRoot = project.android.ndkDirectory
+    } catch (Exception e) {
+        logger.warn("Cannot resolve Android NDK directory from AGP, skip explicit llvm-ar/llvm-ranlib configuration: ${e.message}")
+        return null
+    }
+    if (!ndkRoot?.isDirectory()) {
+        logger.warn("Android NDK directory is unavailable, skip explicit llvm-ar/llvm-ranlib configuration.")
+        return null
+    }
+
+    def llvmBin = ["darwin-aarch64", "darwin-x86_64", "linux-x86_64", "windows-x86_64"]
+            .collect { new File(ndkRoot, "toolchains/llvm/prebuilt/${it}/bin") }
+            .find { it.isDirectory() }
+
+    if (llvmBin == null) {
+        logger.warn("Cannot find NDK LLVM bin under ${ndkRoot}, fallback to default CMake toolchain configuration.")
+    }
+    return llvmBin
+}
+
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     ndkVersion rootProject.ext.ndkVersion
+    def llvmBin = findLlvmBin()
+    def cmakeArguments = [
+            "-DANDROID_TOOLCHAIN=clang",
+            '-DANDROID_STL=c++_shared',
+    ]
+    if (llvmBin != null) {
+        cmakeArguments.add("-DCMAKE_AR=${new File(llvmBin, 'llvm-ar').absolutePath}")
+        cmakeArguments.add("-DCMAKE_RANLIB=${new File(llvmBin, 'llvm-ranlib').absolutePath}")
+    }
     defaultConfig {
         minSdkVersion  rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -20,8 +52,7 @@ android {
             cmake {
                 cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE", '-DMINSIZE','-Wl,-ldl', "-fvisibility=hidden -fno-exceptions",
                         '-Wno-unused-command-line-argument'
-                arguments "-DANDROID_TOOLCHAIN=clang",
-                        '-DANDROID_STL=c++_shared'
+                arguments(*cmakeArguments)
             }
         }
     }

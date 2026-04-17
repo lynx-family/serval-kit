@@ -48,6 +48,7 @@ public class Constants {
 
   public static final int ANIMATION_TYPE_NONE = 0;
   public static final int ANIMATION_TYPE_TYPEWRITER = 1;
+  public static final int ANIMATION_TYPE_LINE_EXPAND = 2;
 
   public static int ConvertLayoutMode(int mode) {
     switch (mode) {

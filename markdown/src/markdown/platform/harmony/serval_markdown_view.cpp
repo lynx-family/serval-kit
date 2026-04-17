@@ -182,6 +182,8 @@ void NativeServalMarkdownView::SetConfig(const ValueMap& config) {
       !animation_type.empty()) {
     if (animation_type == "typewriter") {
       GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kTypewriter);
+    } else if (animation_type == "line-expand") {
+      GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kLineExpand);
     } else {
       GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kNone);
     }
