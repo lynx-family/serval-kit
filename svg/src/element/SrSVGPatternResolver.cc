@@ -207,6 +207,10 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
   SrSVGLength pattern_height = cascade.height.value_or(SrSVGLength{0});
 
   SrSVGRenderContext mutable_context = context;
+  if (cascade.pattern_units == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+    mutable_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
+    mutable_context.view_box = mutable_context.view_port;
+  }
   resolved_pattern->x = convert_serval_length_to_float(
       &pattern_x, &mutable_context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   resolved_pattern->y = convert_serval_length_to_float(
