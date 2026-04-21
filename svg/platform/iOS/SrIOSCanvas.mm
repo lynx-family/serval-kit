@@ -146,8 +146,8 @@ static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
     colors.push_back(SrIOSColorUtils::GetRedFromARGB(stop.stopColor.color));
     colors.push_back(SrIOSColorUtils::GetGreenFromARGB(stop.stopColor.color));
     colors.push_back(SrIOSColorUtils::GetBlueFromARGB(stop.stopColor.color));
-    colors.push_back(
-        SrIOSColorUtils::GetAlphaFromARGB(stop.stopColor.color, stop.stopOpacity.value));
+    colors.push_back(SrIOSColorUtils::GetAlphaFromARGB(stop.stopColor.color,
+                                                       stop.stopOpacity.value));
   }
   return;
 }
@@ -698,8 +698,8 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
         stroke_path = transformed_path;
       }
     }
-    UIColor* stroke_color =
-        SrIOSColorUtils::UIColorFromARGB(renderState.stroke->content.color.color);
+    UIColor* stroke_color = SrIOSColorUtils::UIColorFromARGB(
+        renderState.stroke->content.color.color);
     CGContextSetStrokeColorWithColor(_context, stroke_color.CGColor);
     CGContextAddPath(_context, stroke_path);
     CGContextStrokePath(_context);
