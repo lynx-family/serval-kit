@@ -93,6 +93,8 @@ typedef struct SrSVGRenderContext {
   void* id_mapper;
   SrSVGBox view_port;
   SrSVGBox view_box;
+  uint8_t has_default_color;
+  uint32_t default_color;
 } SrSVGRenderContext;
 
 typedef enum SrSVGLengthType {

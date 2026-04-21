@@ -25,7 +25,8 @@ public:
 
     void Render(OH_Drawing_Canvas *canvas);
 
-    void Update(const std::string &content, float left, float top, float width, float height, bool anti_alias);
+    void Update(const std::string &content, float left, float top, float width, float height, bool anti_alias,
+                bool has_color, uint32_t color);
 
 
 private:
@@ -41,6 +42,8 @@ private:
     float width_{0.f};
     float height_{0.f};
     bool anti_alias_{true};
+    bool has_color_{false};
+    uint32_t color_{0};
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
 };

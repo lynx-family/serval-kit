@@ -5,11 +5,16 @@ import util from '@ohos.util';
 @Entry
 @Component
 struct Index {
+  private static readonly HOST_COLOR_COMPARE_FILE: string = 'currentcolor-host-default-compare.svg';
+  private static readonly HOST_COLOR_OVERRIDE_FILE: string = 'currentcolor-content-color-override.svg';
+  private static readonly HOST_DEFAULT_COLOR: number = 0xFF4F6BFF;
   @State selectedFileName: string = 'basic_shapes.svg';
   @State currentSvgData: SvgData = new SvgData();
   @State files: string[] = [
     'basic_shapes.svg',
     'clip_path.svg',
+    'currentcolor-content-color-override.svg',
+    'currentcolor-host-default-compare.svg',
     'currentcolor-fill-opacity-use.svg',
     'defs_use.svg',
     'gradients.svg',
@@ -91,7 +96,11 @@ struct Index {
           if (this.currentSvgData.content) {
         Column() {
           SvgView({
-            svgData: this.currentSvgData
+            svgData: this.currentSvgData,
+            color: this.selectedFileName === Index.HOST_COLOR_COMPARE_FILE ||
+              this.selectedFileName === Index.HOST_COLOR_OVERRIDE_FILE
+              ? Index.HOST_DEFAULT_COLOR
+              : undefined
           })
           .width(300)
           .height(300 * 0.75) // Aspect ratio 4:3 to match 800:600

@@ -35,6 +35,7 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.core.util.Pair;
 import com.lynx.serval.svg.model.FillPaintModel;
@@ -74,6 +75,7 @@ public class SVGRender {
   private HashMap<String, Pair<String, GradientModel>> mGradientModels;
   private SVGRenderEngine mSVGRenderEngineNG;
   private ResourceManager mResourceProvider;
+  private Long mColor = null;
 
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
@@ -82,6 +84,13 @@ public class SVGRender {
 
   public void setResourceManager(ResourceManager resourceManager) {
     mResourceProvider = resourceManager;
+  }
+
+  public void setColor(@Nullable Long color) { mColor = color; }
+
+  @Nullable
+  public Long getColor() {
+    return mColor;
   }
 
   public Picture renderPicture(String content, Rect viewPort) {
@@ -96,8 +105,7 @@ public class SVGRender {
     return picture;
   }
 
-  public void setViewBox(float x, float y, float width, float height) {
-  }
+  public void setViewBox(float x, float y, float width, float height) {}
 
   public void save() {
     if (mPictureCanvas != null) {

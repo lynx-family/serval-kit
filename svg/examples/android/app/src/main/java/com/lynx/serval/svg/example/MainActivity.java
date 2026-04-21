@@ -27,6 +27,11 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+  private static final String HOST_COLOR_COMPARE_FILE =
+      "currentcolor-host-default-compare.svg";
+  private static final String HOST_COLOR_OVERRIDE_FILE =
+      "currentcolor-content-color-override.svg";
+  private static final Long HOST_DEFAULT_COLOR = 0xFF4F6BFFL;
   private ImageView imageView;
   private Spinner spinner;
 
@@ -107,13 +112,13 @@ public class MainActivity extends AppCompatActivity {
           "  <rect x=\"0\" y=\"0\" width=\"200\" height=\"200\" fill=\"url(#TrianglePattern)\" />\n"
           + "</svg>\n";
 
-      renderSvgWhenReady(svgContent);
+      renderSvgWhenReady(fileName, svgContent);
       return;
     }
     try {
       String content = readAssetFile("svg/" + fileName);
       if (content != null) {
-        renderSvgWhenReady(content);
+        renderSvgWhenReady(fileName, content);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -136,18 +141,23 @@ public class MainActivity extends AppCompatActivity {
     return sb.toString();
   }
 
-  private void renderSvgWhenReady(String svgContent) {
+  private void renderSvgWhenReady(String fileName, String svgContent) {
     if (imageView.getWidth() > 0 && imageView.getHeight() > 0) {
-      renderSvg(svgContent, imageView.getWidth(), imageView.getHeight());
+      renderSvg(fileName, svgContent, imageView.getWidth(),
+                imageView.getHeight());
       return;
     }
     imageView.post(()
-                       -> renderSvg(svgContent, imageView.getWidth(),
+                       -> renderSvg(fileName, svgContent, imageView.getWidth(),
                                     imageView.getHeight()));
   }
 
-  private void renderSvg(String svgContent, int targetWidth, int targetHeight) {
+  private void renderSvg(String fileName, String svgContent, int targetWidth,
+                         int targetHeight) {
     SVGRender render = new SVGRender();
+    boolean shouldSetHostColor = HOST_COLOR_COMPARE_FILE.equals(fileName) ||
+                                 HOST_COLOR_OVERRIDE_FILE.equals(fileName);
+    render.setColor(shouldSetHostColor ? HOST_DEFAULT_COLOR : null);
     int safeWidth = Math.max(targetWidth, 1);
     int safeHeight = Math.max(targetHeight, 1);
     Rect renderRect = new Rect(0, 0, safeWidth, safeHeight);

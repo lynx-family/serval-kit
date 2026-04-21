@@ -6,6 +6,20 @@
 
 namespace serval::svg::element {
 
+static inline uint32_t ResolveEffectiveColor(
+    const SrSVGNodeBase& node, const SrSVGRenderContext& context) {
+  if (node.color_) {
+    return node.color_->color;
+  }
+  if (node.inherit_color_) {
+    return node.inherit_color_->color;
+  }
+  if (context.has_default_color) {
+    return context.default_color;
+  }
+  return NSVG_RGBA(0, 0, 0, 255);
+}
+
 void SrSVGRawText::AppendToParagraph(canvas::ParagraphFactory* paragraph,
                                      SrSVGRenderContext& context) const {
   paragraph->AddText(text_);
@@ -36,13 +50,7 @@ void SrSVGTextContainer::AppendToParagraph(canvas::ParagraphFactory* paragraph,
   SrTextStyle style = {NSVG_RGBA(0, 0, 0, 255), 14.0};
   if (fill_ && fill_->type == SERVAL_PAINT_COLOR) {
     if (fill_->content.color.type == SERVAL_CURRENT_COLOR) {
-      if (color_) {
-        style.color = color_->color;
-      } else if (inherit_color_) {
-        style.color = inherit_color_->color;
-      } else {
-        style.color = NSVG_RGBA(0, 0, 0, 255);
-      }
+      style.color = ResolveEffectiveColor(*this, context);
     } else {
       style.color = fill_->content.color.color;
     }

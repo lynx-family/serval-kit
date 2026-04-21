@@ -18,6 +18,20 @@ const uint8_t SrSVGShape::kRenderTypeFlagStroke = 1;
 const uint8_t SrSVGShape::kRenderTypeFlagFill = 1 << 1;
 const uint8_t SrSVGShape::kRenderTypeFillRule = 1 << 2;
 
+static inline uint32_t ResolveEffectiveColor(
+    const SrSVGNode& node, const SrSVGRenderContext& context) {
+  if (node.color_) {
+    return node.color_->color;
+  }
+  if (node.inherit_color_) {
+    return node.inherit_color_->color;
+  }
+  if (context.has_default_color) {
+    return context.default_color;
+  }
+  return NSVG_RGBA(0, 0, 0, 255);
+}
+
 void SrSVGShape::AppendChild(SrSVGNodeBase* node) {
   // SVGShape should not have child.
 }
@@ -43,13 +57,7 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
   if (render_state_.fill && render_state_.fill->type == SERVAL_PAINT_COLOR) {
     SrSVGColor& svgColor = render_state_.fill->content.color;
     if (svgColor.type == SERVAL_CURRENT_COLOR) {
-      if (color_) {
-        svgColor.color = (*color_).color;
-      } else if (inherit_color_) {
-        svgColor.color = (*inherit_color_).color;
-      } else {
-        svgColor.color = NSVG_RGBA(0, 0, 0, 255);
-      }
+      svgColor.color = ResolveEffectiveColor(*this, context);
     }
   }
 
@@ -57,13 +65,7 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
       render_state_.stroke->type == SERVAL_PAINT_COLOR) {
     SrSVGColor& svgColor = render_state_.stroke->content.color;
     if (svgColor.type == SERVAL_CURRENT_COLOR) {
-      if (color_) {
-        svgColor.color = (*color_).color;
-      } else if (inherit_color_) {
-        svgColor.color = (*inherit_color_).color;
-      } else {
-        svgColor.color = NSVG_RGBA(0, 0, 0, 255);
-      }
+      svgColor.color = ResolveEffectiveColor(*this, context);
     }
   }
 

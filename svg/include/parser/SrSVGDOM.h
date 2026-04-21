@@ -7,6 +7,7 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <utility>
 
@@ -31,6 +32,9 @@ class SrSVGDOM {
         xml_dom_(xml_dom) {}
 
   float dpi_{0.f};
+  std::optional<uint32_t> default_color_;
+  void SetDefaultColor(uint32_t color);
+  void ResetDefaultColor();
   void Render(canvas::SrCanvas* canvas) const;
   void Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const;
 

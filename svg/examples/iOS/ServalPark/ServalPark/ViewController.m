@@ -15,6 +15,22 @@
 
 @implementation ViewController
 
+static NSString* const kHostColorCompareFile =
+    @"currentcolor-host-default-compare.svg";
+static NSString* const kHostColorOverrideFile =
+    @"currentcolor-content-color-override.svg";
+
+- (UIColor*)hostColorForFile:(NSString*)fileName {
+  if ([fileName isEqualToString:kHostColorCompareFile] ||
+      [fileName isEqualToString:kHostColorOverrideFile]) {
+    return [UIColor colorWithRed:79.0 / 255.0
+                           green:107.0 / 255.0
+                            blue:1.0
+                           alpha:1.0];
+  }
+  return nil;
+}
+
 - (void)viewDidLoad {
   [super viewDidLoad];
 
@@ -60,6 +76,7 @@
 }
 
 - (void)loadSVGFile:(NSString*)fileName {
+  self.svgView.color = [self hostColorForFile:fileName];
   if ([fileName isEqualToString:@"string_test.svg"]) {
     NSString* svgContent =
         @"<svg style=\"color: #AFF122;\" xmlns=\"http://www.w3.org/2000/svg\" "
