@@ -36,6 +36,10 @@ struct Index {
     'stroke-gradient-vs-pattern.svg',
     'text.svg',
     'transforms.svg',
+    'vector-effect-dash.svg',
+    'vector-effect-gradient-line.svg',
+    'vector-effect-gradient-stroke.svg',
+    'vector-effect-non-scaling-stroke.svg',
     'string_test.svg'
   ];
 

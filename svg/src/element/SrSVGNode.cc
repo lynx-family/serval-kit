@@ -202,6 +202,12 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     fill_opacity_ = Atof(value);
   } else if (strcmp(name, "stroke-opacity") == 0) {
     stroke_opacity_ = Atof(value);
+  } else if (strcmp(name, "vector-effect") == 0) {
+    if (strcmp(value, "non-scaling-stroke") == 0) {
+      vector_effect_ = SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE;
+    } else {
+      vector_effect_ = SR_SVG_VECTOR_EFFECT_NONE;
+    }
   } else if (strcmp(name, "clip-path") == 0) {
     clip_path_ = make_serval_paint(value);
   } else if (strcmp(name, "mask") == 0) {

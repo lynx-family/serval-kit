@@ -107,13 +107,13 @@ public class MainActivity extends AppCompatActivity {
           "  <rect x=\"0\" y=\"0\" width=\"200\" height=\"200\" fill=\"url(#TrianglePattern)\" />\n"
           + "</svg>\n";
 
-      renderSvg(svgContent);
+      renderSvgWhenReady(svgContent);
       return;
     }
     try {
       String content = readAssetFile("svg/" + fileName);
       if (content != null) {
-        renderSvg(content);
+        renderSvgWhenReady(content);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -136,16 +136,22 @@ public class MainActivity extends AppCompatActivity {
     return sb.toString();
   }
 
-  private void renderSvg(String svgContent) {
-    SVGRender render = new SVGRender();
-    // Assuming a default size for rendering if not specified in SVG or for the view bounds
-    // The previous example used Rect(0, 0, 500, 600)
-    Picture picture =
-        render.renderPicture(svgContent, new Rect(0, 0, 240, 140));
+  private void renderSvgWhenReady(String svgContent) {
+    if (imageView.getWidth() > 0 && imageView.getHeight() > 0) {
+      renderSvg(svgContent, imageView.getWidth(), imageView.getHeight());
+      return;
+    }
+    imageView.post(()
+                       -> renderSvg(svgContent, imageView.getWidth(),
+                                    imageView.getHeight()));
+  }
 
-    // Calculate scaling to fit ImageView dimensions while maintaining aspect ratio
-    // Note: In a real app, you might want to measure the ImageView first or use a custom View
-    // Here we just use the fixed size 800x600 as the intrinsic size of the drawable
+  private void renderSvg(String svgContent, int targetWidth, int targetHeight) {
+    SVGRender render = new SVGRender();
+    int safeWidth = Math.max(targetWidth, 1);
+    int safeHeight = Math.max(targetHeight, 1);
+    Rect renderRect = new Rect(0, 0, safeWidth, safeHeight);
+    Picture picture = render.renderPicture(svgContent, renderRect);
 
     SVGDrawable drawable = new SVGDrawable(picture);
     imageView.setImageDrawable(drawable);

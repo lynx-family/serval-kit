@@ -732,13 +732,14 @@ JavaLocalRef<jobject> SrAndroidCanvas::MakeStrokePaint(
   }
   jmethodID j_method = GetMethod(
       jni_env_, clazz_ref.Get(), STATIC_METHOD, "makeStrokePaintModel",
-      "(ILjava/lang/String;JFFIIFF[F)"
+      "(ILjava/lang/String;JFFIIFF[FI)"
       "Lcom/lynx/serval/svg/model/StrokePaintModel;",
       &(SrAndroidCanvas::g_SVGRenderEngine_makeStrokePaintModel_));
   if (j_method) {
     jint j_stroke_type = render_state.stroke->type;
     jfloat j_width = render_state.stroke_width;
     jfloat j_opacity = render_state.stroke_opacity;
+    jint j_vector_effect = static_cast<jint>(render_state.vector_effect);
     jlong j_color = 0;
     SrSVGStrokeCap stroke_line_cap{SR_SVG_STROKE_CAP_BUTT};
     SrSVGStrokeJoin stroke_line_join{SR_SVG_STROKE_JOIN_MITER};
@@ -778,7 +779,7 @@ JavaLocalRef<jobject> SrAndroidCanvas::MakeStrokePaint(
                 clazz_ref.Get(), j_method, j_stroke_type, j_iri_ref.Get(),
                 j_color, j_width, j_opacity, static_cast<int>(stroke_line_cap),
                 static_cast<int>(stroke_line_join), stroke_miter_limit,
-                stroke_dash_offset, array_ref.Get())};
+                stroke_dash_offset, array_ref.Get(), j_vector_effect)};
   }
   return {jni_env_, nullptr};
 }

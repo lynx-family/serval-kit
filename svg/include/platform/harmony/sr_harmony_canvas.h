@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PLATFORM_HARMONY_SR_HARMONY_CANVAS_H_
 #define SVG_INCLUDE_PLATFORM_HARMONY_SR_HARMONY_CANVAS_H_
 
+#include <array>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -97,6 +98,8 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   bool anti_alias_{true};
   canvas::SrCanvasBlendMode blend_mode_{canvas::SrCanvasBlendMode::kSrcOver};
   bool mask_is_luminance_{false};
+  std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+  std::vector<std::array<float, 6>> transform_stack_;
 
   void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
   void StrokePath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
@@ -104,12 +107,16 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
                                 const canvas::LinearGradientModel& lg_model,
                                 OH_Drawing_Path* path,
                                 const SrSVGRenderState& render_state,
-                                bool is_stroke);
+                                bool is_stroke,
+                                OH_Drawing_Path* bounds_path = nullptr,
+                                const float* extra_transform = nullptr);
   void DrawRadialGradientShader(OH_Drawing_Canvas* canvas,
                                 const canvas::RadialGradientModel& rg_model,
                                 OH_Drawing_Path* path,
                                 const SrSVGRenderState& render_state,
-                                bool is_stroke);
+                                bool is_stroke,
+                                OH_Drawing_Path* bounds_path = nullptr,
+                                const float* extra_transform = nullptr);
 
   void InitStrokePaint(const SrSVGRenderState& render_state, bool anti_alias);
 

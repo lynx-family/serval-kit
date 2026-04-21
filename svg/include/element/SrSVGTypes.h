@@ -171,6 +171,11 @@ typedef struct SRSVGStrokeState {
   size_t dash_array_length;
 } SRSVGStrokeState;
 
+typedef enum SrSVGVectorEffect {
+  SR_SVG_VECTOR_EFFECT_NONE = 0,
+  SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE = 1,
+} SrSVGVectorEffect;
+
 typedef struct SrSVGRenderState {
   SrSVGPaint* stroke;
   SrSVGPaint* fill;
@@ -180,6 +185,7 @@ typedef struct SrSVGRenderState {
   float fill_opacity;
   SrSVGFillRule fill_rule;
   SRSVGStrokeState* stroke_state;
+  SrSVGVectorEffect vector_effect;
 } SrSVGRenderState;
 
 typedef enum SrSVGAlign {
