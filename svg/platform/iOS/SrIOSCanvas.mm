@@ -6,6 +6,7 @@
 
 #include "element/SrSVGTypes.h"
 #include "platform/iOS/SrIOSCanvas.h"
+#include "platform/iOS/SrIOSColorUtils.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGPatternUtils.h"
 
@@ -15,30 +16,6 @@ extern "C" {
 #endif
 
 #define NSVG_KAPPA90 (0.5522847493f)
-
-static UIColor* GetUIColorFromI32(uint32_t color) {
-  CGFloat alpha = ((color & 0xFF000000) >> 24) / 255.f;
-  CGFloat red = ((color & 0x00FF0000) >> 16) / 255.f;
-  CGFloat green = ((color & 0x0000FF00) >> 8) / 255.f;
-  CGFloat blue = (color & 0x000000FF) / 255.f;
-  return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
-}
-
-static CGFloat GetRedFromI32(uint32_t color) {
-  return ((color & 0x00FF0000) >> 16) / 255.f;
-}
-
-static CGFloat GetGreenFromI32(uint32_t color) {
-  return ((color & 0x0000FF00) >> 8) / 255.f;
-}
-
-static CGFloat GetBlueFromI32(uint32_t color) {
-  return (color & 0x000000FF) / 255.f;
-}
-
-static CGFloat GetAlphaFromI32(uint32_t color, float opacity) {
-  return ((color & 0xFF000000) >> 24) / 255.f * opacity;
-}
 
 static void SRSVGArcToBezier(CGMutablePathRef p, double cx, double cy, double a,
                              double b, double e1x, double e1y, double theta,
@@ -166,11 +143,11 @@ static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
       // If it doesn't we need to replace it with the previous value.
       offsets.push_back(lastOffset);
     }
-    colors.push_back(GetRedFromI32(stop.stopColor.color));
-    colors.push_back(GetGreenFromI32(stop.stopColor.color));
-    colors.push_back(GetBlueFromI32(stop.stopColor.color));
+    colors.push_back(SrIOSColorUtils::GetRedFromARGB(stop.stopColor.color));
+    colors.push_back(SrIOSColorUtils::GetGreenFromARGB(stop.stopColor.color));
+    colors.push_back(SrIOSColorUtils::GetBlueFromARGB(stop.stopColor.color));
     colors.push_back(
-        GetAlphaFromI32(stop.stopColor.color, stop.stopOpacity.value));
+        SrIOSColorUtils::GetAlphaFromARGB(stop.stopColor.color, stop.stopOpacity.value));
   }
   return;
 }
@@ -406,7 +383,7 @@ void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
     }
   } else if (renderState.fill && renderState.fill->type == SERVAL_PAINT_COLOR) {
     UIColor* fill_color =
-        GetUIColorFromI32(renderState.fill->content.color.color);
+        SrIOSColorUtils::UIColorFromARGB(renderState.fill->content.color.color);
     CGContextSetFillColorWithColor(_context, fill_color.CGColor);
     CGContextAddPath(_context, cgPath);
     if (renderState.fill_rule == SR_SVG_FILL) {
@@ -722,7 +699,7 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
       }
     }
     UIColor* stroke_color =
-        GetUIColorFromI32(renderState.stroke->content.color.color);
+        SrIOSColorUtils::UIColorFromARGB(renderState.stroke->content.color.color);
     CGContextSetStrokeColorWithColor(_context, stroke_color.CGColor);
     CGContextAddPath(_context, stroke_path);
     CGContextStrokePath(_context);

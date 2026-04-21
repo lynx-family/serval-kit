@@ -239,6 +239,40 @@ Strengths:
 - shapes, gradients, masks, clip paths, images
 - the only backend with `SupportsFilters() == true`
 
+## Host Color Contract
+
+The renderer supports a host-provided default color for `currentColor`
+resolution. This is an integration-level input, not an SVG document attribute.
+
+Rules:
+
+- If the SVG content defines `color` on the current node, use that value.
+- Otherwise, if an ancestor provides inherited `color`, use the inherited
+  value.
+- Otherwise, if the host sets a default color, use the host value.
+- Otherwise, fall back to black.
+
+Compatibility notes:
+
+- If the host does not provide a color, existing rendering behavior remains
+  unchanged.
+- Host default color only affects `currentColor` resolution. It does not
+  override explicit `fill`, `stroke`, gradients, patterns, or `none`.
+- Host background color must not be treated as the SVG default color unless
+  product logic explicitly wants `currentColor` to follow that foreground
+  value.
+
+Public integration surface:
+
+- Android: `SVGRender#setColor(@Nullable Long color)`
+- iOS: `SrSVGView.color`
+- Harmony: `SvgView.color?: number`
+
+Harmony API note:
+
+- `SvgData` does not expose `color`. `color` is intentionally exposed only on
+  `SvgView` to avoid duplicated public entry points and precedence ambiguity.
+
 Current gaps:
 
 - text paragraphs are stubbed

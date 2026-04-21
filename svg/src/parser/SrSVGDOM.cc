@@ -288,12 +288,29 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
   return nullptr;
 }
 
+void SrSVGDOM::SetDefaultColor(uint32_t color) {
+  default_color_ = color;
+}
+
+void SrSVGDOM::ResetDefaultColor() {
+  default_color_.reset();
+}
+
 void SrSVGDOM::Render(canvas::SrCanvas* canvas) const {
   if (root_) {
     SrSVGBox view_box = root_->viewBox();
     float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
-    SrSVGRenderContext context = (SrSVGRenderContext){
-        local_dpi, view_box.width, view_box.height, 0, id_mapper_};
+    SrSVGRenderContext context{
+        .width = view_box.width,
+        .height = view_box.height,
+        .dpi = local_dpi,
+        .font_size = 0.f,
+        .id_mapper = id_mapper_,
+        .view_port = view_box,
+        .view_box = view_box,
+        .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
+        .default_color = default_color_.value_or(0),
+    };
     root_->Render(canvas, context);
   }
 }
@@ -303,10 +320,15 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
     SrSVGBox view_box = root_->viewBox();
     float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
     SrSVGRenderContext context{
+        .width = view_port.width,
+        .height = view_port.height,
         .dpi = local_dpi,
+        .font_size = 0.f,
         .id_mapper = id_mapper_,
         .view_port = view_port,
         .view_box = view_box,
+        .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
+        .default_color = default_color_.value_or(0),
     };
     root_->Render(canvas, context);
   }

@@ -7,6 +7,7 @@ import { SvgData } from './SvgTypes';
 export struct SvgView {
   @Prop @Watch('watchSvgSrc') src: string = '';
   @Prop @Watch('watchSvgData') svgData: SvgData = new SvgData();
+  @Prop @Watch('watchColor') color?: number;
   private svgNodeController?: SvgRenderNodeController;
 
   build() {
@@ -28,6 +29,10 @@ export struct SvgView {
     this.watchSvgData();
   }
 
+  watchColor() {
+    this.watchSvgData();
+  }
+
   checkSrc() {
     if (this.src && this.src.length > 0) {
       this.svgData.content = this.src;
@@ -38,7 +43,7 @@ export struct SvgView {
     if (!this.svgNodeController) {
       this.svgNodeController = new SvgRenderNodeController();
     }
-    this.svgNodeController.updateData(this.svgData);
+    this.svgNodeController.updateData(this.svgData, this.color);
   }
 }
 
@@ -68,10 +73,11 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
-  update(data?: SvgData) {
+  update(data?: SvgData, parentColor?: number) {
     if (data) {
       this.data = data;
-      this.native.update(data.width, data.height, data.x, data.y, data.density, data.content, data.antiAlias);
+      this.native.update(data.width, data.height, data.x, data.y, data.density,
+        data.content, data.antiAlias, parentColor);
       this.invalidate();
     }
   }
@@ -81,17 +87,19 @@ export class SvgRenderNode extends FrameNode {
 export class SvgRenderNodeController extends NodeController {
   private rootNode: SvgRenderNode | null = null;
   private data?: SvgData;
+  private color?: number;
   private needUpdateData = false;
 
   constructor() {
     super();
   }
 
-  updateData(data?: SvgData) {
+  updateData(data?: SvgData, color?: number) {
     this.data = data;
+    this.color = color;
     if (this.rootNode) {
       this.needUpdateData = false;
-      this.rootNode.update(data);
+      this.rootNode.update(data, color);
     } else {
       this.needUpdateData = true;
     }
@@ -102,7 +110,7 @@ export class SvgRenderNodeController extends NodeController {
       this.rootNode = new SvgRenderNode(uiContext, new svg.SvgDrawable());
       if (this.needUpdateData) {
         this.needUpdateData = false;
-        this.rootNode.update(this.data);
+        this.rootNode.update(this.data, this.color);
       }
       return this.rootNode;
     }

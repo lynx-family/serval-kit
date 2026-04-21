@@ -15,7 +15,8 @@ using serval::svg::parser::SrSVGDOM;
 
 int registerNativeMethod(JNIEnv* env);
 jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
-            jfloat left, jfloat top, jfloat width, jfloat height);
+            jfloat left, jfloat top, jfloat width, jfloat height,
+            jobject j_color);
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,
                                       jfloat vp_left, jfloat vp_top,
                                       jfloat vp_width, jfloat vp_height,
@@ -50,8 +51,8 @@ int registerNativeMethod(JNIEnv* env) {
   static const JNINativeMethod render_engine_method[] = {
       {
           .name = "render",
-          .signature =
-              "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/String;FFFF)I",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/"
+                       "String;FFFFLjava/lang/Long;)I",
           .fnPtr = reinterpret_cast<void*>(render),
       },
       {
@@ -69,7 +70,8 @@ int registerNativeMethod(JNIEnv* env) {
 }
 
 jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
-            jfloat left, jfloat top, jfloat width, jfloat height) {
+            jfloat left, jfloat top, jfloat width, jfloat height,
+            jobject j_color) {
   if (!j_str || !j_engine || !j_render) {
     return JNI_ERR;
   }
@@ -86,6 +88,21 @@ jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
   if (!svg_dom) {
     // TODO(dingwang.wxx) add error log
     return JNI_ERR;
+  }
+  if (j_color != nullptr) {
+    jclass long_class = env->FindClass("java/lang/Long");
+    jmethodID long_value =
+        long_class == nullptr
+            ? nullptr
+            : env->GetMethodID(long_class, "longValue", "()J");
+    if (long_value != nullptr) {
+      jlong color = env->CallLongMethod(j_color, long_value);
+      svg_dom->SetDefaultColor(static_cast<uint32_t>(color));
+    } else {
+      svg_dom->ResetDefaultColor();
+    }
+  } else {
+    svg_dom->ResetDefaultColor();
   }
   SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
   SrSVGBox view_port{left, top, width, height};

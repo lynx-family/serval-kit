@@ -5,18 +5,11 @@
 #include "platform/iOS/SrIOSParagraph.h"
 #include "canvas/SrParagraph.h"
 #include "platform/iOS/SrIOSCanvas.h"
+#include "platform/iOS/SrIOSColorUtils.h"
 
 namespace serval {
 namespace svg {
 namespace canvas {
-
-static UIColor* GetUIColorFromI32(uint32_t color) {
-  CGFloat alpha = ((color & 0xFF000000) >> 24) / 255.f;
-  CGFloat red = ((color & 0x00FF0000) >> 16) / 255.f;
-  CGFloat green = ((color & 0x0000FF00) >> 8) / 255.f;
-  CGFloat blue = (color & 0x000000FF) / 255.f;
-  return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
-}
 
 std::unique_ptr<ParagraphFactory> CreateParagraphFactoryFactory(
     const SrCanvas* srCanvas) {
@@ -51,7 +44,7 @@ void ParagraphFactoryTK::AddText(const std::string& text) {
 
   const SrTextStyle& style = style_stack_.back();
   UIFont* font = [UIFont systemFontOfSize:style.font_size];
-  [attribute setObject:GetUIColorFromI32(style.color)
+  [attribute setObject:ios::SrIOSColorUtils::UIColorFromARGB(style.color)
                 forKey:NSForegroundColorAttributeName];
   [attribute setObject:font forKey:NSFontAttributeName];
   max_ascent_ = MAX(font.ascender, max_ascent_);

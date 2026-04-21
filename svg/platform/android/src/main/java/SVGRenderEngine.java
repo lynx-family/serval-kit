@@ -22,6 +22,7 @@ import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
+import androidx.annotation.Nullable;
 import com.lynx.serval.svg.model.FillPaintModel;
 import com.lynx.serval.svg.model.LinearGradientModel;
 import com.lynx.serval.svg.model.RadialGradientModel;
@@ -85,8 +86,14 @@ public class SVGRenderEngine {
     sIsNativeLibraryLoaded = true;
   }
 
+  int render(SVGRender svgRender, String content, float left, float top,
+             float width, float height) {
+    return render(svgRender, content, left, top, width, height,
+                  svgRender.getColor());
+  }
+
   native int render(SVGRender svgRender, String content, float left, float top,
-                    float width, float height);
+                    float width, float height, @Nullable Long color);
 
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,

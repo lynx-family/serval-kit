@@ -1,0 +1,21 @@
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="240" fill="#ffffff"/>
+
+  <rect x="12" y="12" width="92" height="216" rx="8" fill="#f7f8fb" stroke="#d9dce3"/>
+  <rect x="24" y="28" width="68" height="68" rx="8" fill="currentColor"/>
+  <rect x="24" y="136" width="68" height="68" rx="8" fill="#4f6bff"/>
+
+  <rect x="114" y="12" width="92" height="216" rx="8" fill="#f7f8fb" stroke="#d9dce3"/>
+  <g color="#23a55a">
+    <circle cx="160" cy="62" r="34" fill="currentColor"/>
+  </g>
+  <circle cx="160" cy="170" r="34" fill="#23a55a"/>
+
+  <rect x="216" y="12" width="92" height="216" rx="8" fill="#f7f8fb" stroke="#d9dce3"/>
+  <path d="M240 94 L262 28 L284 94" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M240 202 L262 136 L284 202" fill="none" stroke="#4f6bff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <line x1="20" y1="120" x2="96" y2="120" stroke="#d9dce3" stroke-dasharray="4 4"/>
+  <line x1="122" y1="120" x2="198" y2="120" stroke="#d9dce3" stroke-dasharray="4 4"/>
+  <line x1="224" y1="120" x2="300" y2="120" stroke="#d9dce3" stroke-dasharray="4 4"/>
+</svg>
