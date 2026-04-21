@@ -107,6 +107,7 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
     render_state_.stroke_opacity = render_state_.opacity;
   }
   render_state_.fill_rule = fill_rule_;
+  render_state_.vector_effect = vector_effect_;
 
   size_t dash_array_length = stroke_dash_array_.size();
   float* dash_array = stroke_dash_array_.data();

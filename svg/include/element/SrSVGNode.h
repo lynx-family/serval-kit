@@ -142,6 +142,8 @@ class SrSVGNode : public SrSVGNodeBase {
 
   std::vector<float> stroke_dash_array_{};
 
+  SrSVGVectorEffect vector_effect_{SR_SVG_VECTOR_EFFECT_NONE};
+
   //inherit
   SrSVGPaint* inherit_fill_paint_{nullptr};
   SrSVGPaint* inherit_stroke_paint_{nullptr};

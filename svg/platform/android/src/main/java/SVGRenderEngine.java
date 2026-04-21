@@ -103,10 +103,10 @@ public class SVGRenderEngine {
   public static StrokePaintModel makeStrokePaintModel(
       int type, String iri, long color, float width, float opacity,
       int strokeLineCap, int strokeLineJoin, float strokeMiterLimit,
-      float strokeDashOffset, float[] strokeDashArray) {
+      float strokeDashOffset, float[] strokeDashArray, int vectorEffect) {
     StrokePaintModel strokePaintModel = new StrokePaintModel(
         type, iri, color, width, opacity, strokeLineCap, strokeLineJoin,
-        strokeMiterLimit, strokeDashOffset, strokeDashArray);
+        strokeMiterLimit, strokeDashOffset, strokeDashArray, vectorEffect);
     return strokePaintModel;
   }
 

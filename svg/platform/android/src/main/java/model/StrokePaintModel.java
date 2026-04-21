@@ -18,10 +18,12 @@ public class StrokePaintModel extends PaintRef {
 
   public float mStrokeDashOffset;
 
+  public int mVectorEffect;
+
   public StrokePaintModel(int type, String iri, long color, float width,
                           float opacity, int strokeLineCap, int strokeLineJoin,
                           float strokeMiterLimit, float strokeDashOffset,
-                          float[] strokeDashArray) {
+                          float[] strokeDashArray, int vectorEffect) {
     super(type, color, opacity, iri);
     mWith = width;
     mStrokeLineCap = strokeLineCap;
@@ -29,5 +31,6 @@ public class StrokePaintModel extends PaintRef {
     mStrokeMiterLimit = strokeMiterLimit;
     mStrokeDashOffset = strokeDashOffset;
     mStrokeDashArray = strokeDashArray;
+    mVectorEffect = vectorEffect;
   }
 }

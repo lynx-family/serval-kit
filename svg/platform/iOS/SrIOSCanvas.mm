@@ -175,11 +175,32 @@ static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
   return;
 }
 
-static void DrawLinearGradient(CGContextRef cgContext,
-                               const canvas::LinearGradientModel& lgModel,
-                               CGMutablePathRef cgPath, SrSVGFillRule fillRule,
-                               bool isStroke) {
-  if (!cgContext || !cgPath || lgModel.stop_size() == 0) {
+static bool PrepareNonScalingStrokePath(CGContextRef cgContext,
+                                        CGPathRef cgPath,
+                                        CGPathRef* transformed_path,
+                                        CGAffineTransform* ctm) {
+  if (!cgContext || !cgPath || !transformed_path || !ctm) {
+    return false;
+  }
+  *ctm = CGContextGetCTM(cgContext);
+  CGFloat determinant = ctm->a * ctm->d - ctm->b * ctm->c;
+  if (fabs(determinant) <= 1e-6) {
+    return false;
+  }
+  *transformed_path = CGPathCreateCopyByTransformingPath(cgPath, ctm);
+  if (!*transformed_path) {
+    return false;
+  }
+  CGContextConcatCTM(cgContext, CGAffineTransformInvert(*ctm));
+  return true;
+}
+
+static void DrawLinearGradient(
+    CGContextRef cgContext, const canvas::LinearGradientModel& lgModel,
+    CGPathRef geometryPath, SrSVGFillRule fillRule, bool isStroke,
+    CGPathRef drawPath = nullptr,
+    const CGAffineTransform* extraTransform = nullptr) {
+  if (!cgContext || !geometryPath || lgModel.stop_size() == 0) {
     // If there are no stops defined, we are to treat it as paint = 'none'
     return;
   }
@@ -190,7 +211,7 @@ static void DrawLinearGradient(CGContextRef cgContext,
   CGColorSpaceRef cgColorSpace = CGColorSpaceCreateDeviceRGB();
   CGGradientRef gradientRef = CGGradientCreateWithColorComponents(
       cgColorSpace, colors.data(), offsets.data(), lgModel.stop_size());
-  CGRect boundingBox = CGPathGetBoundingBox(cgPath);
+  CGRect boundingBox = CGPathGetBoundingBox(geometryPath);
   auto form = lgModel.gradient_transformer_;
   CGAffineTransform gradient_transform = CGAffineTransformMake(
       form[0], form[1], form[2], form[3], form[4], form[5]);
@@ -225,7 +246,7 @@ static void DrawLinearGradient(CGContextRef cgContext,
   }
   CGPoint startPoint = CGPointMake(x1, y1);
   CGPoint endPoint = CGPointMake(x2, y2);
-  CGContextAddPath(cgContext, cgPath);
+  CGContextAddPath(cgContext, drawPath ? drawPath : geometryPath);
   if (isStroke) {
     CGContextReplacePathWithStrokedPath(cgContext);
   }
@@ -233,6 +254,9 @@ static void DrawLinearGradient(CGContextRef cgContext,
     CGContextEOClip(cgContext);
   } else {
     CGContextClip(cgContext);
+  }
+  if (extraTransform) {
+    CGContextConcatCTM(cgContext, *extraTransform);
   }
   CGContextConcatCTM(cgContext, gradient_transform);
   CGContextDrawLinearGradient(
@@ -243,11 +267,12 @@ static void DrawLinearGradient(CGContextRef cgContext,
   CGContextRestoreGState(cgContext);
 }
 
-static void DrawRadialGradient(CGContextRef cgContext,
-                               const canvas::RadialGradientModel& rgModel,
-                               CGMutablePathRef cgPath, SrSVGFillRule fillRule,
-                               bool isStroke) {
-  if (!cgContext || !cgPath || rgModel.stop_size() == 0) {
+static void DrawRadialGradient(
+    CGContextRef cgContext, const canvas::RadialGradientModel& rgModel,
+    CGPathRef geometryPath, SrSVGFillRule fillRule, bool isStroke,
+    CGPathRef drawPath = nullptr,
+    const CGAffineTransform* extraTransform = nullptr) {
+  if (!cgContext || !geometryPath || rgModel.stop_size() == 0) {
     // If there are no stops defined, we are to treat it as paint = 'none'
     return;
   }
@@ -258,7 +283,7 @@ static void DrawRadialGradient(CGContextRef cgContext,
   CGColorSpaceRef cgColorSpace = CGColorSpaceCreateDeviceRGB();
   CGGradientRef gradientRef = CGGradientCreateWithColorComponents(
       cgColorSpace, colors.data(), offsets.data(), rgModel.stop_size());
-  CGRect boundingBox = CGPathGetBoundingBox(cgPath);
+  CGRect boundingBox = CGPathGetBoundingBox(geometryPath);
 
   auto form = rgModel.gradient_transformer_;
   CGAffineTransform gradient_transform = CGAffineTransformMake(
@@ -298,7 +323,7 @@ static void DrawRadialGradient(CGContextRef cgContext,
     startCenter = CGPointMake(minX + fx * maxSize, minY + fy * maxSize);
     endCenter = CGPointMake(minX + cx * maxSize, minY + cy * maxSize);
   }
-  CGContextAddPath(cgContext, cgPath);
+  CGContextAddPath(cgContext, drawPath ? drawPath : geometryPath);
   if (isStroke) {
     CGContextReplacePathWithStrokedPath(cgContext);
   }
@@ -306,6 +331,9 @@ static void DrawRadialGradient(CGContextRef cgContext,
     CGContextEOClip(cgContext);
   } else {
     CGContextClip(cgContext);
+  }
+  if (extraTransform) {
+    CGContextConcatCTM(cgContext, *extraTransform);
   }
   CGContextConcatCTM(cgContext, gradient_transform);
   CGContextTranslateCTM(cgContext, minX, minY);
@@ -684,11 +712,23 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
     }
   }
   if (renderState.stroke && renderState.stroke->type == SERVAL_PAINT_COLOR) {
+    CGPathRef stroke_path = cgPath;
+    CGPathRef transformed_path = nullptr;
+    if (renderState.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+      CGAffineTransform ctm = CGAffineTransformIdentity;
+      if (PrepareNonScalingStrokePath(_context, cgPath, &transformed_path,
+                                      &ctm)) {
+        stroke_path = transformed_path;
+      }
+    }
     UIColor* stroke_color =
         GetUIColorFromI32(renderState.stroke->content.color.color);
     CGContextSetStrokeColorWithColor(_context, stroke_color.CGColor);
-    CGContextAddPath(_context, cgPath);
+    CGContextAddPath(_context, stroke_path);
     CGContextStrokePath(_context);
+    if (transformed_path) {
+      CGPathRelease(transformed_path);
+    }
   } else if (renderState.stroke &&
              renderState.stroke->type == SERVAL_PAINT_IRI) {
     const char* iri = renderState.stroke->content.iri;
@@ -700,17 +740,34 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
       CGContextRestoreGState(_context);
       return;
     }
+    CGPathRef stroke_path = cgPath;
+    CGPathRef transformed_path = nullptr;
+    CGAffineTransform ctm = CGAffineTransformIdentity;
+    const bool use_non_scaling_stroke =
+        renderState.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE &&
+        PrepareNonScalingStrokePath(_context, cgPath, &transformed_path, &ctm);
+    if (use_non_scaling_stroke) {
+      stroke_path = transformed_path;
+    }
     auto it1 = lg_models_.find(iri);
     if (it1 != lg_models_.end()) {
       const canvas::LinearGradientModel& lgModel = it1->second;
-      DrawLinearGradient(_context, lgModel, cgPath, renderState.fill_rule,
-                         true);
+      const bool user_space_gradient =
+          lgModel.obb_type_ != SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
+      DrawLinearGradient(
+          _context, lgModel, use_non_scaling_stroke ? stroke_path : cgPath,
+          renderState.fill_rule, true, nullptr,
+          (use_non_scaling_stroke && user_space_gradient) ? &ctm : nullptr);
     }
     auto it2 = rg_models_.find(iri);
     if (it2 != rg_models_.end()) {
       const canvas::RadialGradientModel& rgModel = it2->second;
-      DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule,
-                         true);
+      DrawRadialGradient(_context, rgModel, cgPath, renderState.fill_rule, true,
+                         use_non_scaling_stroke ? stroke_path : nullptr,
+                         use_non_scaling_stroke ? &ctm : nullptr);
+    }
+    if (transformed_path) {
+      CGPathRelease(transformed_path);
     }
   }
   CGContextRestoreGState(_context);

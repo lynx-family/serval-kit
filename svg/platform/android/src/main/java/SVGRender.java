@@ -34,7 +34,6 @@ import android.text.SpannedString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
-import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 import androidx.core.util.Pair;
@@ -64,7 +63,6 @@ public class SVGRender {
     public void requestBitMap(String url, BitmapRequestCallBack callBack);
   }
 
-  private static final String TAG = "SrSVGRender";
   private static final int SCALE_NONE = 0;
   private static final int SCALE_MEET = 1;
   private static final int SCALE_SLICE = 2;
@@ -99,7 +97,6 @@ public class SVGRender {
   }
 
   public void setViewBox(float x, float y, float width, float height) {
-    Log.i(TAG, "setViewBox: " + x + ", " + y + ", " + width + ", " + height);
   }
 
   public void save() {
@@ -313,12 +310,62 @@ public class SVGRender {
   private void drawPathWithStokeModel(Canvas canvas, Path path,
                                       StrokePaintModel strokePaintModel) {
     if (strokePaintModel != null) {
-      if (strokePaintModel.mType == PAINT_IRI) {
-        drawPathWithPaintRef(canvas, path, strokePaintModel);
-      } else if (strokePaintModel.mType == PAINT_COLOR) {
-        Paint paint = initStrokePaint(strokePaintModel);
-        canvas.drawPath(path, paint);
+      Paint paint = resolveStrokePaint(canvas, path, strokePaintModel);
+      if (paint != null) {
+        if (strokePaintModel.mVectorEffect == 1) {
+          drawNonScalingStroke(canvas, path, paint);
+        } else {
+          canvas.drawPath(path, paint);
+        }
       }
+    }
+  }
+
+  private Paint resolveStrokePaint(@NonNull Canvas canvas, @NonNull Path path,
+                                   @NonNull StrokePaintModel strokePaintModel) {
+    if (strokePaintModel.mType == PAINT_IRI) {
+      Pair<String, GradientModel> pair =
+          mGradientModels.get(strokePaintModel.mIri);
+      if (pair != null && pair.second instanceof LinearGradientModel) {
+        return initLinearGradientPaint(canvas, (LinearGradientModel)pair.second,
+                                       path, strokePaintModel);
+      } else if (pair != null && pair.second instanceof RadialGradientModel) {
+        return initRadialGradientPaint(canvas, (RadialGradientModel)pair.second,
+                                       path, strokePaintModel);
+      }
+      return null;
+    } else if (strokePaintModel.mType == PAINT_COLOR) {
+      return initStrokePaint(strokePaintModel);
+    }
+    return null;
+  }
+
+  private void drawNonScalingStroke(@NonNull Canvas canvas, @NonNull Path path,
+                                    @NonNull Paint paint) {
+    Matrix currentMatrix = canvas.getMatrix();
+    Path transformedPath = new Path();
+    path.transform(currentMatrix, transformedPath);
+
+    Shader shader = paint.getShader();
+    Matrix previousShaderMatrix = null;
+    boolean hadShaderMatrix = false;
+    if (shader != null) {
+      previousShaderMatrix = new Matrix();
+      hadShaderMatrix = shader.getLocalMatrix(previousShaderMatrix);
+      Matrix adjustedShaderMatrix =
+          hadShaderMatrix ? new Matrix(previousShaderMatrix) : new Matrix();
+      adjustedShaderMatrix.postConcat(currentMatrix);
+      shader.setLocalMatrix(adjustedShaderMatrix);
+    }
+
+    canvas.save();
+    canvas.setMatrix(new Matrix());
+    canvas.drawPath(transformedPath, paint);
+    canvas.restore();
+
+    if (shader != null) {
+      shader.setLocalMatrix(hadShaderMatrix ? previousShaderMatrix
+                                            : new Matrix());
     }
   }
 

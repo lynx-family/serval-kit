@@ -47,8 +47,10 @@ class SrSVGShape : public SrSVGNode {
 
  protected:
   SrSVGFillRule fill_rule_{SR_SVG_FILL};
-  SrSVGRenderState render_state_{nullptr, nullptr, 1.f,        1.f,
-                                 1.f,     1.f,     SR_SVG_FILL};
+  SrSVGRenderState render_state_{
+      nullptr,     nullptr, 1.f,
+      1.f,         1.f,     1.f,
+      SR_SVG_FILL, nullptr, SR_SVG_VECTOR_EFFECT_NONE};
 };
 
 }  // namespace element

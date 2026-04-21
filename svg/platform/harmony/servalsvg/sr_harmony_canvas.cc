@@ -16,7 +16,16 @@ namespace serval {
 namespace svg {
 namespace harmony {
 
-static inline void MultiplyTransform(const float (&lhs)[6], const float (&rhs)[6], float (&out)[6]) {
+static inline void MultiplyTransformArray(const float (&lhs)[6], const float (&rhs)[6], float (&out)[6]) {
+    out[0] = lhs[0] * rhs[0] + lhs[2] * rhs[1];
+    out[1] = lhs[1] * rhs[0] + lhs[3] * rhs[1];
+    out[2] = lhs[0] * rhs[2] + lhs[2] * rhs[3];
+    out[3] = lhs[1] * rhs[2] + lhs[3] * rhs[3];
+    out[4] = lhs[0] * rhs[4] + lhs[2] * rhs[5] + lhs[4];
+    out[5] = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
+}
+
+static inline void MultiplyTransformPointer(const float *lhs, const float (&rhs)[6], float (&out)[6]) {
     out[0] = lhs[0] * rhs[0] + lhs[2] * rhs[1];
     out[1] = lhs[1] * rhs[0] + lhs[3] * rhs[1];
     out[2] = lhs[0] * rhs[2] + lhs[2] * rhs[3];
@@ -36,8 +45,14 @@ static inline void ResolveObjectBoundingBoxTransform(const float (&form)[6], flo
     const float bboxToUser[6] = {width, 0.f, 0.f, height, left, top};
     const float userToBbox[6] = {1.f / width, 0.f, 0.f, 1.f / height, -left / width, -top / height};
     float temp[6];
-    MultiplyTransform(bboxToUser, form, temp);
-    MultiplyTransform(temp, userToBbox, out);
+    MultiplyTransformArray(bboxToUser, form, temp);
+    MultiplyTransformArray(temp, userToBbox, out);
+}
+
+static inline void CopyTransformArray(const std::array<float, 6> &src, float (&out)[6]) {
+    for (size_t i = 0; i < src.size(); ++i) {
+        out[i] = src[i];
+    }
 }
 
 SrHarmonyCanvas::SrHarmonyCanvas(OH_Drawing_Canvas *context) {
@@ -50,6 +65,8 @@ void SrHarmonyCanvas::Reset(OH_Drawing_Canvas *context) {
     context_ = context;
     lg_models_.clear();
     rg_models_.clear();
+    current_transform_ = {1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+    transform_stack_.clear();
 }
 
 SrHarmonyCanvas::~SrHarmonyCanvas() {
@@ -69,9 +86,18 @@ SrHarmonyCanvas::~SrHarmonyCanvas() {
 
 canvas::PathFactory *SrHarmonyCanvas::PathFactory() { return path_factory_.get(); }
 
-void SrHarmonyCanvas::Save() { OH_Drawing_CanvasSave(context_); }
+void SrHarmonyCanvas::Save() {
+    OH_Drawing_CanvasSave(context_);
+    transform_stack_.push_back(current_transform_);
+}
 
-void SrHarmonyCanvas::Restore() { OH_Drawing_CanvasRestore(context_); }
+void SrHarmonyCanvas::Restore() {
+    OH_Drawing_CanvasRestore(context_);
+    if (!transform_stack_.empty()) {
+        current_transform_ = transform_stack_.back();
+        transform_stack_.pop_back();
+    }
+}
 
 void SrHarmonyCanvas::DrawLine(const char *, float x1, float y1, float x2, float y2,
                                const SrSVGRenderState &render_state) {
@@ -178,13 +204,27 @@ void SrHarmonyCanvas::UpdateRadialGradient(const char *id, const float (&gradien
     }
 }
 
-void SrHarmonyCanvas::Translate(float x, float y) { OH_Drawing_CanvasTranslate(context_, x, y); }
+void SrHarmonyCanvas::Translate(float x, float y) {
+    OH_Drawing_CanvasTranslate(context_, x, y);
+    float translation[6];
+    float current[6] = {current_transform_[0], current_transform_[1], current_transform_[2],
+                        current_transform_[3], current_transform_[4], current_transform_[5]};
+    float out[6];
+    xform_set_translation(translation, x, y);
+    MultiplyTransformArray(current, translation, out);
+    current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
+}
 
 void SrHarmonyCanvas::Transform(const float (&form)[6]) {
     auto matrix = OH_Drawing_MatrixCreate();
     OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
     OH_Drawing_CanvasConcatMatrix(context_, matrix);
     OH_Drawing_MatrixDestroy(matrix);
+    float current[6] = {current_transform_[0], current_transform_[1], current_transform_[2],
+                        current_transform_[3], current_transform_[4], current_transform_[5]};
+    float out[6];
+    MultiplyTransformArray(current, form, out);
+    current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
 }
 
 void SrHarmonyCanvas::ClipPath(canvas::Path *path, SrSVGFillRule clip_rule) {
@@ -481,10 +521,12 @@ static inline uint32_t MixColorWithOpacity(uint32_t color, float opacity) {
 
 void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const canvas::LinearGradientModel &lg_model,
                                                OH_Drawing_Path *path, const SrSVGRenderState &render_state,
-                                               bool is_stroke) {
+                                               bool is_stroke, OH_Drawing_Path *bounds_path,
+                                               const float *extra_transform) {
     if (!canvas || !path || lg_model.stop_size() == 0) {
         return;
     }
+    OH_Drawing_Path *geometry_path = bounds_path ? bounds_path : path;
     size_t stopSize = lg_model.stops_.size();
     std::vector<float> offsets;
     std::vector<uint32_t> colors;
@@ -508,7 +550,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
     float y2 = lg_model.y2_;
     if (lg_model.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
         auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
-        OH_Drawing_PathGetBounds(path, rect);
+        OH_Drawing_PathGetBounds(geometry_path, rect);
         auto width = OH_Drawing_RectGetWidth(rect);
         auto height = OH_Drawing_RectGetHeight(rect);
         auto left = OH_Drawing_RectGetLeft(rect);
@@ -533,18 +575,26 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
     float resolved_form[6];
     if (lg_model.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
         auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
-        OH_Drawing_PathGetBounds(path, rect);
+        OH_Drawing_PathGetBounds(geometry_path, rect);
         auto width = OH_Drawing_RectGetWidth(rect);
         auto height = OH_Drawing_RectGetHeight(rect);
         auto left = OH_Drawing_RectGetLeft(rect);
         auto top = OH_Drawing_RectGetTop(rect);
         OH_Drawing_RectDestroy(rect);
         ResolveObjectBoundingBoxTransform(form, left, top, width, height, resolved_form);
-        OH_Drawing_MatrixSetMatrix(transform, resolved_form[0], resolved_form[2], resolved_form[4], resolved_form[1],
-                                   resolved_form[3], resolved_form[5], 0.f, 0.f, 1.f);
     } else {
-        OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+        for (size_t i = 0; i < 6; ++i) {
+            resolved_form[i] = form[i];
+        }
     }
+    float combined_form[6];
+    const float *matrix_form = resolved_form;
+    if (extra_transform) {
+        MultiplyTransformPointer(extra_transform, resolved_form, combined_form);
+        matrix_form = combined_form;
+    }
+    OH_Drawing_MatrixSetMatrix(transform, matrix_form[0], matrix_form[2], matrix_form[4], matrix_form[1],
+                               matrix_form[3], matrix_form[5], 0.f, 0.f, 1.f);
 
     if (shader_) {
         OH_Drawing_ShaderEffectDestroy(shader_);
@@ -578,11 +628,13 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
 
 void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const canvas::RadialGradientModel &rg_model,
                                                OH_Drawing_Path *path, const SrSVGRenderState &render_state,
-                                               bool is_stroke) {
+                                               bool is_stroke, OH_Drawing_Path *bounds_path,
+                                               const float *extra_transform) {
     if (!canvas || !path || rg_model.stop_size() == 0) {
         return;
     }
     Save();
+    OH_Drawing_Path *geometry_path = bounds_path ? bounds_path : path;
     size_t stopSize = rg_model.stops_.size();
     std::vector<float> offsets;
     std::vector<uint32_t> colors;
@@ -600,7 +652,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         colors.emplace_back(MixColorWithOpacity(stop.stopColor.color, stop.stopOpacity.value));
     }
     auto rect = OH_Drawing_RectCreate(0, 0, 0, 0);
-    OH_Drawing_PathGetBounds(path, rect);
+    OH_Drawing_PathGetBounds(geometry_path, rect);
     auto width = OH_Drawing_RectGetWidth(rect);
     auto height = OH_Drawing_RectGetHeight(rect);
     auto left = OH_Drawing_RectGetLeft(rect);
@@ -639,11 +691,19 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
     if (rg_model.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
         auto max_size = std::max(width, height);
         ResolveObjectBoundingBoxTransform(form, left, top, max_size, max_size, resolved_form);
-        OH_Drawing_MatrixSetMatrix(transform, resolved_form[0], resolved_form[2], resolved_form[4], resolved_form[1],
-                                   resolved_form[3], resolved_form[5], 0.f, 0.f, 1.f);
     } else {
-        OH_Drawing_MatrixSetMatrix(transform, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+        for (size_t i = 0; i < 6; ++i) {
+            resolved_form[i] = form[i];
+        }
     }
+    float combined_form[6];
+    const float *matrix_form = resolved_form;
+    if (extra_transform) {
+        MultiplyTransformPointer(extra_transform, resolved_form, combined_form);
+        matrix_form = combined_form;
+    }
+    OH_Drawing_MatrixSetMatrix(transform, matrix_form[0], matrix_form[2], matrix_form[4], matrix_form[1],
+                               matrix_form[3], matrix_form[5], 0.f, 0.f, 1.f);
 
     OH_Drawing_MatrixConcat(matrix, matrix, transform);
     shader_ = OH_Drawing_ShaderEffectCreateTwoPointConicalGradient(
@@ -682,12 +742,25 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
         OH_Drawing_PathSetFillType(path, PATH_FILL_TYPE_WINDING);
     }
     if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_COLOR) {
+        OH_Drawing_Path *stroke_path = path;
+        std::unique_ptr<canvas::Path> transformed_path;
+        if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+            float current[6] = {current_transform_[0], current_transform_[1], current_transform_[2],
+                                current_transform_[3], current_transform_[4], current_transform_[5]};
+            float inverse[6];
+            if (element::InvertAffineTransform(current, inverse)) {
+                auto source_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+                transformed_path = source_path->CreateTransformCopy(current);
+                stroke_path = static_cast<PathHarmonyImpl *>(transformed_path.get())->GetPath();
+                Transform(inverse);
+            }
+        }
         OH_Drawing_PenSetColor(pen_, render_state.stroke->content.color.color);
         if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
             OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
         }
         OH_Drawing_CanvasAttachPen(context_, pen_);
-        OH_Drawing_CanvasDrawPath(context_, path);
+        OH_Drawing_CanvasDrawPath(context_, stroke_path);
         OH_Drawing_CanvasDetachPen(context_);
     } else if (render_state.stroke && render_state.stroke->type == SERVAL_PAINT_IRI) {
         const char *iri = render_state.stroke->content.iri;
@@ -702,12 +775,42 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
         auto it1 = lg_models_.find(iri);
         if (it1 != lg_models_.end()) {
             const canvas::LinearGradientModel &lg_model = it1->second;
-            DrawLinearGradientShader(context_, lg_model, path, render_state, true);
+            if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+                float current[6];
+                CopyTransformArray(current_transform_, current);
+                float inverse[6];
+                if (element::InvertAffineTransform(current, inverse)) {
+                    auto source_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+                    auto transformed_path = source_path->CreateTransformCopy(current);
+                    OH_Drawing_Path *stroke_path = static_cast<PathHarmonyImpl *>(transformed_path.get())->GetPath();
+                    Transform(inverse);
+                    DrawLinearGradientShader(context_, lg_model, stroke_path, render_state, true, path, current);
+                } else {
+                    DrawLinearGradientShader(context_, lg_model, path, render_state, true);
+                }
+            } else {
+                DrawLinearGradientShader(context_, lg_model, path, render_state, true);
+            }
         }
         auto it2 = rg_models_.find(iri);
         if (it2 != rg_models_.end()) {
             const canvas::RadialGradientModel &rgModel = it2->second;
-            DrawRadialGradientShader(context_, rgModel, path, render_state, true);
+            if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+                float current[6];
+                CopyTransformArray(current_transform_, current);
+                float inverse[6];
+                if (element::InvertAffineTransform(current, inverse)) {
+                    auto source_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+                    auto transformed_path = source_path->CreateTransformCopy(current);
+                    OH_Drawing_Path *stroke_path = static_cast<PathHarmonyImpl *>(transformed_path.get())->GetPath();
+                    Transform(inverse);
+                    DrawRadialGradientShader(context_, rgModel, stroke_path, render_state, true, path, current);
+                } else {
+                    DrawRadialGradientShader(context_, rgModel, path, render_state, true);
+                }
+            } else {
+                DrawRadialGradientShader(context_, rgModel, path, render_state, true);
+            }
         }
     }
     Restore();
@@ -722,12 +825,19 @@ void SrHarmonyCanvas::SaveLayer(const SrSVGBox *bounds) {
                                      bounds->top + bounds->height);
     }
     OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
+    transform_stack_.push_back(current_transform_);
     if (rect) {
         OH_Drawing_RectDestroy(rect);
     }
 }
 
-void SrHarmonyCanvas::RestoreLayer() { OH_Drawing_CanvasRestore(context_); }
+void SrHarmonyCanvas::RestoreLayer() {
+    OH_Drawing_CanvasRestore(context_);
+    if (!transform_stack_.empty()) {
+        current_transform_ = transform_stack_.back();
+        transform_stack_.pop_back();
+    }
+}
 
 void SrHarmonyCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
     auto prev = blend_mode_;
