@@ -10,6 +10,8 @@
 #include "markdown/platform/android/android_serval_markdown_view.h"
 #include "markdown/view/markdown_selection_view.h"
 
+namespace serval::markdown {
+
 void MarkdownClassCache::Initial(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
   auto* string_class = env->FindClass("java/lang/String");
@@ -247,3 +249,5 @@ void AndroidMainView::UpdateCachedViewRectInScreen() {
 serval::markdown::RectF AndroidMainView::GetViewRectInScreen() {
   return cached_view_rect_in_screen_;
 }
+
+}  // namespace serval::markdown

@@ -15,7 +15,14 @@
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_gesture.h"
+using serval::markdown::AndroidMarkdownView;
+using serval::markdown::AndroidServalMarkdownView;
+using serval::markdown::BufferInputStream;
+using serval::markdown::MarkdownBufferReader;
+using serval::markdown::MarkdownClassCache;
 using serval::markdown::MarkdownDrawable;
+using serval::markdown::MarkdownJavaCanvasHelper;
+using serval::markdown::MarkdownJNIUtils;
 using serval::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_CustomDrawable_measure(JNIEnv* env, jclass clazz,

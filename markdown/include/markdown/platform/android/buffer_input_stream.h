@@ -9,6 +9,8 @@
 #include <memory>
 #include <string>
 
+namespace serval::markdown {
+
 class BufferInputStream {
  public:
   BufferInputStream(const uint8_t* buff, size_t len,
@@ -40,5 +42,7 @@ class BufferInputStream {
   size_t buffer_len_;
   bool little_endian_ = false;
 };
+
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_BUFFER_INPUT_STREAM_H_

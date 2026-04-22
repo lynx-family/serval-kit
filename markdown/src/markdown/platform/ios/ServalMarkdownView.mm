@@ -437,7 +437,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 - (void)setStyle:(NSDictionary*)style {
   auto* view = [self getMarkdownView];
-  auto map = MarkdownValueConvert::ConvertMap(style);
+  auto map = serval::markdown::MarkdownValueConvert::ConvertMap(style);
   view->SetStyle(map->AsMap());
   _style = style;
 }
@@ -536,13 +536,13 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 - (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array {
   auto* view = [self getMarkdownView];
-  auto result = MarkdownValueConvert::ConvertArray(array);
+  auto result = serval::markdown::MarkdownValueConvert::ConvertArray(array);
   view->SetArrayProp(static_cast<serval::markdown::MarkdownProps>(prop),
                      result->AsArray());
 }
 - (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict {
   auto* view = [self getMarkdownView];
-  auto result = MarkdownValueConvert::ConvertMap(dict);
+  auto result = serval::markdown::MarkdownValueConvert::ConvertMap(dict);
   view->SetMapProp(static_cast<serval::markdown::MarkdownProps>(prop),
                    result->AsMap());
 }

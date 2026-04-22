@@ -4,10 +4,11 @@
 
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
 
-std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertObject(
-    NSObject* object) {
+namespace serval::markdown {
+
+std::unique_ptr<Value> MarkdownValueConvert::ConvertObject(NSObject* object) {
   if (object == nil) {
-    return serval::markdown::Value::MakeNull();
+    return Value::MakeNull();
   }
   if ([object isKindOfClass:NSDictionary.class]) {
     return ConvertMap((NSDictionary*)object);
@@ -18,15 +19,15 @@ std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertObject(
   } else if ([object isKindOfClass:NSString.class]) {
     return ConvertString((NSString*)object);
   } else {
-    return serval::markdown::Value::MakeNull();
+    return Value::MakeNull();
   }
 }
 
-std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertMap(
+std::unique_ptr<Value> MarkdownValueConvert::ConvertMap(
     NSDictionary* dictionary) {
-  serval::markdown::ValueMap map;
+  ValueMap map;
   if (dictionary == nil) {
-    return serval::markdown::Value::MakeMap(std::move(map));
+    return Value::MakeMap(std::move(map));
   }
   map.reserve(dictionary.count);
   auto it = dictionary.keyEnumerator;
@@ -36,52 +37,51 @@ std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertMap(
     auto* key_str = [key UTF8String];
     map.emplace(key_str, ConvertObject(value));
   }
-  return serval::markdown::Value::MakeMap(std::move(map));
+  return Value::MakeMap(std::move(map));
 }
 
-std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertArray(
-    NSArray* array) {
-  serval::markdown::ValueArray result;
+std::unique_ptr<Value> MarkdownValueConvert::ConvertArray(NSArray* array) {
+  ValueArray result;
   if (array == nil) {
-    return serval::markdown::Value::MakeArray(std::move(result));
+    return Value::MakeArray(std::move(result));
   }
   result.reserve(array.count);
   for (int i = 0; i < array.count; i++) {
     result.emplace_back(ConvertObject(array[i]));
   }
-  return serval::markdown::Value::MakeArray(std::move(result));
+  return Value::MakeArray(std::move(result));
 }
 
-std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertString(
-    NSString* string) {
+std::unique_ptr<Value> MarkdownValueConvert::ConvertString(NSString* string) {
   auto cstr = [string UTF8String];
-  return serval::markdown::Value::MakeString(std::string(cstr));
+  return Value::MakeString(std::string(cstr));
 }
 
-std::unique_ptr<serval::markdown::Value> MarkdownValueConvert::ConvertNumber(
-    NSNumber* number) {
+std::unique_ptr<Value> MarkdownValueConvert::ConvertNumber(NSNumber* number) {
   CFNumberType type = CFNumberGetType((CFNumberRef)number);
   switch (type) {
     case kCFNumberIntType:
     case kCFNumberSInt16Type:
     case kCFNumberSInt32Type:
     case kCFNumberLongType:
-      return serval::markdown::Value::MakeInt(number.intValue);
+      return Value::MakeInt(number.intValue);
     case kCFNumberLongLongType:
     case kCFNumberSInt64Type:
     case kCFNumberCFIndexType:
     case kCFNumberNSIntegerType:
-      return serval::markdown::Value::MakeLong(number.longLongValue);
+      return Value::MakeLong(number.longLongValue);
     case kCFNumberSInt8Type:
     case kCFNumberCharType:
-      return serval::markdown::Value::MakeBool(number.boolValue);
+      return Value::MakeBool(number.boolValue);
     case kCFNumberFloatType:
     case kCFNumberFloat32Type:
     case kCFNumberFloat64Type:
     case kCFNumberDoubleType:
     case kCFNumberCGFloatType:
-      return serval::markdown::Value::MakeDouble(number.doubleValue);
+      return Value::MakeDouble(number.doubleValue);
     default:
-      return serval::markdown::Value::MakeNull();
+      return Value::MakeNull();
   }
 }
+
+}  // namespace serval::markdown

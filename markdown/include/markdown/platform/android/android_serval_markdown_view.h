@@ -12,16 +12,18 @@
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/view/markdown_view.h"
-class AndroidServalMarkdownView
-    : public AndroidMainView,
-      public serval::markdown::MarkdownResourceLoader,
-      public serval::markdown::MarkdownEventListener,
-      public serval::markdown::MarkdownExposureListener {
+
+namespace serval::markdown {
+
+class AndroidServalMarkdownView : public AndroidMainView,
+                                  public MarkdownResourceLoader,
+                                  public MarkdownEventListener,
+                                  public MarkdownExposureListener {
  public:
   static void Initialize(JNIEnv* env);
   AndroidServalMarkdownView(JNIEnv* env, jobject view);
-  serval::markdown::MarkdownView* GetMarkdownView() {
-    return static_cast<serval::markdown::MarkdownView*>(drawable_.get());
+  MarkdownView* GetMarkdownView() {
+    return static_cast<MarkdownView*>(drawable_.get());
   }
   int LoadImage(const char* source);
   std::shared_ptr<AndroidMarkdownView> LoadInlineView(const char* id);
@@ -34,19 +36,21 @@ class AndroidServalMarkdownView
   void OnImageLoaded(std::string_view url);
 
  public:
-  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadImage(
-      const char* src, float desire_width, float desire_height, float max_width,
-      float max_height, float border_radius) override;
-  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadInlineView(
-      const char* id_selector, float max_width, float max_height) override;
-  void* LoadFont(const char* family,
-                 serval::markdown::MarkdownFontWeight weight) override;
-  std::shared_ptr<serval::markdown::MarkdownDrawable> LoadReplacementView(
+  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
+                                              float desire_width,
+                                              float desire_height,
+                                              float max_width, float max_height,
+                                              float border_radius) override;
+  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
+                                                   float max_width,
+                                                   float max_height) override;
+  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
+  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) override;
 
  public:
   void OnParseEnd() override;
-  void OnTextOverflow(serval::markdown::MarkdownTextOverflow overflow) override;
+  void OnTextOverflow(MarkdownTextOverflow overflow) override;
   void OnDrawStart() override;
   void OnDrawEnd() override;
   void OnAnimationStep(int32_t animation_step,
@@ -54,8 +58,8 @@ class AndroidServalMarkdownView
   void OnLinkClicked(const char* url, const char* content) override;
   void OnImageClicked(const char* url) override;
   void OnSelectionChanged(int32_t start_index, int32_t end_index,
-                          serval::markdown::SelectionHandleType handle,
-                          serval::markdown::SelectionState state) override;
+                          SelectionHandleType handle,
+                          SelectionState state) override;
 
  public:
   void OnLinkAppear(const char* url, const char* content) override;
@@ -64,7 +68,7 @@ class AndroidServalMarkdownView
   void OnImageDisappear(const char* url) override;
 
  protected:
-  serval::markdown::SizeF GetImageSize(int32_t id);
+  SizeF GetImageSize(int32_t id);
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> view_ref_;
 
  protected:
@@ -90,5 +94,7 @@ class AndroidServalMarkdownView
     jmethodID on_image_disappear_{};
   } methods_;
 };
+
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_

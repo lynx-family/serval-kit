@@ -6,6 +6,8 @@
 #include "markdown/draw/markdown_path.h"
 #import "textra/platform/ios/typeface_coretext.h"
 
+namespace serval::markdown {
+
 MarkdownCanvasIOS::MarkdownCanvasIOS(CGContextRef context)
     : IOSCanvasBase(context) {}
 
@@ -43,11 +45,13 @@ void MarkdownCanvasIOS::DrawRunDelegate(const tttext::RunDelegate* run_delegate,
   if (markdown_delegate->GetMarkdownRunDelegateType() ==
       MarkdownRunDelegateType::kView) {
     auto* inline_view_delegate =
-        reinterpret_cast<const MarkdownInlineView*>(markdown_delegate);
+        reinterpret_cast<const MarkdownInlineViewRunDelegate*>(
+            markdown_delegate);
     [inline_view_delegate->GetHandle() setVisibility:true];
   } else if (markdown_delegate->GetMarkdownRunDelegateType() ==
              MarkdownRunDelegateType::kImage) {
-    auto* m_image = reinterpret_cast<const MarkdownImage*>(markdown_delegate);
+    auto* m_image =
+        reinterpret_cast<const MarkdownImageRunDelegate*>(markdown_delegate);
     UIImage* image = m_image->GetImage();
     if (image == nil || image.CGImage == nil || rect.size.width <= 0 ||
         rect.size.height <= 0) {
@@ -208,3 +212,5 @@ CGPathRef MarkdownCanvasIOS::CreatePath(serval::markdown::MarkdownPath* path) {
   AddPath(path, result);
   return result;
 }
+
+}  // namespace serval::markdown

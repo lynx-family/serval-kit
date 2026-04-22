@@ -9,6 +9,8 @@
 #include "base/include/platform/android/jni_convert_helper.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
 
+namespace serval::markdown {
+
 AndroidServalMarkdownView::Methods AndroidServalMarkdownView::methods_{};
 
 void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
@@ -192,34 +194,37 @@ AndroidServalMarkdownView::LoadInlineView(const char* id_selector,
       std::move(view));
 }
 
-int32_t ConvertToAndroidFontWeight(
-    serval::markdown::MarkdownFontWeight weight) {
+namespace {
+
+int32_t ConvertToAndroidFontWeight(MarkdownFontWeight weight) {
   switch (weight) {
-    case serval::markdown::MarkdownFontWeight::kBold:
+    case MarkdownFontWeight::kBold:
       return 700;
-    case serval::markdown::MarkdownFontWeight::k100:
+    case MarkdownFontWeight::k100:
       return 100;
-    case serval::markdown::MarkdownFontWeight::k200:
+    case MarkdownFontWeight::k200:
       return 200;
-    case serval::markdown::MarkdownFontWeight::k300:
+    case MarkdownFontWeight::k300:
       return 300;
-    case serval::markdown::MarkdownFontWeight::k400:
+    case MarkdownFontWeight::k400:
       return 400;
-    case serval::markdown::MarkdownFontWeight::k500:
+    case MarkdownFontWeight::k500:
       return 500;
-    case serval::markdown::MarkdownFontWeight::k600:
+    case MarkdownFontWeight::k600:
       return 600;
-    case serval::markdown::MarkdownFontWeight::k700:
+    case MarkdownFontWeight::k700:
       return 700;
-    case serval::markdown::MarkdownFontWeight::k800:
+    case MarkdownFontWeight::k800:
       return 800;
-    case serval::markdown::MarkdownFontWeight::k900:
+    case MarkdownFontWeight::k900:
       return 900;
-    case serval::markdown::MarkdownFontWeight::kNormal:
+    case MarkdownFontWeight::kNormal:
     default:
       return 400;
   }
 }
+
+}  // namespace
 
 void* AndroidServalMarkdownView::LoadFont(
     const char* family, serval::markdown::MarkdownFontWeight weight) {
@@ -393,3 +398,5 @@ void AndroidServalMarkdownView::OnImageDisappear(const char* url) {
   env->CallVoidMethod(view_ref_.Get(), methods_.on_image_disappear_,
                       j_url.Get());
 }
+
+}  // namespace serval::markdown

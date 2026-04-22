@@ -9,6 +9,8 @@
 #include <memory>
 #include <utility>
 
+namespace serval::markdown {
+
 BufferInputStream::BufferInputStream(const uint8_t* buff, size_t len,
                                      bool little)
     : buffer_(buff), current_(buff), buffer_len_(len), little_endian_(little) {}
@@ -132,3 +134,5 @@ std::unique_ptr<char[]> BufferInputStream::CopyBuffer(int len) {
   assert(current_ - buffer_ <= buffer_len_);
   return ret;
 }
+
+}  // namespace serval::markdown

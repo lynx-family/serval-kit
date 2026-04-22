@@ -6,6 +6,9 @@
 
 #include "markdown/draw/markdown_path.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
+
+namespace serval::markdown {
+
 MarkdownJavaCanvasHelper::MarkdownJavaCanvasHelper() {
   stream_ = &GetBuffer();
 }
@@ -116,3 +119,5 @@ void MarkdownJavaCanvasHelper::WritePath(serval::markdown::MarkdownPath* path) {
     }
   }
 }
+
+}  // namespace serval::markdown
