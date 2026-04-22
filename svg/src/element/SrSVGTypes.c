@@ -1089,9 +1089,9 @@ static bool parse_color_rgb(const char* str, uint32_t* out_color) {
       !parse_float_token(&p, &b, &b_percent) || !consume_closing_paren(&p)) {
     return false;
   }
-  *out_color = NSVG_RGB(clamp_color_byte(r, r_percent),
-                        clamp_color_byte(g, g_percent),
-                        clamp_color_byte(b, b_percent));
+  *out_color =
+      NSVG_RGB(clamp_color_byte(r, r_percent), clamp_color_byte(g, g_percent),
+               clamp_color_byte(b, b_percent));
   return true;
 }
 
@@ -1109,10 +1109,9 @@ static bool parse_color_rgba(const char* str, uint32_t* out_color) {
       !parse_float_token(&p, &a, &a_percent) || !consume_closing_paren(&p)) {
     return false;
   }
-  *out_color = NSVG_RGBA(clamp_color_byte(r, r_percent),
-                         clamp_color_byte(g, g_percent),
-                         clamp_color_byte(b, b_percent),
-                         clamp_alpha_byte(a, a_percent));
+  *out_color =
+      NSVG_RGBA(clamp_color_byte(r, r_percent), clamp_color_byte(g, g_percent),
+                clamp_color_byte(b, b_percent), clamp_alpha_byte(a, a_percent));
   return true;
 }
 
@@ -1164,10 +1163,9 @@ static bool parse_color_display_p3(const char* str, uint32_t* out_color) {
   rs = sr_compand(clamp01(rs));
   gs = sr_compand(clamp01(gs));
   bs = sr_compand(clamp01(bs));
-  *out_color = NSVG_RGBA((uint32_t)lrintf(rs * 255.0f),
-                         (uint32_t)lrintf(gs * 255.0f),
-                         (uint32_t)lrintf(bs * 255.0f),
-                         (uint32_t)lrintf(a * 255.0f));
+  *out_color =
+      NSVG_RGBA((uint32_t)lrintf(rs * 255.0f), (uint32_t)lrintf(gs * 255.0f),
+                (uint32_t)lrintf(bs * 255.0f), (uint32_t)lrintf(a * 255.0f));
   return true;
 }
 

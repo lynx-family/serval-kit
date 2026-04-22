@@ -49,8 +49,8 @@ int registerNativeMethod(JNIEnv* env) {
       "com/lynx/serval/svg/SVGRenderEngine";
   jclass render_engine_class = env->FindClass(render_engine_class_name);
   if (render_engine_class == nullptr) {
-    __android_log_print(ANDROID_LOG_ERROR, "SrSVG",
-                        "Fail to find class: %s", render_engine_class_name);
+    __android_log_print(ANDROID_LOG_ERROR, "SrSVG", "Fail to find class: %s",
+                        render_engine_class_name);
     return JNI_ERR;
   }
   static const JNINativeMethod render_engine_method[] = {
