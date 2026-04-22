@@ -53,9 +53,7 @@ jobs:
 
       - name: Lint Podspec File
         run: |
-          pushd svg
-          POD_VERSION=0.0.1-for-ci-test SERVAL_KIT_VERSION=${{ github.event.pull_request.head.sha }} BUNDLE_GEMFILE=../Gemfile bundle exec pod lib lint ServalSVG.podspec --verbose --skip-import-validation --allow-warnings
-          popd
+          POD_VERSION=0.0.1-for-ci-test SERVAL_KIT_VERSION=${{ github.event.pull_request.head.sha }} bundle exec pod spec lint svg/ServalSVG.podspec --verbose --skip-import-validation --allow-warnings
 
   build-harmony:
     name: Build HarmonyOS
