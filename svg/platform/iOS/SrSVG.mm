@@ -8,6 +8,7 @@
 #include <memory>
 #include <sstream>
 
+#include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/iOS/SrIOSCanvas.h"
 
@@ -26,6 +27,27 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
   NSString* svgString = [[NSString alloc] initWithData:svgDoc
                                               encoding:NSUTF8StringEncoding];
   return SrSVGParseSVGStringDoc(svgDom, svgString);
+}
+
+static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
+                                   NSString* color) {
+  if (!svgDom) {
+    return;
+  }
+  NSString* normalized = nil;
+  if (color.length > 0) {
+    normalized = [color
+        stringByTrimmingCharactersInSet:[NSCharacterSet
+                                            whitespaceAndNewlineCharacterSet]];
+  }
+  if (normalized.length > 0) {
+    uint32_t default_color = 0;
+    if (parse_svg_color(normalized.UTF8String, &default_color)) {
+      svgDom->SetDefaultColor(default_color);
+      return;
+    }
+  }
+  svgDom->ResetDefaultColor();
 }
 
 @implementation SrSVG {
@@ -53,6 +75,16 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
 - (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
                               andSize:(CGSize)size
                           andCallback:(SrSvgImageCallback)imageCb {
+  return [self getSrSvgDrawImageWithData:data
+                                 andSize:size
+                                andColor:nil
+                             andCallback:imageCb];
+}
+
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(NSString*)color
+                          andCallback:(SrSvgImageCallback)imageCb {
   NSString* dataString = [[NSString alloc] initWithData:data
                                                encoding:NSUTF8StringEncoding];
   if (dataString == nil) {
@@ -70,6 +102,7 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
   CGContextScaleCTM(cgContext, 1, -1);
   SrSVGParseSVGStringDoc(_svgDom, dataString);
   if (_svgDom) {
+    SrSVGApplyDefaultColor(_svgDom, color);
     SrIOSCanvas canvas(cgContext, imageCb);
     SrSVGBox viewPort{0.f, 0.f, static_cast<float>(size.width),
                       static_cast<float>(size.height)};

@@ -15,6 +15,10 @@ typedef UIImage* _Nullable (^SrSvgImageCallback)(NSString* _Nullable href);
 - (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
                               andSize:(CGSize)size
                           andCallback:(SrSvgImageCallback)imageCb;
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(nullable NSString*)color
+                          andCallback:(SrSvgImageCallback)imageCb;
 
 @end
 
