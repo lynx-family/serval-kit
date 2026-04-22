@@ -13,13 +13,16 @@
 
 #include "markdown/draw/markdown_canvas.h"
 #include "markdown/utils/markdown_definition.h"
+
+namespace serval::markdown {
+
 enum class MarkdownCanvasOpExtend : int8_t {
   kClipPath,
   kDrawPath,
   kDrawDelegateOnPath,
 };
 class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
-                                 public serval::markdown::MarkdownCanvasExtend {
+                                 public MarkdownCanvasExtend {
   static constexpr int8_t kCanvasOPExtend = -1;
 
  public:
@@ -30,23 +33,21 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
 
-  void ClipPath(serval::markdown::MarkdownPath* path) override;
+  void ClipPath(MarkdownPath* path) override;
 
-  void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
-                        tttext::Painter* painter) override;
+  void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
 
-  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
-                          serval::markdown::MarkdownPath* path,
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
 
  public:
   void WritePaint(tttext::Painter* painter);
-  void WritePath(serval::markdown::MarkdownPath* path);
-  void WritePoint(serval::markdown::PointF point) {
+  void WritePath(MarkdownPath* path);
+  void WritePoint(PointF point) {
     stream_->WriteFloat(point.x_);
     stream_->WriteFloat(point.y_);
   }
-  void WriteRect(serval::markdown::RectF rect) {
+  void WriteRect(RectF rect) {
     stream_->WriteFloat(rect.GetLeft());
     stream_->WriteFloat(rect.GetTop());
     stream_->WriteFloat(rect.GetRight());
@@ -56,5 +57,7 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
  private:
   BufferOutputStream* stream_;
 };
+
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_JAVA_CANVAS_HELPER_H_

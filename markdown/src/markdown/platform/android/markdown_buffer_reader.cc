@@ -6,6 +6,8 @@
 #include <memory>
 #include <utility>
 
+namespace serval::markdown {
+
 std::unique_ptr<serval::markdown::Value> MarkdownBufferReader::ReadValue() {
   auto type = static_cast<serval::markdown::ValueType>(stream_.ReadInt32());
   switch (type) {
@@ -50,3 +52,5 @@ serval::markdown::ValueArray MarkdownBufferReader::ReadArray() {
   }
   return array;
 }
+
+}  // namespace serval::markdown

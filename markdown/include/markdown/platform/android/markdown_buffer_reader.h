@@ -11,17 +11,22 @@
 
 #include "markdown/platform/android/buffer_input_stream.h"
 #include "markdown/utils/markdown_value.h"
+
+namespace serval::markdown {
+
 class MarkdownBufferReader {
  public:
   explicit MarkdownBufferReader(BufferInputStream& stream) : stream_(stream) {}
-  std::unique_ptr<serval::markdown::Value> ReadValue();
+  std::unique_ptr<Value> ReadValue();
 
  protected:
-  serval::markdown::ValueMap ReadMap();
-  serval::markdown::ValueArray ReadArray();
+  ValueMap ReadMap();
+  ValueArray ReadArray();
 
  private:
   BufferInputStream& stream_;
 };
+
+}  // namespace serval::markdown
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_BUFFER_READER_H_

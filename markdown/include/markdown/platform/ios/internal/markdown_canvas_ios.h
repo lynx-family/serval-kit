@@ -12,13 +12,16 @@
 #include "markdown/utils/markdown_definition.h"
 #import "textra/platform/ios/ios_canvas_base.h"
 #import "textra/run_delegate.h"
+
+namespace serval::markdown {
+
 enum class MarkdownRunDelegateType : uint8_t {
   kImage = 0,
   kView,
   kBackground,
 };
 
-class MarkdownRunDelegate : public serval::markdown::MarkdownDrawable {
+class MarkdownRunDelegate : public MarkdownDrawable {
  public:
   MarkdownRunDelegate(float desire_width, float desire_height,
                       MarkdownRunDelegateType type)
@@ -36,8 +39,7 @@ class MarkdownRunDelegate : public serval::markdown::MarkdownDrawable {
   }
 
  protected:
-  serval::markdown::MeasureResult OnMeasure(
-      serval::markdown::MeasureSpec spec) override {
+  MeasureResult OnMeasure(MeasureSpec spec) override {
     const float width = desire_width_;
     const float height = desire_height_;
     const float baseline = desire_height_;
@@ -50,10 +52,11 @@ class MarkdownRunDelegate : public serval::markdown::MarkdownDrawable {
   float desire_height_;
 };
 
-class MarkdownImage : public MarkdownRunDelegate {
+class MarkdownImageRunDelegate : public MarkdownRunDelegate {
  public:
-  MarkdownImage(UIImage* image, float desire_width, float desire_height,
-                float max_width, float max_height, float border_radius)
+  MarkdownImageRunDelegate(UIImage* image, float desire_width,
+                           float desire_height, float max_width,
+                           float max_height, float border_radius)
       : image_(nullptr),
         border_radius_(border_radius > 0 ? border_radius : 0),
         MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kImage) {
@@ -90,7 +93,7 @@ class MarkdownImage : public MarkdownRunDelegate {
                              orientation:UIImageOrientationUp];
     }
   }
-  ~MarkdownImage() override = default;
+  ~MarkdownImageRunDelegate() override = default;
   UIImage* GetImage() const { return image_; }
   float GetBorderRadius() const { return border_radius_; }
 
@@ -99,18 +102,17 @@ class MarkdownImage : public MarkdownRunDelegate {
   float border_radius_;
 };
 
-class MarkdownInlineView : public MarkdownRunDelegate {
+class MarkdownInlineViewRunDelegate : public MarkdownRunDelegate {
  public:
-  MarkdownInlineView(id<IMarkdownPlatformViewHandle> handle)
+  explicit MarkdownInlineViewRunDelegate(id<IMarkdownPlatformViewHandle> handle)
       : MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kView),
         handle_(handle) {}
-  ~MarkdownInlineView() override = default;
+  ~MarkdownInlineViewRunDelegate() override = default;
   void Align(float x, float y) override { [handle_ align:x top:y]; }
   id<IMarkdownPlatformViewHandle> GetHandle() const { return handle_; }
 
  protected:
-  serval::markdown::MeasureResult OnMeasure(
-      serval::markdown::MeasureSpec spec) override {
+  MeasureResult OnMeasure(MeasureSpec spec) override {
     auto result = [handle_
         measureByWidth:spec.width_
              WidthMode:static_cast<ServalMarkdownLayoutMode>(spec.width_mode_)
@@ -128,8 +130,7 @@ class MarkdownInlineView : public MarkdownRunDelegate {
   id<IMarkdownPlatformViewHandle> handle_;
 };
 
-class MarkdownCanvasIOS : public IOSCanvasBase,
-                          public serval::markdown::MarkdownCanvasExtend {
+class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
  public:
   explicit MarkdownCanvasIOS(CGContextRef context);
   ~MarkdownCanvasIOS() override = default;
@@ -143,21 +144,22 @@ class MarkdownCanvasIOS : public IOSCanvasBase,
                        float top, float right, float bottom,
                        tttext::Painter* painter) override;
 
-  void ClipPath(serval::markdown::MarkdownPath* path) override;
-  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
-                          serval::markdown::MarkdownPath* path,
+  void ClipPath(MarkdownPath* path) override;
+  void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
-  void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
-                        tttext::Painter* painter) override;
+  void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
 
  protected:
-  void AddPath(serval::markdown::MarkdownPath* path, CGMutablePathRef result);
-  CGPathRef CreatePath(serval::markdown::MarkdownPath* path);
+  void AddPath(MarkdownPath* path, CGMutablePathRef result);
+  CGPathRef CreatePath(MarkdownPath* path);
 
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter);
 
  private:
-  std::vector<serval::markdown::PointF> translate_stack_;
-  serval::markdown::PointF translate_point_;
+  std::vector<PointF> translate_stack_;
+  PointF translate_point_;
 };
+
+}  // namespace serval::markdown
+
 #endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_

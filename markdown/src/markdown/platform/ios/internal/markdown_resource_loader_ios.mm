@@ -50,8 +50,8 @@ std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadImage(
   if (image == nil) {
     return nullptr;
   }
-  return std::make_shared<MarkdownImage>(image, desire_width, desire_height,
-                                         max_width, max_height, border_radius);
+  return std::make_shared<MarkdownImageRunDelegate>(
+      image, desire_width, desire_height, max_width, max_height, border_radius);
 }
 
 std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadInlineView(
@@ -64,7 +64,7 @@ std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadInlineView(
   if (handle == nil) {
     return nullptr;
   }
-  return std::make_shared<MarkdownInlineView>(handle);
+  return std::make_shared<MarkdownInlineViewRunDelegate>(handle);
 }
 
 void* MarkdownResourceLoaderIOS::LoadFont(const char* family,

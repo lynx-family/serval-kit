@@ -121,7 +121,7 @@ const float kServalMarkdownMaxSize = 1e8;
     return;
   }
   CGContextRef context = UIGraphicsGetCurrentContext();
-  MarkdownCanvasIOS canvas(context);
+  serval::markdown::MarkdownCanvasIOS canvas(context);
   _drawable->Draw(&canvas, 0, 0);
 }
 

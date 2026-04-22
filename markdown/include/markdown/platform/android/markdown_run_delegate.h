@@ -11,7 +11,9 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_platform.h"
 
-class MarkdownRunDelegate final : public serval::markdown::MarkdownDrawable {
+namespace serval::markdown {
+
+class MarkdownRunDelegate final : public MarkdownDrawable {
  public:
   MarkdownRunDelegate(int id, float actual_width, float actual_height,
                       float desire_width, float desire_height, float max_width,
@@ -65,9 +67,11 @@ class MarkdownRunDelegate final : public serval::markdown::MarkdownDrawable {
   float radius_{0};
 
  protected:
-  serval::markdown::MeasureResult OnMeasure(
-      serval::markdown::MeasureSpec spec) override {
+  MeasureResult OnMeasure(MeasureSpec spec) override {
     return {.width_ = width_, .height_ = height_, .baseline_ = height_};
   }
 };
+
+}  // namespace serval::markdown
+
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_RUN_DELEGATE_H_
