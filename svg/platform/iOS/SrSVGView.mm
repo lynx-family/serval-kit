@@ -64,9 +64,9 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
 - (void)setColor:(NSString*)color {
   NSString* normalized = nil;
   if (color.length > 0) {
-    normalized =
-        [color stringByTrimmingCharactersInSet:
-                   [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    normalized = [color
+        stringByTrimmingCharactersInSet:[NSCharacterSet
+                                            whitespaceAndNewlineCharacterSet]];
   }
   if ((_color == nil && normalized == nil) ||
       [_color isEqualToString:normalized]) {

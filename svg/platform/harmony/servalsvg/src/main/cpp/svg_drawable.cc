@@ -88,8 +88,7 @@ napi_value SvgDrawable::Update(napi_env env, napi_callback_info info) {
         }
     }
     const auto &str = SvgDrawable::ConvertToString(env, argv[5]);
-    svg->Update(str, left * scale, top * scale, width * scale, height * scale, anti_alias, has_color,
-                color);
+    svg->Update(str, left * scale, top * scale, width * scale, height * scale, anti_alias, has_color, color);
     return result;
 }
 

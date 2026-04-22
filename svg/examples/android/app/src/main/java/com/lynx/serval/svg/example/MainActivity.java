@@ -124,10 +124,9 @@ public class MainActivity extends AppCompatActivity {
   private void buildCategorizedFiles(List<String> fileList) {
     categorizedFiles.clear();
     categories.clear();
-    for (String category :
-         new String[] {CATEGORY_CORE, CATEGORY_COLOR_PARSING,
-                       CATEGORY_CURRENT_COLOR, CATEGORY_MASK, CATEGORY_PATTERN,
-                       CATEGORY_VECTOR_EFFECT}) {
+    for (String category : new String[] {
+             CATEGORY_CORE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
+             CATEGORY_MASK, CATEGORY_PATTERN, CATEGORY_VECTOR_EFFECT}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
