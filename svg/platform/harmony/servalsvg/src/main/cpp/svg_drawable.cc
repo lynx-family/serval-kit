@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "svg_drawable.h"
+#include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/harmony/sr_harmony_canvas.h"
 
@@ -69,9 +70,9 @@ napi_value SvgDrawable::Update(napi_env env, napi_callback_info info) {
     double width{0};
     double height{0};
     double scale{1};
-    double color{0};
     bool anti_alias{true};
     bool has_color{false};
+    std::string color;
     napi_get_value_double(env, argv[0], &width);
     napi_get_value_double(env, argv[1], &height);
     napi_get_value_double(env, argv[2], &left);
@@ -81,14 +82,14 @@ napi_value SvgDrawable::Update(napi_env env, napi_callback_info info) {
     if (argc > 7) {
         napi_valuetype color_type = napi_undefined;
         napi_typeof(env, argv[7], &color_type);
-        if (color_type == napi_number) {
-            napi_get_value_double(env, argv[7], &color);
+        if (color_type == napi_string) {
+            color = SvgDrawable::ConvertToString(env, argv[7]);
             has_color = true;
         }
     }
     const auto &str = SvgDrawable::ConvertToString(env, argv[5]);
     svg->Update(str, left * scale, top * scale, width * scale, height * scale, anti_alias, has_color,
-                static_cast<uint32_t>(color));
+                color);
     return result;
 }
 
@@ -121,7 +122,12 @@ void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
         }
         sr_canvas_->SetAntiAlias(anti_alias_);
         if (has_color_) {
-            svg_dom_->SetDefaultColor(color_);
+            uint32_t default_color = 0;
+            if (parse_svg_color(color_.c_str(), &default_color)) {
+                svg_dom_->SetDefaultColor(default_color);
+            } else {
+                svg_dom_->ResetDefaultColor();
+            }
         } else {
             svg_dom_->ResetDefaultColor();
         }
@@ -131,7 +137,7 @@ void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
 }
 
 void harmony::SvgDrawable::Update(const std::string &content, float left, float top, float width, float height,
-                                  bool anti_alias, bool has_color, uint32_t color) {
+                                  bool anti_alias, bool has_color, std::string color) {
     svg_dom_ = std::move(parser::SrSVGDOM::make(content.data(), content.size()));
     left_ = left;
     top_ = top;
@@ -139,7 +145,7 @@ void harmony::SvgDrawable::Update(const std::string &content, float left, float 
     height_ = height;
     anti_alias_ = anti_alias;
     has_color_ = has_color;
-    color_ = color;
+    color_ = std::move(color);
 }
 } // namespace harmony
 } // namespace svg

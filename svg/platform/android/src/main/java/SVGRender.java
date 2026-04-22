@@ -34,6 +34,7 @@ import android.text.SpannedString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
@@ -48,6 +49,7 @@ import com.lynx.serval.svg.model.StrokePaintModel;
 import java.util.HashMap;
 
 public class SVGRender {
+  private static final String TAG = "SVGRender";
   private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
       0f, 0f, 0f, 0f, 0f, 0f,      0f,      0f,      0f, 0f,
       0f, 0f, 0f, 0f, 0f, 0.2126f, 0.7152f, 0.0722f, 0f, 0f,
@@ -75,7 +77,7 @@ public class SVGRender {
   private HashMap<String, Pair<String, GradientModel>> mGradientModels;
   private SVGRenderEngine mSVGRenderEngineNG;
   private ResourceManager mResourceProvider;
-  private Long mColor = null;
+  private String mColorString = null;
 
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
@@ -86,11 +88,17 @@ public class SVGRender {
     mResourceProvider = resourceManager;
   }
 
-  public void setColor(@Nullable Long color) { mColor = color; }
+  public void setColor(@Nullable String color) {
+    if (TextUtils.isEmpty(color)) {
+      mColorString = null;
+      return;
+    }
+    mColorString = color.trim();
+  }
 
   @Nullable
-  public Long getColor() {
-    return mColor;
+  public String getColor() {
+    return mColorString;
   }
 
   public Picture renderPicture(String content, Rect viewPort) {
@@ -98,8 +106,12 @@ public class SVGRender {
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
     if (mSVGRenderEngineNG != null) {
-      mSVGRenderEngineNG.render(this, content, viewPort.left, viewPort.top,
-                                viewPort.width(), viewPort.height());
+      int renderResult =
+          mSVGRenderEngineNG.render(this, content, viewPort.left, viewPort.top,
+                                    viewPort.width(), viewPort.height());
+      if (renderResult != 0) {
+        Log.e(TAG, "Failed to render SVG picture.");
+      }
     }
     picture.endRecording();
     return picture;

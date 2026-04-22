@@ -12,6 +12,7 @@ export class SvgDrawable {
     y: number,
     density: number,
     content: string,
-    antiAlias?: boolean
+    antiAlias?: boolean,
+    color?: string
   ): void;
 }

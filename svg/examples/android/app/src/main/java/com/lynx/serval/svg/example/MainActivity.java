@@ -38,11 +38,12 @@ public class MainActivity extends AppCompatActivity {
   private static final String HOST_COLOR_OVERRIDE_FILE =
       "currentcolor-content-color-override.svg";
   private static final String CATEGORY_CORE = "Core";
+  private static final String CATEGORY_COLOR_PARSING = "ColorParsing";
   private static final String CATEGORY_CURRENT_COLOR = "CurrentColor";
   private static final String CATEGORY_MASK = "Mask";
   private static final String CATEGORY_PATTERN = "Pattern";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
-  private static final Long HOST_DEFAULT_COLOR = 0xFF4F6BFFL;
+  private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
   private static final int PREVIEW_WIDTH_DP = 260;
   private static final int PREVIEW_HEIGHT_DP = 195;
   private Spinner categorySpinner;
@@ -124,8 +125,9 @@ public class MainActivity extends AppCompatActivity {
     categorizedFiles.clear();
     categories.clear();
     for (String category :
-         new String[] {CATEGORY_CORE, CATEGORY_CURRENT_COLOR, CATEGORY_MASK,
-                       CATEGORY_PATTERN, CATEGORY_VECTOR_EFFECT}) {
+         new String[] {CATEGORY_CORE, CATEGORY_COLOR_PARSING,
+                       CATEGORY_CURRENT_COLOR, CATEGORY_MASK, CATEGORY_PATTERN,
+                       CATEGORY_VECTOR_EFFECT}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -138,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private String categoryForFile(String fileName) {
+    if (fileName.startsWith("color-parsing-")) {
+      return CATEGORY_COLOR_PARSING;
+    }
     if (fileName.startsWith("currentcolor-")) {
       return CATEGORY_CURRENT_COLOR;
     }

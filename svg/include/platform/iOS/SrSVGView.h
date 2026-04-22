@@ -8,7 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface SrSVGView : UIView
 
-@property(nonatomic, strong, nullable) UIColor* color;
+@property(nonatomic, copy, nullable) NSString* color;
 
 - (instancetype)initWithString:(NSString*)svgDoc;
 - (instancetype)initWithData:(NSData*)data;

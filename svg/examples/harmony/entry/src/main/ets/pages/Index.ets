@@ -18,15 +18,17 @@ struct Index {
   private static readonly CARD_TITLE_COLOR: string = '#FF202124';
   private static readonly PREVIEW_BORDER_COLOR: string = '#FFD9DCE3';
   private static readonly CATEGORY_CORE: string = 'Core';
+  private static readonly CATEGORY_COLOR_PARSING: string = 'ColorParsing';
   private static readonly CATEGORY_CURRENT_COLOR: string = 'CurrentColor';
   private static readonly CATEGORY_MASK: string = 'Mask';
   private static readonly CATEGORY_PATTERN: string = 'Pattern';
   private static readonly CATEGORY_VECTOR_EFFECT: string = 'VectorEffect';
   private static readonly HOST_COLOR_COMPARE_FILE: string = 'currentcolor-host-default-compare.svg';
   private static readonly HOST_COLOR_OVERRIDE_FILE: string = 'currentcolor-content-color-override.svg';
-  private static readonly HOST_DEFAULT_COLOR: number = 0xFF4F6BFF;
+  private static readonly HOST_DEFAULT_COLOR: string = '#4F6BFF';
   private readonly categories: string[] = [
     Index.CATEGORY_CORE,
+    Index.CATEGORY_COLOR_PARSING,
     Index.CATEGORY_CURRENT_COLOR,
     Index.CATEGORY_MASK,
     Index.CATEGORY_PATTERN,
@@ -37,6 +39,15 @@ struct Index {
   @State files: string[] = [
     'basic_shapes.svg',
     'clip_path.svg',
+    'color-parsing-display-p3.svg',
+    'color-parsing-hex-long-alpha.svg',
+    'color-parsing-hex-long.svg',
+    'color-parsing-hex-short-alpha.svg',
+    'color-parsing-hex-short.svg',
+    'color-parsing-invalid-fallback.svg',
+    'color-parsing-named.svg',
+    'color-parsing-rgb.svg',
+    'color-parsing-rgba.svg',
     'currentcolor-content-color-override.svg',
     'currentcolor-host-default-compare.svg',
     'currentcolor-fill-opacity-use.svg',
@@ -79,6 +90,9 @@ struct Index {
   }
 
   private categoryForFile(fileName: string): string {
+    if (fileName.startsWith('color-parsing-')) {
+      return Index.CATEGORY_COLOR_PARSING;
+    }
     if (fileName.startsWith('currentcolor-')) {
       return Index.CATEGORY_CURRENT_COLOR;
     }
