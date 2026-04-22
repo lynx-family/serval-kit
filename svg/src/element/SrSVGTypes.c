@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SR_SVG_INVALID_COLOR_FALLBACK NSVG_RGB(128, 128, 128)
+
 SRSVGNamedColor sr_svg__colors[] = {
     {"red", NSVG_RGB(255, 0, 0)},
     {"green", NSVG_RGB(0, 128, 0)},
@@ -168,10 +170,10 @@ SRSVGNamedColor sr_svg__colors[] = {
 };
 
 static void skip_sep(const char** s);
-static uint32_t parse_color(const char* str);
-static uint32_t parse_color_rgb(const char* str);
-static uint32_t parse_color_rgba(const char* str, float* opacity);
-static uint32_t parse_color_hex(const char* hex, float* opacity);
+static bool parse_color_hex(const char* str, uint32_t* out_color);
+static bool parse_color_rgb(const char* str, uint32_t* out_color);
+static bool parse_color_rgba(const char* str, uint32_t* out_color);
+static bool parse_color_display_p3(const char* str, uint32_t* out_color);
 
 SrSVGUnits make_serval_length_unit(const char* c) {
   if (strcmp(c, "px") == 0) {
@@ -511,7 +513,8 @@ SrSVGColor make_serval_color(const char* value) {
     SrSVGColor color = (SrSVGColor){.type = SERVAL_CURRENT_COLOR, .color = 0};
     return color;
   } else {
-    uint32_t color_int = parse_color(value);
+    uint32_t color_int = SR_SVG_INVALID_COLOR_FALLBACK;
+    parse_svg_color(value, &color_int);
     SrSVGColor color = (SrSVGColor){.type = SERVAL_COLOR, .color = color_int};
     return color;
   }
@@ -968,59 +971,190 @@ static float sr_compand(float c) {
   return 1.055f * powf(c, 1.0f / 2.4f) - 0.055f;
 }
 
-static uint32_t parse_color_display_p3(const char* str) {
-  const char* p = str;
-  if (strncmp(p, "color(", 6) != 0)
-    return 0;
-  p += 6;
-  while (*p && isspace(*p))
-    p++;
-  if (strncmp(p, "display-p3", 10) != 0)
-    return 0;
-  p += 10;
-  while (*p && isspace(*p))
-    p++;
-  float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
+static void skip_spaces_only(const char** s) {
+  if (!*s) {
+    return;
+  }
+  while (**s && isspace(**s)) {
+    (*s)++;
+  }
+}
+
+static bool consume_required_separator(const char** s) {
+  const char* start = *s;
+  skip_sep(s);
+  return *s != start;
+}
+
+static bool parse_float_token(const char** s, float* out, bool* is_percent) {
   char* endp = NULL;
-  r = strtof(p, &endp);
-  p = endp ? endp : p;
-  if (*p == '%') {
-    r = r / 100.0f;
-    p++;
+  float value = strtof(*s, &endp);
+  if (endp == *s) {
+    return false;
   }
-  while (*p && isspace(*p))
-    p++;
-  g = strtof(p, &endp);
-  p = endp ? endp : p;
-  if (*p == '%') {
-    g = g / 100.0f;
-    p++;
+  *s = endp;
+  *is_percent = false;
+  if (**s == '%') {
+    *is_percent = true;
+    (*s)++;
   }
-  while (*p && isspace(*p))
-    p++;
-  b = strtof(p, &endp);
-  p = endp ? endp : p;
-  if (*p == '%') {
-    b = b / 100.0f;
-    p++;
+  *out = value;
+  return true;
+}
+
+static bool consume_closing_paren(const char** s) {
+  skip_spaces_only(s);
+  if (**s != ')') {
+    return false;
   }
-  while (*p && isspace(*p))
-    p++;
-  if (*p == '/') {
-    p++;
-    while (*p && isspace(*p))
-      p++;
-    a = strtof(p, &endp);
-    p = endp ? endp : p;
-    if (*p == '%') {
-      a = a / 100.0f;
-      p++;
+  (*s)++;
+  skip_spaces_only(s);
+  return **s == '\0';
+}
+
+static uint32_t clamp_color_byte(float value, bool is_percent) {
+  if (is_percent) {
+    value = value * 255.0f / 100.0f;
+  }
+  if (value < 0.0f) {
+    value = 0.0f;
+  }
+  if (value > 255.0f) {
+    value = 255.0f;
+  }
+  return (uint32_t)lrintf(value);
+}
+
+static uint32_t clamp_alpha_byte(float value, bool is_percent) {
+  if (is_percent) {
+    value = value / 100.0f;
+  }
+  value = clamp01(value);
+  return (uint32_t)lrintf(value * 255.0f);
+}
+
+static bool parse_color_hex(const char* str, uint32_t* out_color) {
+  size_t len = 0;
+  while (str[len] && !isspace(str[len])) {
+    len++;
+  }
+  if (!(len == 4 || len == 5 || len == 7 || len == 9) || str[0] != '#') {
+    return false;
+  }
+  for (size_t i = 1; i < len; ++i) {
+    if (!isxdigit(str[i])) {
+      return false;
     }
   }
-  r = clamp01(r);
-  g = clamp01(g);
-  b = clamp01(b);
-  a = clamp01(a);
+  const char* tail = str + len;
+  skip_spaces_only(&tail);
+  if (*tail != '\0') {
+    return false;
+  }
+  uint32_t colors[4] = {0, [3] = 0xff};
+  char need_repeat = len < 7;
+  uint32_t num_iteration = need_repeat ? (len - 1) : (len - 1) / 2;
+  static int lookup_table[103] = {
+      -1, ['0'] = 0, 1,  2,  3,  4,  5,          6,  7,  8,  9,  ['A'] = 10,
+      11, 12,        13, 14, 15, -1, ['a'] = 10, 11, 12, 13, 14, 15};
+  char* c_pos = (char*)(str + 1);
+  for (uint32_t i = 0; i < num_iteration; i++) {
+    char c = *c_pos++;
+    int value = lookup_table[(int)c];
+    if (value == -1) {
+      return false;
+    }
+    colors[i] = (colors[i] << 4) | value;
+    if (!need_repeat) {
+      c = *c_pos++;
+      value = lookup_table[(int)c];
+      if (value == -1) {
+        return false;
+      }
+    }
+    colors[i] = (colors[i] << 4) | value;
+  }
+  *out_color = NSVG_RGBA(colors[0], colors[1], colors[2], colors[3]);
+  return true;
+}
+
+static bool parse_color_rgb(const char* str, uint32_t* out_color) {
+  const char* p = str + 4;
+  float r = 0.0f, g = 0.0f, b = 0.0f;
+  bool r_percent = false, g_percent = false, b_percent = false;
+  if (!parse_float_token(&p, &r, &r_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &g, &g_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &b, &b_percent) || !consume_closing_paren(&p)) {
+    return false;
+  }
+  *out_color = NSVG_RGB(clamp_color_byte(r, r_percent),
+                        clamp_color_byte(g, g_percent),
+                        clamp_color_byte(b, b_percent));
+  return true;
+}
+
+static bool parse_color_rgba(const char* str, uint32_t* out_color) {
+  const char* p = str + 5;
+  float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
+  bool r_percent = false, g_percent = false, b_percent = false;
+  bool a_percent = false;
+  if (!parse_float_token(&p, &r, &r_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &g, &g_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &b, &b_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &a, &a_percent) || !consume_closing_paren(&p)) {
+    return false;
+  }
+  *out_color = NSVG_RGBA(clamp_color_byte(r, r_percent),
+                         clamp_color_byte(g, g_percent),
+                         clamp_color_byte(b, b_percent),
+                         clamp_alpha_byte(a, a_percent));
+  return true;
+}
+
+static bool parse_color_display_p3(const char* str, uint32_t* out_color) {
+  const char* p = str;
+  if (strncmp(p, "color(", 6) != 0) {
+    return false;
+  }
+  p += 6;
+  skip_spaces_only(&p);
+  if (strncmp(p, "display-p3", 10) != 0) {
+    return false;
+  }
+  p += 10;
+  if (!consume_required_separator(&p)) {
+    return false;
+  }
+  float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
+  bool r_percent = false, g_percent = false, b_percent = false;
+  bool a_percent = false;
+  if (!parse_float_token(&p, &r, &r_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &g, &g_percent) ||
+      !consume_required_separator(&p) ||
+      !parse_float_token(&p, &b, &b_percent)) {
+    return false;
+  }
+  skip_spaces_only(&p);
+  if (*p == '/') {
+    p++;
+    skip_spaces_only(&p);
+    if (!parse_float_token(&p, &a, &a_percent)) {
+      return false;
+    }
+  }
+  if (!consume_closing_paren(&p)) {
+    return false;
+  }
+  r = clamp01(r_percent ? r / 100.0f : r);
+  g = clamp01(g_percent ? g / 100.0f : g);
+  b = clamp01(b_percent ? b / 100.0f : b);
+  a = clamp01(a_percent ? a / 100.0f : a);
   float rl = sr_linearize(r);
   float gl = sr_linearize(g);
   float bl = sr_linearize(b);
@@ -1030,137 +1164,53 @@ static uint32_t parse_color_display_p3(const char* str) {
   rs = sr_compand(clamp01(rs));
   gs = sr_compand(clamp01(gs));
   bs = sr_compand(clamp01(bs));
-  uint32_t R = (uint32_t)lrintf(rs * 255.0f);
-  uint32_t G = (uint32_t)lrintf(gs * 255.0f);
-  uint32_t B = (uint32_t)lrintf(bs * 255.0f);
-  uint32_t A = (uint32_t)lrintf(a * 255.0f);
-  if (R > 255)
-    R = 255;
-  if (G > 255)
-    G = 255;
-  if (B > 255)
-    B = 255;
-  if (A > 255)
-    A = 255;
-  return NSVG_RGBA(R, G, B, A);
+  *out_color = NSVG_RGBA((uint32_t)lrintf(rs * 255.0f),
+                         (uint32_t)lrintf(gs * 255.0f),
+                         (uint32_t)lrintf(bs * 255.0f),
+                         (uint32_t)lrintf(a * 255.0f));
+  return true;
 }
 
-static uint32_t parse_color(const char* str) {
-  uint32_t color = 0;
-  const char* hex = str;
-  skip_sep(&hex);
-  size_t len = strlen(hex);
-  if (len >= 1 && hex[0] == '#') {
-    return parse_color_hex(hex, NULL);
-  } else if (len >= 4 && hex[0] == 'r' && hex[1] == 'g' && hex[2] == 'b' &&
-             hex[3] == '(') {
-    return parse_color_rgb(hex);
-  } else if (len >= 5 && hex[0] == 'r' && hex[1] == 'g' && hex[2] == 'b' &&
-             hex[3] == 'a' && hex[4] == '(') {
-    return parse_color_rgba(hex, NULL);
-  } else if (len >= 6 && strncmp(hex, "color(", 6) == 0) {
-    uint32_t c = parse_color_display_p3(hex);
-    if (c != 0)
-      return c;
-  } else if (len >= 1) {
-    int i, colors = sizeof(sr_svg__colors) / sizeof(SRSVGNamedColor);
-    for (i = 0; i < colors; i++) {
-      if (strcmp(sr_svg__colors[i].name, hex) == 0) {
-        return sr_svg__colors[i].color;
-      }
+bool parse_svg_color(const char* str, uint32_t* out_color) {
+  if (str == NULL || out_color == NULL) {
+    return false;
+  }
+  const char* value = str;
+  skip_sep(&value);
+  if (*value == '\0') {
+    return false;
+  }
+  if (value[0] == '#') {
+    if (parse_color_hex(value, out_color)) {
+      return true;
     }
-    return NSVG_RGB(128, 128, 128);
-  } else {
-    return 0;
-  }
-  return color;
-}
-
-static uint32_t parse_color_rgb(const char* str) {
-  int r = -1, g = -1, b = -1;
-  char s1[32] = "", s2[32] = "";
-  sscanf(str + 4, "%d%[%%, \t]%d%[%%, \t]%d", &r, s1, &g, s2, &b);
-  if (strchr(s1, '%')) {
-    return NSVG_RGB((r * 255) / 100, (g * 255) / 100, (b * 255) / 100);
-  } else {
-    return NSVG_RGB(r, g, b);
-  }
-}
-
-static uint32_t parse_color_rgba(const char* str, float* opacity) {
-  int r = -1, g = -1, b = -1;
-  float a = 1.0;
-  char s1[32] = "", s2[32] = "", s3[32] = "";
-  sscanf(str + 5, "%d%[%%, \t]%d%[%%, \t]%d%[%%, \t]%f", &r, s1, &g, s2, &b, s3,
-         &a);
-  if (opacity) {
-    *opacity = a;
-  }
-  if (strchr(s1, '%')) {
-    return NSVG_RGBA((r * 255) / 100, (g * 255) / 100, (b * 255) / 100, a);
-  } else {
-    return NSVG_RGBA(r, g, b, (a * 255));
-  }
-}
-
-static uint32_t parse_color_hex(const char* hex, float* opacity) {
-  uint32_t len = 0;
-
-  // calculate the length of hex number, stop by whitespace.
-  while (hex[len] && !isspace(hex[len])) {
-    len++;
-  }
-
-  // Lookup table for hex number to decimal.
-  // The ASCII of 'f' is 102
-  static int lookupTable[103] = {
-      -1, ['0'] = 0, 1,  2,  3,  4,  5,          6,  7,  8,  9,  ['A'] = 10,
-      11, 12,        13, 14, 15, -1, ['a'] = 10, 11, 12, 13, 14, 15};
-
-  if (len < 3 || len > 9 || hex[0] != '#') {
-    // If the length is invalid or the hex string does not start with '#',
-    // return a transparent color.
-    return 0;
-  }
-  uint32_t color = 0;
-
-  char* cPos = (char*)(hex + 1);
-  uint32_t colors[4] = {0, [3] = 0xff};  // number for r,g,b,a
-
-  // when we got only 3 or 4 hex digit, we need to repeat it for each channel.
-  char needRepeat = len < 7;
-
-  // Mapping hex length to color channels.
-  uint32_t numIteration = needRepeat ? (len - 1) : (len - 1) / 2;
-
-  if (len == 4 || len == 5 || len == 7 || len == 9) {
-    for (uint32_t i = 0; i < numIteration; i++) {
-      char c = *cPos++;
-      int value = lookupTable[(int)c];
-      if (value == -1) {
-        return 0;
-      }
-      // set value to color. When this is alpha channel, the
-      // initial 0xff value will be shift out when compose to
-      // a uint32_t value.
-      colors[i] = (colors[i] << 4) | value;
-      if (!needRepeat) {
-        c = *cPos++;
-        value = lookupTable[(int)c];  // repeat the value of color
-      }
-      colors[i] = (colors[i] << 4) | value;
+  } else if (strncmp(value, "rgb(", 4) == 0) {
+    if (parse_color_rgb(value, out_color)) {
+      return true;
     }
-  } else {
-    // If the length does not match any valid cases, return 0 (transparent
-    // color).
-    return 0;
+  } else if (strncmp(value, "rgba(", 5) == 0) {
+    if (parse_color_rgba(value, out_color)) {
+      return true;
+    }
+  } else if (strncmp(value, "color(", 6) == 0) {
+    if (parse_color_display_p3(value, out_color)) {
+      return true;
+    }
   }
-  color = NSVG_RGBA(colors[0], colors[1], colors[2], colors[3]);
-  if (opacity != NULL) {
-    *opacity = colors[3] / 255.0f;
+  size_t value_len = strlen(value);
+  while (value_len > 0 && isspace(value[value_len - 1])) {
+    value_len--;
   }
-  // Return the final color value.
-  return color;
+  int colors = sizeof(sr_svg__colors) / sizeof(SRSVGNamedColor);
+  for (int i = 0; i < colors; i++) {
+    size_t name_len = strlen(sr_svg__colors[i].name);
+    if (name_len == value_len &&
+        strncmp(sr_svg__colors[i].name, value, value_len) == 0) {
+      *out_color = sr_svg__colors[i].color;
+      return true;
+    }
+  }
+  return false;
 }
 
 SrSVGStrokeCap resolve_stroke_line_cap(const char* value) {

@@ -15,6 +15,21 @@
       {
         "name": "release"
       }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/bytedance/.ohos/config/default_harmony_u4_N9QBFjz4jHRR_WLurVQ5Zci99Uezu7p39dMTNdBM=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B72A19494B056306EB4DCDD59CF5D77178F05B231982669AE4E33DB20B916A35E561580CBB84622",
+          "profile": "/Users/bytedance/.ohos/config/default_harmony_u4_N9QBFjz4jHRR_WLurVQ5Zci99Uezu7p39dMTNdBM=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/bytedance/.ohos/config/default_harmony_u4_N9QBFjz4jHRR_WLurVQ5Zci99Uezu7p39dMTNdBM=.p12",
+          "storePassword": "0000001B85390BC2B47EFE9B7A67B8C426331AAE60FCAD6880ABF31AB0371733759CDBB2EB65C559ACF97D"
+        }
+      }
     ]
   },
   "modules": [

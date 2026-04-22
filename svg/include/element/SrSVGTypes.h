@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include "stdint.h"
 #include "stdlib.h"
 #include "string.h"
@@ -84,6 +85,8 @@ typedef struct SrTextStyle {
 typedef struct SrParagraphStyle {
   SrTextAnchor text_anchor;
 } SrParagraphStyle;
+
+bool parse_svg_color(const char* str, uint32_t* out_color);
 
 typedef struct SrSVGRenderContext {
   float width;

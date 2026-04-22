@@ -7,7 +7,7 @@ import { SvgData } from './SvgTypes';
 export struct SvgView {
   @Prop @Watch('watchSvgSrc') src: string = '';
   @Prop @Watch('watchSvgData') svgData: SvgData = new SvgData();
-  @Prop @Watch('watchColor') color?: number;
+  @Prop @Watch('watchColor') color?: string;
   private svgNodeController?: SvgRenderNodeController;
 
   build() {
@@ -73,7 +73,7 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
-  update(data?: SvgData, parentColor?: number) {
+  update(data?: SvgData, parentColor?: string) {
     if (data) {
       this.data = data;
       this.native.update(data.width, data.height, data.x, data.y, data.density,
@@ -87,14 +87,14 @@ export class SvgRenderNode extends FrameNode {
 export class SvgRenderNodeController extends NodeController {
   private rootNode: SvgRenderNode | null = null;
   private data?: SvgData;
-  private color?: number;
+  private color?: string;
   private needUpdateData = false;
 
   constructor() {
     super();
   }
 
-  updateData(data?: SvgData, color?: number) {
+  updateData(data?: SvgData, color?: string) {
     this.data = data;
     this.color = color;
     if (this.rootNode) {

@@ -8,12 +8,11 @@
 #include <memory>
 #include <sstream>
 
+#include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/iOS/SrIOSCanvas.h"
-#include "platform/iOS/SrIOSColorUtils.h"
 
 using serval::svg::ios::SrIOSCanvas;
-using serval::svg::ios::SrIOSColorUtils;
 using serval::svg::parser::SrSVGDOM;
 
 static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svgDom,
@@ -43,9 +42,13 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
                       static_cast<float>(rect.origin.y),
                       static_cast<float>(rect.size.width),
                       static_cast<float>(rect.size.height)};
-    uint32_t default_color = 0;
-    if (SrIOSColorUtils::UIColorToARGB(self.color, &default_color)) {
-      _svgDom->SetDefaultColor(default_color);
+    if (self.color.length > 0) {
+      uint32_t default_color = 0;
+      if (parse_svg_color(self.color.UTF8String, &default_color)) {
+        _svgDom->SetDefaultColor(default_color);
+      } else {
+        _svgDom->ResetDefaultColor();
+      }
     } else {
       _svgDom->ResetDefaultColor();
     }
@@ -58,11 +61,19 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
   [self setNeedsDisplay];
 }
 
-- (void)setColor:(UIColor*)color {
-  if (_color != color) {
-    _color = color;
-    [self setNeedsDisplay];
+- (void)setColor:(NSString*)color {
+  NSString* normalized = nil;
+  if (color.length > 0) {
+    normalized =
+        [color stringByTrimmingCharactersInSet:
+                   [NSCharacterSet whitespaceAndNewlineCharacterSet]];
   }
+  if ((_color == nil && normalized == nil) ||
+      [_color isEqualToString:normalized]) {
+    return;
+  }
+  _color = [normalized copy];
+  [self setNeedsDisplay];
 }
 
 - (instancetype)initWithData:(NSData*)data {

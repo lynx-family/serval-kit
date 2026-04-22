@@ -5,7 +5,6 @@
 package com.lynx.serval.svg;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Path;
 import android.os.Build;
@@ -93,7 +92,7 @@ public class SVGRenderEngine {
   }
 
   native int render(SVGRender svgRender, String content, float left, float top,
-                    float width, float height, @Nullable Long color);
+                    float width, float height, @Nullable String color);
 
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,

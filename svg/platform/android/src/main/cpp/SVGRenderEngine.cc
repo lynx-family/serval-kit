@@ -5,6 +5,7 @@
 #include <android/log.h>
 #include <jni.h>
 
+#include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/android/SrAndroidCanvas.h"
 
@@ -16,13 +17,17 @@ using serval::svg::parser::SrSVGDOM;
 int registerNativeMethod(JNIEnv* env);
 jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
             jfloat left, jfloat top, jfloat width, jfloat height,
-            jobject j_color);
+            jstring j_color);
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,
                                       jfloat vp_left, jfloat vp_top,
                                       jfloat vp_width, jfloat vp_height,
                                       jfloat vb_left, jfloat vb_top,
                                       jfloat vb_width, jfloat vb_height,
                                       jint align_x, jint align_y, jint scale);
+std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str);
+jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
+                  std::unique_ptr<SrSVGDOM> svg_dom, jfloat left, jfloat top,
+                  jfloat width, jfloat height);
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   InitVM(vm);
@@ -45,14 +50,14 @@ int registerNativeMethod(JNIEnv* env) {
   jclass render_engine_class = env->FindClass(render_engine_class_name);
   if (render_engine_class == nullptr) {
     __android_log_print(ANDROID_LOG_ERROR, "SrSVG",
-                        "Fail to find class: ", render_engine_class_name);
+                        "Fail to find class: %s", render_engine_class_name);
     return JNI_ERR;
   }
   static const JNINativeMethod render_engine_method[] = {
       {
           .name = "render",
           .signature = "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/"
-                       "String;FFFFLjava/lang/Long;)I",
+                       "String;FFFFLjava/lang/String;)I",
           .fnPtr = reinterpret_cast<void*>(render),
       },
       {
@@ -71,38 +76,59 @@ int registerNativeMethod(JNIEnv* env) {
 
 jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
             jfloat left, jfloat top, jfloat width, jfloat height,
-            jobject j_color) {
-  if (!j_str || !j_engine || !j_render) {
-    return JNI_ERR;
-  }
-  int length = env->GetStringLength(j_str);
-  if (length <= 0) {
-    return JNI_ERR;
-  }
-  const char* str = env->GetStringUTFChars(j_str, JNI_FALSE);
-  if (!str) {
-    return JNI_ERR;
-  }
-  auto svg_dom = SrSVGDOM::make(str, length);
-  env->ReleaseStringUTFChars(j_str, str);
+            jstring j_color) {
+  auto svg_dom = CreateSVGDom(env, j_str);
   if (!svg_dom) {
-    // TODO(dingwang.wxx) add error log
     return JNI_ERR;
   }
   if (j_color != nullptr) {
-    jclass long_class = env->FindClass("java/lang/Long");
-    jmethodID long_value =
-        long_class == nullptr
-            ? nullptr
-            : env->GetMethodID(long_class, "longValue", "()J");
-    if (long_value != nullptr) {
-      jlong color = env->CallLongMethod(j_color, long_value);
-      svg_dom->SetDefaultColor(static_cast<uint32_t>(color));
+    const char* color_str = env->GetStringUTFChars(j_color, JNI_FALSE);
+    if (color_str != nullptr) {
+      uint32_t default_color = 0;
+      if (parse_svg_color(color_str, &default_color)) {
+        svg_dom->SetDefaultColor(default_color);
+      } else {
+        svg_dom->ResetDefaultColor();
+      }
+      env->ReleaseStringUTFChars(j_color, color_str);
     } else {
       svg_dom->ResetDefaultColor();
     }
   } else {
     svg_dom->ResetDefaultColor();
+  }
+  return RenderSvgDom(env, j_engine, j_render, std::move(svg_dom), left, top,
+                      width, height);
+}
+
+std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str) {
+  if (!j_str) {
+    return nullptr;
+  }
+  const char* str = env->GetStringUTFChars(j_str, JNI_FALSE);
+  if (!str) {
+    return nullptr;
+  }
+  jsize utf8_length = env->GetStringUTFLength(j_str);
+  if (utf8_length <= 0) {
+    env->ReleaseStringUTFChars(j_str, str);
+    return nullptr;
+  }
+  auto svg_dom = SrSVGDOM::make(str, static_cast<size_t>(utf8_length));
+  env->ReleaseStringUTFChars(j_str, str);
+  if (!svg_dom) {
+    __android_log_print(ANDROID_LOG_ERROR, "SrSVG",
+                        "Fail to build SVG DOM from input content.");
+    return nullptr;
+  }
+  return svg_dom;
+}
+
+jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
+                  std::unique_ptr<SrSVGDOM> svg_dom, jfloat left, jfloat top,
+                  jfloat width, jfloat height) {
+  if (!j_engine || !j_render || !svg_dom) {
+    return JNI_ERR;
   }
   SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
   SrSVGBox view_port{left, top, width, height};

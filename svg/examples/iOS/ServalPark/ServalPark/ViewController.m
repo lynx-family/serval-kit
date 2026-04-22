@@ -22,7 +22,9 @@ static NSString* const kHostColorCompareFile =
     @"currentcolor-host-default-compare.svg";
 static NSString* const kHostColorOverrideFile =
     @"currentcolor-content-color-override.svg";
+static NSString* const kHostDefaultColor = @"#4F6BFF";
 static NSString* const kCategoryCore = @"Core";
+static NSString* const kCategoryColorParsing = @"ColorParsing";
 static NSString* const kCategoryCurrentColor = @"CurrentColor";
 static NSString* const kCategoryMask = @"Mask";
 static NSString* const kCategoryPattern = @"Pattern";
@@ -30,12 +32,15 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
 
 - (NSArray<NSString*>*)orderedCategories {
   return @[
-    kCategoryCore, kCategoryCurrentColor, kCategoryMask, kCategoryPattern,
-    kCategoryVectorEffect
+    kCategoryCore, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
+    kCategoryPattern, kCategoryVectorEffect
   ];
 }
 
 - (NSString*)categoryForFile:(NSString*)fileName {
+  if ([fileName hasPrefix:@"color-parsing-"]) {
+    return kCategoryColorParsing;
+  }
   if ([fileName hasPrefix:@"currentcolor-"]) {
     return kCategoryCurrentColor;
   }
@@ -185,13 +190,10 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
       contentWidth, MAX(yOffset, self.scrollView.bounds.size.height));
 }
 
-- (UIColor*)hostColorForFile:(NSString*)fileName {
+- (NSString*)hostColorForFile:(NSString*)fileName {
   if ([fileName isEqualToString:kHostColorCompareFile] ||
       [fileName isEqualToString:kHostColorOverrideFile]) {
-    return [UIColor colorWithRed:79.0 / 255.0
-                           green:107.0 / 255.0
-                            blue:1.0
-                           alpha:1.0];
+    return kHostDefaultColor;
   }
   return nil;
 }
