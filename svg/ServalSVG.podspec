@@ -20,18 +20,20 @@ Pod::Spec.new do |s|
 #   s.platform         = :ios, '12.0'
   s.ios.deployment_target = "9.0"
 
-  s.public_header_files = "include/platform/iOS/SrSVG.h",
-                          "include/platform/iOS/SrSVGView.h"
+  s.public_header_files = "svg/include/platform/iOS/SrSVG.h",
+                          "svg/include/platform/iOS/SrSVGView.h"
 
-  s.source_files = "include/element/**/*.h",
-                   "include/parser/**/*.h",
-                   "include/canvas/**/*.h",
-                   "include/platform/iOS/**/*.h",
-                   "include/utils/**/*.h",
-                   "src/element/**/*.{c,cc,cpp}",
-                   "src/parser/**/*.{c,cc,cpp}",
-                   "src/utils/**/*.{c,cc,cpp}",
-                   "platform/iOS/**/*.{mm,m,cc,cpp,c}"
+  s.source_files = "svg/include/element/**/*.h",
+                   "svg/include/parser/**/*.h",
+                   "svg/include/canvas/**/*.h",
+                   "svg/include/platform/iOS/**/*.h",
+                   "svg/include/utils/**/*.h",
+                   "svg/src/element/**/*.{c,cc,cpp}",
+                   "svg/src/parser/**/*.{c,cc,cpp}",
+                   "svg/src/utils/**/*.{c,cc,cpp}",
+                   "svg/platform/iOS/**/*.{mm,m,cc,cpp,c}"
+
+  # s.header_dir = "servalsvg"
 
   # s.exclude_files = "src/canvas/android/*.h",
   #                   "src/canvas/android/*.cc",
@@ -53,7 +55,7 @@ Pod::Spec.new do |s|
     'CLANG_CXX_LIBRARY' => 'libc++',
     'CLANG_ENABLE_MODULES' => 'YES',
     'CLANG_ENABLE_OBJC_ARC' => 'YES',
-    'HEADER_SEARCH_PATHS' => '$(inherited) "$(PODS_TARGET_SRCROOT)/include"',
+    'HEADER_SEARCH_PATHS' => '$(inherited) "$(PODS_TARGET_SRCROOT)/svg/include"',
     'GCC_C_LANGUAGE_STANDARD' => 'c11'
   }
 
