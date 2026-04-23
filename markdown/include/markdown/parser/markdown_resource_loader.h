@@ -21,11 +21,6 @@ class MarkdownResourceLoader {
   virtual std::shared_ptr<MarkdownDrawable> LoadInlineView(
       const char* id_selector, float max_width, float max_height) = 0;
   virtual void* LoadFont(const char* family, MarkdownFontWeight weight) = 0;
-  virtual std::shared_ptr<MarkdownDrawable> LoadGradient(const char* gradient,
-                                                         float font_size,
-                                                         float root_font_size) {
-    return nullptr;
-  }
   virtual std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) = 0;
 };

@@ -31,22 +31,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": 0.0,
-              "top": 30.0,
-              "right": 289.0,
-              "bottom": 60.0
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 144.5,
+            "y": 60.0
+          },
+          "end": {
+            "x": 144.5,
+            "y": 30.0
+          },
+          "colors": [
+            4279565823,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": 0.0,
+          "top": 30.0,
+          "right": 289.0,
+          "bottom": 60.0
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "glyphs",

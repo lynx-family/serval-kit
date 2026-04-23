@@ -14,6 +14,7 @@
 #include "markdown/parser/embed/markdown_inline_node.h"
 #include "markdown/parser/embed/markdown_inline_parser.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
@@ -1222,7 +1223,6 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
     const MarkdownBlockStylePart& block, const MarkdownBorderStylePart& border,
     MarkdownBackgroundStylePart* background, tttext::Paragraph* para,
     uint32_t char_offset, uint32_t char_offset_end) {
-  auto* loader = document->GetResourceLoader();
   float right_empty =
       block.margin_right_ + block.padding_right_ + border.border_width_;
   if (right_empty != 0) {
@@ -1245,11 +1245,12 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
         OperatorType::kAdd,
         std::make_unique<MarkdownLengthValue>(block.padding_right_,
                                               StyleValuePattern::kPx));
-    if (background != nullptr && !background->background_image_.empty() &&
-        loader != nullptr) {
-      attachment->rect_.gradient_ = loader->LoadGradient(
-          background->background_image_.c_str(), base.font_size_,
-          document->GetStyle().normal_text_.base_.font_size_);
+    if (background != nullptr && !background->background_image_.empty()) {
+      attachment->rect_.gradient_ = ParseBackgroundDrawableValue(
+          background->background_image_, document->GetResourceLoader(),
+          {.font_size_ = base.font_size_,
+           .root_font_size_ =
+               document->GetStyle().normal_text_.base_.font_size_});
     }
     if (attachment->rect_.gradient_ == nullptr) {
       attachment->rect_.color_ = base.background_color_;

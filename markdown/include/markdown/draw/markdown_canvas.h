@@ -13,6 +13,12 @@
 namespace serval::markdown {
 class MarkdownDrawable;
 class MarkdownPath;
+struct MarkdownLinearGradient {
+  PointF start;
+  PointF end;
+  std::vector<uint32_t> colors;
+  std::vector<float> stops;
+};
 class MarkdownCanvasExtend {
  public:
   virtual ~MarkdownCanvasExtend() = default;
@@ -22,6 +28,12 @@ class MarkdownCanvasExtend {
                                   tttext::Painter* painter) = 0;
   virtual void DrawMarkdownPath(MarkdownPath* path,
                                 tttext::Painter* painter) = 0;
+  virtual void DrawLinearGradientOnRect(MarkdownLinearGradient* gradient,
+                                        RectF rect,
+                                        tttext::Painter* painter) = 0;
+  virtual void DrawLinearGradientOnPath(MarkdownLinearGradient* gradient,
+                                        MarkdownPath* path,
+                                        tttext::Painter* painter) = 0;
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_CANVAS_H_

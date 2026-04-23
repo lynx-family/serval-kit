@@ -74,8 +74,8 @@ class MarkdownView final : public MarkdownDrawable {
 
   void SetNumberProp(MarkdownProps prop, double value);
   void SetStringProp(MarkdownProps prop, std::string_view value);
-  void SetArrayProp(MarkdownProps prop, const ValueArray& array);
-  void SetMapProp(MarkdownProps prop, const ValueMap& map);
+  void SetArrayProp(MarkdownProps prop, ValueArray& array);
+  void SetMapProp(MarkdownProps prop, ValueMap& map);
 
   std::string GetSelectedText() const;
   std::string GetContent() const;
@@ -132,6 +132,7 @@ class MarkdownView final : public MarkdownDrawable {
   void UpdateTransitionHeight() const;
   void UpdateDrawEventsByAnimation();
   void UpdateExposure();
+  void UpdateTextAttachments();
   void PublishRendererBundle();
   void ConsumeRendererBundleIfNeeded();
 

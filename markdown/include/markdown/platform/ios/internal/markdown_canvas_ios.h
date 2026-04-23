@@ -147,7 +147,14 @@ class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
   void ClipPath(MarkdownPath* path) override;
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
-  void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
+  void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
+                        tttext::Painter* painter) override;
+  void DrawLinearGradientOnRect(
+      serval::markdown::MarkdownLinearGradient* gradient,
+      serval::markdown::RectF rect, tttext::Painter* painter) override;
+  void DrawLinearGradientOnPath(
+      serval::markdown::MarkdownLinearGradient* gradient,
+      serval::markdown::MarkdownPath* path, tttext::Painter* painter) override;
 
  protected:
   void AddPath(MarkdownPath* path, CGMutablePathRef result);

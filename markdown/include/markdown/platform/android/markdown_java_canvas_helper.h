@@ -20,6 +20,8 @@ enum class MarkdownCanvasOpExtend : int8_t {
   kClipPath,
   kDrawPath,
   kDrawDelegateOnPath,
+  kDrawLinearGradientOnRect,
+  kDrawLinearGradientOnPath,
 };
 class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
                                  public MarkdownCanvasExtend {
@@ -40,10 +42,19 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
 
+  void DrawLinearGradientOnRect(
+      serval::markdown::MarkdownLinearGradient* gradient,
+      serval::markdown::RectF rect, tttext::Painter* painter) override;
+
+  void DrawLinearGradientOnPath(
+      serval::markdown::MarkdownLinearGradient* gradient,
+      serval::markdown::MarkdownPath* path, tttext::Painter* painter) override;
+
  public:
   void WritePaint(tttext::Painter* painter);
-  void WritePath(MarkdownPath* path);
-  void WritePoint(PointF point) {
+  void WritePath(serval::markdown::MarkdownPath* path);
+  void WriteGradient(serval::markdown::MarkdownLinearGradient* gradient);
+  void WritePoint(serval::markdown::PointF point) {
     stream_->WriteFloat(point.x_);
     stream_->WriteFloat(point.y_);
   }

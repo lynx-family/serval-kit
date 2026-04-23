@@ -7,6 +7,110 @@
 #import "textra/platform/ios/typeface_coretext.h"
 
 namespace serval::markdown {
+namespace {
+
+bool HasFill(tttext::Painter* painter) {
+  return painter == nullptr ||
+         painter->GetFillColor() != tttext::TTColor::UNDEFINED;
+}
+
+bool HasStroke(tttext::Painter* painter) {
+  return painter != nullptr &&
+         painter->GetStrokeColor() != tttext::TTColor::UNDEFINED &&
+         painter->GetStrokeWidth() > 0;
+}
+
+std::vector<CGFloat> MakeGradientComponents(
+    const serval::markdown::MarkdownLinearGradient* gradient) {
+  std::vector<CGFloat> components;
+  if (gradient == nullptr) {
+    return components;
+  }
+  components.reserve(gradient->colors.size() * 4);
+  for (const auto color_value : gradient->colors) {
+    const tttext::TTColor color(color_value);
+    components.emplace_back(color.GetRedRatio());
+    components.emplace_back(color.GetGreenRatio());
+    components.emplace_back(color.GetBlueRatio());
+    components.emplace_back(color.GetAlphaRatio());
+  }
+  return components;
+}
+
+std::vector<CGFloat> MakeGradientLocations(
+    const serval::markdown::MarkdownLinearGradient* gradient) {
+  std::vector<CGFloat> locations;
+  if (gradient == nullptr ||
+      gradient->stops.size() != gradient->colors.size()) {
+    return locations;
+  }
+  locations.reserve(gradient->stops.size());
+  for (const auto stop : gradient->stops) {
+    locations.emplace_back(static_cast<CGFloat>(stop));
+  }
+  return locations;
+}
+
+CGGradientRef CreateGradient(
+    const serval::markdown::MarkdownLinearGradient* gradient) {
+  if (gradient == nullptr || gradient->colors.size() < 2) {
+    return nullptr;
+  }
+  const auto components = MakeGradientComponents(gradient);
+  const auto locations = MakeGradientLocations(gradient);
+  CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+  CGGradientRef result = CGGradientCreateWithColorComponents(
+      color_space, components.data(),
+      locations.empty() ? nullptr : locations.data(), gradient->colors.size());
+  CGColorSpaceRelease(color_space);
+  return result;
+}
+
+CGPathRef CreateGradientClipPath(CGPathRef path, tttext::Painter* painter) {
+  if (path == nullptr) {
+    return nullptr;
+  }
+  if (!HasStroke(painter)) {
+    return CGPathCreateCopy(path);
+  }
+  CGPathRef stroke_path =
+      CGPathCreateCopyByStrokingPath(path, nullptr, painter->GetStrokeWidth(),
+                                     kCGLineCapButt, kCGLineJoinMiter, 0);
+  if (!HasFill(painter)) {
+    return stroke_path;
+  }
+  CGMutablePathRef result = CGPathCreateMutable();
+  CGPathAddPath(result, nullptr, path);
+  if (stroke_path != nullptr) {
+    CGPathAddPath(result, nullptr, stroke_path);
+    CGPathRelease(stroke_path);
+  }
+  return result;
+}
+
+void DrawLinearGradient(CGContextRef context,
+                        serval::markdown::MarkdownLinearGradient* gradient,
+                        CGPathRef clip_path) {
+  if (context == nullptr || clip_path == nullptr) {
+    return;
+  }
+  CGGradientRef cg_gradient = CreateGradient(gradient);
+  if (cg_gradient == nullptr) {
+    return;
+  }
+  CGContextSaveGState(context);
+  CGContextAddPath(context, clip_path);
+  CGContextClip(context);
+  const CGPoint start = CGPointMake(gradient->start.x_, gradient->start.y_);
+  const CGPoint end = CGPointMake(gradient->end.x_, gradient->end.y_);
+  CGContextDrawLinearGradient(
+      context, cg_gradient, start, end,
+      kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
+  CGContextRestoreGState(context);
+  CGGradientRelease(cg_gradient);
+}
+
+}  // namespace
 
 MarkdownCanvasIOS::MarkdownCanvasIOS(CGContextRef context)
     : IOSCanvasBase(context) {}
@@ -111,6 +215,62 @@ void MarkdownCanvasIOS::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
                   painter);
   CGContextRestoreGState(context_);
   CGPathRelease(p);
+}
+
+void MarkdownCanvasIOS::DrawLinearGradientOnRect(
+    serval::markdown::MarkdownLinearGradient* gradient,
+    serval::markdown::RectF rect, tttext::Painter* painter) {
+  if (context_ == nullptr || gradient == nullptr) {
+    return;
+  }
+  CGGradientRef cg_gradient = CreateGradient(gradient);
+  if (cg_gradient == nullptr) {
+    return;
+  }
+
+  const CGRect cg_rect = CGRectMake(rect.GetLeft(), rect.GetTop(),
+                                    rect.GetWidth(), rect.GetHeight());
+  const CGPoint start = CGPointMake(gradient->start.x_, gradient->start.y_);
+  const CGPoint end = CGPointMake(gradient->end.x_, gradient->end.y_);
+  const bool has_fill = HasFill(painter);
+  const bool has_stroke = HasStroke(painter);
+
+  CGContextSaveGState(context_);
+  if (has_fill && has_stroke) {
+    const CGFloat inset = static_cast<CGFloat>(painter->GetStrokeWidth() / 2.f);
+    CGContextClipToRect(context_, CGRectInset(cg_rect, -inset, -inset));
+  } else if (has_fill) {
+    CGContextClipToRect(context_, cg_rect);
+  } else if (has_stroke) {
+    CGContextSetLineWidth(context_, painter->GetStrokeWidth());
+    CGContextAddRect(context_, cg_rect);
+    CGContextReplacePathWithStrokedPath(context_);
+    CGContextClip(context_);
+  } else {
+    CGContextRestoreGState(context_);
+    CGGradientRelease(cg_gradient);
+    return;
+  }
+  CGContextDrawLinearGradient(
+      context_, cg_gradient, start, end,
+      kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
+  CGContextRestoreGState(context_);
+  CGGradientRelease(cg_gradient);
+}
+
+void MarkdownCanvasIOS::DrawLinearGradientOnPath(
+    serval::markdown::MarkdownLinearGradient* gradient,
+    serval::markdown::MarkdownPath* path, tttext::Painter* painter) {
+  if (context_ == nullptr || gradient == nullptr || path == nullptr) {
+    return;
+  }
+  CGPathRef cg_path = CreatePath(path);
+  CGPathRef clip_path = CreateGradientClipPath(cg_path, painter);
+  DrawLinearGradient(context_, gradient, clip_path);
+  if (clip_path != nullptr) {
+    CGPathRelease(clip_path);
+  }
+  CGPathRelease(cg_path);
 }
 
 void MarkdownCanvasIOS::AddPath(serval::markdown::MarkdownPath* path,

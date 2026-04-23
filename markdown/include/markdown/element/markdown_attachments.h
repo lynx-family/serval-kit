@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "markdown/element/markdown_drawable.h"
+#include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
@@ -20,7 +21,7 @@ class MarkdownAttachmentLineStyle {
  public:
   MarkdownLineType line_type_{MarkdownLineType::kNone};
   uint32_t color_{0};
-  std::shared_ptr<MarkdownDrawable> gradient_{nullptr};
+  std::shared_ptr<MarkdownBackgroundDrawable> gradient_{nullptr};
   std::unique_ptr<MarkdownStyleValue> width_{nullptr};
   std::unique_ptr<MarkdownStyleValue> element_size_{nullptr};
   std::unique_ptr<MarkdownStyleValue> empty_size_{nullptr};
@@ -34,7 +35,7 @@ class MarkdownAttachmentRectStyle {
   std::unique_ptr<MarkdownStyleValue> bottom_{nullptr};
   std::unique_ptr<MarkdownStyleValue> radius_{nullptr};
   uint32_t color_{0};
-  std::shared_ptr<MarkdownDrawable> gradient_{nullptr};
+  std::shared_ptr<MarkdownBackgroundDrawable> gradient_{nullptr};
   std::unique_ptr<MarkdownStyleValue> stroke_width_{nullptr};
   uint32_t stroke_color_{0};
 };

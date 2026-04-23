@@ -29,7 +29,7 @@ tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
 }
 MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
     tttext::ICanvasHelper* canvas) {
-  return nullptr;
+  return static_cast<MarkdownJavaCanvasHelper*>(canvas);
 }
 
 void MarkdownPlatform::RunOnUIThread(std::function<void()> task,

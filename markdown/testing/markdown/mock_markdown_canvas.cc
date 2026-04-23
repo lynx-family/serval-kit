@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 #include "testing/markdown/mock_markdown_canvas.h"
-
+#include <utility>
 #include "base/include/string/string_utils.h"
 #include "markdown/draw/markdown_path.h"
 #include "markdown/element/markdown_document.h"
@@ -71,6 +71,33 @@ rapidjson::Value MockMarkdownCanvas::MakeFont(uint32_t id) {
   auto& allocator = result_.GetAllocator();
   rapidjson::Value value;
   value.SetString(resource_loader_->family_cache_[id], allocator);
+  return value;
+}
+
+rapidjson::Value MockMarkdownCanvas::MakeGradient(
+    MarkdownLinearGradient* gradient) {
+  auto& allocator = result_.GetAllocator();
+  rapidjson::Value value;
+  value.SetObject();
+  if (gradient == nullptr) {
+    return value;
+  }
+  value.AddMember("start", MakePoint(gradient->start.x_, gradient->start.y_),
+                  allocator);
+  value.AddMember("end", MakePoint(gradient->end.x_, gradient->end.y_),
+                  allocator);
+  rapidjson::Value colors;
+  colors.SetArray();
+  for (const auto color : gradient->colors) {
+    colors.PushBack(color, allocator);
+  }
+  value.AddMember("colors", std::move(colors), allocator);
+  rapidjson::Value stops;
+  stops.SetArray();
+  for (const auto stop : gradient->stops) {
+    stops.PushBack(stop, allocator);
+  }
+  value.AddMember("stops", std::move(stops), allocator);
   return value;
 }
 
@@ -231,7 +258,7 @@ void MockMarkdownCanvas::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
                                             MarkdownPath* path,
                                             tttext::Painter* painter) {
   ClipPath(path);
-  const auto* delegate = dynamic_cast<const MockDelegate*>(run_delegate);
+  const auto* delegate = static_cast<const MockDelegate*>(run_delegate);
   if (delegate != nullptr && delegate->type_ == MockDelegateType::kGradient) {
     const auto* gradient = static_cast<const MockGradient*>(delegate);
     rapidjson::Value op;
@@ -252,6 +279,32 @@ void MockMarkdownCanvas::DrawMarkdownPath(MarkdownPath* path,
   op.AddMember("op", "draw path", result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
   op.AddMember("path", MakePath(path), result_.GetAllocator());
+  result_.PushBack(op, result_.GetAllocator());
+}
+
+void MockMarkdownCanvas::DrawLinearGradientOnRect(
+    MarkdownLinearGradient* gradient, RectF rect, tttext::Painter* painter) {
+  rapidjson::Value op;
+  op.SetObject();
+  op.AddMember("op", "gradient rect", result_.GetAllocator());
+  op.AddMember("gradient", MakeGradient(gradient), result_.GetAllocator());
+  op.AddMember("rect",
+               MakeRect(rect.GetLeft(), rect.GetTop(), rect.GetRight(),
+                        rect.GetBottom()),
+               result_.GetAllocator());
+  op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
+  result_.PushBack(op, result_.GetAllocator());
+}
+
+void MockMarkdownCanvas::DrawLinearGradientOnPath(
+    MarkdownLinearGradient* gradient, MarkdownPath* path,
+    tttext::Painter* painter) {
+  rapidjson::Value op;
+  op.SetObject();
+  op.AddMember("op", "gradient path", result_.GetAllocator());
+  op.AddMember("gradient", MakeGradient(gradient), result_.GetAllocator());
+  op.AddMember("path", MakePath(path), result_.GetAllocator());
+  op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
   result_.PushBack(op, result_.GetAllocator());
 }
 

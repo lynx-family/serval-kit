@@ -35,10 +35,6 @@ class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
 
   void* LoadFont(const char* family, MarkdownFontWeight weight) override;
 
-  std::shared_ptr<MarkdownDrawable> LoadGradient(const char* gradient,
-                                                 float font_size,
-                                                 float root_font_size) override;
-
   std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) override;
 

@@ -8,6 +8,8 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 
+class MarkdownPath;
+
 struct MeasureSpec {
   static constexpr float LAYOUT_MAX_SIZE = 1e5;
   float width_{LAYOUT_MAX_SIZE};
@@ -38,6 +40,21 @@ class MarkdownDrawable : public tttext::RunDelegate {
  protected:
   virtual MeasureResult OnMeasure(MeasureSpec spec) = 0;
   mutable MeasureResult measure_result_{};
+};
+
+class MarkdownBackgroundDrawable : public MarkdownDrawable {
+ public:
+  ~MarkdownBackgroundDrawable() override = default;
+
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) final {
+    DrawOnRect(canvas, RectF::MakeLTWH(x, y, measure_result_.width_,
+                                       measure_result_.height_));
+  }
+
+  virtual void DrawOnRect(tttext::ICanvasHelper* canvas, RectF rect,
+                          tttext::Painter* painter = nullptr) = 0;
+  virtual void DrawOnPath(tttext::ICanvasHelper* canvas, MarkdownPath* path,
+                          RectF bounds, tttext::Painter* painter) = 0;
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_

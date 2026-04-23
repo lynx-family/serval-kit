@@ -82,6 +82,11 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
   void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
+  void DrawLinearGradientOnRect(MarkdownLinearGradient* gradient, RectF rect,
+                                tttext::Painter* painter) override;
+  void DrawLinearGradientOnPath(MarkdownLinearGradient* gradient,
+                                MarkdownPath* path,
+                                tttext::Painter* painter) override;
 
   std::string GetResult() const;
   const rapidjson::Document& GetJson() const { return result_; }
@@ -92,6 +97,7 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
   rapidjson::Value MakePoint(float x, float y);
   rapidjson::Value MakePoints(float* x, float* y, uint32_t count);
   rapidjson::Value MakePainter(tttext::Painter* painter);
+  rapidjson::Value MakeGradient(MarkdownLinearGradient* gradient);
   rapidjson::Value MakeFont(uint32_t id);
   rapidjson::Value MakePath(MarkdownPath* path);
 

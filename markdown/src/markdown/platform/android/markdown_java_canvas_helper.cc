@@ -53,6 +53,34 @@ void MarkdownJavaCanvasHelper::DrawDelegateOnPath(
   WritePaint(painter);
 }
 
+void MarkdownJavaCanvasHelper::DrawLinearGradientOnRect(
+    serval::markdown::MarkdownLinearGradient* gradient,
+    serval::markdown::RectF rect, tttext::Painter* painter) {
+  if (gradient == nullptr || painter == nullptr) {
+    return;
+  }
+  stream_->WriteInt8(kCanvasOPExtend);
+  stream_->WriteInt8(
+      static_cast<int8_t>(MarkdownCanvasOpExtend::kDrawLinearGradientOnRect));
+  WriteGradient(gradient);
+  WriteRect(rect);
+  WritePaint(painter);
+}
+
+void MarkdownJavaCanvasHelper::DrawLinearGradientOnPath(
+    serval::markdown::MarkdownLinearGradient* gradient,
+    serval::markdown::MarkdownPath* path, tttext::Painter* painter) {
+  if (gradient == nullptr || path == nullptr || painter == nullptr) {
+    return;
+  }
+  stream_->WriteInt8(kCanvasOPExtend);
+  stream_->WriteInt8(
+      static_cast<int8_t>(MarkdownCanvasOpExtend::kDrawLinearGradientOnPath));
+  WriteGradient(gradient);
+  WritePath(path);
+  WritePaint(painter);
+}
+
 void MarkdownJavaCanvasHelper::WritePaint(tttext::Painter* painter) {
   stream_->WriteFloat(painter->GetStrokeWidth());
   stream_->WriteInt32(painter->GetFillColor());
@@ -69,6 +97,20 @@ void MarkdownJavaCanvasHelper::WritePaint(tttext::Painter* painter) {
     flag = flag | (1 << 4);
   }
   stream_->WriteInt8(flag);
+}
+
+void MarkdownJavaCanvasHelper::WriteGradient(
+    serval::markdown::MarkdownLinearGradient* gradient) {
+  WritePoint(gradient->start);
+  WritePoint(gradient->end);
+  stream_->WriteInt32(static_cast<int32_t>(gradient->colors.size()));
+  for (const auto color : gradient->colors) {
+    stream_->WriteInt32(static_cast<int32_t>(color));
+  }
+  stream_->WriteInt32(static_cast<int32_t>(gradient->stops.size()));
+  for (const auto stop : gradient->stops) {
+    stream_->WriteFloat(stop);
+  }
 }
 
 void MarkdownJavaCanvasHelper::WritePath(serval::markdown::MarkdownPath* path) {

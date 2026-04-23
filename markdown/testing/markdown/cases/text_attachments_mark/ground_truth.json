@@ -22,6 +22,59 @@
         }
       },
       {
+        "op": "clip",
+        "rect": {
+          "left": 0.0,
+          "top": 0.0,
+          "right": 1000000.0,
+          "bottom": 1000000.0
+        }
+      },
+      {
+        "op": "gradient path",
+        "gradient": {
+          "start": {
+            "x": 87.0,
+            "y": 1.5
+          },
+          "end": {
+            "x": 88.0,
+            "y": 1.5
+          },
+          "colors": [
+            4279565823,
+            4293189119
+          ],
+          "stops": [
+            0.0,
+            1.0
+          ]
+        },
+        "path": [
+          {
+            "type": "round rect",
+            "rect": {
+              "left": 87.0,
+              "top": 1.0,
+              "right": 87.0,
+              "bottom": 1.0
+            },
+            "radius": {
+              "x": 4.0,
+              "y": 4.0
+            }
+          }
+        ],
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
+      },
+      {
         "op": "glyphs",
         "text": "Text attachments",
         "font": "",
