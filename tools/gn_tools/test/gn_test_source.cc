@@ -12,6 +12,6 @@ GNTest::GNTest() {}
 
 GNTest::~GNTest() {}
 
-}  // namespace test
-}  // namespace gn
-}  // namespace lynx
+} // namespace test
+} // namespace gn
+} // namespace lynx

@@ -38,16 +38,18 @@ bool SrSVGFeGaussianBlur::ParseAndSetAttribute(const char* name,
     char it[64];
     float args[2];
     int count = 0;
-    
+
     while (*ptr && count < 2) {
       // skip delimiters
-      while (*ptr && (isspace(*ptr) || *ptr == ',')) ptr++;
-      if (!*ptr) break;
-      
+      while (*ptr && (isspace(*ptr) || *ptr == ','))
+        ptr++;
+      if (!*ptr)
+        break;
+
       ptr = SrSVGNode::ParseNumber(ptr, it, 64);
       args[count++] = SrSVGNode::Atof(it);
     }
-    
+
     if (count == 1) {
       std_deviation_x_ = args[0];
       std_deviation_y_ = args[0];
@@ -82,9 +84,11 @@ bool SrSVGFeColorMatrix::ParseAndSetAttribute(const char* name,
     char it[64];
     while (*ptr) {
       // skip delimiters
-      while (*ptr && (isspace(*ptr) || *ptr == ',')) ptr++;
-      if (!*ptr) break;
-      
+      while (*ptr && (isspace(*ptr) || *ptr == ','))
+        ptr++;
+      if (!*ptr)
+        break;
+
       ptr = SrSVGNode::ParseNumber(ptr, it, 64);
       values_.push_back(Atof(it));
     }
@@ -127,7 +131,8 @@ bool SrSVGFeBlend::ParseAndSetAttribute(const char* name, const char* value) {
 
 bool SrSVGFeFlood::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "flood-color") == 0) {
-    if (flood_color_) release_serval_paint(flood_color_);
+    if (flood_color_)
+      release_serval_paint(flood_color_);
     flood_color_ = make_serval_paint(value);
   } else if (strcmp(name, "flood-opacity") == 0) {
     flood_opacity_ = Atof(value);
@@ -138,7 +143,8 @@ bool SrSVGFeFlood::ParseAndSetAttribute(const char* name, const char* value) {
 }
 
 SrSVGFeFlood::~SrSVGFeFlood() {
-  if (flood_color_) release_serval_paint(flood_color_);
+  if (flood_color_)
+    release_serval_paint(flood_color_);
 }
 
 }  // namespace element

@@ -23,8 +23,7 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class ExampleInstrumentedTest {
   private static final List<String> MASK_EXAMPLE_FILES = Arrays.asList(
-      "mask-comprehensive-test.svg",
-      "mask-luminance-gradient-test.svg",
+      "mask-comprehensive-test.svg", "mask-luminance-gradient-test.svg",
       "mask-alpha-units-test.svg");
 
   @Test
@@ -44,9 +43,8 @@ public class ExampleInstrumentedTest {
     assertTrue("svg assets directory should be available", svgFiles != null);
     List<String> packagedFiles = Arrays.asList(svgFiles);
     for (String fileName : MASK_EXAMPLE_FILES) {
-      assertTrue(
-          fileName + " should be packaged into assets/svg",
-          packagedFiles.contains(fileName));
+      assertTrue(fileName + " should be packaged into assets/svg",
+                 packagedFiles.contains(fileName));
     }
   }
 }

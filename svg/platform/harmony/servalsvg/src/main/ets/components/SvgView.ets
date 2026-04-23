@@ -73,6 +73,8 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
+  update(data?: SvgData): void;
+  update(data?: SvgData, parentColor?: string): void;
   update(data?: SvgData, parentColor?: string) {
     if (data) {
       this.data = data;
@@ -94,6 +96,8 @@ export class SvgRenderNodeController extends NodeController {
     super();
   }
 
+  updateData(data?: SvgData): void;
+  updateData(data?: SvgData, color?: string): void;
   updateData(data?: SvgData, color?: string) {
     this.data = data;
     this.color = color;
