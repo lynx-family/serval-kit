@@ -9,12 +9,13 @@
 #include <vector>
 
 #include "markdown/style/markdown_style.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_value.h"
 namespace serval::markdown {
 class MarkdownResourceLoader;
 class MarkdownTextAttachment;
 class MarkdownDocument;
-class MarkdownStyleReader {
+class L_EXPORT MarkdownStyleReader {
  public:
   static MarkdownStyle ReadStyle(const ValueMap& map,
                                  MarkdownResourceLoader* loader);

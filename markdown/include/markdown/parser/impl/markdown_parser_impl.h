@@ -5,10 +5,11 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_H_
 #include <string>
+#include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {
 class MarkdownDocument;
 class MarkdownDomNode;
-class MarkdownParserImpl {
+class L_EXPORT MarkdownParserImpl {
  public:
   static void ParseMarkdown(const std::string& parser_name,
                             MarkdownDocument* document, void* ud = nullptr);

@@ -28,6 +28,12 @@ add_library(
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_java_canvas_helper.cc
 )
 
+target_compile_options(serval_markdown PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+)
+set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS
+             " -Wl,--gc-sections")
+
 set(LYNX_TEXTRA_ARTIFACT lynxtextra)
 find_package(${LYNX_TEXTRA_ARTIFACT} CONFIG)
 if (${${LYNX_TEXTRA_ARTIFACT}_FOUND})

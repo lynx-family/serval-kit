@@ -16,6 +16,7 @@
 #include "markdown/element/markdown_table.h"
 #include "markdown/parser/embed/markdown_inline_node.h"
 #include "markdown/style/markdown_style.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 struct line;
 namespace serval::markdown {
@@ -59,10 +60,11 @@ class MarkdownParserEmbed {
   explicit MarkdownParserEmbed(MarkdownDocument* document)
       : document_(document) {}
   ~MarkdownParserEmbed() = default;
-  void Parse(const char* src, int size, int32_t markdown_start = 0,
-             int32_t markdown_end = std::numeric_limits<int32_t>::max(),
-             float width = -1);
-  void ParsePlainText(const char* src, int size);
+  L_EXPORT void Parse(
+      const char* src, int size, int32_t markdown_start = 0,
+      int32_t markdown_end = std::numeric_limits<int32_t>::max(),
+      float width = -1);
+  L_EXPORT void ParsePlainText(const char* src, int size);
 
  private:
   static void OnParagraphStart(int type, void* ud) {

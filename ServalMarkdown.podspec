@@ -48,6 +48,10 @@ Pod::Spec.new do |s|
     "GCC_PREPROCESSOR_DEFINITIONS" => "OS_IOS=1",
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
     'CLANG_CXX_LIBRARY' => 'libc++',
+    'GCC_ENABLE_CPP_EXCEPTIONS' => 'NO',
+    'GCC_ENABLE_CPP_RTTI' => 'NO',
+    'OTHER_CFLAGS' => '$(inherited) -fvisibility=hidden -ffunction-sections -fdata-sections',
+    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -std=c++17 -stdlib=libc++ -fvisibility=hidden -ffunction-sections -fdata-sections',
     'CLANG_ENABLE_MODULES' => 'YES',
     'CLANG_ENABLE_OBJC_ARC' => 'YES',
     'GCC_C_LANGUAGE_STANDARD' => 'c11',
@@ -56,7 +60,7 @@ Pod::Spec.new do |s|
 
   s.xcconfig = {
     "USER_HEADER_SEARCH_PATHS" => '$(inherited) "$(PODS_TARGET_SRCROOT)/markdown/include" "$(PODS_ROOT)/Headers/Public" "$(PODS_ROOT)/Headers/Public/LynxTextra" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/LynxTextra/LynxTextra.framework/Headers" "$(PODS_ROOT)/LynxTextra/public"',
-    "OTHER_CPLUSPLUSFLAGS" => "-std=c++17 -stdlib=libc++"
+    "OTHER_CPLUSPLUSFLAGS" => "$(inherited) -std=c++17 -stdlib=libc++"
   }
   s.libraries = 'stdc++', 'c++'
 end

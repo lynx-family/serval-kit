@@ -23,6 +23,9 @@ target_include_directories(markdown PUBLIC
         ${INCLUDE_DIR}
 )
 
+target_compile_options(markdown PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+)
+
 target_link_libraries(markdown PUBLIC discount lynx_base)
 target_compile_definitions(markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
-

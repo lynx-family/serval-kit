@@ -12,6 +12,7 @@
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 class MarkdownPage;
@@ -40,7 +41,7 @@ class MarkdownAttachmentRectStyle {
 
 enum class CharIndexType { kParsedContent, kSource };
 enum class AttachmentLayer { kBackground, kForeGround };
-class MarkdownTextAttachment {
+class L_EXPORT MarkdownTextAttachment {
  public:
   MarkdownTextAttachment() = default;
   ~MarkdownTextAttachment() = default;

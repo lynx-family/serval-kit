@@ -5,8 +5,9 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_SCREEN_METRICS_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_SCREEN_METRICS_H_
 #include <cstdint>
+#include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {
-class MarkdownScreenMetrics {
+class L_EXPORT MarkdownScreenMetrics {
  public:
   static float DPToPx(float dp) { return GetDensity() * dp; }
   static float PxToDp(float px) { return px / GetDensity(); }

@@ -6,4 +6,9 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_MARCO_H_
 #define L_EXPORT __attribute__((visibility("default")))
 #define L_HIDDEN __attribute__((visibility("hidden")))
+
+#ifndef MARKDOWN_ENABLE_PARSER_PROVIDER
+#define MARKDOWN_ENABLE_PARSER_PROVIDER 1
+#endif
+
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_MARCO_H_

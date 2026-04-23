@@ -15,4 +15,5 @@ third_party/lynx-textra/
 third_party/googletest/
 third_party/rapidjson/
 tmp/
+build_no_provider/
 

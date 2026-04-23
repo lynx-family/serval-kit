@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {
 enum class ValueType : uint8_t {
   kNull = 0,
@@ -23,7 +24,7 @@ enum class ValueType : uint8_t {
 class Value;
 using ValueArray = std::vector<std::unique_ptr<Value>>;
 using ValueMap = std::unordered_map<std::string, std::unique_ptr<Value>>;
-class Value {
+class L_EXPORT Value {
  public:
   ValueType GetType() const { return type_; }
   static std::unique_ptr<Value> MakeNull();

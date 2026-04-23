@@ -10,12 +10,13 @@
 
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_page.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
 namespace serval::markdown {
 class MarkdownTable;
 class MarkdownTableRegion;
-class MarkdownLayout {
+class L_EXPORT MarkdownLayout {
  public:
   explicit MarkdownLayout(MarkdownDocument* document);
   void SetPaddings(Paddings paddings);

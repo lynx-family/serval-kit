@@ -41,6 +41,12 @@ file(GLOB NATIVE_SOURCES
 
 add_library(serval_markdown SHARED ${NATIVE_SOURCES} src/main/cpp/napi_init.cpp)
 
+target_compile_options(serval_markdown PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+)
+set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS
+             " -Wl,--gc-sections")
+
 
 
 add_library(lynxtextra SHARED IMPORTED)
@@ -55,4 +61,3 @@ target_link_libraries(serval_markdown PUBLIC
 )
 
 target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
-
