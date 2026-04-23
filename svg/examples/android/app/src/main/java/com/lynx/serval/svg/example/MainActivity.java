@@ -6,6 +6,7 @@ package com.lynx.serval.svg.example;
 import android.graphics.Picture;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,22 +29,46 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
+  private static final class SvgPreviewMetadata {
+    final String title;
+    final List<String> tags;
+    final List<String> descriptions;
+
+    SvgPreviewMetadata(String title, List<String> tags,
+                       List<String> descriptions) {
+      this.title = title;
+      this.tags = tags;
+      this.descriptions = descriptions;
+    }
+  }
+
   private static final String HOST_COLOR_COMPARE_FILE =
       "currentcolor-host-default-compare.svg";
   private static final String HOST_COLOR_OVERRIDE_FILE =
       "currentcolor-content-color-override.svg";
-  private static final String CATEGORY_CORE = "Core";
+  private static final String CATEGORY_OTHERS = "Others";
   private static final String CATEGORY_COLOR_PARSING = "ColorParsing";
   private static final String CATEGORY_CURRENT_COLOR = "CurrentColor";
   private static final String CATEGORY_MASK = "Mask";
   private static final String CATEGORY_PATTERN = "Pattern";
+  private static final String CATEGORY_SVG_ROOT = "SvgRoot";
+  private static final String CATEGORY_USE = "Use";
+  private static final String CATEGORY_GRADIENT = "Gradient";
+  private static final String CATEGORY_SHAPE = "Shape";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
   private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
+  private static final String[] PREVIEW_METADATA_FILES = {
+      "svg_root_metadata.json", "svg_shape_metadata.json",
+      "svg_use_metadata.json", "svg_gradient_metadata.json"};
   private static final int PREVIEW_WIDTH_DP = 260;
   private static final int PREVIEW_HEIGHT_DP = 195;
   private Spinner categorySpinner;
@@ -51,6 +76,58 @@ public class MainActivity extends AppCompatActivity {
   private final List<String> categories = new ArrayList<>();
   private final Map<String, List<String>> categorizedFiles =
       new LinkedHashMap<>();
+  private final Map<String, SvgPreviewMetadata> previewMetadataByFile =
+      new HashMap<>();
+
+  private void loadPreviewMetadata() {
+    previewMetadataByFile.clear();
+    for (String metadataFile : PREVIEW_METADATA_FILES) {
+      try {
+        String content = readAssetFile(metadataFile);
+        if (content == null || content.isEmpty()) {
+          continue;
+        }
+        JSONObject root = new JSONObject(content);
+        JSONArray cases = root.optJSONArray("cases");
+        if (cases == null) {
+          continue;
+        }
+        for (int i = 0; i < cases.length(); i++) {
+          JSONObject item = cases.optJSONObject(i);
+          if (item == null) {
+            continue;
+          }
+          String fileName = item.optString("fileName", "");
+          if (fileName.isEmpty()) {
+            continue;
+          }
+          previewMetadataByFile.put(
+              fileName,
+              new SvgPreviewMetadata(
+                  item.optString("title", fileName),
+                  jsonArrayToList(item.optJSONArray("tags")),
+                  jsonArrayToList(item.optJSONArray("descriptions"))));
+        }
+      } catch (IOException | JSONException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private List<String> jsonArrayToList(JSONArray array) {
+    List<String> result = new ArrayList<>();
+    if (array == null) {
+      return result;
+    }
+    for (int i = 0; i < array.length(); i++) {
+      result.add(array.optString(i));
+    }
+    return result;
+  }
+
+  private SvgPreviewMetadata metadataForFile(String fileName) {
+    return previewMetadataByFile.get(fileName);
+  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
 
       List<String> fileList = new ArrayList<>(Arrays.asList(files));
       fileList.add("string_test.svg");  // Add string test case
+      loadPreviewMetadata();
       buildCategorizedFiles(fileList);
 
       ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
@@ -106,8 +184,7 @@ public class MainActivity extends AppCompatActivity {
             }
           });
 
-      String initialFile = "basic_shapes.svg";
-      String initialCategory = categoryForFile(initialFile);
+      String initialCategory = CATEGORY_SHAPE;
       int categoryIndex = Math.max(categories.indexOf(initialCategory), 0);
       categorySpinner.setSelection(categoryIndex);
       renderCategory(initialCategory);
@@ -125,8 +202,9 @@ public class MainActivity extends AppCompatActivity {
     categorizedFiles.clear();
     categories.clear();
     for (String category : new String[] {
-             CATEGORY_CORE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
-             CATEGORY_MASK, CATEGORY_PATTERN, CATEGORY_VECTOR_EFFECT}) {
+             CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
+             CATEGORY_MASK, CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
+             CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -152,10 +230,23 @@ public class MainActivity extends AppCompatActivity {
         "stroke-gradient-vs-pattern.svg".equals(fileName)) {
       return CATEGORY_PATTERN;
     }
+    if (fileName.startsWith("svg-root-") ||
+        fileName.startsWith("svg-preserve-aspect-ratio-")) {
+      return CATEGORY_SVG_ROOT;
+    }
+    if (fileName.startsWith("use-")) {
+      return CATEGORY_USE;
+    }
+    if (fileName.startsWith("gradient-")) {
+      return CATEGORY_GRADIENT;
+    }
+    if (fileName.startsWith("shape-")) {
+      return CATEGORY_SHAPE;
+    }
     if (fileName.startsWith("vector-effect-")) {
       return CATEGORY_VECTOR_EFFECT;
     }
-    return CATEGORY_CORE;
+    return CATEGORY_OTHERS;
   }
 
   private void renderCategory(String category) {
@@ -168,9 +259,34 @@ public class MainActivity extends AppCompatActivity {
     for (String fileName : files) {
       View row = inflater.inflate(R.layout.svg_preview_row,
                                   previewListContainer, false);
+      SvgPreviewMetadata metadata = metadataForFile(fileName);
+      TextView titleView = row.findViewById(R.id.preview_title);
       TextView fileNameView = row.findViewById(R.id.preview_name);
+      TextView tagsView = row.findViewById(R.id.preview_tags);
+      TextView descriptionView = row.findViewById(R.id.preview_description);
       ImageView previewImageView = row.findViewById(R.id.preview_image);
-      fileNameView.setText(fileName);
+      titleView.setText(metadata != null ? metadata.title : fileName);
+      fileNameView.setText("case: " + fileName.replace(".svg", ""));
+      if (metadata != null && !metadata.tags.isEmpty()) {
+        tagsView.setText("tags: " + TextUtils.join(", ", metadata.tags));
+        tagsView.setVisibility(View.VISIBLE);
+      } else {
+        tagsView.setVisibility(View.GONE);
+      }
+      if (metadata != null && !metadata.descriptions.isEmpty()) {
+        StringBuilder descriptionText = new StringBuilder();
+        for (int i = 0; i < metadata.descriptions.size(); i++) {
+          if (i > 0) {
+            descriptionText.append("\n");
+          }
+          descriptionText.append(i + 1).append(". ").append(
+              metadata.descriptions.get(i));
+        }
+        descriptionView.setText(descriptionText.toString());
+        descriptionView.setVisibility(View.VISIBLE);
+      } else {
+        descriptionView.setVisibility(View.GONE);
+      }
       previewImageView.setContentDescription(fileName);
       previewListContainer.addView(row);
       loadAndRenderSvg(fileName, previewImageView);

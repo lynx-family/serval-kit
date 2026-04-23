@@ -8,12 +8,38 @@
     android:padding="12dp">
 
     <TextView
+        android:id="@+id/preview_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF202124"
+        android:textSize="16sp" />
+
+    <TextView
         android:id="@+id/preview_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#FF5F6368"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/preview_tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#FF5F6368"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/preview_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="12dp"
         android:textColor="#FF202124"
-        android:textSize="14sp" />
+        android:textSize="12sp"
+        android:visibility="gone" />
 
     <ImageView
         android:id="@+id/preview_image"

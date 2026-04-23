@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet" >
+      
+      <defs>
+        <linearGradient
+          id="lgUserSpace"
+          x1="40"
+          y1="40"
+          x2="280"
+          y2="40"
+          gradientUnits="userSpaceOnUse"
+          gradientTransform="rotate(20 160 110) translate(20 0)">
+          <stop offset="0%" stop-color="#ff3b30" />
+          <stop offset="50%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#0a84ff" />
+        </linearGradient>
+      </defs>
+      <rect x="55" y="35" width="210" height="150" rx="28" fill="url(#lgUserSpace)" />
+    
+    </svg>

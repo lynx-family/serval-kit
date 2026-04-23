@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet" >
+      
+      <defs>
+        <linearGradient id="lgReflect" x1="0%" y1="0%" x2="18%" y2="0%" spreadMethod="reflect">
+          <stop offset="0%" stop-color="#34c759" />
+          <stop offset="100%" stop-color="#0a84ff" />
+        </linearGradient>
+      </defs>
+      <rect x="30" y="45" width="260" height="120" rx="24" fill="url(#lgReflect)" />
+    
+    </svg>

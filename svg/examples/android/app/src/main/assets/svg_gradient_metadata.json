@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "fileName": "gradient-linearGradient-spread-repeat.svg",
+      "title": "LinearGradient Spread Repeat",
+      "tags": [
+        "linearGradient",
+        "spreadMethod"
+      ],
+      "descriptions": [
+        "repeat 平铺生效",
+        "色带重复连续",
+        "未退化成 pad"
+      ]
+    },
+    {
+      "fileName": "gradient-linearGradient-spread-reflect.svg",
+      "title": "LinearGradient Spread Reflect",
+      "tags": [
+        "linearGradient",
+        "spreadMethod"
+      ],
+      "descriptions": [
+        "reflect 镜像生效",
+        "过渡方向往返连续",
+        "未退化成 pad 或 repeat"
+      ]
+    },
+    {
+      "fileName": "gradient-linearGradient-userSpace-transform.svg",
+      "title": "LinearGradient UserSpace Transform",
+      "tags": [
+        "linearGradient",
+        "gradientUnits",
+        "gradientTransform"
+      ],
+      "descriptions": [
+        "userSpaceOnUse 坐标正确",
+        "gradientTransform 旋转平移正确",
+        "渐变方向与目标图形一致"
+      ]
+    },
+    {
+      "fileName": "gradient-radialGradient-fx-fy.svg",
+      "title": "RadialGradient FX FY",
+      "tags": [
+        "radialGradient",
+        "fx",
+        "fy"
+      ],
+      "descriptions": [
+        "高光焦点明显偏移",
+        "焦点位置符合 fx fy",
+        "未退化为中心径向渐变"
+      ]
+    },
+    {
+      "fileName": "gradient-radialGradient-gradientTransform.svg",
+      "title": "RadialGradient GradientTransform",
+      "tags": [
+        "radialGradient",
+        "gradientTransform"
+      ],
+      "descriptions": [
+        "亮斑位置随 transform 偏移",
+        "Y 向压扁生效",
+        "不出现居中退化"
+      ]
+    },
+    {
+      "fileName": "gradient-gradient-stop-opacity.svg",
+      "title": "Gradient Stop Opacity",
+      "tags": [
+        "linearGradient",
+        "radialGradient",
+        "stop-opacity"
+      ],
+      "descriptions": [
+        "stop-opacity 生效",
+        "透明过渡连续",
+        "背景能透出"
+      ]
+    }
+  ]
+}

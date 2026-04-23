@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <defs>
+        <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ff3b30" />
+          <stop offset="100%" stop-color="#0a84ff" />
+        </linearGradient>
+        <clipPath id="clipA" clipPathUnits="userSpaceOnUse">
+          <path d="M 50 40 H 220 V 80 Q 220 160 135 160 Q 50 160 50 80 Z" />
+        </clipPath>
+      </defs>
+      <rect x="30" y="20" width="220" height="160" fill="url(#gradA)" clip-path="url(#clipA)" />
+    
+    </svg>

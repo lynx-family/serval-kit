@@ -16,6 +16,15 @@
 
 @end
 
+@interface SrSVGPreviewMetadata : NSObject
+@property(nonatomic, copy) NSString* title;
+@property(nonatomic, copy) NSArray<NSString*>* tags;
+@property(nonatomic, copy) NSArray<NSString*>* descriptions;
+@end
+
+@implementation SrSVGPreviewMetadata
+@end
+
 @implementation ViewController
 
 static NSString* const kHostColorCompareFile =
@@ -23,18 +32,97 @@ static NSString* const kHostColorCompareFile =
 static NSString* const kHostColorOverrideFile =
     @"currentcolor-content-color-override.svg";
 static NSString* const kHostDefaultColor = @"#4F6BFF";
-static NSString* const kCategoryCore = @"Core";
+static NSString* const kCategoryOthers = @"Others";
 static NSString* const kCategoryColorParsing = @"ColorParsing";
 static NSString* const kCategoryCurrentColor = @"CurrentColor";
 static NSString* const kCategoryMask = @"Mask";
 static NSString* const kCategoryPattern = @"Pattern";
+static NSString* const kCategorySvgRoot = @"SvgRoot";
+static NSString* const kCategoryUse = @"Use";
+static NSString* const kCategoryGradient = @"Gradient";
+static NSString* const kCategoryShape = @"Shape";
 static NSString* const kCategoryVectorEffect = @"VectorEffect";
+static NSArray<NSString*>* kPreviewMetadataFiles() {
+  return @[
+    @"svg_root_metadata", @"svg_shape_metadata", @"svg_use_metadata",
+    @"svg_gradient_metadata"
+  ];
+}
 
 - (NSArray<NSString*>*)orderedCategories {
   return @[
-    kCategoryCore, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
-    kCategoryPattern, kCategoryVectorEffect
+    kCategoryShape, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
+    kCategoryPattern, kCategorySvgRoot, kCategoryUse, kCategoryGradient,
+    kCategoryVectorEffect, kCategoryOthers
   ];
+}
+
+- (SrSVGPreviewMetadata*)metadataWithTitle:(NSString*)title
+                                      tags:(NSArray<NSString*>*)tags
+                              descriptions:(NSArray<NSString*>*)descriptions {
+  SrSVGPreviewMetadata* metadata = [[SrSVGPreviewMetadata alloc] init];
+  metadata.title = title;
+  metadata.tags = tags;
+  metadata.descriptions = descriptions;
+  return metadata;
+}
+
+- (NSDictionary<NSString*, SrSVGPreviewMetadata*>*)loadPreviewMetadataMap {
+  NSMutableDictionary<NSString*, SrSVGPreviewMetadata*>* result =
+      [NSMutableDictionary dictionary];
+  for (NSString* file in kPreviewMetadataFiles()) {
+    NSString* path = [[NSBundle mainBundle] pathForResource:file
+                                                     ofType:@"json"];
+    if (path.length == 0) {
+      continue;
+    }
+    NSData* data = [NSData dataWithContentsOfFile:path];
+    if (data.length == 0) {
+      continue;
+    }
+    NSError* error = nil;
+    NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data
+                                                         options:0
+                                                           error:&error];
+    if (![json isKindOfClass:[NSDictionary class]]) {
+      continue;
+    }
+    NSArray* cases = json[@"cases"];
+    if (![cases isKindOfClass:[NSArray class]]) {
+      continue;
+    }
+    for (id item in cases) {
+      if (![item isKindOfClass:[NSDictionary class]]) {
+        continue;
+      }
+      NSDictionary* caseInfo = (NSDictionary*)item;
+      NSString* fileName = caseInfo[@"fileName"];
+      if (![fileName isKindOfClass:[NSString class]] || fileName.length == 0) {
+        continue;
+      }
+      NSString* title = [caseInfo[@"title"] isKindOfClass:[NSString class]]
+                            ? caseInfo[@"title"]
+                            : fileName;
+      NSArray<NSString*>* tags =
+          [caseInfo[@"tags"] isKindOfClass:[NSArray class]] ? caseInfo[@"tags"]
+                                                            : @[];
+      NSArray<NSString*>* descriptions =
+          [caseInfo[@"descriptions"] isKindOfClass:[NSArray class]]
+              ? caseInfo[@"descriptions"]
+              : @[];
+      result[fileName] = [self metadataWithTitle:title
+                                            tags:tags
+                                    descriptions:descriptions];
+    }
+  }
+  return result;
+}
+
+- (SrSVGPreviewMetadata*)previewMetadataForFile:(NSString*)fileName {
+  static NSDictionary<NSString*, SrSVGPreviewMetadata*>* metadataMap = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{ metadataMap = [self loadPreviewMetadataMap]; });
+  return metadataMap[fileName];
 }
 
 - (NSString*)categoryForFile:(NSString*)fileName {
@@ -51,10 +139,23 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
       [fileName isEqualToString:@"stroke-gradient-vs-pattern.svg"]) {
     return kCategoryPattern;
   }
+  if ([fileName hasPrefix:@"svg-root-"] ||
+      [fileName hasPrefix:@"svg-preserve-aspect-ratio-"]) {
+    return kCategorySvgRoot;
+  }
+  if ([fileName hasPrefix:@"use-"]) {
+    return kCategoryUse;
+  }
+  if ([fileName hasPrefix:@"gradient-"]) {
+    return kCategoryGradient;
+  }
+  if ([fileName hasPrefix:@"shape-"]) {
+    return kCategoryShape;
+  }
   if ([fileName hasPrefix:@"vector-effect-"]) {
     return kCategoryVectorEffect;
   }
-  return kCategoryCore;
+  return kCategoryOthers;
 }
 
 - (NSDictionary<NSString*, NSArray<NSString*>*>*)buildCategorizedFiles:
@@ -150,10 +251,62 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
   CGFloat rowWidth = MAX(contentWidth - 32.0, 0.0);
   CGFloat previewWidth = 260.0;
   CGFloat previewHeight = 195.0;
-  CGFloat rowHeight = 251.0;
   CGFloat yOffset = cardGap;
 
   for (NSString* fileName in files) {
+    SrSVGPreviewMetadata* metadata = [self previewMetadataForFile:fileName];
+    NSString* titleText = metadata ? metadata.title : fileName;
+    NSString* caseText = [NSString
+        stringWithFormat:@"case: %@", [fileName stringByDeletingPathExtension]];
+    NSString* tagsText =
+        metadata.tags.count > 0
+            ? [NSString stringWithFormat:@"tags: %@",
+                                         [metadata.tags
+                                             componentsJoinedByString:@", "]]
+            : nil;
+    NSMutableArray<NSString*>* descriptionLines = [NSMutableArray array];
+    [metadata.descriptions
+        enumerateObjectsUsingBlock:^(NSString* _Nonnull description,
+                                     NSUInteger idx, BOOL* _Nonnull stop) {
+          [descriptionLines
+              addObject:[NSString stringWithFormat:@"%lu. %@",
+                                                   (unsigned long)idx + 1,
+                                                   description]];
+        }];
+    NSString* descriptionText =
+        descriptionLines.count > 0
+            ? [descriptionLines componentsJoinedByString:@"\n"]
+            : nil;
+    CGFloat textWidth = rowWidth - 24.0;
+    CGSize unlimitedSize = CGSizeMake(textWidth, CGFLOAT_MAX);
+    CGFloat currentY = cardPadding;
+    UILabel* measureLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    measureLabel.numberOfLines = 0;
+    measureLabel.font = [UIFont systemFontOfSize:16.0
+                                          weight:UIFontWeightSemibold];
+    measureLabel.text = titleText;
+    CGFloat titleHeight =
+        ceil([measureLabel sizeThatFits:unlimitedSize].height);
+    currentY += titleHeight + 4.0;
+    measureLabel.font = [UIFont systemFontOfSize:12.0];
+    measureLabel.text = caseText;
+    CGFloat caseHeight = ceil([measureLabel sizeThatFits:unlimitedSize].height);
+    currentY += caseHeight;
+    CGFloat tagsHeight = 0.0;
+    if (tagsText.length > 0) {
+      measureLabel.text = tagsText;
+      tagsHeight = ceil([measureLabel sizeThatFits:unlimitedSize].height);
+      currentY += 4.0 + tagsHeight;
+    }
+    CGFloat descriptionHeight = 0.0;
+    if (descriptionText.length > 0) {
+      measureLabel.text = descriptionText;
+      descriptionHeight =
+          ceil([measureLabel sizeThatFits:unlimitedSize].height);
+      currentY += 8.0 + descriptionHeight;
+    }
+    currentY += 12.0;
+    CGFloat rowHeight = currentY + previewHeight + cardPadding;
     UIView* row = [[UIView alloc]
         initWithFrame:CGRectMake(16.0, yOffset, rowWidth, rowHeight)];
     row.backgroundColor = cardBackgroundColor;
@@ -161,16 +314,55 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
 
     UILabel* titleLabel =
         [[UILabel alloc] initWithFrame:CGRectMake(cardPadding, cardPadding,
-                                                  rowWidth - 24.0, 20.0)];
-    titleLabel.text = fileName;
-    titleLabel.numberOfLines = 1;
-    titleLabel.font = [UIFont systemFontOfSize:14.0];
+                                                  textWidth, titleHeight)];
+    titleLabel.text = titleText;
+    titleLabel.numberOfLines = 0;
+    titleLabel.font = [UIFont systemFontOfSize:16.0
+                                        weight:UIFontWeightSemibold];
     titleLabel.textColor = titleColor;
     [row addSubview:titleLabel];
 
+    UILabel* caseLabel = [[UILabel alloc]
+        initWithFrame:CGRectMake(cardPadding,
+                                 CGRectGetMaxY(titleLabel.frame) + 4.0,
+                                 textWidth, caseHeight)];
+    caseLabel.text = caseText;
+    caseLabel.numberOfLines = 1;
+    caseLabel.font = [UIFont systemFontOfSize:12.0];
+    caseLabel.textColor = [UIColor colorWithRed:95.0 / 255.0
+                                          green:99.0 / 255.0
+                                           blue:104.0 / 255.0
+                                          alpha:1.0];
+    [row addSubview:caseLabel];
+
+    CGFloat metadataBottom = CGRectGetMaxY(caseLabel.frame);
+    if (tagsText.length > 0) {
+      UILabel* tagsLabel = [[UILabel alloc]
+          initWithFrame:CGRectMake(cardPadding, metadataBottom + 4.0, textWidth,
+                                   tagsHeight)];
+      tagsLabel.text = tagsText;
+      tagsLabel.numberOfLines = 0;
+      tagsLabel.font = [UIFont systemFontOfSize:12.0];
+      tagsLabel.textColor = caseLabel.textColor;
+      [row addSubview:tagsLabel];
+      metadataBottom = CGRectGetMaxY(tagsLabel.frame);
+    }
+    if (descriptionText.length > 0) {
+      UILabel* descriptionLabel = [[UILabel alloc]
+          initWithFrame:CGRectMake(cardPadding, metadataBottom + 8.0, textWidth,
+                                   descriptionHeight)];
+      descriptionLabel.text = descriptionText;
+      descriptionLabel.numberOfLines = 0;
+      descriptionLabel.font = [UIFont systemFontOfSize:12.0];
+      descriptionLabel.textColor = titleColor;
+      [row addSubview:descriptionLabel];
+      metadataBottom = CGRectGetMaxY(descriptionLabel.frame);
+    }
+
     CGFloat previewX = (rowWidth - previewWidth) / 2.0;
     SrSVGView* previewView = [[SrSVGView alloc]
-        initWithFrame:CGRectMake(previewX, 44.0, previewWidth, previewHeight)];
+        initWithFrame:CGRectMake(previewX, metadataBottom + 12.0, previewWidth,
+                                 previewHeight)];
     previewView.color = [self hostColorForFile:fileName];
     previewView.opaque = NO;
     previewView.layer.borderWidth = 1.0;
@@ -219,7 +411,7 @@ static NSString* const kCategoryVectorEffect = @"VectorEffect";
   [svgFiles addObject:@"string_test.svg"];
   self.categories = [self orderedCategories];
   self.categorizedFiles = [self buildCategorizedFiles:svgFiles];
-  self.selectedCategory = [self categoryForFile:@"basic_shapes.svg"];
+  self.selectedCategory = kCategoryShape;
 
   // Setup Picker View
   self.pickerView = [[UIPickerView alloc]

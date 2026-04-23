@@ -1,0 +1,58 @@
+{
+  "cases": [
+    {
+      "fileName": "svg-root-no-width-height.svg",
+      "title": "Root SVG Without Width Height",
+      "tags": ["svg", "viewBox", "width", "height"],
+      "descriptions": ["根视口映射正确", "内部图元尺寸正确", "与显式 width/height 对照一致"]
+    },
+    {
+      "fileName": "svg-root-explicit-width-height.svg",
+      "title": "Root SVG With Width Height",
+      "tags": ["svg", "viewBox", "width", "height"],
+      "descriptions": ["显式根尺寸生效", "内部图元尺寸正确", "与无 width/height 对照一致"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-none.svg",
+      "title": "PreserveAspectRatio None",
+      "tags": ["svg", "preserveAspectRatio"],
+      "descriptions": ["图形按非等比拉伸", "留白为零", "边界与容器对齐"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-x.svg",
+      "title": "PreserveAspectRatio xMaxYMid Meet",
+      "tags": ["svg", "preserveAspectRatio"],
+      "descriptions": ["等比缩放正确", "X 方向对齐正确", "留白方向一致"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-wide-mid.svg",
+      "title": "PreserveAspectRatio Wide Mid",
+      "tags": ["svg", "preserveAspectRatio", "viewBox"],
+      "descriptions": ["meet 统一等比缩放正确", "Y 方向留白正确", "内容垂直居中"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-wide-max.svg",
+      "title": "PreserveAspectRatio Wide Max",
+      "tags": ["svg", "preserveAspectRatio", "viewBox"],
+      "descriptions": ["meet 统一等比缩放正确", "XMax 水平对齐正确", "Y 方向留白正确"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-tall-min.svg",
+      "title": "PreserveAspectRatio Tall Min",
+      "tags": ["svg", "preserveAspectRatio", "viewBox"],
+      "descriptions": ["meet 统一等比缩放正确", "XMin 水平对齐正确", "高度不被拉伸"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-tall-mid.svg",
+      "title": "PreserveAspectRatio Tall Mid",
+      "tags": ["svg", "preserveAspectRatio", "viewBox"],
+      "descriptions": ["meet 统一等比缩放正确", "XMid 水平对齐正确", "高度不被拉伸"]
+    },
+    {
+      "fileName": "svg-preserve-aspect-ratio-meet-tall-max.svg",
+      "title": "PreserveAspectRatio Tall Max",
+      "tags": ["svg", "preserveAspectRatio", "viewBox"],
+      "descriptions": ["meet 统一等比缩放正确", "XMax 水平对齐正确", "高度不被拉伸"]
+    }
+  ]
+}
