@@ -19,6 +19,11 @@ class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
   void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
+  void DrawLinearGradientOnRect(MarkdownLinearGradient* gradient, RectF rect,
+                                tttext::Painter* painter) override;
+  void DrawLinearGradientOnPath(MarkdownLinearGradient* gradient,
+                                MarkdownPath* path,
+                                tttext::Painter* painter) override;
 
  private:
   OH_Drawing_Canvas* canvas_;

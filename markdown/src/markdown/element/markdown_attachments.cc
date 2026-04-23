@@ -10,6 +10,34 @@
 #include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
 
+namespace {
+
+RectF MakeLineBounds(PointF start, PointF end, float stroke_width) {
+  float left = std::min(start.x_, end.x_);
+  float top = std::min(start.y_, end.y_);
+  float right = std::max(start.x_, end.x_);
+  float bottom = std::max(start.y_, end.y_);
+  const float half_stroke = std::max(stroke_width, 1.f) * 0.5f;
+  if (FloatsEqual(left, right)) {
+    left -= half_stroke;
+    right += half_stroke;
+  }
+  if (FloatsEqual(top, bottom)) {
+    top -= half_stroke;
+    bottom += half_stroke;
+  }
+  return RectF::MakeLTRB(left, top, right, bottom);
+}
+
+MeasureSpec MakeGradientMeasureSpec(float width, float height) {
+  return {.width_ = width,
+          .width_mode_ = tttext::LayoutMode::kDefinite,
+          .height_ = height,
+          .height_mode_ = tttext::LayoutMode::kDefinite};
+}
+
+}  // namespace
+
 void MarkdownTextAttachment::DrawOnMultiLines(
     tttext::ICanvasHelper* canvas, const std::vector<RectF>& lines_rect,
     float total_length) const {
@@ -94,20 +122,17 @@ void MarkdownTextAttachment::DrawRect(
       CalculateLength(context, style.stroke_width_.get(), 0));
   float radius = CalculateLength(context, style.radius_.get(), 0);
   if (style.gradient_ != nullptr) {
-    auto canvas_extend = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
-    if (canvas_extend == nullptr) {
-      return;
-    }
+    style.gradient_->Measure(
+        MakeGradientMeasureSpec(rect.GetWidth(), rect.GetHeight()));
     painter->SetFillColor(tttext::TTColor::WHITE);
-    MarkdownPath path;
     if (radius == 0) {
-      path.AddRect(rect);
+      style.gradient_->DrawOnRect(canvas, rect, painter.get());
     } else {
+      MarkdownPath path;
       path.AddRoundRect(
           {.rect_ = rect, .radius_x_ = radius, .radius_y_ = radius});
+      style.gradient_->DrawOnPath(canvas, &path, rect, painter.get());
     }
-    canvas_extend->DrawDelegateOnPath(style.gradient_.get(), &path,
-                                      painter.get());
   } else {
     if (radius == 0) {
       canvas->DrawRect(rect.GetLeft(), rect.GetTop(), rect.GetRight(),
@@ -173,16 +198,18 @@ void MarkdownTextAttachment::DrawLine(tttext::ICanvasHelper* canvas,
     canvas->DrawLine(start.x_, start.y_, end.x_, end.y_, painter.get());
   } else {
     auto path = CreatePath(start, end, context, style);
-    const auto canvas_extend =
-        MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
-    if (canvas_extend == nullptr) {
-      return;
-    }
     if (style.gradient_ != nullptr) {
+      const auto bounds = MakeLineBounds(start, end, width);
+      style.gradient_->Measure(
+          MakeGradientMeasureSpec(bounds.GetWidth(), bounds.GetHeight()));
       painter->SetStrokeColor(tttext::TTColor::WHITE);
-      canvas_extend->DrawDelegateOnPath(style.gradient_.get(), &path,
-                                        painter.get());
+      style.gradient_->DrawOnPath(canvas, &path, bounds, painter.get());
     } else {
+      const auto canvas_extend =
+          MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+      if (canvas_extend == nullptr) {
+        return;
+      }
       canvas_extend->DrawMarkdownPath(&path, painter.get());
     }
   }

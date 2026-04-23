@@ -4,10 +4,12 @@
 package com.lynx.markdown;
 
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import com.lynx.textra.BBufferInputStream;
 import com.lynx.textra.JavaCanvasHelper;
@@ -22,6 +24,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected static final int CANVAS_OP_CLIP_PATH = 0;
   protected static final int CANVAS_OP_DRAW_PATH = 1;
   protected static final int CANVAS_OP_DRAW_DELEGATE_ON_PATH = 2;
+  protected static final int CANVAS_OP_DRAW_LINEAR_GRADIENT_ON_RECT = 3;
+  protected static final int CANVAS_OP_DRAW_LINEAR_GRADIENT_ON_PATH = 4;
   protected static final int PATH_TYPE_ARC = 0;
   protected static final int PATH_TYPE_OVAL = 1;
   protected static final int PATH_TYPE_RECT = 2;
@@ -98,6 +102,10 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       drawMarkdownPath(stream);
     } else if (op == CANVAS_OP_DRAW_DELEGATE_ON_PATH) {
       drawDelegateOnPath(stream);
+    } else if (op == CANVAS_OP_DRAW_LINEAR_GRADIENT_ON_RECT) {
+      drawLinearGradientOnRect(stream);
+    } else if (op == CANVAS_OP_DRAW_LINEAR_GRADIENT_ON_PATH) {
+      drawLinearGradientOnPath(stream);
     }
   }
 
@@ -110,6 +118,7 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       throws IOException {
     Path path = readPath(stream);
     Paint p = readPaint(stream, paint_);
+    applyPaintStyle(p);
     canvas_.drawPath(path, p);
   }
 
@@ -138,6 +147,35 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     }
   }
 
+  protected void drawLinearGradientOnRect(BBufferInputStream stream)
+      throws IOException {
+    Shader shader = readLinearGradient(stream);
+    float left = TTTextUtils.Dp2Px(stream.readFloat());
+    float top = TTTextUtils.Dp2Px(stream.readFloat());
+    float right = TTTextUtils.Dp2Px(stream.readFloat());
+    float bottom = TTTextUtils.Dp2Px(stream.readFloat());
+    Paint p = readPaint(stream, paint_);
+    applyLinearGradient(p, shader);
+    if (shader == null) {
+      return;
+    }
+    canvas_.drawRect(left, top, right, bottom, p);
+    p.setShader(null);
+  }
+
+  protected void drawLinearGradientOnPath(BBufferInputStream stream)
+      throws IOException {
+    Shader shader = readLinearGradient(stream);
+    Path path = readPath(stream);
+    Paint p = readPaint(stream, paint_);
+    applyLinearGradient(p, shader);
+    if (shader == null) {
+      return;
+    }
+    canvas_.drawPath(path, p);
+    p.setShader(null);
+  }
+
   protected Path readPath(BBufferInputStream stream) throws IOException {
     Path path = createPath();
     int op_count = stream.readInt();
@@ -162,6 +200,63 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       }
     }
     return path;
+  }
+
+  protected Shader readLinearGradient(BBufferInputStream stream)
+      throws IOException {
+    float startX = TTTextUtils.Dp2Px(stream.readFloat());
+    float startY = TTTextUtils.Dp2Px(stream.readFloat());
+    float endX = TTTextUtils.Dp2Px(stream.readFloat());
+    float endY = TTTextUtils.Dp2Px(stream.readFloat());
+
+    int colorCount = stream.readInt();
+    int[] colors = new int[colorCount];
+    for (int i = 0; i < colorCount; i++) {
+      colors[i] = stream.readInt();
+    }
+
+    int stopCount = stream.readInt();
+    float[] stops = stopCount == colorCount ? new float[stopCount] : null;
+    for (int i = 0; i < stopCount; i++) {
+      float stop = stream.readFloat();
+      if (stops != null) {
+        stops[i] = stop;
+      }
+    }
+    if (colors.length < 2) {
+      return null;
+    }
+    return new LinearGradient(startX, startY, endX, endY, colors, stops,
+                              Shader.TileMode.CLAMP);
+  }
+
+  protected void applyPaintStyle(Paint painter) {
+    if (color_ != 0 && stroke_color_ == color_) {
+      painter.setColor(color_);
+      painter.setStyle(Paint.Style.FILL_AND_STROKE);
+    } else if (color_ != 0) {
+      painter.setColor(color_);
+      painter.setStyle(Paint.Style.FILL);
+    } else if (stroke_color_ != 0) {
+      painter.setColor(stroke_color_);
+      painter.setStyle(Paint.Style.STROKE);
+    } else {
+      painter.setStyle(Paint.Style.FILL);
+    }
+  }
+
+  protected void applyLinearGradient(Paint painter, Shader shader) {
+    painter.setShader(shader);
+    painter.setColor(0xffffffff);
+    boolean hasFill = color_ != 0;
+    boolean hasStroke = stroke_color_ != 0;
+    if (hasFill && hasStroke) {
+      painter.setStyle(Paint.Style.FILL_AND_STROKE);
+    } else if (hasStroke) {
+      painter.setStyle(Paint.Style.STROKE);
+    } else {
+      painter.setStyle(Paint.Style.FILL);
+    }
   }
 
   protected void addArc(Path path, BBufferInputStream stream) {
@@ -257,6 +352,7 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected Paint readPaint(BBufferInputStream stream, Paint painter)
       throws IOException {
     painter.setAntiAlias(true);
+    painter.setShader(null);
     painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
     color_ = stream.readInt();
     stroke_color_ = stream.readInt();

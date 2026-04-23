@@ -15,8 +15,15 @@
   self.markdown = [[ServalMarkdownView alloc] init];
   self.markdown.backgroundColor = [UIColor whiteColor];
   self.markdown.content = @"This is a **Markdown**!! This is a **Markdown**!! "
-                          @"This is a **Markdown**!!";
-  self.markdown.style = @{};
+                          @"This is a **Markdown**!! <span "
+                          @"class=\"background\">gradient background</span>";
+  self.markdown.style = @{
+    @".background": @{
+      @"backgroundImage": @"linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, "
+                          @"rgba(255, 245, 157, 1) 100%)",
+      @"borderRadius": @(10)
+    }
+  };
   self.markdown.animationType = kServalMarkdownAnimationTypeTypewriter;
   self.markdown.animationVelocity = 10;
   self.markdown.initialAnimationStep = 5;

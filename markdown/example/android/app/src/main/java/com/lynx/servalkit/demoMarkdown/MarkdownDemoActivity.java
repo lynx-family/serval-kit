@@ -18,6 +18,7 @@ import com.lynx.markdown.IResourceLoader;
 import com.lynx.markdown.Markdown;
 import com.lynx.markdown.ServalMarkdownView;
 import com.lynx.servalkit.R;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,7 +42,7 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "> Reading a good book is like talking to a noble soul. — Goethe\n"
       + "> \n"
       +
-      "> The employment system is unfavorable to workers, but workers are powerless to break free from it. — Ruan Yifeng\n"
+      "> The employment <span class=\"background\">system is unfavorable to workers</span>, but workers are powerless to break free from it. — Ruan Yifeng\n"
       + "\n"
       + "### Lists:\n"
       + "\n"
@@ -194,7 +195,29 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     linkStyle.put("color", "0000ff");
     style.put("link", linkStyle);
 
+    Map<String, Object> background = new HashMap<>();
+    background.put(
+        "backgroundImage",
+        "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, rgba(255, 245, 157, 1) 100%)");
+    background.put("borderRadius", 10);
+    style.put(".background", background);
+
     return style;
+  }
+
+  ArrayList<Object> generateAttachment() {
+    HashMap<String, Object> attachment = new HashMap<>();
+    attachment.put("startIndex", 0);
+    attachment.put("endIndex", 20);
+    HashMap<String, Object> style = new HashMap<>();
+    style.put(
+        "color",
+        "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, rgba(255, 245, 157, 1) 100%)");
+    style.put("radius", 40);
+    attachment.put("style", style);
+    ArrayList result = new ArrayList<Object>();
+    result.add(attachment);
+    return result;
   }
 
   @Override
@@ -218,11 +241,14 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     mMarkdownView.setContent(mContent1);
     mMarkdownView.setStyle(generateMarkdownStyle());
     mMarkdownView.setAnimationType(Constants.ANIMATION_TYPE_LINE_EXPAND);
-    mMarkdownView.setAnimationVelocity(2);
-    mMarkdownView.setInitialAnimationStep(4);
+    mMarkdownView.setAnimationVelocity(10);
+    mMarkdownView.setInitialAnimationStep(0);
     mMarkdownView.setNumberProp(
-        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_DURATION, 0.5);
+        Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_DURATION, 0.1);
     mMarkdownView.setBooleanProp(
         Constants.MARKDOWN_PROPS_TYPEWRITER_HEIGHT_TRANSITION_PREFETCH, false);
+
+    mMarkdownView.setArrayProp(Constants.MARKDOWN_PROPS_TEXT_MARK_ATTACHMENTS,
+                               generateAttachment());
   }
 }

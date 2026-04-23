@@ -6,6 +6,8 @@
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/style/markdown_color.h"
+#include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_string_utils.h"
@@ -1423,18 +1425,9 @@ class MarkdownStyleReaderImpl {
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         std::string_view color_str = it->second->AsString();
-        *result = ConvertColor(color_str);
+        MarkdownColor::Parse(color_str, result);
       }
     }
-  }
-  static uint32_t ConvertColor(std::string_view color_str) {
-    if (color_str[0] == '#')
-      color_str = color_str.substr(1);
-    uint32_t color_int = strtoul(color_str.data(), nullptr, 16);
-    if (color_str.length() <= 6) {
-      color_int |= 0xff000000;
-    }
-    return color_int;
   }
   void ReadIntValue(const ValueMap& map, const std::string& key,
                     int32_t* result) {
@@ -1486,21 +1479,13 @@ class MarkdownStyleReaderImpl {
   }
 
   void ReadGradientValue(const ValueMap& map, const std::string& key,
-                         std::shared_ptr<MarkdownDrawable>* result) {
+                         std::shared_ptr<MarkdownBackgroundDrawable>* result) {
     auto it = map.find(key);
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         const auto& str = it->second->AsString();
-        if (BeginsWith(str, "linear-gradient(") ||
-            BeginsWith(str, "radial-gradient(")) {
-          if (loader_ != nullptr) {
-            *result = loader_->LoadGradient(str.c_str(), 1, 1);
-          } else {
-            *result = nullptr;
-          }
-        } else {
-          *result = nullptr;
-        }
+        *result = ParseBackgroundDrawableValue(
+            str, loader_, {.font_size_ = 1, .root_font_size_ = 1});
       }
     }
   }
@@ -1661,7 +1646,9 @@ MarkdownBaseStylePart MarkdownStyleReader::ReadBaseStyle(
   return base_style_part;
 }
 uint32_t MarkdownStyleReader::ReadColor(const std::string& color) {
-  return MarkdownStyleReaderImpl::ConvertColor(color);
+  uint32_t result = 0;
+  MarkdownColor::Parse(color, &result);
+  return result;
 }
 
 }  // namespace serval::markdown

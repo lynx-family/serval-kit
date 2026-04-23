@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace serval::markdown {
 
@@ -63,6 +64,13 @@ bool StringToInt(const std::string& input, int64_t& output, uint8_t base = 10);
 bool StringToInt(const std::string& input, int* output, uint8_t base = 10);
 bool StringToFloat(const std::string& input, float& output,
                    bool error_on_nan_or_inf = false);
+bool StringToFloat(std::string_view input, float& output,
+                   bool error_on_nan_or_inf = false);
+std::string_view Trim(std::string_view value);
+std::string ToLower(std::string_view value);
+bool BeginsWithIgnoreCase(std::string_view value, std::string_view prefix);
+size_t FindMatchingParenthesis(std::string_view value, size_t open_index);
+std::vector<std::string_view> SplitTopLevel(std::string_view value, char split);
 
 std::u16string U8StringToU16(std::string_view u8_string);
 std::string U32StringToU8(std::u32string_view u32_string);

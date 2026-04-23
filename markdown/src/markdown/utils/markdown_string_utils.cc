@@ -4,6 +4,7 @@
 
 #include "markdown/utils/markdown_string_utils.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
@@ -92,6 +93,11 @@ bool StringToFloat(const std::string& input, float& output,
   return valid;
 }
 
+bool StringToFloat(std::string_view input, float& output,
+                   bool error_on_nan_or_inf) {
+  return StringToFloat(std::string(input), output, error_on_nan_or_inf);
+}
+
 bool StringToInt(const std::string& input, int64_t& output, uint8_t base) {
   const int old_error = errno;
   errno = 0;
@@ -116,6 +122,89 @@ bool StringToInt(const std::string& input, int* output, uint8_t base) {
   }
   *output = static_cast<int>(parsed);
   return true;
+}
+
+std::string_view Trim(std::string_view value) {
+  size_t begin = 0;
+  while (begin < value.size() &&
+         (value[begin] == ' ' || value[begin] == '\t' || value[begin] == '\n' ||
+          value[begin] == '\r' || value[begin] == '\f')) {
+    begin++;
+  }
+  size_t end = value.size();
+  while (end > begin && (value[end - 1] == ' ' || value[end - 1] == '\t' ||
+                         value[end - 1] == '\n' || value[end - 1] == '\r' ||
+                         value[end - 1] == '\f')) {
+    end--;
+  }
+  return value.substr(begin, end - begin);
+}
+
+std::string ToLower(std::string_view value) {
+  std::string result(value);
+  std::transform(
+      result.begin(), result.end(), result.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return result;
+}
+
+bool BeginsWithIgnoreCase(std::string_view value, std::string_view prefix) {
+  if (value.size() < prefix.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < prefix.size(); i++) {
+    const auto left =
+        static_cast<char>(std::tolower(static_cast<unsigned char>(value[i])));
+    const auto right =
+        static_cast<char>(std::tolower(static_cast<unsigned char>(prefix[i])));
+    if (left != right) {
+      return false;
+    }
+  }
+  return true;
+}
+
+size_t FindMatchingParenthesis(std::string_view value, size_t open_index) {
+  int depth = 0;
+  for (size_t i = open_index; i < value.size(); i++) {
+    if (value[i] == '(') {
+      depth++;
+    } else if (value[i] == ')') {
+      depth--;
+      if (depth == 0) {
+        return i;
+      }
+    }
+  }
+  return std::string_view::npos;
+}
+
+std::vector<std::string_view> SplitTopLevel(std::string_view value,
+                                            char split) {
+  std::vector<std::string_view> result;
+  size_t start = 0;
+  int depth = 0;
+  for (size_t i = 0; i < value.size(); i++) {
+    if (value[i] == '(') {
+      depth++;
+    } else if (value[i] == ')') {
+      depth--;
+    }
+    if (value[i] == split && depth == 0) {
+      const auto part = Trim(value.substr(start, i - start));
+      if (part.empty()) {
+        return {};
+      }
+      result.emplace_back(part);
+      start = i + 1;
+    }
+  }
+  const auto tail = Trim(value.substr(start));
+  if (tail.empty()) {
+    return {};
+  }
+  result.emplace_back(tail);
+  return result;
 }
 
 std::u16string U8StringToU16(std::string_view u8_string) {

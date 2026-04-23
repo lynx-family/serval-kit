@@ -82,6 +82,7 @@ void MarkdownView::SetEnableBreakAroundPunctuation(bool allow) {
 }
 void MarkdownView::SetTextAttachments(std::unique_ptr<Value> attachments) {
   attachments_ = std::move(attachments);
+  NeedsMeasure();
 }
 void MarkdownView::SetAnimationType(const MarkdownAnimationType type) {
   animator_.SetAnimationType(type);
@@ -193,6 +194,7 @@ MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
   if (measurer_.DidLayoutInLastMeasure()) {
     auto before_views = GetInlineViews();
     layout_data_.document_ = measurer_.GetDocument();
+    UpdateTextAttachments();
     draw_end_sent_ = false;
     auto after_views = GetInlineViews();
     RemoveUnusedViews(before_views, after_views);
@@ -252,6 +254,22 @@ void MarkdownView::NeedsAlign() const {
 }
 void MarkdownView::NeedsDraw() const {
   view_->RequestDraw();
+}
+void MarkdownView::UpdateTextAttachments() {
+  if (layout_data_.document_ == nullptr) {
+    return;
+  }
+  const auto page = layout_data_.document_->GetPage();
+  if (page == nullptr) {
+    return;
+  }
+  page->ClearAttachments();
+  if (attachments_ == nullptr) {
+    return;
+  }
+  auto attachments = MarkdownStyleReader::ReadTextAttachments(
+      attachments_.get(), layout_data_.document_.get());
+  page->AddTextAttachments(std::move(attachments));
 }
 void MarkdownView::OnLayoutFrame(int64_t timestamp) {
   animator_.UpdateCurrentTime(timestamp);
@@ -1004,8 +1022,12 @@ void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
     }
   }
 }
-void MarkdownView::SetArrayProp(MarkdownProps prop, const ValueArray& array) {}
-void MarkdownView::SetMapProp(MarkdownProps prop, const ValueMap& map) {}
+void MarkdownView::SetArrayProp(MarkdownProps prop, ValueArray& array) {
+  if (prop == MarkdownProps::kTextMarkAttachments) {
+    SetTextAttachments(Value::MakeArray(std::move(array)));
+  }
+}
+void MarkdownView::SetMapProp(MarkdownProps prop, ValueMap& map) {}
 
 void MarkdownView::OnFontLoaded(std::string_view family, int weight,
                                 int style) {

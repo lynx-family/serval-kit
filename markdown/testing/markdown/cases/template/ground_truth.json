@@ -65,22 +65,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": 36.0,
-              "top": 10901.9091796875,
-              "right": 1583.0,
-              "bottom": 10931.9091796875
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #e4ddff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 809.5,
+            "y": 10931.9091796875
+          },
+          "end": {
+            "x": 809.5,
+            "y": 10901.9091796875
+          },
+          "colors": [
+            4293189119,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": 36.0,
+          "top": 10901.9091796875,
+          "right": 1583.0,
+          "bottom": 10931.9091796875
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip",
@@ -92,22 +109,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": -372.0,
-              "top": 10931.9091796875,
-              "right": 1175.0,
-              "bottom": 10961.9091796875
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #e4ddff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 401.5,
+            "y": 10961.9091796875
+          },
+          "end": {
+            "x": 401.5,
+            "y": 10931.9091796875
+          },
+          "colors": [
+            4293189119,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": -372.0,
+          "top": 10931.9091796875,
+          "right": 1175.0,
+          "bottom": 10961.9091796875
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip",
@@ -119,22 +153,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": -831.0,
-              "top": 10961.9091796875,
-              "right": 716.0,
-              "bottom": 10991.9091796875
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #e4ddff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": -57.5,
+            "y": 10991.9091796875
+          },
+          "end": {
+            "x": -57.5,
+            "y": 10961.9091796875
+          },
+          "colors": [
+            4293189119,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": -831.0,
+          "top": 10961.9091796875,
+          "right": 716.0,
+          "bottom": 10991.9091796875
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip",
@@ -146,22 +197,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": -1290.0,
-              "top": 10991.9091796875,
-              "right": 257.0,
-              "bottom": 11021.9091796875
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #e4ddff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": -516.5,
+            "y": 11021.9091796875
+          },
+          "end": {
+            "x": -516.5,
+            "y": 10991.9091796875
+          },
+          "colors": [
+            4293189119,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": -1290.0,
+          "top": 10991.9091796875,
+          "right": 257.0,
+          "bottom": 11021.9091796875
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip",
@@ -173,22 +241,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": 36.0,
-              "top": 11021.9091796875,
-              "right": 308.0,
-              "bottom": 11051.9091796875
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 172.0,
+            "y": 11051.9091796875
+          },
+          "end": {
+            "x": 172.0,
+            "y": 11021.9091796875
+          },
+          "colors": [
+            4279565823,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": 36.0,
+          "top": 11021.9091796875,
+          "right": 308.0,
+          "bottom": 11051.9091796875
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "glyphs",
@@ -1438,22 +1523,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": 23.0,
-              "top": 9336.455078125,
-              "right": 128.0,
-              "bottom": 9366.455078125
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 75.5,
+            "y": 9366.455078125
+          },
+          "end": {
+            "x": 75.5,
+            "y": 9336.455078125
+          },
+          "colors": [
+            4279565823,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": 23.0,
+          "top": 9336.455078125,
+          "right": 128.0,
+          "bottom": 9366.455078125
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip path",
@@ -3883,22 +3985,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": 243.0,
-              "top": 6513.45458984375,
-              "right": 549.0,
-              "bottom": 6543.45458984375
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": 396.0,
+            "y": 6543.45458984375
+          },
+          "end": {
+            "x": 396.0,
+            "y": 6513.45458984375
+          },
+          "colors": [
+            4279565823,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": 243.0,
+          "top": 6513.45458984375,
+          "right": 549.0,
+          "bottom": 6543.45458984375
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "clip",
@@ -3910,22 +4029,39 @@
         }
       },
       {
-        "op": "clip path",
-        "path": [
-          {
-            "type": "rect",
-            "rect": {
-              "left": -186.0,
-              "top": 6543.45458984375,
-              "right": 120.0,
-              "bottom": 6573.45458984375
-            }
-          }
-        ]
-      },
-      {
-        "op": "gradient",
-        "gradient": "linear-gradient(0deg, #14fdff 0%, rgba(241, 240, 255, 0) 30%)"
+        "op": "gradient rect",
+        "gradient": {
+          "start": {
+            "x": -33.0,
+            "y": 6573.45458984375
+          },
+          "end": {
+            "x": -33.0,
+            "y": 6543.45458984375
+          },
+          "colors": [
+            4279565823,
+            15855871
+          ],
+          "stops": [
+            0.0,
+            0.30000001192092896
+          ]
+        },
+        "rect": {
+          "left": -186.0,
+          "top": 6543.45458984375,
+          "right": 120.0,
+          "bottom": 6573.45458984375
+        },
+        "painter": {
+          "stroke_width": 0.0,
+          "fill_color": 4294967295,
+          "stroke_color": 0,
+          "text_size": 14.0,
+          "bold": false,
+          "italic": false
+        }
       },
       {
         "op": "glyphs",

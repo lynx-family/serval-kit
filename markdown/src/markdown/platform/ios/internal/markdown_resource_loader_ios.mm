@@ -87,11 +87,6 @@ void* MarkdownResourceLoaderIOS::LoadFont(const char* family,
   return (__bridge void*)font;
 }
 
-std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadGradient(
-    const char* gradient, float font_size, float root_font_size) {
-  return nullptr;
-}
-
 std::shared_ptr<MarkdownDrawable>
 MarkdownResourceLoaderIOS::LoadReplacementView(void* ud, int32_t id,
                                                float max_width,

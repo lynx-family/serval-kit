@@ -870,11 +870,11 @@ class MarkdownInlineSyntaxParserImpl {
     auto split = SplitBySpaceAndQuote(extra);
     for (auto& str : split) {
       if (str.substr(0, 6) == "width=") {
-        if (!StringToFloat(std::string(str.substr(6)), result.width_)) {
+        if (!StringToFloat(str.substr(6), result.width_)) {
           result.width_ = -1;
         }
       } else if (str.substr(0, 7) == "height=") {
-        if (!StringToFloat(std::string(str.substr(7)), result.height_)) {
+        if (!StringToFloat(str.substr(7), result.height_)) {
           result.height_ = -1;
         }
       } else {

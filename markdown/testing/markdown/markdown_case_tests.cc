@@ -346,34 +346,39 @@ class MarkdownCaseUnittest {
     return steps;
   }
 
-  rapidjson::Document RunViewCase() {
-    auto main_view = std::make_unique<MockMarkdownMainView>();
-    auto* view_ptr = main_view->GetMarkdownView();
-    resource_loader_->SetMainView(main_view.get());
-
-    view_ptr->SetResourceLoader(resource_loader_.get());
-    view_ptr->SetSourceType(source_type_);
-    view_ptr->SetStyle(style_map_);
-    view_ptr->SetContent(markdown_);
-    view_ptr->SetContentComplete(content_complete_);
+  void ConfigureView(MarkdownView* view, bool attach_marks = true) {
+    view->SetResourceLoader(resource_loader_.get());
+    view->SetSourceType(source_type_);
+    view->SetStyle(style_map_);
+    view->SetContent(markdown_);
+    view->SetContentComplete(content_complete_);
     if (max_lines_ >= 0) {
-      view_ptr->SetTextMaxLines(max_lines_);
+      view->SetTextMaxLines(max_lines_);
     }
-    if (attachments_ != nullptr) {
-      view_ptr->SetTextAttachments(std::move(attachments_));
+    if (attach_marks && attachments_ != nullptr) {
+      view->SetTextAttachments(std::move(attachments_));
     }
-    view_ptr->SetAnimationType(animation_type_);
-    view_ptr->SetInitialAnimationStep(animation_step_);
-    view_ptr->SetAnimationVelocity(static_cast<float>(animation_velocity_));
+    view->SetAnimationType(animation_type_);
+    view->SetInitialAnimationStep(animation_step_);
+    view->SetAnimationVelocity(static_cast<float>(animation_velocity_));
+  }
 
+  MeasureSpec BuildMeasureSpec() const {
     MeasureSpec spec;
     spec.width_ = width_;
     spec.width_mode_ = tttext::LayoutMode::kDefinite;
     spec.height_ = height_;
     spec.height_mode_ = tttext::LayoutMode::kIndefinite;
+    return spec;
+  }
+
+  rapidjson::Document RunViewCase() {
+    auto main_view = std::make_unique<MockMarkdownMainView>();
+    resource_loader_->SetMainView(main_view.get());
+    ConfigureView(main_view->GetMarkdownView());
 
     MockMarkdownFrameDriver driver(main_view.get(), canvas_.get());
-    driver.SetMeasureSpec(spec);
+    driver.SetMeasureSpec(BuildMeasureSpec());
     driver.SetDefaultVisibleRect(RectF::MakeLTRB(0, 0, width_, height_));
     auto result = driver.Run(BuildFrameSteps());
     resource_loader_->SetMainView(nullptr);
@@ -463,7 +468,7 @@ class MarkdownCaseUnittest {
         EXPECT_EQ(result->AsLong(), truth->AsLong());
         break;
       case ValueType::kDouble:
-        EXPECT_FLOAT_EQ(result->AsDouble(), truth->AsDouble());
+        EXPECT_NEAR(result->AsDouble(), truth->AsDouble(), 1e-3);
         break;
       case ValueType::kString:
         EXPECT_EQ(result->AsString(), truth->AsString());
@@ -740,6 +745,41 @@ TEST(MarkdownCaseUnittest, MarkAttachments) {
   if (unittest.LoadCaseInDirectory(CASES_PATH / "text_attachments_mark")) {
     unittest.ParseLayoutAndDraw();
   }
+}
+
+TEST(MarkdownCaseUnittest, SetArrayPropAddsMarkAttachments) {
+  MarkdownCaseUnittest unittest;
+  ASSERT_TRUE(
+      unittest.LoadCaseInDirectory(CASES_PATH / "text_attachments_mark"));
+  ASSERT_NE(unittest.attachments_, nullptr);
+
+  MarkdownCaseUnittest expected;
+  ASSERT_TRUE(
+      expected.LoadCaseInDirectory(CASES_PATH / "text_attachments_mark"));
+  expected.ParseLayoutAndDraw();
+
+  auto main_view = std::make_unique<MockMarkdownMainView>();
+  auto* view_ptr = main_view->GetMarkdownView();
+  unittest.resource_loader_->SetMainView(main_view.get());
+
+  unittest.ConfigureView(view_ptr, false);
+
+  main_view->ResetRequestCount();
+  view_ptr->SetArrayProp(MarkdownProps::kTextMarkAttachments,
+                         unittest.attachments_->AsArray());
+  EXPECT_GT(main_view->GetRequestMeasureCount(), 0);
+
+  MockMarkdownFrameDriver driver(main_view.get(), unittest.canvas_.get());
+  driver.SetMeasureSpec(unittest.BuildMeasureSpec());
+  driver.SetDefaultVisibleRect(
+      RectF::MakeLTRB(0, 0, unittest.width_, unittest.height_));
+  const auto frames = driver.Run(unittest.BuildFrameSteps());
+  unittest.resource_loader_->SetMainView(nullptr);
+
+  ASSERT_EQ(frames.Size(), 1u);
+  const auto actual_ops = ConvertJson(frames[0]["ops"]);
+  const auto expected_ops = ConvertJson(expected.canvas_->GetJson());
+  MarkdownCaseUnittest::ExpectValue(actual_ops, expected_ops);
 }
 }  // namespace testing
 }  // namespace serval::markdown

@@ -7,9 +7,11 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "base/include/string/string_utils.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/style/markdown_gradient.h"
 #include "testing/markdown/mock_markdown_platform_view.h"
 #include "testing/markdown/mock_run_delegate.h"
 namespace serval::markdown {
@@ -59,11 +61,6 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
       return reinterpret_cast<void*>(find->second);
     }
   }
-  std::shared_ptr<MarkdownDrawable> LoadGradient(
-      const char* gradient, float font_size, float root_font_size) override {
-    return std::make_shared<MockGradient>(gradient);
-  }
-
   std::unordered_map<std::string, size_t> font_cache_;
   std::unordered_map<size_t, std::string> family_cache_;
   MockMarkdownMainView* main_view_{nullptr};
