@@ -2,8 +2,9 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_
-#define THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_PATH_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_PATH_H_
+#include <vector>
 #include "markdown/utils/markdown_definition.h"
 namespace serval::markdown {
 class MarkdownPath {
@@ -79,4 +80,4 @@ class MarkdownPath {
   std::vector<PathOp> path_ops_;
 };
 }  // namespace serval::markdown
-#endif  // THIRD_PARTY_MARKDOWN_CANVAS_MARKDOWN_PATH_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_PATH_H_

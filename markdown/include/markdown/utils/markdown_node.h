@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
-#define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_H_
 #include <cstdint>
 #include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {
@@ -32,4 +32,4 @@ class L_EXPORT MarkdownNode {
   int32_t child_count_{0};
 };
 }  // namespace serval::markdown
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_NODE_H_

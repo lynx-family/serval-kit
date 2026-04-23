@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_
-#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_H_
 #include <string>
 #include <string_view>
 #include <utility>
@@ -192,4 +192,4 @@ class MarkdownDomPlaceHolder final : public MarkdownDomNode {
   void* ud_{nullptr};
 };
 }  // namespace serval::markdown
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_DOM_NODE_H_

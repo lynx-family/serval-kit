@@ -2,10 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_INLINE_NODE_H_
-#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_INLINE_NODE_H_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_INLINE_NODE_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_INLINE_NODE_H_
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include "markdown/utils/markdown_definition.h"
 namespace serval::markdown {
@@ -141,4 +144,4 @@ class MarkdownInlineHtmlTag : public MarkdownInlineNode {
   std::vector<MarkdownHtmlAttribute> attributes_;
 };
 }  // namespace serval::markdown
-#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_INLINE_NODE_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_INLINE_NODE_H_

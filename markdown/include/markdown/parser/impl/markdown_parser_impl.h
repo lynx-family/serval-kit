@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_
-#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_H_
 #include <string>
 namespace serval::markdown {
 class MarkdownDocument;
@@ -18,4 +18,4 @@ class MarkdownParserImpl {
   static void ConvertDomTree(MarkdownDocument* document, MarkdownDomNode* root);
 };
 }  // namespace serval::markdown
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_IMPL_MARKDOWN_PARSER_IMPL_H_

@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_PARSER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_PARSER_H_
 
+#include <memory>
 #include <string>
 #include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {

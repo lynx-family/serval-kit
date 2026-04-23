@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_VALUE_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_VALUE_H_
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <utility>
 namespace serval::markdown {
 enum class StyleValuePattern {
   kEmpty,
