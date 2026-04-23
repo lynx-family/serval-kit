@@ -1,8 +1,16 @@
 import { SvgData, SvgView } from '@lynx/servalsvg';
 import util from '@ohos.util';
 
+class SvgPreviewMetadata {
+  fileName: string = '';
+  title: string = '';
+  tags: string[] = [];
+  descriptions: string[] = [];
+}
+
 class SvgPreviewItem {
   fileName: string = '';
+  metadata?: SvgPreviewMetadata;
   svgData: SvgData = new SvgData();
 }
 
@@ -15,27 +23,43 @@ struct Index {
   private static readonly PREVIEW_WIDTH: number = 260;
   private static readonly PREVIEW_HEIGHT: number = 195;
   private static readonly CARD_BACKGROUND: string = '#FFFFFFFF';
+  private static readonly CARD_META_COLOR: string = '#FF5F6368';
   private static readonly CARD_TITLE_COLOR: string = '#FF202124';
   private static readonly PREVIEW_BORDER_COLOR: string = '#FFD9DCE3';
-  private static readonly CATEGORY_CORE: string = 'Core';
+  private static readonly CATEGORY_OTHERS: string = 'Others';
   private static readonly CATEGORY_COLOR_PARSING: string = 'ColorParsing';
   private static readonly CATEGORY_CURRENT_COLOR: string = 'CurrentColor';
   private static readonly CATEGORY_MASK: string = 'Mask';
   private static readonly CATEGORY_PATTERN: string = 'Pattern';
+  private static readonly CATEGORY_SVG_ROOT: string = 'SvgRoot';
+  private static readonly CATEGORY_USE: string = 'Use';
+  private static readonly CATEGORY_GRADIENT: string = 'Gradient';
+  private static readonly CATEGORY_SHAPE: string = 'Shape';
   private static readonly CATEGORY_VECTOR_EFFECT: string = 'VectorEffect';
   private static readonly HOST_COLOR_COMPARE_FILE: string = 'currentcolor-host-default-compare.svg';
   private static readonly HOST_COLOR_OVERRIDE_FILE: string = 'currentcolor-content-color-override.svg';
   private static readonly HOST_DEFAULT_COLOR: string = '#4F6BFF';
+  private static readonly PREVIEW_METADATA_FILES: string[] = [
+    'svg_root_metadata.json',
+    'svg_shape_metadata.json',
+    'svg_use_metadata.json',
+    'svg_gradient_metadata.json'
+  ];
   private readonly categories: string[] = [
-    Index.CATEGORY_CORE,
+    Index.CATEGORY_SHAPE,
     Index.CATEGORY_COLOR_PARSING,
     Index.CATEGORY_CURRENT_COLOR,
     Index.CATEGORY_MASK,
     Index.CATEGORY_PATTERN,
-    Index.CATEGORY_VECTOR_EFFECT
+    Index.CATEGORY_SVG_ROOT,
+    Index.CATEGORY_USE,
+    Index.CATEGORY_GRADIENT,
+    Index.CATEGORY_VECTOR_EFFECT,
+    Index.CATEGORY_OTHERS
   ];
-  @State selectedCategory: string = Index.CATEGORY_CORE;
+  @State selectedCategory: string = Index.CATEGORY_SHAPE;
   @State previewItems: SvgPreviewItem[] = [];
+  private previewMetadataMap: Map<string, SvgPreviewMetadata> = new Map();
   @State files: string[] = [
     'basic_shapes.svg',
     'clip_path.svg',
@@ -75,6 +99,15 @@ struct Index {
     'pattern-units-obb.svg',
     'pattern-viewbox-par.svg',
     'stroke-gradient-vs-pattern.svg',
+    'svg-preserve-aspect-ratio-meet-tall-max.svg',
+    'svg-preserve-aspect-ratio-meet-tall-mid.svg',
+    'svg-preserve-aspect-ratio-meet-tall-min.svg',
+    'svg-preserve-aspect-ratio-meet-wide-max.svg',
+    'svg-preserve-aspect-ratio-meet-wide-mid.svg',
+    'svg-preserve-aspect-ratio-meet-x.svg',
+    'svg-preserve-aspect-ratio-none.svg',
+    'svg-root-explicit-width-height.svg',
+    'svg-root-no-width-height.svg',
     'text.svg',
     'transforms.svg',
     'vector-effect-dash.svg',
@@ -84,9 +117,10 @@ struct Index {
     'string_test.svg'
   ];
 
-  aboutToAppear() {
-    this.selectedCategory = this.categoryForFile('basic_shapes.svg');
-    this.reloadCategory(this.selectedCategory);
+  async aboutToAppear() {
+    await this.loadPreviewMetadata();
+    this.selectedCategory = Index.CATEGORY_SHAPE;
+    await this.reloadCategory(this.selectedCategory);
   }
 
   private categoryForFile(fileName: string): string {
@@ -102,10 +136,22 @@ struct Index {
     if (fileName.startsWith('pattern-') || fileName === 'stroke-gradient-vs-pattern.svg') {
       return Index.CATEGORY_PATTERN;
     }
+    if (fileName.startsWith('svg-root-') || fileName.startsWith('svg-preserve-aspect-ratio-')) {
+      return Index.CATEGORY_SVG_ROOT;
+    }
+    if (fileName.startsWith('use-')) {
+      return Index.CATEGORY_USE;
+    }
+    if (fileName.startsWith('gradient-')) {
+      return Index.CATEGORY_GRADIENT;
+    }
+    if (fileName.startsWith('shape-')) {
+      return Index.CATEGORY_SHAPE;
+    }
     if (fileName.startsWith('vector-effect-')) {
       return Index.CATEGORY_VECTOR_EFFECT;
     }
-    return Index.CATEGORY_CORE;
+    return Index.CATEGORY_OTHERS;
   }
 
   private filesForCategory(category: string): string[] {
@@ -124,6 +170,58 @@ struct Index {
     return data;
   }
 
+  private async loadRawText(path: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      try {
+        getContext(this).resourceManager.getRawFileContent(path, (error, value) => {
+          if (error != null) {
+            reject(error);
+            return;
+          }
+          const textDecoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
+          resolve(textDecoder.decodeWithStream(value, { stream: false }));
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  private async loadPreviewMetadata() {
+    this.previewMetadataMap.clear();
+    const fileNames = [...this.files];
+    for (const metadataFile of Index.PREVIEW_METADATA_FILES) {
+      try {
+        const content = await this.loadRawText(metadataFile);
+        const parsed = JSON.parse(content) as Record<string, Object>;
+        const cases = (parsed['cases'] as Array<Record<string, Object>>) || [];
+        cases.forEach((item: Record<string, Object>) => {
+          const fileName = String(item['fileName'] || '');
+          if (fileName.length === 0) {
+            return;
+          }
+          const metadata = new SvgPreviewMetadata();
+          metadata.fileName = fileName;
+          metadata.title = String(item['title'] || fileName);
+          metadata.tags = ((item['tags'] as string[]) || []).map((tag) => String(tag));
+          metadata.descriptions = ((item['descriptions'] as string[]) || [])
+            .map((description) => String(description));
+          this.previewMetadataMap.set(fileName, metadata);
+          if (!fileNames.includes(fileName)) {
+            fileNames.push(fileName);
+          }
+        });
+      } catch (error) {
+        console.error(`load preview metadata ${metadataFile} failed: ${JSON.stringify(error)}`);
+      }
+    }
+    this.files = fileNames;
+  }
+
+  private previewMetadataForFile(fileName: string): SvgPreviewMetadata | undefined {
+    return this.previewMetadataMap.get(fileName);
+  }
+
   private stringTestContent(): string {
     return '<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">\n'
       + '  <defs>\n'
@@ -139,20 +237,7 @@ struct Index {
     if (fileName === 'string_test.svg') {
       return this.stringTestContent();
     }
-    return new Promise((resolve, reject) => {
-      try {
-        getContext(this).resourceManager.getRawFileContent('svg/' + fileName, (error, value) => {
-          if (error != null) {
-            reject(error);
-            return;
-          }
-          const textDecoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
-          resolve(textDecoder.decodeWithStream(value, { stream: false }));
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    return this.loadRawText('svg/' + fileName);
   }
 
   private async reloadCategory(category: string) {
@@ -161,6 +246,7 @@ struct Index {
     for (const fileName of this.filesForCategory(category)) {
       const item = new SvgPreviewItem();
       item.fileName = fileName;
+      item.metadata = this.previewMetadataForFile(fileName);
       try {
         const content = await this.loadSvgText(fileName);
         item.svgData = this.createSvgData(content);
@@ -190,11 +276,38 @@ struct Index {
         Column({ space: Index.CARD_GAP }) {
           ForEach(this.previewItems, (item: SvgPreviewItem) => {
             Column({ space: Index.CARD_GAP }) {
-              Text(item.fileName)
-                .fontSize(14)
+              Text(item.metadata ? item.metadata.title : item.fileName)
+                .fontSize(16)
                 .fontColor(Index.CARD_TITLE_COLOR)
                 .width('100%')
                 .textAlign(TextAlign.Start)
+
+              Text(`case: ${item.fileName.replace('.svg', '')}`)
+                .fontSize(12)
+                .fontColor(Index.CARD_META_COLOR)
+                .width('100%')
+                .textAlign(TextAlign.Start)
+
+              if (item.metadata && item.metadata.tags.length > 0) {
+                Text(`tags: ${item.metadata.tags.join(', ')}`)
+                  .fontSize(12)
+                  .fontColor(Index.CARD_META_COLOR)
+                  .width('100%')
+                  .textAlign(TextAlign.Start)
+              }
+
+              if (item.metadata && item.metadata.descriptions.length > 0) {
+                Column({ space: 4 }) {
+                  ForEach(item.metadata.descriptions, (description: string, index: number) => {
+                    Text(`${index + 1}. ${description}`)
+                      .fontSize(12)
+                      .fontColor(Index.CARD_TITLE_COLOR)
+                      .width('100%')
+                      .textAlign(TextAlign.Start)
+                  })
+                }
+                .width('100%')
+              }
 
               Stack() {
                 if (item.svgData.content.length > 0) {

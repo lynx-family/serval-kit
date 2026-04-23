@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet" >
+      
+      <defs>
+        <path id="kite" d="M 20 0 L 40 24 L 20 80 L 0 24 Z" fill="#ff9500" stroke="#1c1c1e" stroke-width="3" />
+      </defs>
+      <use href="#kite" x="40" y="50" />
+      <use href="#kite" x="145" y="50" transform="rotate(25 165 90)" />
+      <use href="#kite" x="240" y="35" transform="scale(1.2 0.8)" />
+    
+    </svg>

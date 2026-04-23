@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <defs>
+        <clipPath id="bboxClip" clipPathUnits="objectBoundingBox">
+          <circle cx="0.5" cy="0.5" r="0.45" />
+        </clipPath>
+      </defs>
+      <rect x="30" y="40" width="90" height="120" fill="#ff9500" clip-path="url(#bboxClip)" />
+      <rect x="170" y="40" width="110" height="80" fill="#34c759" clip-path="url(#bboxClip)" />
+    
+    </svg>

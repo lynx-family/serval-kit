@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <defs>
+        <linearGradient id="lgTransform" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(35)">
+          <stop offset="0%" stop-color="#ff3b30" />
+          <stop offset="100%" stop-color="#0a84ff" />
+        </linearGradient>
+      </defs>
+      <rect x="40" y="40" width="240" height="130" fill="url(#lgTransform)" />
+    
+    </svg>

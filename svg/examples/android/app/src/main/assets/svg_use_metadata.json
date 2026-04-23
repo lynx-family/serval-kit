@@ -1,0 +1,47 @@
+{
+  "cases": [
+    {
+      "fileName": "use-basic.svg",
+      "title": "Use Basic",
+      "tags": [
+        "defs",
+        "use",
+        "path"
+      ],
+      "descriptions": [
+        "引用图元正常显示",
+        "use 位置正确",
+        "未出现缺失或重复渲染"
+      ]
+    },
+    {
+      "fileName": "use-transform.svg",
+      "title": "Use Transform",
+      "tags": [
+        "defs",
+        "use",
+        "transform"
+      ],
+      "descriptions": [
+        "use 叠加 transform 后位置正确",
+        "旋转中心符合预期",
+        "缩放后外形不畸变"
+      ]
+    },
+    {
+      "fileName": "use-inherit-fill-stroke.svg",
+      "title": "Use Inherit Fill Stroke",
+      "tags": [
+        "defs",
+        "use",
+        "fill",
+        "stroke"
+      ],
+      "descriptions": [
+        "use 能覆写 fill",
+        "use 能覆写 stroke",
+        "引用节点样式继承稳定"
+      ]
+    }
+  ]
+}

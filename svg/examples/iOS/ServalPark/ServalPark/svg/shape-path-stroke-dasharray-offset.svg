@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <path d="M 20 60 C 120 10 200 110 300 60" fill="none" stroke="#ff3b30" stroke-width="10" stroke-dasharray="20 10" stroke-dashoffset="0" />
+      <path d="M 20 150 C 120 100 200 200 300 150" fill="none" stroke="#34c759" stroke-width="10" stroke-dasharray="20 10" stroke-dashoffset="12" />
+    
+    </svg>

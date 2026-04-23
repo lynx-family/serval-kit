@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <rect x="0" y="0" width="320" height="220" fill="#ffffff" />
+      <g transform="translate(60 35) scale(1.15)">
+        <g transform="rotate(20 60 60)">
+          <rect x="10" y="10" width="100" height="60" fill="#34c759" />
+          <path d="M 30 110 C 60 70 90 150 120 100 S 180 120 210 75" fill="none" stroke="#af52de" stroke-width="8" />
+        </g>
+      </g>
+    
+    </svg>

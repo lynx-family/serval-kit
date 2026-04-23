@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet" >
+      
+      <defs>
+        <path id="badge" d="M 0 20 L 16 0 L 40 0 L 56 20 L 28 48 Z" fill="#0a84ff" stroke="#1c1c1e" stroke-width="2" />
+      </defs>
+      <use href="#badge" x="40" y="55" />
+      <use href="#badge" x="130" y="55" />
+      <use href="#badge" x="220" y="55" />
+    
+    </svg>

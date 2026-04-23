@@ -1,0 +1,422 @@
+{
+  "cases": [
+    {
+      "fileName": "shape-svg-basic-viewport.svg",
+      "title": "SVG Basic Viewport",
+      "tags": [
+        "svg",
+        "viewBox"
+      ],
+      "descriptions": [
+        "根视口尺寸正确",
+        "内容无异常裁切",
+        "整体缩放位置一致"
+      ]
+    },
+    {
+      "fileName": "shape-svg-preserve-aspect-ratio-none.svg",
+      "title": "SVG PrrreserveAspectRatio None",
+      "tags": [
+        "svg",
+        "preserveAspectRatio",
+        "none"
+      ],
+      "descriptions": [
+        "图形按非等比拉伸",
+        "留白为零",
+        "边界与容器对齐"
+      ]
+    },
+    {
+      "fileName": "shape-svg-preserve-aspect-ratio-meet-x.svg",
+      "title": "SVG PreserveAspectRatio None Wide",
+      "tags": [
+        "svg",
+        "preserveAspectRatio",
+        "none"
+      ],
+      "descriptions": [
+        "图形按非等比拉伸",
+        "宽屏容器铺满",
+        "边界与容器对齐"
+      ]
+    },
+    {
+      "fileName": "shape-g-nested-transform-2level.svg",
+      "title": "Nested Group Transform",
+      "tags": [
+        "svg",
+        "g",
+        "transform"
+      ],
+      "descriptions": [
+        "两层 group 的位移缩放旋转一致",
+        "内部 path 无错位",
+        "旋转中心一致"
+      ]
+    },
+    {
+      "fileName": "shape-g-opacity-inherit.svg",
+      "title": "Group Opacity And Inherit",
+      "tags": [
+        "svg",
+        "g",
+        "opacity"
+      ],
+      "descriptions": [
+        "父级透明度生效",
+        "fill stroke 继承正确",
+        "子级覆写仍生效"
+      ]
+    },
+    {
+      "fileName": "shape-rect-basic.svg",
+      "title": "Rect Basic",
+      "tags": [
+        "rect"
+      ],
+      "descriptions": [
+        "矩形位置尺寸一致",
+        "描边宽度一致",
+        "填充色一致"
+      ]
+    },
+    {
+      "fileName": "shape-rect-radius-rx-ry.svg",
+      "title": "Rect Radius RX RY",
+      "tags": [
+        "rect",
+        "rx",
+        "ry"
+      ],
+      "descriptions": [
+        "圆角半径正确",
+        "四角弧度一致",
+        "边界无畸变"
+      ]
+    },
+    {
+      "fileName": "shape-circle-basic.svg",
+      "title": "Circle Basic",
+      "tags": [
+        "circle"
+      ],
+      "descriptions": [
+        "圆心一致",
+        "半径一致",
+        "描边与填充一致"
+      ]
+    },
+    {
+      "fileName": "shape-ellipse-basic.svg",
+      "title": "Ellipse Basic",
+      "tags": [
+        "ellipse"
+      ],
+      "descriptions": [
+        "长短轴比例正确",
+        "中心位置一致",
+        "描边边界一致"
+      ]
+    },
+    {
+      "fileName": "shape-line-cap-3types.svg",
+      "title": "Line Cap Types",
+      "tags": [
+        "line",
+        "stroke-linecap"
+      ],
+      "descriptions": [
+        "三种端点样式一致",
+        "视觉长度一致",
+        "粗线端点不外溢"
+      ]
+    },
+    {
+      "fileName": "shape-polyline-basic.svg",
+      "title": "Polyline Basic",
+      "tags": [
+        "polyline"
+      ],
+      "descriptions": [
+        "折线节点位置一致",
+        "折角无异常圆角",
+        "不发生闭合"
+      ]
+    },
+    {
+      "fileName": "shape-polygon-basic.svg",
+      "title": "Polygon Basic",
+      "tags": [
+        "polygon"
+      ],
+      "descriptions": [
+        "多边形自动闭合",
+        "填充区域正确",
+        "描边连接正确"
+      ]
+    },
+    {
+      "fileName": "shape-path-m-l-h-v-z.svg",
+      "title": "Path MLHVZ",
+      "tags": [
+        "path"
+      ],
+      "descriptions": [
+        "路径闭合正确",
+        "水平垂直线段正确",
+        "无缺边"
+      ]
+    },
+    {
+      "fileName": "shape-path-cubic-c-s.svg",
+      "title": "Path Cubic CS",
+      "tags": [
+        "path",
+        "cubic"
+      ],
+      "descriptions": [
+        "三次曲线平滑",
+        "S 反射控制点正确",
+        "曲线连续无折点"
+      ]
+    },
+    {
+      "fileName": "shape-path-quad-q-t.svg",
+      "title": "Path Quad QT",
+      "tags": [
+        "path",
+        "quad"
+      ],
+      "descriptions": [
+        "二次曲线形状一致",
+        "T 平滑曲线连续",
+        "曲线不折线化"
+      ]
+    },
+    {
+      "fileName": "shape-path-arc-a.svg",
+      "title": "Path Arc A",
+      "tags": [
+        "path",
+        "arc"
+      ],
+      "descriptions": [
+        "弧线起终点正确",
+        "大弧小弧方向正确",
+        "无翻转"
+      ]
+    },
+    {
+      "fileName": "shape-path-relative-commands.svg",
+      "title": "Path Relative Commands",
+      "tags": [
+        "path",
+        "relative"
+      ],
+      "descriptions": [
+        "相对坐标累加正确",
+        "整体轮廓与预期一致",
+        "无偏移漂移"
+      ]
+    },
+    {
+      "fileName": "shape-path-fill-rule-nonzero-evenodd.svg",
+      "title": "Path Fill Rule",
+      "tags": [
+        "path",
+        "fill-rule"
+      ],
+      "descriptions": [
+        "evenodd 镂空正确",
+        "nonzero 对照正确",
+        "无误填充"
+      ]
+    },
+    {
+      "fileName": "shape-path-stroke-dasharray-offset.svg",
+      "title": "Path Stroke Dash Offset",
+      "tags": [
+        "path",
+        "stroke-dasharray",
+        "stroke-dashoffset"
+      ],
+      "descriptions": [
+        "虚线节奏一致",
+        "起点偏移一致",
+        "端点没有额外缺失"
+      ]
+    },
+    {
+      "fileName": "shape-fill-color-basic.svg",
+      "title": "Fill Color Basic",
+      "tags": [
+        "fill",
+        "color"
+      ],
+      "descriptions": [
+        "hex rgb keyword 颜色一致",
+        "透明度正确",
+        "无颜色偏移"
+      ]
+    },
+    {
+      "fileName": "shape-opacity-fill-opacity-stroke-opacity.svg",
+      "title": "Opacity Family",
+      "tags": [
+        "opacity",
+        "fill-opacity",
+        "stroke-opacity"
+      ],
+      "descriptions": [
+        "整体透明度一致",
+        "fill-opacity 生效",
+        "stroke-opacity 生效"
+      ]
+    },
+    {
+      "fileName": "shape-current-color-basic.svg",
+      "title": "Current Color Basic",
+      "tags": [
+        "color",
+        "currentColor",
+        "g"
+      ],
+      "descriptions": [
+        "父级 color 正确传递",
+        "fill stroke 均能取到 currentColor",
+        "局部覆写后结果正确"
+      ]
+    },
+    {
+      "fileName": "shape-clipPath-rect.svg",
+      "title": "ClipPath Rect",
+      "tags": [
+        "clipPath",
+        "rect"
+      ],
+      "descriptions": [
+        "裁剪边界准确",
+        "仅显示被裁区域",
+        "无泄漏渲染"
+      ]
+    },
+    {
+      "fileName": "shape-clipPath-objectBoundingBox.svg",
+      "title": "ClipPath ObjectBoundingBox",
+      "tags": [
+        "clipPath",
+        "objectBoundingBox"
+      ],
+      "descriptions": [
+        "裁剪相对比例一致",
+        "对象尺寸变化后裁剪仍正确",
+        "无坐标系错位"
+      ]
+    },
+    {
+      "fileName": "shape-clipPath-with-gradient-fill.svg",
+      "title": "ClipPath With Gradient",
+      "tags": [
+        "clipPath",
+        "linearGradient",
+        "radialGradient"
+      ],
+      "descriptions": [
+        "渐变仅显示在裁剪区内",
+        "裁剪边界与渐变边界都正确",
+        "无多余像素泄漏"
+      ]
+    },
+    {
+      "fileName": "shape-image-basic-local.svg",
+      "title": "Image Basic",
+      "tags": [
+        "image"
+      ],
+      "descriptions": [
+        "图片能显示",
+        "位置和尺寸正确",
+        "无翻转和拉伸异常"
+      ]
+    },
+    {
+      "fileName": "shape-image-preserveAspectRatio-meet.svg",
+      "title": "Image PreserveAspectRatio Meet",
+      "tags": [
+        "image",
+        "preserveAspectRatio"
+      ],
+      "descriptions": [
+        "图片等比缩放正确",
+        "留白方向一致",
+        "对齐位置一致"
+      ]
+    },
+    {
+      "fileName": "shape-linearGradient-basic-horizontal.svg",
+      "title": "LinearGradient Horizontal",
+      "tags": [
+        "linearGradient",
+        "stop"
+      ],
+      "descriptions": [
+        "渐变方向正确",
+        "起止颜色正确",
+        "边界无突变"
+      ]
+    },
+    {
+      "fileName": "shape-linearGradient-multi-stop.svg",
+      "title": "LinearGradient Multi Stop",
+      "tags": [
+        "linearGradient",
+        "stop"
+      ],
+      "descriptions": [
+        "多个 stop 位置一致",
+        "颜色过渡层次一致",
+        "透明 stop 生效"
+      ]
+    },
+    {
+      "fileName": "shape-linearGradient-gradientTransform.svg",
+      "title": "LinearGradient Transform",
+      "tags": [
+        "linearGradient",
+        "gradientTransform"
+      ],
+      "descriptions": [
+        "渐变旋转平移正确",
+        "图元本身无偏移",
+        "覆盖范围一致"
+      ]
+    },
+    {
+      "fileName": "shape-radialGradient-fx-fy.svg",
+      "title": "RadialGradient FX FY",
+      "tags": [
+        "radialGradient",
+        "stop"
+      ],
+      "descriptions": [
+        "焦点位置一致",
+        "高光偏移一致",
+        "扩散方向一致"
+      ]
+    },
+    {
+      "fileName": "shape-radialGradient-gradientTransform.svg",
+      "title": "RadialGradient Transform",
+      "tags": [
+        "radialGradient",
+        "gradientTransform"
+      ],
+      "descriptions": [
+        "渐变变换后中心位置一致",
+        "椭圆化和旋转一致",
+        "边界过渡一致"
+      ]
+    }
+  ]
+}

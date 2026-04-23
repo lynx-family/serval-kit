@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" preserveAspectRatio="none" >
+      
+      <path d="M 30 40 H 140 V 150 H 30 Z M 60 70 H 110 V 120 H 60 Z" fill="#ff9500" fill-rule="evenodd" />
+      <path d="M 180 40 H 290 V 150 H 180 Z M 210 70 H 260 V 120 H 210 Z" fill="#0a84ff" fill-rule="nonzero" />
+    
+    </svg>
