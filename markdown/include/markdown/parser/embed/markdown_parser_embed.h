@@ -2,10 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_PARSER_DISCOUNT_H_
-#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_PARSER_DISCOUNT_H_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_PARSER_EMBED_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_PARSER_EMBED_H_
 #include <limits>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_element.h"
@@ -207,4 +210,4 @@ class MarkdownParserEmbed {
 };
 }  // namespace serval::markdown
 
-#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_DISCOUNT_MARKDOWN_PARSER_DISCOUNT_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_PARSER_EMBED_H_

@@ -2,8 +2,11 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_
-#define MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
@@ -67,4 +70,4 @@ class MarkdownTextAttachment {
 };
 }  // namespace serval::markdown
 
-#endif  // MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_ATTACHMENTS_H_

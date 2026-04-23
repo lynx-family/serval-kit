@@ -30,4 +30,4 @@ enum class MarkdownProps {
   kTypewriterHeightTransitionPrefetch,
 };
 }
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_

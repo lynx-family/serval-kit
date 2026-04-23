@@ -6,4 +6,4 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_MARCO_H_
 #define L_EXPORT __attribute__((visibility("default")))
 #define L_HIDDEN __attribute__((visibility("hidden")))
-#endif  //MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_MARCO_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_MARCO_H_

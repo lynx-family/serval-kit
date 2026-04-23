@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_TYPEWRITER_DRAWER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_DRAW_MARKDOWN_TYPEWRITER_DRAWER_H_
 
+#include <limits>
 #include <memory>
 #include <vector>
 

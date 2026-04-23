@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
-#define THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
+#ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_CANVAS_IOS_H_
+#define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_CANVAS_IOS_H_
 #import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
 #import <UIKit/UIKit.h>
 #include <vector>
@@ -162,4 +162,4 @@ class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
 
 }  // namespace serval::markdown
 
-#endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_CANVAS_H_
+#endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_CANVAS_IOS_H_

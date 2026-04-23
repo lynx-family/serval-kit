@@ -5,9 +5,9 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGFILTERPRIMITIVES_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGFILTERPRIMITIVES_H_
 
-#include "element/SrSVGNode.h"
 #include <string>
-
+#include <vector>
+#include "element/SrSVGNode.h"
 namespace serval {
 namespace svg {
 namespace element {
