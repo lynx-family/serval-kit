@@ -17,6 +17,7 @@
 #include "markdown/parser/markdown_dom_node.h"
 namespace serval::markdown {
 
+#if MARKDOWN_ENABLE_PARSER_PROVIDER
 class ParserProviderMap {
  public:
   ParserProviderMap() = default;
@@ -40,14 +41,21 @@ ParserProviderMap& GetParserMap() {
   static ParserProviderMap parser_map;
   return parser_map;
 }
+#endif  // MARKDOWN_ENABLE_PARSER_PROVIDER
 
 void MarkdownParserProvider::RegisterParserProvider(
     const std::string& name, MarkdownParserProvider* parser) {
+#if MARKDOWN_ENABLE_PARSER_PROVIDER
   GetParserMap().RegisterParser(name, parser);
+#else
+  (void)name;
+  (void)parser;
+#endif
 }
 
 void MarkdownParserImpl::ParseMarkdown(const std::string& parser_name,
                                        MarkdownDocument* document, void* ud) {
+#if MARKDOWN_ENABLE_PARSER_PROVIDER
   if (!parser_name.empty()) {
     if (const auto provider = GetParserMap().GetParserProvider(parser_name);
         provider != nullptr) {
@@ -57,6 +65,10 @@ void MarkdownParserImpl::ParseMarkdown(const std::string& parser_name,
       return;
     }
   }
+#else
+  (void)parser_name;
+  (void)ud;
+#endif
   MarkdownParserEmbed discount_parser(document);
   auto& content = document->GetMarkdownContent();
   auto range = document->GetMarkdownContentRange();

@@ -12,6 +12,7 @@
 #include "markdown/element/markdown_page.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_marco.h"
 
 namespace serval::markdown {
 
@@ -21,7 +22,7 @@ struct MarkdownSelectionRegion {
   int32_t char_count_;
   PointF offset_;
 };
-class MarkdownSelection {
+class L_EXPORT MarkdownSelection {
  public:
   enum class RectType { kSelection, kLineBounding, kCharBounding };
   enum class RectCoordinate { kAbsolute, kRelative };

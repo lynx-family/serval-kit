@@ -8,6 +8,7 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include "markdown/utils/markdown_marco.h"
 namespace serval::markdown {
 enum class StyleValuePattern {
   kEmpty,
@@ -34,7 +35,7 @@ struct MarkdownLengthContext {
   float dpi_{1};
 };
 
-class MarkdownStyleValue {
+class L_EXPORT MarkdownStyleValue {
  public:
   explicit MarkdownStyleValue(const StyleValuePattern type) : type_(type) {}
   virtual ~MarkdownStyleValue() = default;
@@ -53,7 +54,7 @@ class MarkdownStyleValue {
   StyleValuePattern type_;
 };
 
-class MarkdownLengthValue final : public MarkdownStyleValue {
+class L_EXPORT MarkdownLengthValue final : public MarkdownStyleValue {
  public:
   MarkdownLengthValue() : MarkdownStyleValue(StyleValuePattern::kEmpty) {}
   MarkdownLengthValue(const float value, const StyleValuePattern unit)
@@ -74,7 +75,7 @@ class MarkdownLengthValue final : public MarkdownStyleValue {
   StyleValuePattern unit_{StyleValuePattern::kPx};
 };
 
-class MarkdownNumberValue final : public MarkdownStyleValue {
+class L_EXPORT MarkdownNumberValue final : public MarkdownStyleValue {
  public:
   MarkdownNumberValue() : MarkdownStyleValue(StyleValuePattern::kEmpty) {}
   explicit MarkdownNumberValue(double number)
@@ -94,7 +95,7 @@ enum class OperatorType {
   kMultiple,
   kDivide,
 };
-class MarkdownCalculateValue final : public MarkdownStyleValue {
+class L_EXPORT MarkdownCalculateValue final : public MarkdownStyleValue {
  public:
   MarkdownCalculateValue()
       : MarkdownStyleValue(StyleValuePattern::kCalculate) {}

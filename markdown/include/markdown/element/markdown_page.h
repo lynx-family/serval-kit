@@ -13,6 +13,7 @@
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/element/markdown_region.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 struct ScrollState {
@@ -20,7 +21,7 @@ struct ScrollState {
   MarkdownElementType type_;
   float scroll_offset_;
 };
-class MarkdownPage {
+class L_EXPORT MarkdownPage {
  public:
   MarkdownPage() = default;
   void SetElements(

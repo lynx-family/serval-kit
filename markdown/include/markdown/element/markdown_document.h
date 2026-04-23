@@ -19,6 +19,7 @@
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 
 namespace serval::markdown {
@@ -52,7 +53,7 @@ struct MarkdownInlineView {
   bool is_block_view_;
   MarkdownDrawable* view_;
 };
-class MarkdownDocument {
+class L_EXPORT MarkdownDocument {
  public:
   MarkdownDocument() : MarkdownDocument(nullptr) {}
   explicit MarkdownDocument(MarkdownResourceLoader* loader)
