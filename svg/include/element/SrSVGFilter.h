@@ -21,7 +21,7 @@ class SrSVGFilter : public SrSVGContainer {
   SrSVGObjectBoundingBoxUnitType primitive_units() const {
     return primitive_units_;
   }
-  
+
   const SrSVGLength& x() const { return x_; }
   const SrSVGLength& y() const { return y_; }
   const SrSVGLength& width() const { return width_; }
@@ -35,7 +35,7 @@ class SrSVGFilter : public SrSVGContainer {
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX};
   SrSVGObjectBoundingBoxUnitType primitive_units_{
       SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE};
-      
+
   SrSVGLength x_{.value = -10.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
   SrSVGLength y_{.value = -10.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
   SrSVGLength width_{.value = 120.0f, .unit = SR_SVG_UNITS_PERCENTAGE};

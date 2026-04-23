@@ -12,6 +12,6 @@ GNTestShared::GNTestShared() {}
 
 GNTestShared::~GNTestShared() {}
 
-}  // namespace test
-}  // namespace gn
-}  // namespace lynx
+} // namespace test
+} // namespace gn
+} // namespace lynx

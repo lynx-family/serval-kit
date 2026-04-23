@@ -13,9 +13,9 @@
 #include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "skity/effect/image_filter.hpp"
 #include "skity/io/data.hpp"
 #include "skity/render/canvas.hpp"
-#include "skity/effect/image_filter.hpp"
 
 namespace serval {
 namespace svg {
@@ -122,7 +122,8 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
   bool SupportsFilters() const override { return true; }
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
-  void SaveLayerWithFilter(const SrSVGBox* bounds, const SrSVGPaint* filter, void* id_mapper) override;
+  void SaveLayerWithFilter(const SrSVGBox* bounds, const SrSVGPaint* filter,
+                           void* id_mapper) override;
   void RestoreLayer() override;
   void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
   void SetMaskIsLuminance(bool is_luminance) override;

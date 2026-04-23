@@ -9,15 +9,15 @@ namespace lynx {
 namespace gn {
 namespace test {
 class GNTest {
- private:
+private:
   /* data */
- public:
+public:
   GNTest();
   ~GNTest();
 };
 
-}  // namespace test
-}  // namespace gn
-}  // namespace lynx
+} // namespace test
+} // namespace gn
+} // namespace lynx
 
-#endif  // TOOLS_GN_TOOLS_TEST_GN_TEST_SOURCE_H_
+#endif // TOOLS_GN_TOOLS_TEST_GN_TEST_SOURCE_H_

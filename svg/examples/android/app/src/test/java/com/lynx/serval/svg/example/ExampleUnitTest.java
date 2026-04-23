@@ -14,17 +14,15 @@ import org.junit.Test;
 public class ExampleUnitTest {
   private static final Path ASSET_DIR = Paths.get("src/main/assets/svg");
   private static final List<String> MASK_EXAMPLE_FILES = Arrays.asList(
-      "mask-comprehensive-test.svg",
-      "mask-luminance-gradient-test.svg",
+      "mask-comprehensive-test.svg", "mask-luminance-gradient-test.svg",
       "mask-alpha-units-test.svg");
 
   @Test
   public void maskExampleAssets_areCheckedIn() {
     for (String fileName : MASK_EXAMPLE_FILES) {
       Path assetPath = ASSET_DIR.resolve(fileName);
-      assertTrue(
-          "mask example asset should exist at " + assetPath,
-          Files.exists(assetPath));
+      assertTrue("mask example asset should exist at " + assetPath,
+                 Files.exists(assetPath));
     }
   }
 
@@ -36,23 +34,28 @@ public class ExampleUnitTest {
           new String(Files.readAllBytes(assetPath), StandardCharsets.UTF_8);
 
       assertTrue(fileName + " should define at least one <mask>",
-          content.contains("<mask "));
+                 content.contains("<mask "));
       assertTrue(fileName + " should apply a mask to a drawable element",
-          content.contains("mask=\"url(#"));
+                 content.contains("mask=\"url(#"));
     }
 
-    String luminanceContent = new String(Files.readAllBytes(
-        ASSET_DIR.resolve("mask-luminance-gradient-test.svg")), StandardCharsets.UTF_8);
-    assertTrue("luminance test asset should explicitly cover mask-type=luminance",
+    String luminanceContent =
+        new String(Files.readAllBytes(
+                       ASSET_DIR.resolve("mask-luminance-gradient-test.svg")),
+                   StandardCharsets.UTF_8);
+    assertTrue(
+        "luminance test asset should explicitly cover mask-type=luminance",
         luminanceContent.contains("mask-type=\"luminance\""));
     assertTrue("luminance test asset should cover gradient-driven masks",
-        luminanceContent.contains("<linearGradient"));
+               luminanceContent.contains("<linearGradient"));
 
-    String alphaContent = new String(Files.readAllBytes(
-        ASSET_DIR.resolve("mask-alpha-units-test.svg")), StandardCharsets.UTF_8);
+    String alphaContent = new String(
+        Files.readAllBytes(ASSET_DIR.resolve("mask-alpha-units-test.svg")),
+        StandardCharsets.UTF_8);
     assertTrue("alpha test asset should explicitly cover mask-type=alpha",
-        alphaContent.contains("mask-type=\"alpha\""));
-    assertTrue("alpha test asset should cover objectBoundingBox mask content units",
+               alphaContent.contains("mask-type=\"alpha\""));
+    assertTrue(
+        "alpha test asset should cover objectBoundingBox mask content units",
         alphaContent.contains("maskContentUnits=\"objectBoundingBox\""));
   }
 }
