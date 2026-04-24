@@ -21,6 +21,7 @@ struct MarkdownSelectionRegion {
   int32_t char_pos_offset_;
   int32_t char_count_;
   PointF offset_;
+  float row_bottom_{-1.f};
 };
 class L_EXPORT MarkdownSelection {
  public:

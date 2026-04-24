@@ -600,7 +600,36 @@ TEST(MarkdownCaseUnittest, TypewriterDynamicHeight) {
       unittest.resource_loader_.get(),
       unittest.document_->GetStyle().typewriter_cursor_, false, nullptr);
   typewriter_drawer.DrawPage(*unittest.document_->GetPage());
-  EXPECT_EQ(typewriter_drawer.GetMaxDrawHeight(), 115);
+  EXPECT_EQ(typewriter_drawer.GetMaxDrawHeight(), 120);
+}
+
+TEST(MarkdownCaseUnittest, TableSelectionRegionTracksRowBottom) {
+  MarkdownCaseUnittest unittest;
+  unittest.markdown_ = R"(
+|header|header|header|
+|-|-|-|
+|body|body|body|
+|body|body|body|
+)";
+  unittest.ParseLayoutAndDraw();
+  auto page = unittest.document_->GetPage();
+  ASSERT_NE(page, nullptr);
+  ASSERT_GT(page->GetRegionCount(), 0u);
+  ASSERT_EQ(page->GetRegion(0)->element_->GetType(),
+            MarkdownElementType::kTable);
+  auto* table_region =
+      static_cast<MarkdownPageTableRegion*>(page->GetRegion(0));
+  ASSERT_NE(table_region, nullptr);
+
+  const int32_t first_row_end = unittest.document_->GetCharIndexByLineIndex(0);
+  const float expected_height =
+      page->GetRegion(0)->rect_.GetTop() +
+      table_region->table_->GetCell(0, 0).cell_rect_.GetBottom();
+  const auto selection_regions =
+      MarkdownSelection::GetSelectionRegionsByCharRange(
+          page.get(), first_row_end - 1, first_row_end);
+  ASSERT_FALSE(selection_regions.empty());
+  EXPECT_EQ(selection_regions.back().row_bottom_, expected_height);
 }
 TEST(MarkdownCaseUnittest, SelectionGetContent) {
   MarkdownCaseUnittest unittest;

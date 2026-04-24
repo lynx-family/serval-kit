@@ -79,8 +79,8 @@ bool IsPunctuation(const char32_t unicode) {
       (unicode >= 0xfe10 && unicode <= 0xfe1f) ||
       (unicode >= 0xfe30 && unicode <= 0xfe4f) ||
       (unicode >= 0xfe50 && unicode <= 0xfe6f) ||
-      (unicode > 0xff01 && unicode <= 0xff0f) ||
-      (unicode > 0xff1a && unicode <= 0xff20) ||
+      (unicode >= 0xff01 && unicode <= 0xff0f) ||
+      (unicode >= 0xff1a && unicode <= 0xff20) ||
       (unicode >= 0xff3b && unicode <= 0xff40) ||
       (unicode >= 0xff5b && unicode <= 0xff65)) {
     return true;

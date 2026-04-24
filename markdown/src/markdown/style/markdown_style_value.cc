@@ -10,8 +10,11 @@ namespace serval::markdown {
 float MarkdownLengthValue::CalculateLengthValue(
     const MarkdownLengthContext& context) const {
   switch (type_) {
+    case StyleValuePattern::kRawPx:
+      return value_;
     case StyleValuePattern::kPx:
     case StyleValuePattern::kNumber:
+    case StyleValuePattern::kDp:
       return value_ * context.dpi_;
     case StyleValuePattern::kEm:
       return context.font_size_ * value_;

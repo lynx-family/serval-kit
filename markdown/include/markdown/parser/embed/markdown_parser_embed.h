@@ -155,6 +155,8 @@ class MarkdownParserEmbed {
   std::vector<std::string_view> Split(const std::string_view& content,
                                       char split);
   std::string_view TrimSpace(std::string_view origin);
+  std::string_view TrimLeadingSpace(std::string_view origin);
+  std::string_view TrimTrailingSpace(std::string_view origin);
   std::vector<tttext::ParagraphHorizontalAlignment> HandleTableAlign(
       const std::string_view& content);
   void SetParagraphStyle(const MarkdownBaseStylePart& base_style_part,

@@ -727,6 +727,9 @@ MarkdownSelection::GetSelectionRegionsByCharRange(
                                region_cell.region_offset_ +
                                PointF{page_region->rect_.GetLeft() + x_offset,
                                       page_region->rect_.GetTop()};
+              region.row_bottom_ =
+                  page_region->rect_.GetTop() +
+                  table->GetCell(row, col).cell_rect_.GetBottom();
               selection_regions.emplace_back(std::move(region));
             }
           }
@@ -739,6 +742,13 @@ MarkdownSelection::GetSelectionRegionsByCharRange(
 
 Range MarkdownSelection::GetSentenceOfChar(tttext::Paragraph* paragraph,
                                            int32_t char_pos) {
+  const int32_t char_count = paragraph->GetCharCount();
+  if (char_count <= 0) {
+    return {0, 0};
+  }
+  if (char_pos >= char_count) {
+    char_pos = char_count - 1;
+  }
   auto content_string =
       paragraph->GetContentString(0, paragraph->GetCharCount());
   auto byte_pos_start =
