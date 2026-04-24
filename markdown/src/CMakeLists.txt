@@ -4,7 +4,7 @@ project(markdown_source)
 set(MARKDOWN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/markdown)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-file(GLOB MARKDOWN_SOURCES
+file(GLOB MARKDOWN_SOURCES CONFIGURE_DEPENDS
         ${MARKDOWN_DIR}/*.cc
         ${MARKDOWN_DIR}/draw/*.cc
         ${MARKDOWN_DIR}/element/*.cc

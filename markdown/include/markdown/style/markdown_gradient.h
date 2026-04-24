@@ -17,6 +17,7 @@
 namespace serval::markdown {
 
 class MarkdownResourceLoader;
+class MarkdownContext;
 
 enum class MarkdownGradientType : int32_t {
   kLinear = 2,
@@ -37,7 +38,7 @@ enum class MarkdownLinearGradientDirection : int32_t {
 
 class MarkdownLinearGradientDrawable final : public MarkdownBackgroundDrawable {
  public:
-  MarkdownLinearGradientDrawable(float angle,
+  MarkdownLinearGradientDrawable(MarkdownContext* context, float angle,
                                  MarkdownLinearGradientDirection direction,
                                  std::vector<uint32_t> colors,
                                  std::vector<float> stops);
@@ -63,12 +64,14 @@ class MarkdownLinearGradientDrawable final : public MarkdownBackgroundDrawable {
   MarkdownLinearGradientDirection direction_{
       MarkdownLinearGradientDirection::kNone};
   MarkdownLinearGradient gradient_{};
+  MarkdownContext* context_{nullptr};
 };
 
 class MarkdownBackgroundImageDrawable final
     : public MarkdownBackgroundDrawable {
  public:
-  MarkdownBackgroundImageDrawable(MarkdownResourceLoader* loader,
+  MarkdownBackgroundImageDrawable(MarkdownContext* context,
+                                  MarkdownResourceLoader* loader,
                                   std::string url,
                                   std::shared_ptr<MarkdownDrawable> image);
   ~MarkdownBackgroundImageDrawable() override = default;
@@ -89,6 +92,7 @@ class MarkdownBackgroundImageDrawable final
   MarkdownResourceLoader* loader_{nullptr};
   std::string url_;
   std::shared_ptr<MarkdownDrawable> image_;
+  MarkdownContext* context_{nullptr};
   float measured_width_{-1};
   float measured_height_{-1};
 };
@@ -96,11 +100,13 @@ class MarkdownBackgroundImageDrawable final
 bool IsGradientValue(std::string_view value);
 
 std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
-    std::string_view value, const MarkdownLengthContext& context);
+    std::string_view value, const MarkdownLengthContext& length_context,
+    MarkdownContext* context = nullptr);
 
 std::shared_ptr<MarkdownBackgroundDrawable> ParseBackgroundDrawableValue(
     std::string_view value, MarkdownResourceLoader* loader,
-    const MarkdownLengthContext& context);
+    const MarkdownLengthContext& length_context,
+    MarkdownContext* context = nullptr);
 
 }  // namespace serval::markdown
 

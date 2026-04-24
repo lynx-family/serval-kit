@@ -14,6 +14,7 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 
 namespace serval::markdown {
+class MarkdownContext;
 class MarkdownTable;
 class MarkdownTableRegion;
 class L_EXPORT MarkdownLayout {
@@ -22,7 +23,8 @@ class L_EXPORT MarkdownLayout {
   void SetPaddings(Paddings paddings);
   std::pair<float, float> Layout(float width, float height, int text_max_lines);
 
-  static std::pair<float, float> MeasureParagraph(tttext::Paragraph* paragraph,
+  static std::pair<float, float> MeasureParagraph(MarkdownContext* context,
+                                                  tttext::Paragraph* paragraph,
                                                   float width, float height,
                                                   int max_lines);
 
@@ -34,12 +36,13 @@ class L_EXPORT MarkdownLayout {
       float max_height, float region_left, float region_top, bool last);
   void ForceAppendEllipsis(MarkdownPageRegion* region);
   static std::unique_ptr<MarkdownTableRegion> LayoutTable(
-      MarkdownTable* table, float width, float height, float min_width,
-      int max_lines, MarkdownTextOverflow overflow, bool* full_filled);
+      MarkdownContext* context, MarkdownTable* table, float width, float height,
+      float min_width, int max_lines, MarkdownTextOverflow overflow,
+      bool* full_filled);
   static std::unique_ptr<tttext::LayoutRegion> LayoutParagraph(
-      tttext::Paragraph* paragraph, float width, tttext::LayoutMode width_mode,
-      float height, int max_lines, MarkdownTextOverflow overflow,
-      bool* full_filled, bool last);
+      MarkdownContext* context, tttext::Paragraph* paragraph, float width,
+      tttext::LayoutMode width_mode, float height, int max_lines,
+      MarkdownTextOverflow overflow, bool* full_filled, bool last);
 
  private:
   Paddings paddings_{};
@@ -48,6 +51,7 @@ class L_EXPORT MarkdownLayout {
   float current_layout_bottom_{0};
   float current_margin_bottom_{0};
   MarkdownDocument* document_{nullptr};
+  MarkdownContext* context_{nullptr};
   std::shared_ptr<MarkdownPage> page_{nullptr};
 };
 }  // namespace serval::markdown

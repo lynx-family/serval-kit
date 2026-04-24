@@ -6,6 +6,7 @@
 
 #include "markdown/draw/markdown_canvas.h"
 #include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/utils/markdown_float_comparison.h"
 #include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
@@ -40,7 +41,7 @@ MeasureSpec MakeGradientMeasureSpec(float width, float height) {
 
 void MarkdownTextAttachment::DrawOnMultiLines(
     tttext::ICanvasHelper* canvas, const std::vector<RectF>& lines_rect,
-    float total_length) const {
+    float total_length, MarkdownContext* context) const {
   float total_width = total_length;
   if (total_width <= 0) {
     for (auto& r : lines_rect) {
@@ -55,8 +56,10 @@ void MarkdownTextAttachment::DrawOnMultiLines(
                             ? 1e6
                             : r.GetRight();
     canvas->ClipRect(left, 0, right, 1e6, false);
-    DrawOnRect(canvas, RectF::MakeLTWH(r.GetLeft() - offset_width, r.GetTop(),
-                                       total_width, r.GetHeight()));
+    DrawOnRect(canvas,
+               RectF::MakeLTWH(r.GetLeft() - offset_width, r.GetTop(),
+                               total_width, r.GetHeight()),
+               context);
     canvas->Restore();
     offset_width += r.GetWidth();
   }
@@ -71,56 +74,58 @@ float CalculateLength(const MarkdownLengthContext& context,
   return value->CalculateLengthValue(context);
 }
 
-void MarkdownTextAttachment::DrawOnRect(tttext::ICanvasHelper* canvas,
-                                        RectF rect) const {
-  MarkdownLengthContext context{.base_length_ = rect.GetWidth()};
+void MarkdownTextAttachment::DrawOnRect(
+    tttext::ICanvasHelper* canvas, RectF rect,
+    MarkdownContext* markdown_context) const {
+  MarkdownLengthContext length_context{.base_length_ = rect.GetWidth()};
   const float left =
-      rect.GetLeft() + CalculateLength(context, rect_.left_.get(), 0);
+      rect.GetLeft() + CalculateLength(length_context, rect_.left_.get(), 0);
   const float right =
       rect.GetLeft() +
-      CalculateLength(context, rect_.right_.get(), rect.GetWidth());
-  context.base_length_ = rect.GetHeight();
+      CalculateLength(length_context, rect_.right_.get(), rect.GetWidth());
+  length_context.base_length_ = rect.GetHeight();
   const float top =
-      rect.GetTop() + CalculateLength(context, rect_.top_.get(), 0);
+      rect.GetTop() + CalculateLength(length_context, rect_.top_.get(), 0);
   const float bottom =
       rect.GetTop() +
-      CalculateLength(context, rect_.bottom_.get(), rect.GetHeight());
+      CalculateLength(length_context, rect_.bottom_.get(), rect.GetHeight());
 
-  DrawRect(canvas, RectF::MakeLTRB(left, top, right, bottom), rect_);
+  DrawRect(canvas, RectF::MakeLTRB(left, top, right, bottom), rect_,
+           markdown_context);
   const float border_left =
-      CalculateLength(context, border_left_.width_.get(), 0);
+      CalculateLength(length_context, border_left_.width_.get(), 0);
   DrawLine(canvas, {left + border_left / 2, top},
-           {left + border_left / 2, bottom}, context, border_left_,
-           border_left);
+           {left + border_left / 2, bottom}, length_context, border_left_,
+           border_left, markdown_context);
   const float border_right =
-      CalculateLength(context, border_right_.width_.get(), 0);
+      CalculateLength(length_context, border_right_.width_.get(), 0);
   DrawLine(canvas, {right - border_right / 2, top},
-           {right - border_right / 2, bottom}, context, border_right_,
-           border_right);
-  context.base_length_ = rect.GetWidth();
+           {right - border_right / 2, bottom}, length_context, border_right_,
+           border_right, markdown_context);
+  length_context.base_length_ = rect.GetWidth();
   const float border_top =
-      CalculateLength(context, border_top_.width_.get(), 0);
+      CalculateLength(length_context, border_top_.width_.get(), 0);
   DrawLine(canvas, {left, top + border_top / 2}, {right, top + border_top / 2},
-           context, border_top_, border_top);
+           length_context, border_top_, border_top, markdown_context);
   const float border_bottom =
-      CalculateLength(context, border_bottom_.width_.get(), 0);
+      CalculateLength(length_context, border_bottom_.width_.get(), 0);
   DrawLine(canvas, {left, bottom - border_bottom / 2},
-           {right, bottom - border_bottom / 2}, context, border_bottom_,
-           border_bottom);
+           {right, bottom - border_bottom / 2}, length_context, border_bottom_,
+           border_bottom, markdown_context);
 }
 
-void MarkdownTextAttachment::DrawRect(
-    tttext::ICanvasHelper* canvas, RectF rect,
-    const MarkdownAttachmentRectStyle& style) {
+void MarkdownTextAttachment::DrawRect(tttext::ICanvasHelper* canvas, RectF rect,
+                                      const MarkdownAttachmentRectStyle& style,
+                                      MarkdownContext* markdown_context) {
   if (style.color_ == 0 && style.gradient_ == nullptr)
     return;
   auto painter = canvas->CreatePainter();
   painter->SetFillColor(style.color_);
   painter->SetStrokeColor(style.stroke_color_);
-  MarkdownLengthContext context;
+  MarkdownLengthContext length_context;
   painter->SetStrokeWidth(
-      CalculateLength(context, style.stroke_width_.get(), 0));
-  float radius = CalculateLength(context, style.radius_.get(), 0);
+      CalculateLength(length_context, style.stroke_width_.get(), 0));
+  float radius = CalculateLength(length_context, style.radius_.get(), 0);
   if (style.gradient_ != nullptr) {
     style.gradient_->Measure(
         MakeGradientMeasureSpec(rect.GetWidth(), rect.GetHeight()));
@@ -187,7 +192,8 @@ void MarkdownTextAttachment::DrawLine(tttext::ICanvasHelper* canvas,
                                       PointF start, PointF end,
                                       const MarkdownLengthContext& context,
                                       const MarkdownAttachmentLineStyle& style,
-                                      float width) {
+                                      float width,
+                                      MarkdownContext* markdown_context) {
   if (style.line_type_ == MarkdownLineType::kNone)
     return;
   auto painter = canvas->CreatePainter();
@@ -206,7 +212,9 @@ void MarkdownTextAttachment::DrawLine(tttext::ICanvasHelper* canvas,
       style.gradient_->DrawOnPath(canvas, &path, bounds, painter.get());
     } else {
       const auto canvas_extend =
-          MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+          markdown_context == nullptr
+              ? nullptr
+              : markdown_context->GetMarkdownCanvasExtend(canvas);
       if (canvas_extend == nullptr) {
         return;
       }

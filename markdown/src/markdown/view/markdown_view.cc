@@ -12,8 +12,12 @@
 #include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view_animator.h"
 namespace serval::markdown {
-MarkdownView::MarkdownView(MarkdownPlatformView* view)
-    : view_(view), handle_(view->GetViewContainerHandle()) {
+MarkdownView::MarkdownView(MarkdownPlatformView* view,
+                           std::shared_ptr<MarkdownContext> context)
+    : view_(view),
+      handle_(view->GetViewContainerHandle()),
+      context_(std::move(context)),
+      measurer_(context_) {
   renderer_.SetViewContainerHandle(handle_);
   view_->SetTapListener([this](PointF position, GestureEventType event) {
     return OnTap(position, event);
@@ -613,8 +617,9 @@ float MarkdownView::CalculateHeightByAnimationStep(
   }
   const auto cursor = page->GetCustomTypewriterCursor();
   MarkdownCharTypewriterDrawer drawer(
-      nullptr, animation_step, layout_data_.document_->GetResourceLoader(),
-      cursor_style, !layout_data_.content_complete_,
+      layout_data_.document_->GetContextPtr(), nullptr, animation_step,
+      layout_data_.document_->GetResourceLoader(), cursor_style,
+      !layout_data_.content_complete_,
       cursor == nullptr ? nullptr : cursor.get());
   drawer.CalculateCursorPosition(page.get());
   float typewriter_height = 0;

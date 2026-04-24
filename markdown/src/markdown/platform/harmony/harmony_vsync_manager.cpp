@@ -27,7 +27,7 @@ class HarmonyVSyncManagerImpl {
   }
 
   void AddVSyncCallback(HarmonyVSyncCallback* callback) {
-    HarmonyUIThread::PostTask([this, callback]() {
+    HarmonyUIThread::RunOnUIThread([this, callback]() {
       std::lock_guard<std::mutex> guard(callbacks_mutex_);
       callbacks_.emplace_back(callback);
       if (callbacks_.size() == 1) {
@@ -50,7 +50,7 @@ class HarmonyVSyncManagerImpl {
     Instance().OnVSync(time_stamp);
   }
   void OnVSync(int64_t time_stamp) {
-    HarmonyUIThread::PostTask([this, time_stamp]() {
+    HarmonyUIThread::RunOnUIThread([this, time_stamp]() {
       std::lock_guard<std::mutex> guard(callbacks_mutex_);
       for (auto* callback : callbacks_) {
         callback->OnVSync(time_stamp);

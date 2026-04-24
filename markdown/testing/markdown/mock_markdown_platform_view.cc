@@ -10,12 +10,14 @@
 
 #include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view.h"
+#include "testing/markdown/markdown_tests_platform.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 
 namespace serval::markdown::testing {
 
 MockMarkdownMainView::MockMarkdownMainView() {
-  MockMarkdownCustomView::AttachDrawable(std::make_unique<MarkdownView>(this));
+  MockMarkdownCustomView::AttachDrawable(
+      std::make_unique<MarkdownView>(this, CreateTestMarkdownSharedContext()));
 }
 
 void MockMarkdownPlatformView::RequestMeasure() {

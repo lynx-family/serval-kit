@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/parser/markdown_resource_loader.h"
@@ -22,7 +23,9 @@ enum class MarkdownAnimationType {
 enum class SourceType { kPlainText, kMarkdown };
 class MarkdownViewMeasurer {
  public:
+  MarkdownViewMeasurer() = delete;
   explicit MarkdownViewMeasurer(
+      std::shared_ptr<MarkdownContext> context,
       MarkdownResourceLoader* resource_loader = nullptr);
   ~MarkdownViewMeasurer() = default;
 
@@ -83,6 +86,7 @@ class MarkdownViewMeasurer {
   bool did_layout_in_last_measure_{false};
 
   Paddings paddings_{};
+  std::shared_ptr<MarkdownContext> context_{nullptr};
   MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
 };

@@ -14,9 +14,9 @@
 #include <vector>
 
 #include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_color.h"
-#include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_string_utils.h"
 
 namespace serval::markdown {
@@ -420,22 +420,27 @@ void UpdateGradientPoints(float width, float height, float angle,
 }  // namespace
 
 MarkdownLinearGradientDrawable::MarkdownLinearGradientDrawable(
-    float angle, MarkdownLinearGradientDirection direction,
-    std::vector<uint32_t> colors, std::vector<float> stops)
-    : angle_(angle), direction_(direction) {
+    MarkdownContext* context, float angle,
+    MarkdownLinearGradientDirection direction, std::vector<uint32_t> colors,
+    std::vector<float> stops)
+    : angle_(angle), direction_(direction), context_(context) {
   gradient_.colors = std::move(colors);
   gradient_.stops = std::move(stops);
 }
 
 MarkdownBackgroundImageDrawable::MarkdownBackgroundImageDrawable(
-    MarkdownResourceLoader* loader, std::string url,
+    MarkdownContext* context, MarkdownResourceLoader* loader, std::string url,
     std::shared_ptr<MarkdownDrawable> image)
-    : loader_(loader), url_(std::move(url)), image_(std::move(image)) {}
+    : loader_(loader),
+      url_(std::move(url)),
+      image_(std::move(image)),
+      context_(context) {}
 
 void MarkdownLinearGradientDrawable::DrawOnRect(tttext::ICanvasHelper* canvas,
                                                 RectF rect,
                                                 tttext::Painter* painter) {
-  auto* canvas_extend = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+  auto* canvas_extend =
+      context_ == nullptr ? nullptr : context_->GetMarkdownCanvasExtend(canvas);
   if (canvas_extend == nullptr) {
     return;
   }
@@ -458,7 +463,8 @@ void MarkdownLinearGradientDrawable::DrawOnPath(tttext::ICanvasHelper* canvas,
   if (path == nullptr || painter == nullptr) {
     return;
   }
-  auto* canvas_extend = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+  auto* canvas_extend =
+      context_ == nullptr ? nullptr : context_->GetMarkdownCanvasExtend(canvas);
   if (canvas_extend == nullptr) {
     return;
   }
@@ -500,7 +506,8 @@ void MarkdownBackgroundImageDrawable::DrawOnPath(tttext::ICanvasHelper* canvas,
   if (image == nullptr) {
     return;
   }
-  auto* canvas_extend = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+  auto* canvas_extend =
+      context_ == nullptr ? nullptr : context_->GetMarkdownCanvasExtend(canvas);
   if (canvas_extend == nullptr) {
     return;
   }
@@ -572,8 +579,9 @@ bool IsGradientValue(std::string_view value) {
 }
 
 std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
-    std::string_view value, const MarkdownLengthContext& context) {
-  (void)context;
+    std::string_view value, const MarkdownLengthContext& length_context,
+    MarkdownContext* context) {
+  (void)length_context;
   const auto trimmed = Trim(value);
   if (trimmed.empty() || trimmed.back() != ')') {
     return nullptr;
@@ -593,20 +601,20 @@ std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
     return nullptr;
   }
   return std::make_shared<MarkdownLinearGradientDrawable>(
-      angle, direction, std::move(colors), std::move(stops));
+      context, angle, direction, std::move(colors), std::move(stops));
 }
 
 std::shared_ptr<MarkdownBackgroundDrawable> ParseBackgroundDrawableValue(
     std::string_view value, MarkdownResourceLoader* loader,
-    const MarkdownLengthContext& context) {
+    const MarkdownLengthContext& length_context, MarkdownContext* context) {
   if (IsGradientValue(value)) {
-    return ParseGradientValue(value, context);
+    return ParseGradientValue(value, length_context, context);
   }
   const auto url = ExtractUrl(value);
   if (url.empty() || loader == nullptr) {
     return nullptr;
   }
-  return std::make_shared<MarkdownBackgroundImageDrawable>(loader, url,
+  return std::make_shared<MarkdownBackgroundImageDrawable>(context, loader, url,
                                                            nullptr);
 }
 

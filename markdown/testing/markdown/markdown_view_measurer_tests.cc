@@ -5,11 +5,12 @@
 #include "gtest/gtest.h"
 
 #include "markdown/view/markdown_view_measurer.h"
+#include "testing/markdown/markdown_tests_platform.h"
 
 namespace serval::markdown {
 
 TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {
-  MarkdownViewMeasurer measurer;
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
   measurer.SetSourceType(SourceType::kPlainText);
   measurer.SetContent("hello\n");
   MeasureSpec spec;
@@ -24,7 +25,7 @@ TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {
 }
 
 TEST(MarkdownViewMeasurerTest, ContentRangeAffectsHeight) {
-  MarkdownViewMeasurer measurer;
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
   measurer.SetSourceType(SourceType::kMarkdown);
   const std::string content = "line1\n\nline2";
   measurer.SetContent(content);

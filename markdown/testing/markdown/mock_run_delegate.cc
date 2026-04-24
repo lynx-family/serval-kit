@@ -4,13 +4,12 @@
 #include "testing/markdown/mock_run_delegate.h"
 
 #include "markdown/draw/markdown_path.h"
-#include "markdown/utils/markdown_platform.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 namespace serval::markdown::testing {
 void MockImage::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   if (radius_ > 0) {
     canvas->Save();
-    auto extend = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
+    auto* extend = static_cast<MockMarkdownCanvas*>(canvas);
     if (extend != nullptr) {
       MarkdownPath path;
       path.AddRoundRect({.rect_ = RectF::MakeLTWH(x, y, width_, height_),

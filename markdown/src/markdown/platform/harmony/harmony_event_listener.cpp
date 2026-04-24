@@ -53,7 +53,7 @@ void HarmonyEventListener::OnAnimationStep(int32_t animation_step,
                                            int32_t max_animation_step) {
   if (animation_step_.IsNull())
     return;
-  HarmonyUIThread::PostTask([this, animation_step, max_animation_step]() {
+  HarmonyUIThread::RunOnUIThread([this, animation_step, max_animation_step]() {
     HarmonyValues::CallFunction(env_, nullptr, animation_step_.GetValue(),
                                 animation_step, max_animation_step);
   });

@@ -4,14 +4,13 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_
-#include <cstdint>
-#include <functional>
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 class MarkdownCanvasExtend;
 class MarkdownPlatform {
  public:
-  static tttext::TextLayout* GetTextLayout();
+  virtual ~MarkdownPlatform() = default;
+  virtual tttext::TextLayout* GetTextLayout() = 0;
   static float GetMdLayoutRegionWidth(tttext::LayoutRegion* region) {
     return region->GetWidthMode() == tttext::LayoutMode::kDefinite
                ? region->GetPageWidth()
@@ -22,10 +21,10 @@ class MarkdownPlatform {
                ? region->GetPageHeight()
                : region->GetLayoutedHeight();
   }
-  static MarkdownCanvasExtend* GetMarkdownCanvasExtend(
-      tttext::ICanvasHelper* canvas);
-  static void RunOnUIThread(std::function<void()> task,
-                            int64_t micro_seconds = 0);
+  virtual MarkdownCanvasExtend* GetMarkdownCanvasExtend(
+      tttext::ICanvasHelper* /*canvas*/) {
+    return nullptr;
+  }
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_PLATFORM_H_

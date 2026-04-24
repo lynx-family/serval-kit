@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "markdown/draw/markdown_canvas.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/markdown_event_listener.h"
@@ -29,7 +30,8 @@
 namespace serval::markdown {
 class MarkdownView final : public MarkdownDrawable {
  public:
-  explicit MarkdownView(MarkdownPlatformView* view);
+  MarkdownView(MarkdownPlatformView* view,
+               std::shared_ptr<MarkdownContext> context);
   ~MarkdownView() override;
   void SetResourceLoader(MarkdownResourceLoader* loader);
   MarkdownResourceLoader* GetResourceLoader() const;
@@ -225,6 +227,7 @@ class MarkdownView final : public MarkdownDrawable {
   std::mutex renderer_bundle_mutex_{};
   std::unique_ptr<RendererBundle> renderer_bundle_{nullptr};
 
+  std::shared_ptr<MarkdownContext> context_{nullptr};
   MarkdownViewMeasurer measurer_;
   MarkdownViewAnimator animator_;
   MarkdownViewRenderer renderer_;

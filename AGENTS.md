@@ -6,13 +6,9 @@ run `source tools/envsetup.sh` script to initialize env.
 run `./hab sync .` to download deps. for c++ unittests, add extra `--target testing` param.
 these two step must be ran before build or unittests.
 
-### build ios
+### build platform demo
 
-run `markdown/tools/ios_build.sh` script to build ios example.
-
-### build android
-
-run `markdown/tools/android_build.sh` script to build android example.
+run `markdown/tools/${PLATFORM}_build.sh` script to build android/ios/harmony platform examples.
 
 ### c++ unittests
 

@@ -22,7 +22,7 @@ struct line;
 namespace serval::markdown {
 class MarkdownDocument;
 class MarkdownResourceLoader;
-struct MarkdownContext {
+struct MarkdownParseContext {
   std::vector<int32_t> para_stack_;
   std::unique_ptr<tttext::Paragraph> current_paragraph_{nullptr};
   std::unique_ptr<MarkdownTable> current_table_{nullptr};
@@ -202,7 +202,7 @@ class MarkdownParserEmbed {
   static std::vector<int32_t> CalculateByteIndexToCharIndexMap(
       std::string_view string);
 
-  MarkdownContext context_{};
+  MarkdownParseContext context_{};
   MarkdownStyle style_{};
   MarkdownResourceLoader* loader_{nullptr};
   MarkdownDocument* document_{nullptr};

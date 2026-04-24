@@ -169,12 +169,13 @@ class MarkdownDomHtmlNode final : public MarkdownDomNode {
     attributes_ = attributes;
   }
   const std::string& GetClass() const {
+    static const std::string kEmptyClass;
     for (const auto& [name, value] : attributes_) {
       if (name == "class") {
         return value;
       }
     }
-    return "";
+    return kEmptyClass;
   }
 
  protected:

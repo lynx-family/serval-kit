@@ -17,7 +17,8 @@
 namespace serval::markdown {
 class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
  public:
-  MarkdownCharTypewriterDrawer(tttext::ICanvasHelper* canvas,
+  MarkdownCharTypewriterDrawer(MarkdownContext* context,
+                               tttext::ICanvasHelper* canvas,
                                int32_t max_char_count,
                                MarkdownResourceLoader* loader,
                                const MarkdownTypewriterCursorStyle& style,

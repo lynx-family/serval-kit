@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_parser.h"
 #include "markdown/utils/markdown_platform.h"
@@ -17,9 +18,12 @@ namespace serval::markdown {
 void MarkdownRefDelegate::Layout() {
   if (layout_)
     return;
+  if (context_ == nullptr) {
+    return;
+  }
   paragraph_->GetParagraphStyle().SetHorizontalAlign(
       tttext::ParagraphHorizontalAlignment::kLeft);
-  auto* layout = MarkdownPlatform::GetTextLayout();
+  auto* layout = context_->GetTextLayout();
   page_ = std::make_unique<tttext::LayoutRegion>(
       std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
       tttext::LayoutMode::kAtMost, tttext::LayoutMode::kAtMost);
@@ -82,7 +86,10 @@ void MarkdownTextDelegate::Layout() {
   if (layout_) {
     return;
   }
-  auto* layout = MarkdownPlatform::GetTextLayout();
+  if (context_ == nullptr) {
+    return;
+  }
+  auto* layout = context_->GetTextLayout();
   page_ = std::make_unique<tttext::LayoutRegion>(
       width_ > 0 ? width_ : std::numeric_limits<float>::max(),
       height_ > 0 ? height_ : std::numeric_limits<float>::max(),
@@ -192,8 +199,9 @@ void CircleDelegate::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
 }
 void RoundRectImageWrapper::Draw(tttext::ICanvasHelper* canvas, float x,
                                  float y) {
-  auto* markdown_canvas = MarkdownPlatform::GetMarkdownCanvasExtend(canvas);
-  if (canvas == nullptr) {
+  auto* markdown_canvas =
+      context_ == nullptr ? nullptr : context_->GetMarkdownCanvasExtend(canvas);
+  if (canvas == nullptr || markdown_canvas == nullptr) {
     return;
   }
   canvas->Save();
@@ -209,8 +217,8 @@ void RoundRectImageWrapper::Draw(tttext::ICanvasHelper* canvas, float x,
 
 void ImageWithCaption::Layout() {
   image_->Measure(MeasureSpec{});
-  if (!layout_) {
-    auto* layout = MarkdownPlatform::GetTextLayout();
+  if (!layout_ && context_ != nullptr) {
+    auto* layout = context_->GetTextLayout();
     region_ = std::make_unique<tttext::LayoutRegion>(
         max_width_, std::numeric_limits<float>::max(),
         tttext::LayoutMode::kAtMost, tttext::LayoutMode::kAtMost);
@@ -226,6 +234,13 @@ void ImageWithCaption::Layout() {
     tttext::TTTextContext context2;
     layout->LayoutEx(caption_.get(), region_.get(), context2);
     layout_ = true;
+  }
+  if (region_ == nullptr) {
+    width_ = image_->GetAdvance();
+    height_ = image_->GetDescent() - image_->GetAscent();
+    measure_result_ = {
+        .width_ = width_, .height_ = height_, .baseline_ = height_};
+    return;
   }
   const auto content_width = region_->GetPageWidth();
   const auto content_height = region_->GetPageHeight();

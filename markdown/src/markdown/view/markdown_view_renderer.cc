@@ -46,13 +46,14 @@ class MarkdownRegionDrawable final : public MarkdownDrawable {
          *animation_type_ == MarkdownAnimationType::kLineExpand)) {
       const auto cursor = page->GetCustomTypewriterCursor();
       MarkdownCharTypewriterDrawer drawer(
-          canvas, animation_step_ == nullptr ? 0 : *animation_step_,
+          document_->GetContextPtr(), canvas,
+          animation_step_ == nullptr ? 0 : *animation_step_,
           document_->GetResourceLoader(),
           document_->GetStyle().typewriter_cursor_, !content_complete_,
           cursor == nullptr ? nullptr : cursor.get());
       drawer.DrawRegion(*page, region_index_);
     } else {
-      MarkdownDrawer drawer(canvas);
+      MarkdownDrawer drawer(canvas, document_->GetContextPtr());
       drawer.DrawRegion(*page, region_index_);
     }
     canvas->Restore();
@@ -97,7 +98,7 @@ class MarkdownBorderDrawable final : public MarkdownDrawable {
     if (page == nullptr) {
       return;
     }
-    MarkdownDrawer drawer(canvas);
+    MarkdownDrawer drawer(canvas, document_->GetContextPtr());
     drawer.DrawQuoteBorder(*page, border_index_);
   }
 
@@ -378,7 +379,7 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
     return;
   }
   if (animation_type_ == MarkdownAnimationType::kNone) {
-    MarkdownDrawer drawer(canvas);
+    MarkdownDrawer drawer(canvas, document_->GetContextPtr());
     auto page = document_->GetPage();
     if (page != nullptr) {
       drawer.DrawPage(*page);
@@ -392,7 +393,8 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
     }
     const auto cursor = page->GetCustomTypewriterCursor();
     MarkdownCharTypewriterDrawer drawer(
-        canvas, animation_step_, document_->GetResourceLoader(),
+        document_->GetContextPtr(), canvas, animation_step_,
+        document_->GetResourceLoader(),
         document_->GetStyle().typewriter_cursor_, !content_complete_,
         cursor == nullptr ? nullptr : cursor.get());
     drawer.DrawPage(*page);

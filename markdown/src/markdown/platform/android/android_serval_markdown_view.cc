@@ -7,6 +7,8 @@
 #include <memory>
 
 #include "base/include/platform/android/jni_convert_helper.h"
+#include "markdown/element/markdown_context.h"
+#include "markdown/platform/android/markdown_platform_android.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
 
 namespace serval::markdown {
@@ -48,7 +50,9 @@ void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
 
 AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view), view_ref_(env, view) {
-  AttachDrawable(std::make_unique<serval::markdown::MarkdownView>(this));
+  AttachDrawable(std::make_unique<serval::markdown::MarkdownView>(
+      this, std::make_shared<serval::markdown::MarkdownContext>(
+                CreateAndroidMarkdownPlatform())));
   auto* markdown_view = GetMarkdownView();
   markdown_view->SetResourceLoader(
       static_cast<serval::markdown::MarkdownResourceLoader*>(this));

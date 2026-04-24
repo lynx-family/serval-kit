@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_selection.h"
@@ -14,7 +15,8 @@
 #include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
 MarkdownLayout::MarkdownLayout(MarkdownDocument* document)
-    : document_(document) {}
+    : document_(document),
+      context_(document == nullptr ? nullptr : document->GetContextPtr()) {}
 std::pair<float, float> MarkdownLayout::Layout(float width, float height,
                                                int text_max_lines) {
   if (document_ == nullptr)
@@ -235,9 +237,9 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
                        tttext::ParagraphHorizontalAlignment::kLeft)
                           ? tttext::LayoutMode::kAtMost
                           : tttext::LayoutMode::kDefinite;
-    auto region = LayoutParagraph(para_element->GetParagraph(), region_width,
-                                  width_mode, region_max_height, max_lines,
-                                  paragraph.GetTextOverflow(),
+    auto region = LayoutParagraph(context_, para_element->GetParagraph(),
+                                  region_width, width_mode, region_max_height,
+                                  max_lines, paragraph.GetTextOverflow(),
                                   &page_->full_filled_, last);
     if (region != nullptr) {
       if (para_element->GetLastLineAlign() != MarkdownTextAlign::kUndefined) {
@@ -270,10 +272,10 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
   } else if (paragraph.GetType() == MarkdownElementType::kTable) {
     auto table_element =
         reinterpret_cast<const MarkdownTableElement*>(&paragraph);
-    auto table =
-        LayoutTable(table_element->GetTable(), region_width, region_max_height,
-                    table_element->GetBlockStyle().min_width_, max_lines,
-                    paragraph.GetTextOverflow(), &page_->full_filled_);
+    auto table = LayoutTable(
+        context_, table_element->GetTable(), region_width, region_max_height,
+        table_element->GetBlockStyle().min_width_, max_lines,
+        paragraph.GetTextOverflow(), &page_->full_filled_);
     region_bottom = region_top + table->total_height_;
     region_right = region_left + table->total_width_;
     page_->line_count_ += table->GetRowCount();
@@ -300,9 +302,9 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
 }
 
 std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
-    serval::markdown::MarkdownTable* table, float width, float height,
-    float min_width, int max_lines, MarkdownTextOverflow overflow,
-    bool* full_filled) {
+    MarkdownContext* context, serval::markdown::MarkdownTable* table,
+    float width, float height, float min_width, int max_lines,
+    MarkdownTextOverflow overflow, bool* full_filled) {
   if (table->Empty()) {
     return nullptr;
   }
@@ -318,7 +320,8 @@ std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
       table_region->SetCell(
           row, column,
           MarkdownTableRegionCell{
-              LayoutParagraph(table->GetCell(row, column).paragraph_.get(),
+              LayoutParagraph(context,
+                              table->GetCell(row, column).paragraph_.get(),
                               width, tttext::LayoutMode::kAtMost,
                               std::numeric_limits<float>::max(), -1, overflow,
                               nullptr, false),
@@ -386,9 +389,9 @@ std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
       float column_width = column_max_width[column];
       auto& cell = table_region->GetCell(row, column);
       cell.region_ = LayoutParagraph(
-          table->GetCell(row, column).paragraph_.get(), std::ceil(column_width),
-          tttext::LayoutMode::kDefinite, std::numeric_limits<float>::max(), -1,
-          overflow, nullptr, false);
+          context, table->GetCell(row, column).paragraph_.get(),
+          std::ceil(column_width), tttext::LayoutMode::kDefinite,
+          std::numeric_limits<float>::max(), -1, overflow, nullptr, false);
     }
   }
 
@@ -444,15 +447,19 @@ std::unique_ptr<MarkdownTableRegion> MarkdownLayout::LayoutTable(
 }
 
 std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
-    tttext::Paragraph* paragraph, float width, tttext::LayoutMode width_mode,
-    float height, int max_lines, MarkdownTextOverflow overflow,
-    bool* full_filled, bool last) {
-  if (paragraph == nullptr || paragraph->GetCharCount() == 0) {
+    MarkdownContext* context, tttext::Paragraph* paragraph, float width,
+    tttext::LayoutMode width_mode, float height, int max_lines,
+    MarkdownTextOverflow overflow, bool* full_filled, bool last) {
+  if (context == nullptr || paragraph == nullptr ||
+      paragraph->GetCharCount() == 0) {
     return nullptr;
   }
-  tttext::TextLayout& text_layout = *MarkdownPlatform::GetTextLayout();
-  tttext::TTTextContext context;
-  context.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
+  auto* text_layout = context->GetTextLayout();
+  if (text_layout == nullptr) {
+    return nullptr;
+  }
+  tttext::TTTextContext tt_context;
+  tt_context.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
   auto region = std::make_unique<tttext::LayoutRegion>(
       width, height, width_mode, tttext::LayoutMode::kAtMost);
   uint32_t current_para_max_lines =
@@ -462,7 +469,7 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
     paragraph->GetParagraphStyle().SetMaxLines(max_lines);
   }
   tttext::LayoutResult result =
-      text_layout.LayoutEx(paragraph, region.get(), context);
+      text_layout->LayoutEx(paragraph, region.get(), tt_context);
   paragraph->GetParagraphStyle().SetMaxLines(current_para_max_lines);
   bool para_full_layout = true;
   if (result == tttext::LayoutResult::kBreakPage &&
@@ -483,7 +490,7 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
     if (!last && region->GetLineCount() > 0 && para_full_layout) {
       auto* line = region->GetLine(region->GetLineCount() - 1);
       line->StripByEllipsis(nullptr);
-      region->UpdateLayoutedSize(line, context);
+      region->UpdateLayoutedSize(line, tt_context);
     }
   }
   if (region->GetLineCount() == 0 ||
@@ -499,11 +506,11 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
 }
 
 std::pair<float, float> MarkdownLayout::MeasureParagraph(
-    tttext::Paragraph* paragraph_ptr, float width, float height,
-    int max_lines) {
-  auto region =
-      LayoutParagraph(paragraph_ptr, width, tttext::LayoutMode::kAtMost, height,
-                      max_lines, MarkdownTextOverflow::kClip, nullptr, false);
+    MarkdownContext* context, tttext::Paragraph* paragraph_ptr, float width,
+    float height, int max_lines) {
+  auto region = LayoutParagraph(context, paragraph_ptr, width,
+                                tttext::LayoutMode::kAtMost, height, max_lines,
+                                MarkdownTextOverflow::kClip, nullptr, false);
   return {MarkdownPlatform::GetMdLayoutRegionWidth(region.get()),
           MarkdownPlatform::GetMdLayoutRegionHeight(region.get())};
 }

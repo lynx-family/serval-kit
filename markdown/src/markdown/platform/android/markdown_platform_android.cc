@@ -2,13 +2,15 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include "markdown/platform/android/markdown_platform_android.h"
+
 #include <textra/fontmgr_collection.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
-#include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
+namespace {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
@@ -23,18 +25,22 @@ class TextLayoutManager {
  private:
   std::unique_ptr<tttext::TextLayout> textlayout_;
 };
-tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
-  thread_local TextLayoutManager text_layout_mgr;
-  return text_layout_mgr.GetLayout();
-}
-MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
-    tttext::ICanvasHelper* canvas) {
-  return static_cast<MarkdownJavaCanvasHelper*>(canvas);
-}
 
-void MarkdownPlatform::RunOnUIThread(std::function<void()> task,
-                                     int64_t micro_seconds) {
-  (void)task;
-  (void)micro_seconds;
+class AndroidMarkdownPlatform final : public MarkdownPlatform {
+ public:
+  tttext::TextLayout* GetTextLayout() override {
+    thread_local TextLayoutManager text_layout_mgr;
+    return text_layout_mgr.GetLayout();
+  }
+
+  MarkdownCanvasExtend* GetMarkdownCanvasExtend(
+      tttext::ICanvasHelper* canvas) override {
+    return nullptr;
+  }
+};
+}  // namespace
+
+std::unique_ptr<MarkdownPlatform> CreateAndroidMarkdownPlatform() {
+  return std::make_unique<AndroidMarkdownPlatform>();
 }
 }  // namespace serval::markdown

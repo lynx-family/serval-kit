@@ -10,12 +10,12 @@
 #include <vector>
 
 #include "markdown/draw/markdown_canvas.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
-#include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
@@ -90,9 +90,11 @@ class MarkdownEmptySpaceDelegate : public MarkdownDrawable {
 
 class MarkdownRefDelegate : public MarkdownDrawable {
  public:
-  MarkdownRefDelegate(std::unique_ptr<tttext::Paragraph> paragraph,
+  MarkdownRefDelegate(MarkdownContext* context,
+                      std::unique_ptr<tttext::Paragraph> paragraph,
                       MarkdownRefStyle style, float base_text_size)
-      : paragraph_(std::move(paragraph)),
+      : context_(context),
+        paragraph_(std::move(paragraph)),
         style_(std::move(style)),
         base_text_height_(base_text_size * 0.9f) {}
   ~MarkdownRefDelegate() override = default;
@@ -101,6 +103,7 @@ class MarkdownRefDelegate : public MarkdownDrawable {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
+  MarkdownContext* context_{nullptr};
   std::unique_ptr<tttext::Paragraph> paragraph_;
   std::unique_ptr<tttext::LayoutRegion> page_;
   bool layout_{false};
@@ -119,14 +122,20 @@ class MarkdownRefDelegate : public MarkdownDrawable {
 
 class MarkdownTextDelegate : public MarkdownDrawable {
  public:
-  MarkdownTextDelegate(std::unique_ptr<tttext::Paragraph> text, float width,
+  MarkdownTextDelegate(MarkdownContext* context,
+                       std::unique_ptr<tttext::Paragraph> text, float width,
                        float height)
-      : text_(std::move(text)), width_(width), height_(height) {
+      : context_(context),
+        text_(std::move(text)),
+        width_(width),
+        height_(height) {
     MarkdownStyleInitializer::ResetBlockStyle(&block_style_);
   }
-  MarkdownTextDelegate(std::unique_ptr<tttext::Paragraph> text,
+  MarkdownTextDelegate(MarkdownContext* context,
+                       std::unique_ptr<tttext::Paragraph> text,
                        MarkdownBlockStylePart block, float width, float height)
-      : text_(std::move(text)),
+      : context_(context),
+        text_(std::move(text)),
         width_(width),
         height_(height),
         block_style_(block) {}
@@ -136,6 +145,7 @@ class MarkdownTextDelegate : public MarkdownDrawable {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
+  MarkdownContext* context_{nullptr};
   bool layout_{false};
   float ascent_{0};
   float descent_{0};
@@ -233,13 +243,15 @@ class BlockViewWrapper : public MarkdownDrawable {
 
 class RoundRectImageWrapper : public MarkdownDrawable {
  public:
-  RoundRectImageWrapper(std::shared_ptr<MarkdownDrawable> delegate,
+  RoundRectImageWrapper(MarkdownContext* context,
+                        std::shared_ptr<MarkdownDrawable> delegate,
                         float radius)
-      : delegate_(std::move(delegate)), radius_(radius) {}
+      : context_(context), delegate_(std::move(delegate)), radius_(radius) {}
   ~RoundRectImageWrapper() override = default;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
+  MarkdownContext* context_{nullptr};
   float radius_;
   std::shared_ptr<MarkdownDrawable> delegate_;
 
@@ -270,11 +282,12 @@ class CircleDelegate : public MarkdownDrawable {
 class ImageWithCaption final : public MarkdownDrawable {
  public:
   ImageWithCaption(
-      std::shared_ptr<MarkdownDrawable> image,
+      MarkdownContext* context, std::shared_ptr<MarkdownDrawable> image,
       std::unique_ptr<tttext::Paragraph> caption, const float max_width,
       const MarkdownCaptionPosition position = MarkdownCaptionPosition::kBottom,
       const MarkdownTextAlign align = MarkdownTextAlign::kCenter)
-      : image_(std::move(image)),
+      : context_(context),
+        image_(std::move(image)),
         caption_(std::move(caption)),
         max_width_(max_width),
         caption_position_(position),
@@ -283,6 +296,7 @@ class ImageWithCaption final : public MarkdownDrawable {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
  private:
+  MarkdownContext* context_{nullptr};
   std::shared_ptr<MarkdownDrawable> image_;
   std::unique_ptr<tttext::Paragraph> caption_;
   std::unique_ptr<tttext::LayoutRegion> region_;
