@@ -15,14 +15,17 @@ namespace serval::markdown {
 class MarkdownResourceLoader;
 class MarkdownTextAttachment;
 class MarkdownDocument;
+class MarkdownContext;
 class L_EXPORT MarkdownStyleReader {
  public:
   static MarkdownStyle ReadStyle(const ValueMap& map,
-                                 MarkdownResourceLoader* loader);
+                                 MarkdownResourceLoader* loader,
+                                 MarkdownContext* context = nullptr);
   static std::vector<std::unique_ptr<MarkdownTextAttachment>>
   ReadTextAttachments(Value* array, MarkdownDocument* document);
-  static MarkdownBaseStylePart ReadBaseStyle(const ValueMap& map,
-                                             MarkdownResourceLoader* loader);
+  static MarkdownBaseStylePart ReadBaseStyle(
+      const ValueMap& map, MarkdownResourceLoader* loader,
+      MarkdownContext* context = nullptr);
   static uint32_t ReadColor(const std::string& color);
 };
 }  // namespace serval::markdown

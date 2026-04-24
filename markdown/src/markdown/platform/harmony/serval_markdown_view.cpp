@@ -14,12 +14,14 @@
 #include <utility>
 
 #include "markdown/draw/markdown_drawer.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/parser/markdown_parser.h"
 #include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
+#include "markdown/platform/harmony/markdown_platform_harmony.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "textra/platform_helper.h"
@@ -30,7 +32,9 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
   UpdateDisplayMetrics();
 }
 NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
-  AttachDrawable(std::make_unique<MarkdownView>(this));
+  AttachDrawable(std::make_unique<MarkdownView>(
+      this,
+      std::make_shared<MarkdownContext>(CreateHarmonyMarkdownPlatform())));
   GetMarkdownView()->SetResourceLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   EnableTapEvent(true, NORMAL);

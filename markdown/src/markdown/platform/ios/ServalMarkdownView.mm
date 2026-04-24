@@ -8,10 +8,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include "markdown/element/markdown_context.h"
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
 #include "markdown/platform/ios/internal/markdown_event_ios.h"
 #include "markdown/platform/ios/internal/markdown_exposure_ios.h"
 #include "markdown/platform/ios/internal/markdown_main_view_ios.h"
+#include "markdown/platform/ios/internal/markdown_platform_ios.h"
 #include "markdown/platform/ios/internal/markdown_resource_loader_ios.h"
 #include "markdown/platform/ios/internal/markdown_value_convert.h"
 #include "markdown/view/markdown_view.h"
@@ -66,7 +68,9 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
         std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
     markdown_view_handle_->AttachDrawable(
         std::make_unique<serval::markdown::MarkdownView>(
-            markdown_view_handle_.get()));
+            markdown_view_handle_.get(),
+            std::make_shared<serval::markdown::MarkdownContext>(
+                serval::markdown::CreateIOSMarkdownPlatform())));
     event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
     resource_loader_ =
         std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();

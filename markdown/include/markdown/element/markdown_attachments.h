@@ -16,6 +16,7 @@
 #include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
+class MarkdownContext;
 class MarkdownPage;
 class MarkdownAttachmentLineStyle {
  public:
@@ -46,10 +47,12 @@ class L_EXPORT MarkdownTextAttachment {
  public:
   MarkdownTextAttachment() = default;
   ~MarkdownTextAttachment() = default;
-  void DrawOnRect(tttext::ICanvasHelper* canvas, RectF rect) const;
+  void DrawOnRect(tttext::ICanvasHelper* canvas, RectF rect,
+                  MarkdownContext* context) const;
   void DrawOnMultiLines(tttext::ICanvasHelper* canvas,
                         const std::vector<RectF>& lines_rect,
-                        float total_length = 0) const;
+                        float total_length = 0,
+                        MarkdownContext* context = nullptr) const;
   int32_t start_index_{0};
   int32_t end_index_{0};
   CharIndexType index_type_{CharIndexType::kParsedContent};
@@ -66,9 +69,11 @@ class L_EXPORT MarkdownTextAttachment {
  protected:
   static void DrawLine(tttext::ICanvasHelper* canvas, PointF start, PointF end,
                        const MarkdownLengthContext& context,
-                       const MarkdownAttachmentLineStyle& style, float width);
+                       const MarkdownAttachmentLineStyle& style, float width,
+                       MarkdownContext* markdown_context);
   static void DrawRect(tttext::ICanvasHelper* canvas, RectF rect,
-                       const MarkdownAttachmentRectStyle& style);
+                       const MarkdownAttachmentRectStyle& style,
+                       MarkdownContext* markdown_context);
 };
 }  // namespace serval::markdown
 

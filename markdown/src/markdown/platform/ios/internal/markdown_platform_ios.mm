@@ -2,14 +2,16 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include "markdown/platform/ios/internal/markdown_platform_ios.h"
+
 #include <memory>
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
-#include "markdown/utils/markdown_platform.h"
 #import "textra/fontmgr_collection.h"
 #import "textra/platform/ios/ios_font_manager.h"
 #import "textra/text_layout.h"
 
 namespace serval::markdown {
+namespace {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
@@ -24,18 +26,22 @@ class TextLayoutManager {
  private:
   std::unique_ptr<tttext::TextLayout> textlayout_;
 };
-tttext::TextLayout* MarkdownPlatform::GetTextLayout() {
-  thread_local TextLayoutManager text_layout_mgr;
-  return text_layout_mgr.GetLayout();
-}
-MarkdownCanvasExtend* MarkdownPlatform::GetMarkdownCanvasExtend(
-    tttext::ICanvasHelper* canvas) {
-  return static_cast<MarkdownCanvasIOS*>(canvas);
-}
 
-void MarkdownPlatform::RunOnUIThread(std::function<void()> task,
-                                     int64_t micro_seconds) {
-  (void)task;
-  (void)micro_seconds;
+class IOSMarkdownPlatform final : public MarkdownPlatform {
+ public:
+  tttext::TextLayout* GetTextLayout() override {
+    thread_local TextLayoutManager text_layout_mgr;
+    return text_layout_mgr.GetLayout();
+  }
+
+  MarkdownCanvasExtend* GetMarkdownCanvasExtend(
+      tttext::ICanvasHelper* canvas) override {
+    return static_cast<MarkdownCanvasIOS*>(canvas);
+  }
+};
+}  // namespace
+
+std::unique_ptr<MarkdownPlatform> CreateIOSMarkdownPlatform() {
+  return std::make_unique<IOSMarkdownPlatform>();
 }
 }  // namespace serval::markdown

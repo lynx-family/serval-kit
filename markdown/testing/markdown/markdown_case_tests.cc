@@ -14,6 +14,7 @@
 #include "markdown/view/markdown_view.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+#include "testing/markdown/markdown_tests_platform.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 #include "testing/markdown/mock_markdown_frame_driver.h"
 #include "testing/markdown/mock_markdown_platform_view.h"
@@ -101,7 +102,8 @@ class MarkdownCaseUnittest {
  public:
   MarkdownCaseUnittest() {
     resource_loader_ = std::make_unique<MockMarkdownResourceLoader>();
-    document_ = std::make_unique<MarkdownDocument>(resource_loader_.get());
+    document_ = std::make_unique<MarkdownDocument>(
+        CreateTestMarkdownSharedContext(), resource_loader_.get());
     canvas_ = std::make_unique<MockMarkdownCanvas>(resource_loader_.get(),
                                                    document_.get());
 
@@ -149,9 +151,9 @@ class MarkdownCaseUnittest {
                                             : resource_loader_->LoadInlineView(
                                                   cursor.c_str(), 10, 10);
       MarkdownCharTypewriterDrawer drawer(
-          canvas_.get(), animation_step_, resource_loader_.get(),
-          document_->GetStyle().typewriter_cursor_, draw_cursor_if_complete_,
-          cursor_delegate.get());
+          document_->GetContextPtr(), canvas_.get(), animation_step_,
+          resource_loader_.get(), document_->GetStyle().typewriter_cursor_,
+          draw_cursor_if_complete_, cursor_delegate.get());
       drawer.DrawPage(*document_->GetPage());
     } else if (region_view_) {
       const auto page = document_->GetPage();
@@ -175,23 +177,23 @@ class MarkdownCaseUnittest {
                   ? nullptr
                   : resource_loader_->LoadInlineView(cursor.c_str(), 10, 10);
           MarkdownCharTypewriterDrawer drawer(
-              canvas_.get(), animation_step_, resource_loader_.get(),
-              document_->GetStyle().typewriter_cursor_,
+              document_->GetContextPtr(), canvas_.get(), animation_step_,
+              resource_loader_.get(), document_->GetStyle().typewriter_cursor_,
               draw_cursor_if_complete_, cursor_delegate.get());
           drawer.DrawRegion(*document_->GetPage(), i);
         } else {
-          MarkdownDrawer drawer(canvas_.get());
+          MarkdownDrawer drawer(canvas_.get(), document_->GetContextPtr());
           drawer.DrawRegion(*document_->GetPage(), i);
         }
         canvas_->Restore();
       }
       const auto extra_range = document_->GetShowedExtraContents(top, bottom);
       for (auto i = extra_range.start_; i < extra_range.end_; i++) {
-        MarkdownDrawer drawer(canvas_.get());
+        MarkdownDrawer drawer(canvas_.get(), document_->GetContextPtr());
         drawer.DrawQuoteBorder(*page, i);
       }
     } else {
-      MarkdownDrawer drawer(canvas_.get());
+      MarkdownDrawer drawer(canvas_.get(), document_->GetContextPtr());
       drawer.DrawPage(*document_->GetPage());
     }
   }
@@ -594,7 +596,8 @@ TEST(MarkdownCaseUnittest, TypewriterDynamicHeight) {
 )";
   unittest.ParseLayoutAndDraw();
   MarkdownCharTypewriterDrawer typewriter_drawer(
-      unittest.canvas_.get(), 1000, unittest.resource_loader_.get(),
+      unittest.document_->GetContextPtr(), unittest.canvas_.get(), 1000,
+      unittest.resource_loader_.get(),
       unittest.document_->GetStyle().typewriter_cursor_, false, nullptr);
   typewriter_drawer.DrawPage(*unittest.document_->GetPage());
   EXPECT_EQ(typewriter_drawer.GetMaxDrawHeight(), 115);

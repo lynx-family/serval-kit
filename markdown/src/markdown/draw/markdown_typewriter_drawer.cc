@@ -56,14 +56,16 @@ MarkdownCharTypewriterDrawer::CreateEllipsis(float text_size, uint32_t color) {
   style.SetTextSize(text_size);
   style.SetForegroundColor(tttext::TTColor(color));
   paragraph->AddTextRun(&style, "…");
-  return std::make_unique<MarkdownTextDelegate>(std::move(paragraph), -1, -1);
+  return std::make_unique<MarkdownTextDelegate>(context_, std::move(paragraph),
+                                                -1, -1);
 }
 
 MarkdownCharTypewriterDrawer::MarkdownCharTypewriterDrawer(
-    tttext::ICanvasHelper* canvas, int32_t max_char_count,
-    MarkdownResourceLoader* loader, const MarkdownTypewriterCursorStyle& style,
-    bool draw_cursor_if_complete, tttext::RunDelegate* custom_typewriter_cursor)
-    : MarkdownDrawer(canvas),
+    MarkdownContext* context, tttext::ICanvasHelper* canvas,
+    int32_t max_char_count, MarkdownResourceLoader* loader,
+    const MarkdownTypewriterCursorStyle& style, bool draw_cursor_if_complete,
+    tttext::RunDelegate* custom_typewriter_cursor)
+    : MarkdownDrawer(canvas, context),
       style_(&style),
       max_char_count_(max_char_count),
       draw_cursor_if_complete_(draw_cursor_if_complete),
@@ -233,9 +235,9 @@ void MarkdownCharTypewriterDrawer::DrawAttachmentOnRegion(
     const auto rects = MarkdownSelection::GetSelectionRectByCharPos(
         &page, start_index, end_index,
         MarkdownSelection::RectType::kLineBounding);
-    attachment->DrawOnMultiLines(canvas_, rects, total_width);
+    attachment->DrawOnMultiLines(canvas_, rects, total_width, context_);
   } else {
-    attachment->DrawOnMultiLines(canvas_, rects_origin, total_width);
+    attachment->DrawOnMultiLines(canvas_, rects_origin, total_width, context_);
   }
 }
 

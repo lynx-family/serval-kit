@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/element/markdown_page.h"
 #include "markdown/element/markdown_paragraph.h"
@@ -55,9 +56,12 @@ struct MarkdownInlineView {
 };
 class L_EXPORT MarkdownDocument {
  public:
-  MarkdownDocument() : MarkdownDocument(nullptr) {}
-  explicit MarkdownDocument(MarkdownResourceLoader* loader)
-      : loader_(loader), touch_state_(MarkdownTouchState::kNone) {}
+  MarkdownDocument() = delete;
+  explicit MarkdownDocument(std::shared_ptr<MarkdownContext> context,
+                            MarkdownResourceLoader* loader = nullptr)
+      : context_(std::move(context)),
+        loader_(loader),
+        touch_state_(MarkdownTouchState::kNone) {}
   const std::string& GetMarkdownContent() const { return markdown_content_; }
   void SetMarkdownContent(std::string_view content) {
     markdown_content_ = content;
@@ -82,6 +86,13 @@ class L_EXPORT MarkdownDocument {
   }
   void SetResourceLoader(MarkdownResourceLoader* loader) { loader_ = loader; }
   MarkdownResourceLoader* GetResourceLoader() const { return loader_; }
+  void SetContext(std::shared_ptr<MarkdownContext> context) {
+    context_ = std::move(context);
+  }
+  const std::shared_ptr<MarkdownContext>& GetContext() const {
+    return context_;
+  }
+  MarkdownContext* GetContextPtr() const { return context_.get(); }
   void SetMarkdownEventListener(MarkdownEventListener* event) {
     event_ = event;
   }
@@ -189,6 +200,7 @@ class L_EXPORT MarkdownDocument {
   std::vector<Range> quote_range_;
   MarkdownStyle style_{};
 
+  std::shared_ptr<MarkdownContext> context_{nullptr};
   MarkdownResourceLoader* loader_{nullptr};
   MarkdownEventListener* event_{nullptr};
 

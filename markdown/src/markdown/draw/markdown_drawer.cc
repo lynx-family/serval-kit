@@ -6,8 +6,10 @@
 
 #include "markdown/draw/markdown_path.h"
 #include "markdown/element/markdown_attachments.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_table.h"
 #include "markdown/layout/markdown_selection.h"
+#include "markdown/utils/markdown_platform.h"
 namespace serval::markdown {
 
 void MarkdownDrawer::DrawPage(const serval::markdown::MarkdownPage& page) {
@@ -319,7 +321,9 @@ void MarkdownDrawer::DrawTable(
     return;
   }
   canvas_->Save();
-  auto extend_canvas = MarkdownPlatform::GetMarkdownCanvasExtend(canvas_);
+  auto extend_canvas = context_ == nullptr
+                           ? nullptr
+                           : context_->GetMarkdownCanvasExtend(canvas_);
   float radius = element.GetBorderStyle().border_radius_;
   if (extend_canvas != nullptr && radius > 0) {
     MarkdownPath path;
@@ -361,7 +365,7 @@ void MarkdownDrawer::DrawAttachment(const MarkdownPage& page,
   const auto rects = MarkdownSelection::GetSelectionRectByCharPos(
       &page, attachment->start_index_, attachment->end_index_,
       MarkdownSelection::RectType::kLineBounding);
-  attachment->DrawOnMultiLines(canvas_, rects);
+  attachment->DrawOnMultiLines(canvas_, rects, 0, context_);
 }
 
 void MarkdownDrawer::DrawAttachmentOnRegion(const MarkdownPage& page,

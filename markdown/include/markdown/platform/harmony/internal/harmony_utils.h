@@ -29,9 +29,8 @@ class HarmonyEnv {
 class HarmonyUIThread {
  public:
   static void Init(napi_env env);
-  static void PostTask(std::function<void()> task);
-  static void PostDelayedTask(std::function<void()> task,
-                              int64_t micro_seconds);
+  static void RunOnUIThread(std::function<void()> task,
+                            int64_t micro_seconds = 0);
 };
 template <typename Object>
 class HarmonyDefaultDeleter {

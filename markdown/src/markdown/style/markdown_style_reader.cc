@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/style/markdown_style_reader.h"
 
+#include <utility>
+
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_resource_loader.h"
@@ -14,12 +16,14 @@
 namespace serval::markdown {
 class MarkdownStyleReaderImpl {
  public:
-  explicit MarkdownStyleReaderImpl(MarkdownResourceLoader* loader)
-      : loader_(loader) {}
+  explicit MarkdownStyleReaderImpl(MarkdownResourceLoader* loader,
+                                   MarkdownContext* context = nullptr)
+      : loader_(loader), context_(context) {}
   ~MarkdownStyleReaderImpl() = default;
 
  private:
   MarkdownResourceLoader* loader_;
+  MarkdownContext* context_;
 
  public:
   // AUTO GEN START
@@ -1485,7 +1489,7 @@ class MarkdownStyleReaderImpl {
       if (it->second->GetType() == ValueType::kString) {
         const auto& str = it->second->AsString();
         *result = ParseBackgroundDrawableValue(
-            str, loader_, {.font_size_ = 1, .root_font_size_ = 1});
+            str, loader_, {.font_size_ = 1, .root_font_size_ = 1}, context_);
       }
     }
   }
@@ -1608,8 +1612,9 @@ class MarkdownStyleReaderImpl {
   }
 };
 MarkdownStyle MarkdownStyleReader::ReadStyle(
-    const serval::markdown::ValueMap& map, MarkdownResourceLoader* loader) {
-  MarkdownStyleReaderImpl impl(loader);
+    const serval::markdown::ValueMap& map, MarkdownResourceLoader* loader,
+    MarkdownContext* context) {
+  MarkdownStyleReaderImpl impl(loader, context);
   MarkdownStyle style;
   impl.ReadMarkdownStyle(map, &style);
   return style;
@@ -1624,7 +1629,8 @@ MarkdownStyleReader::ReadTextAttachments(Value* array,
   auto& values = array->AsArray();
   for (auto& value : values) {
     if (value->GetType() == ValueType::kMap) {
-      MarkdownStyleReaderImpl impl(document->GetResourceLoader());
+      MarkdownStyleReaderImpl impl(document->GetResourceLoader(),
+                                   document->GetContextPtr());
       auto attachment = std::make_unique<MarkdownTextAttachment>();
       impl.ReadMarkdownAttachment(value->AsMap(), attachment.get());
       if (attachment->index_type_ == CharIndexType::kSource) {
@@ -1639,8 +1645,9 @@ MarkdownStyleReader::ReadTextAttachments(Value* array,
   return attachments;
 }
 MarkdownBaseStylePart MarkdownStyleReader::ReadBaseStyle(
-    const ValueMap& map, MarkdownResourceLoader* loader) {
-  MarkdownStyleReaderImpl impl(loader);
+    const ValueMap& map, MarkdownResourceLoader* loader,
+    MarkdownContext* context) {
+  MarkdownStyleReaderImpl impl(loader, context);
   MarkdownBaseStylePart base_style_part;
   impl.ReadMarkdownBaseStylePart(map, &base_style_part);
   return base_style_part;

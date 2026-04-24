@@ -12,12 +12,13 @@
 #include "markdown/utils/markdown_textlayout_headers.h"
 
 namespace serval::markdown {
+class MarkdownContext;
 class MarkdownTableRegion;
 class MarkdownTextAttachment;
 class MarkdownDrawer {
  public:
-  MarkdownDrawer(tttext::ICanvasHelper* canvas)
-      : canvas_(canvas), painter_(nullptr) {}
+  MarkdownDrawer(tttext::ICanvasHelper* canvas, MarkdownContext* context)
+      : canvas_(canvas), context_(context), painter_(nullptr) {}
   virtual ~MarkdownDrawer() = default;
 
   virtual void DrawPage(const MarkdownPage& page);
@@ -47,6 +48,7 @@ class MarkdownDrawer {
                                       int32_t region_char_end);
 
   tttext::ICanvasHelper* canvas_;
+  MarkdownContext* context_;
   std::unique_ptr<tttext::Painter> painter_;
   bool terminated_{false};
 };

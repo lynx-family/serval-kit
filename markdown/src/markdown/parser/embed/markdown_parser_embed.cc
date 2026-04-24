@@ -798,8 +798,8 @@ void MarkdownParserEmbed::AppendOrderedListNumber() {
   }
   tmp_para->AddTextRun(&number_style, number_str.c_str(), number_str.length());
   auto [width, _] = MarkdownLayout::MeasureParagraph(
-      tmp_para.get(), std::numeric_limits<float>::max(),
-      std::numeric_limits<float>::max(), -1);
+      document_->GetContextPtr(), tmp_para.get(),
+      std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), -1);
   auto indent = width + style_.ordered_list_number_.block_.margin_left_ +
                 style_.ordered_list_number_.block_.margin_right_;
   context_.indent_ = indent;
@@ -1156,6 +1156,7 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
           caption->AddTextRun(&style, node->GetCaption().data(),
                               node->GetCaption().length());
           delegate = std::make_shared<ImageWithCaption>(
+              document_->GetContextPtr(),
               std::static_pointer_cast<MarkdownDrawable>(std::move(delegate)),
               std::move(caption), max_width,
               style_.image_caption_.image_caption_.caption_position_,
@@ -1192,10 +1193,11 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
       context_.enable_split_render_ = true;
       document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                       node->GetAltText());
-      para->AddShapeRun(&base_style,
-                        std::make_unique<MarkdownTextDelegate>(
-                            std::move(alt_text), width, height),
-                        false);
+      para->AddShapeRun(
+          &base_style,
+          std::make_unique<MarkdownTextDelegate>(
+              document_->GetContextPtr(), std::move(alt_text), width, height),
+          false);
     }
   }
   context_.line_height_rule_ = tttext::RulerType::kAtLeast;
@@ -1250,7 +1252,8 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
           background->background_image_, document->GetResourceLoader(),
           {.font_size_ = base.font_size_,
            .root_font_size_ =
-               document->GetStyle().normal_text_.base_.font_size_});
+               document->GetStyle().normal_text_.base_.font_size_},
+          document->GetContextPtr());
     }
     if (attachment->rect_.gradient_ == nullptr) {
       attachment->rect_.color_ = base.background_color_;
@@ -1423,7 +1426,8 @@ void MarkdownParserEmbed::AppendDoubleSquareBracket(
   AppendChildrenToParagraph(node, new_para.get(), new_style, char_offset,
                             markdown_offset);
   auto delegate = std::make_unique<MarkdownRefDelegate>(
-      std::move(new_para), style_.ref_, base_style.GetTextSize());
+      document_->GetContextPtr(), std::move(new_para), style_.ref_,
+      base_style.GetTextSize());
   para->AddGhostShapeRun(&new_style, std::move(delegate));
 }
 

@@ -23,7 +23,7 @@ void HarmonyExposureListener::OnLinkAppear(const char* url,
                                            const char* content) {
   if (link_appear_.IsNull())
     return;
-  HarmonyUIThread::PostTask(
+  HarmonyUIThread::RunOnUIThread(
       [this, u = std::string(url), c = std::string(content)]() {
         HarmonyValues::CallFunction(env_, nullptr, link_appear_.GetValue(),
                                     u.c_str(), c.c_str());
@@ -33,7 +33,7 @@ void HarmonyExposureListener::OnLinkDisappear(const char* url,
                                               const char* content) {
   if (link_disappear_.IsNull())
     return;
-  HarmonyUIThread::PostTask(
+  HarmonyUIThread::RunOnUIThread(
       [this, u = std::string(url), c = std::string(content)]() {
         HarmonyValues::CallFunction(env_, nullptr, link_disappear_.GetValue(),
                                     u.c_str(), c.c_str());
@@ -42,7 +42,7 @@ void HarmonyExposureListener::OnLinkDisappear(const char* url,
 void HarmonyExposureListener::OnImageAppear(const char* url) {
   if (image_appear_.IsNull())
     return;
-  HarmonyUIThread::PostTask([this, u = std::string(url)]() {
+  HarmonyUIThread::RunOnUIThread([this, u = std::string(url)]() {
     HarmonyValues::CallFunction(env_, nullptr, image_appear_.GetValue(),
                                 u.c_str());
   });
@@ -50,7 +50,7 @@ void HarmonyExposureListener::OnImageAppear(const char* url) {
 void HarmonyExposureListener::OnImageDisappear(const char* url) {
   if (image_disappear_.IsNull())
     return;
-  HarmonyUIThread::PostTask([this, u = std::string(url)]() {
+  HarmonyUIThread::RunOnUIThread([this, u = std::string(url)]() {
     HarmonyValues::CallFunction(env_, nullptr, image_disappear_.GetValue(),
                                 u.c_str());
   });
