@@ -9,6 +9,7 @@
 #include "markdown/element/markdown_context.h"
 #include "markdown/utils/markdown_float_comparison.h"
 #include "markdown/utils/markdown_platform.h"
+#include "markdown/utils/markdown_screen_metrics.h"
 namespace serval::markdown {
 
 namespace {
@@ -77,7 +78,14 @@ float CalculateLength(const MarkdownLengthContext& context,
 void MarkdownTextAttachment::DrawOnRect(
     tttext::ICanvasHelper* canvas, RectF rect,
     MarkdownContext* markdown_context) const {
-  MarkdownLengthContext length_context{.base_length_ = rect.GetWidth()};
+  MarkdownLengthContext length_context{
+      .screen_width_ =
+          static_cast<float>(MarkdownScreenMetrics::GetScreenWidth()),
+      .screen_height_ =
+          static_cast<float>(MarkdownScreenMetrics::GetScreenHeight()),
+      .base_length_ = rect.GetWidth(),
+      .dpi_ = MarkdownScreenMetrics::GetDensity(),
+  };
   const float left =
       rect.GetLeft() + CalculateLength(length_context, rect_.left_.get(), 0);
   const float right =
@@ -122,7 +130,13 @@ void MarkdownTextAttachment::DrawRect(tttext::ICanvasHelper* canvas, RectF rect,
   auto painter = canvas->CreatePainter();
   painter->SetFillColor(style.color_);
   painter->SetStrokeColor(style.stroke_color_);
-  MarkdownLengthContext length_context;
+  MarkdownLengthContext length_context{
+      .screen_width_ =
+          static_cast<float>(MarkdownScreenMetrics::GetScreenWidth()),
+      .screen_height_ =
+          static_cast<float>(MarkdownScreenMetrics::GetScreenHeight()),
+      .dpi_ = MarkdownScreenMetrics::GetDensity(),
+  };
   painter->SetStrokeWidth(
       CalculateLength(length_context, style.stroke_width_.get(), 0));
   float radius = CalculateLength(length_context, style.radius_.get(), 0);
@@ -163,9 +177,11 @@ MarkdownPath CreatePath(
     constexpr float kDefaultElementLength = 2.5f;
     constexpr float kDefaultEmptyLength = 1.5f;
     float empty_len =
-        CalculateLength(context, style.empty_size_.get(), kDefaultEmptyLength);
-    float element_len = CalculateLength(context, style.element_size_.get(),
-                                        kDefaultElementLength);
+        CalculateLength(context, style.empty_size_.get(),
+                        MarkdownScreenMetrics::DPToPx(kDefaultEmptyLength));
+    float element_len =
+        CalculateLength(context, style.element_size_.get(),
+                        MarkdownScreenMetrics::DPToPx(kDefaultElementLength));
     auto min_element_num =
         static_cast<int>(std::floor(length / (empty_len + element_len)));
     const int element_num = std::max(min_element_num, 1);

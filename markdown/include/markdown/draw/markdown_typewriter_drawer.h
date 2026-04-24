@@ -47,6 +47,9 @@ class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
 
   void DrawTextRegion(tttext::LayoutRegion* page,
                       tttext::LayoutDrawer* drawer) override;
+  void DrawTable(const MarkdownTableRegion& table,
+                 const MarkdownElement& element, tttext::LayoutDrawer* drawer,
+                 int32_t row_count) override;
 
   tttext::RunDelegate* LoadTypewriterCursor(float size, uint32_t color);
   void DrawAttachment(const MarkdownPage& page,
@@ -57,6 +60,8 @@ class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
                               int32_t region_char_end) override;
 
  private:
+  int32_t GetVisibleTableRowCount(const MarkdownElement& element) const;
+
   const MarkdownPage* page_{nullptr};
   const MarkdownTypewriterCursorStyle* style_{nullptr};
 

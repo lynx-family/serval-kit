@@ -56,6 +56,10 @@ struct MarkdownInlineView {
 };
 class L_EXPORT MarkdownDocument {
  public:
+  enum class MarkdownOffsetBoundaryType {
+    kInclusive,
+    kExclusive,
+  };
   MarkdownDocument() = delete;
   explicit MarkdownDocument(std::shared_ptr<MarkdownContext> context,
                             MarkdownResourceLoader* loader = nullptr)
@@ -158,8 +162,12 @@ class L_EXPORT MarkdownDocument {
   PointF GetElementOrigin(int32_t char_index, bool is_block = false);
   void TrimParagraphSpaces() const;
 
-  int32_t MarkdownOffsetToCharOffset(int32_t markdown_offset);
-  int32_t CharOffsetToMarkdownOffset(int32_t char_offset);
+  int32_t MarkdownOffsetToCharOffset(
+      int32_t markdown_offset, MarkdownOffsetBoundaryType boundary_type =
+                                   MarkdownOffsetBoundaryType::kInclusive);
+  int32_t CharOffsetToMarkdownOffset(
+      int32_t char_offset, MarkdownOffsetBoundaryType boundary_type =
+                               MarkdownOffsetBoundaryType::kInclusive);
 
   const MarkdownTextAttachment* GetTextClickRangeByTouchPosition(
       PointF position);
@@ -212,7 +220,7 @@ class L_EXPORT MarkdownDocument {
   PointF touch_down_point_{};
   bool touch_down_{false};
   // using index instead of pointer because region may be deleted after relayout
-  int32_t touch_down_region_index_{};
+  int32_t touch_down_region_index_{-1};
   float touch_down_region_origin_scroll_offset_{0};
   MarkdownTouchState touch_state_;
 

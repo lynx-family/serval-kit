@@ -119,6 +119,9 @@ PointF MarkdownDocument::GetTruncationOrigin() {
 
 std::pair<float, float> MarkdownDocument::GetInlineViewOrigin(
     const char* idSelector) {
+  if (idSelector == nullptr) {
+    return std::make_pair(0.f, 0.f);
+  }
   for (auto& inline_view : inline_views_) {
     if (idSelector == inline_view.id_) {
       auto pos =
@@ -318,12 +321,13 @@ bool MarkdownDocument::TouchPointCanScroll(PointF point, float safe_offset) {
 MarkdownTouchState MarkdownDocument::OnTouchEvent(
     serval::markdown::MarkdownTouchEventType type,
     serval::markdown::PointF point) {
-  touch_state_ = MarkdownTouchState::kNone;
   auto page = GetPage();
   if (page == nullptr || page->regions_.empty()) {
+    touch_state_ = MarkdownTouchState::kNone;
     return touch_state_;
   }
   if (type == MarkdownTouchEventType::kDown) {
+    touch_state_ = MarkdownTouchState::kNone;
     touch_down_ = true;
     touch_down_point_ = point;
     auto region_index =
@@ -363,6 +367,8 @@ MarkdownTouchState MarkdownDocument::OnTouchEvent(
     }
   } else {
     touch_down_ = false;
+    touch_down_region_index_ = -1;
+    touch_state_ = MarkdownTouchState::kNone;
   }
   return touch_state_;
 }
@@ -393,7 +399,8 @@ void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
   }
 }
 
-int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
+int32_t MarkdownDocument::MarkdownOffsetToCharOffset(
+    int32_t markdown_offset, MarkdownOffsetBoundaryType boundary_type) {
   if (markdown_index_to_char_index_.empty()) {
     return 0;
   }
@@ -407,6 +414,10 @@ int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
     return markdown_index_to_char_index_.back().second.end_;
   }
   if (markdown_offset < iter->first.start_) {
+    if (boundary_type == MarkdownOffsetBoundaryType::kExclusive &&
+        iter != markdown_index_to_char_index_.begin()) {
+      return (iter - 1)->second.end_;
+    }
     return iter->second.start_;
   }
   if (markdown_offset > iter->first.end_) {
@@ -415,7 +426,8 @@ int32_t MarkdownDocument::MarkdownOffsetToCharOffset(int32_t markdown_offset) {
   return iter->second.start_ + (markdown_offset - iter->first.start_);
 }
 
-int32_t MarkdownDocument::CharOffsetToMarkdownOffset(int32_t char_offset) {
+int32_t MarkdownDocument::CharOffsetToMarkdownOffset(
+    int32_t char_offset, MarkdownOffsetBoundaryType boundary_type) {
   if (markdown_index_to_char_index_.empty()) {
     return 0;
   }
@@ -429,6 +441,10 @@ int32_t MarkdownDocument::CharOffsetToMarkdownOffset(int32_t char_offset) {
     return markdown_index_to_char_index_.back().first.end_;
   }
   if (char_offset < iter->second.start_) {
+    if (boundary_type == MarkdownOffsetBoundaryType::kExclusive &&
+        iter != markdown_index_to_char_index_.begin()) {
+      return (iter - 1)->first.end_;
+    }
     return iter->first.start_;
   }
   if (char_offset > iter->second.end_) {
@@ -522,14 +538,14 @@ Range MarkdownDocument::GetChangedRegionsWhenAnimationUpdated(int32_t from_step,
   if (from_step > to_step) {
     std::swap(from_step, to_step);
   }
-  int32_t min_attachment_index = -1;
+  int32_t min_attachment_index = 0;
   for (const auto& attachment : page->GetTextAttachments()) {
     min_attachment_index =
         std::min(attachment->start_index_, min_attachment_index);
     min_attachment_index =
         std::min(attachment->end_index_, min_attachment_index);
   }
-  from_step += min_attachment_index + 1;
+  from_step += min_attachment_index;
   const int32_t page_char_count =
       MarkdownSelection::GetPageCharCount(page.get());
   if (page_char_count <= 0) {
@@ -594,8 +610,11 @@ Range MarkdownDocument::GetShowedExtraContents(float top, float bottom) {
 
 void MarkdownDocument::InheritState(
     serval::markdown::MarkdownDocument* old_document) {
-  if (old_document != nullptr && old_document->page_ != nullptr) {
-    inherited_scroll_state_ = old_document->page_->GetScrollState();
+  if (old_document != nullptr) {
+    auto old_page = old_document->GetPage();
+    if (old_page != nullptr) {
+      inherited_scroll_state_ = old_page->GetScrollState();
+    }
   }
 }
 

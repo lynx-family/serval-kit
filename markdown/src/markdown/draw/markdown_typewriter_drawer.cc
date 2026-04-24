@@ -107,6 +107,14 @@ void MarkdownCharTypewriterDrawer::DrawTextRegion(
   }
 }
 
+void MarkdownCharTypewriterDrawer::DrawTable(const MarkdownTableRegion& table,
+                                             const MarkdownElement& element,
+                                             tttext::LayoutDrawer* drawer,
+                                             int32_t row_count) {
+  row_count = GetVisibleTableRowCount(element);
+  MarkdownDrawer::DrawTable(table, element, drawer, row_count);
+}
+
 void MarkdownCharTypewriterDrawer::DrawRegion(const MarkdownPage& page,
                                               uint32_t region_index) {
   if (region_index >= page.GetRegionCount())
@@ -148,7 +156,8 @@ PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
   auto& region_info = region_infos.back();
   auto* region = region_info.region_;
   if (region->GetLineCount() == 0) {
-    max_draw_height_ = region_info.offset_.y_;
+    max_draw_height_ = region_info.row_bottom_ >= 0 ? region_info.row_bottom_
+                                                    : region_info.offset_.y_;
     return region_info.offset_;
   }
   auto char_index_in_region = max_char_count - region_info.char_pos_offset_;
@@ -159,7 +168,9 @@ PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
       break;
     }
   }
-  max_draw_height_ = region_info.offset_.y_ + line->GetLineBottom();
+  max_draw_height_ = region_info.row_bottom_ >= 0
+                         ? region_info.row_bottom_
+                         : region_info.offset_.y_ + line->GetLineBottom();
   float bounding_rect[4];
   line->GetCharBoundingRect(bounding_rect, char_index_in_region);
   auto [left, top, width, height] = bounding_rect;
@@ -178,6 +189,32 @@ PointF MarkdownCharTypewriterDrawer::CalculateCursorPosition(
       max_draw_height_, cursor_position.y_ + typewriter_cursor_->GetDescent() -
                             typewriter_cursor_->GetAscent());
   return cursor_position;
+}
+
+int32_t MarkdownCharTypewriterDrawer::GetVisibleTableRowCount(
+    const MarkdownElement& element) const {
+  if (element.GetType() != MarkdownElementType::kTable) {
+    return -1;
+  }
+  const auto* table_element =
+      static_cast<const MarkdownTableElement*>(&element);
+  const auto* table = table_element->GetTable();
+  if (table == nullptr || table->Empty() || table->GetColumnCount() <= 0) {
+    return 0;
+  }
+  const int32_t visible_char_count = max_char_count_ - element.GetCharStart();
+  if (visible_char_count <= 0) {
+    return 0;
+  }
+  int32_t row_count = 0;
+  for (int row = 0; row < table->GetRowCount(); row++) {
+    if (static_cast<int32_t>(table->GetCell(row, 0).char_start_) >=
+        visible_char_count) {
+      break;
+    }
+    row_count++;
+  }
+  return row_count;
 }
 
 tttext::RunDelegate* MarkdownCharTypewriterDrawer::LoadTypewriterCursor(

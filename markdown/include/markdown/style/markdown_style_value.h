@@ -16,6 +16,7 @@ enum class StyleValuePattern {
   kNumber,
   kBoolean,
   kEnum,
+  kRawPx,
   kPx,
   kDp,
   kEm,

@@ -209,13 +209,18 @@ void MarkdownDrawer::DrawRegion(
   } else if (type == MarkdownElementType::kTable) {
     auto* table_region =
         reinterpret_cast<const MarkdownPageTableRegion*>(&region);
-    DrawTable(*table_region->table_, *table_region->element_, drawer);
+    DrawTable(*table_region->table_, *table_region->element_, drawer,
+              table_region->table_->GetRowCount());
   }
   canvas_->Restore();
 }
 
 void MarkdownDrawer::DrawTableBackground(const MarkdownTableRegion& table,
-                                         const MarkdownElement& element) {
+                                         const MarkdownElement& element,
+                                         int32_t row_count) {
+  if (row_count <= 0) {
+    return;
+  }
   auto& table_style = static_cast<const MarkdownTableElement*>(&element)
                           ->GetTable()
                           ->GetTableStyle();
@@ -224,18 +229,19 @@ void MarkdownDrawer::DrawTableBackground(const MarkdownTableRegion& table,
 
   auto painter = canvas_->CreatePainter();
   painter->SetFillColor(table_style.background_color_);
+  const auto visible_height =
+      table.GetCell(row_count - 1, 0).cell_rect_.GetBottom();
   auto radius = element.GetBorderStyle().border_radius_;
   if (radius > 0) {
-    canvas_->DrawRoundRect(0, 0, table.total_width_, table.total_height_,
-                           radius, painter.get());
+    canvas_->DrawRoundRect(0, 0, table.total_width_, visible_height, radius,
+                           painter.get());
   } else {
-    canvas_->DrawRect(0, 0, table.total_width_, table.total_height_,
-                      painter.get());
+    canvas_->DrawRect(0, 0, table.total_width_, visible_height, painter.get());
   }
   if (table_style.table_background_ == MarkdownTableBackground::kChessBoard) {
     painter->SetFillColor(table_style.alt_color_);
     int32_t offset = 1;
-    for (int32_t row = 0; row < table.GetRowCount(); row++) {
+    for (int32_t row = 0; row < row_count; row++) {
       for (int32_t column = offset; column < table.GetColumnCount();
            column += 2) {
         auto rect = table.GetCell(row, column).cell_rect_;
@@ -248,7 +254,11 @@ void MarkdownDrawer::DrawTableBackground(const MarkdownTableRegion& table,
 }
 
 void MarkdownDrawer::DrawTableBorder(const MarkdownTableRegion& table,
-                                     const MarkdownElement& element) {
+                                     const MarkdownElement& element,
+                                     int32_t row_count) {
+  if (row_count <= 0) {
+    return;
+  }
   auto& table_style = static_cast<const MarkdownTableElement*>(&element)
                           ->GetTable()
                           ->GetTableStyle();
@@ -259,15 +269,28 @@ void MarkdownDrawer::DrawTableBorder(const MarkdownTableRegion& table,
   painter->SetStrokeColor(element.GetBorderStyle().border_color_);
   auto line_width = element.GetBorderStyle().border_width_;
   painter->SetStrokeWidth(line_width);
+  const auto visible_height =
+      table.GetCell(row_count - 1, 0).cell_rect_.GetBottom();
 
   if (table_style.table_border_ == MarkdownTableBorder::kFullRect) {
     auto radius = element.GetBorderStyle().border_radius_;
-    canvas_->DrawRoundRect(
-        line_width / 2, line_width / 2, table.total_width_ - line_width / 2,
-        table.total_height_ - line_width / 2, radius, painter.get());
+    if (radius > 0) {
+      canvas_->DrawRoundRect(
+          line_width / 2, line_width / 2, table.total_width_ - line_width / 2,
+          visible_height - line_width / 2, radius, painter.get());
+    } else {
+      const float left = line_width / 2;
+      const float top = line_width / 2;
+      const float right = table.total_width_ - line_width / 2;
+      const float bottom = visible_height - line_width / 2;
+      canvas_->DrawLine(left, top, right, top, painter.get());
+      canvas_->DrawLine(left, top, left, bottom, painter.get());
+      canvas_->DrawLine(right, top, right, bottom, painter.get());
+      canvas_->DrawLine(left, bottom, right, bottom, painter.get());
+    }
     if (table_style.table_split_ == MarkdownTableSplit::kAll ||
         table_style.table_split_ == MarkdownTableSplit::kHorizontal) {
-      for (int row = 0; row < table.GetRowCount() - 1; row++) {
+      for (int row = 0; row < row_count - 1; row++) {
         auto& cell = table.GetCell(row, 0);
         canvas_->DrawLine(0, cell.cell_rect_.GetBottom(), table.total_width_,
                           cell.cell_rect_.GetBottom(), painter.get());
@@ -278,12 +301,12 @@ void MarkdownDrawer::DrawTableBorder(const MarkdownTableRegion& table,
       for (int col = 0; col < table.GetColumnCount() - 1; col++) {
         auto& cell = table.GetCell(0, col);
         canvas_->DrawLine(cell.cell_rect_.GetRight(), 0,
-                          cell.cell_rect_.GetRight(), table.total_height_,
+                          cell.cell_rect_.GetRight(), visible_height,
                           painter.get());
       }
     }
   } else if (table_style.table_border_ == MarkdownTableBorder::kUnderline) {
-    for (int row = 0; row < table.GetRowCount(); row++) {
+    for (int row = 0; row < row_count; row++) {
       auto& cell = table.GetCell(row, 0);
       canvas_->DrawLine(
           0, cell.cell_rect_.GetBottom() - line_width / 2, table.total_width_,
@@ -293,7 +316,11 @@ void MarkdownDrawer::DrawTableBorder(const MarkdownTableRegion& table,
 }
 
 void MarkdownDrawer::DrawCellBackground(const MarkdownTableRegion& table,
-                                        const MarkdownElement& element) {
+                                        const MarkdownElement& element,
+                                        int32_t row_count) {
+  if (row_count <= 0) {
+    return;
+  }
   auto* markdown_table =
       static_cast<const MarkdownTableElement*>(&element)->GetTable();
   auto header_background = markdown_table->GetHeaderBackground();
@@ -306,7 +333,7 @@ void MarkdownDrawer::DrawCellBackground(const MarkdownTableRegion& table,
   }
   if (cell_background != 0) {
     painter->SetFillColor(cell_background);
-    for (auto index = 1; index < table.GetRowCount(); index++) {
+    for (auto index = 1; index < row_count; index++) {
       float top = table.GetCell(index, 0).cell_rect_.GetTop();
       float bottom = table.GetCell(index, 0).cell_rect_.GetBottom();
       canvas_->DrawRect(0, top, table.total_width_, bottom, painter.get());
@@ -316,8 +343,12 @@ void MarkdownDrawer::DrawCellBackground(const MarkdownTableRegion& table,
 
 void MarkdownDrawer::DrawTable(
     const serval::markdown::MarkdownTableRegion& table,
-    const MarkdownElement& element, tttext::LayoutDrawer* drawer) {
+    const MarkdownElement& element, tttext::LayoutDrawer* drawer,
+    int32_t row_count) {
   if (table.Empty() || terminated_) {
+    return;
+  }
+  if (row_count <= 0) {
     return;
   }
   canvas_->Save();
@@ -333,12 +364,12 @@ void MarkdownDrawer::DrawTable(
                        .radius_y_ = radius});
     extend_canvas->ClipPath(&path);
   }
-  DrawTableBackground(table, element);
-  DrawCellBackground(table, element);
-  DrawTableBorder(table, element);
+  DrawTableBackground(table, element, row_count);
+  DrawCellBackground(table, element, row_count);
+  DrawTableBorder(table, element, row_count);
 
   // draw cells
-  for (int row = 0; row < table.GetRowCount(); row++) {
+  for (int row = 0; row < row_count; row++) {
     for (int col = 0; col < table.GetColumnCount(); col++) {
       auto& cell = table.GetCell(row, col);
       canvas_->Save();

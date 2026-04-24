@@ -1634,10 +1634,12 @@ MarkdownStyleReader::ReadTextAttachments(Value* array,
       auto attachment = std::make_unique<MarkdownTextAttachment>();
       impl.ReadMarkdownAttachment(value->AsMap(), attachment.get());
       if (attachment->index_type_ == CharIndexType::kSource) {
-        attachment->start_index_ =
-            document->MarkdownOffsetToCharOffset(attachment->start_index_);
-        attachment->end_index_ =
-            document->MarkdownOffsetToCharOffset(attachment->end_index_);
+        attachment->start_index_ = document->MarkdownOffsetToCharOffset(
+            attachment->start_index_,
+            MarkdownDocument::MarkdownOffsetBoundaryType::kInclusive);
+        attachment->end_index_ = document->MarkdownOffsetToCharOffset(
+            attachment->end_index_,
+            MarkdownDocument::MarkdownOffsetBoundaryType::kExclusive);
       }
       attachments.emplace_back(std::move(attachment));
     }

@@ -19,6 +19,7 @@
 #include "markdown/style/markdown_style_initializer.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_definition.h"
+#include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/utils/markdown_string_utils.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 extern "C" {
@@ -649,7 +650,8 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
         text_line = text_line->next;
         continue;
       }
-      content += std::string_view(text_line->text.text, text_line->text.size);
+      content += TrimTrailingSpace(
+          std::string_view(text_line->text.text, text_line->text.size));
       int32_t text_line_end_offset =
           text_line->markdown_offset + text_line->text.size;
       text_line = text_line->next;
@@ -843,31 +845,31 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
   uint32_t char_offset = 0;
   for (size_t col = 0; col < col_count; col++) {
     auto str = TrimSpace(split[col]);
-    if (str.empty()) {
-      continue;
+    MarkdownTableCell cell{
+        .paragraph_ = nullptr,
+        .alignment_ = align[col],
+        .vertical_alignment_ = style_.table_header_.align_.vertical_align_,
+        .char_start_ = char_offset,
+        .char_count_ = 0,
+    };
+    if (!str.empty()) {
+      auto para = tttext::Paragraph::Create();
+      auto header_style = run_style;
+      auto header_base = style_.table_header_.base_;
+      header_base.background_color_ = 0;
+      SetTTStyleByMarkdownBaseStyle(header_base, &header_style);
+      para->SetParagraphStyle(&paragraph_style);
+      para->GetParagraphStyle().SetHorizontalAlign(align[col]);
+      ParseInlineSyntax(
+          std::string(str), para.get(), header_style, nullptr,
+          char_offset + context_.char_offset_,
+          str.data() - header_line->text.text + header_line->markdown_offset,
+          false);
+      cell.paragraph_ = std::move(para);
+      cell.char_count_ = cell.paragraph_->GetCharCount();
     }
-    auto para = tttext::Paragraph::Create();
-    auto header_style = run_style;
-    auto header_base = style_.table_header_.base_;
-    header_base.background_color_ = 0;
-    SetTTStyleByMarkdownBaseStyle(header_base, &header_style);
-    para->SetParagraphStyle(&paragraph_style);
-    para->GetParagraphStyle().SetHorizontalAlign(align[col]);
-    ParseInlineSyntax(
-        std::string(str), para.get(), header_style, nullptr,
-        char_offset + context_.char_offset_,
-        str.data() - header_line->text.text + header_line->markdown_offset,
-        false);
-    uint32_t char_count = para->GetCharCount();
-    context_.current_table_->SetCell(
-        0, col,
-        MarkdownTableCell{
-            .paragraph_ = std::move(para),
-            .alignment_ = align[col],
-            .vertical_alignment_ = style_.table_header_.align_.vertical_align_,
-            .char_start_ = char_offset,
-            .char_count_ = char_count});
-    char_offset += char_count;
+    context_.current_table_->SetCell(0, col, std::move(cell));
+    char_offset += context_.current_table_->GetCell(0, col).char_count_;
   }
   int row_index = 1;
   while (text_line != nullptr) {
@@ -878,26 +880,28 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
       if (col >= split.size())
         continue;
       auto str = TrimSpace(split[col]);
-      if (str.empty())
-        continue;
-      auto para = tttext::Paragraph::Create();
-      para->SetParagraphStyle(&paragraph_style);
-      para->GetParagraphStyle().SetHorizontalAlign(align[col]);
-      ParseInlineSyntax(
-          std::string(str), para.get(), run_style, nullptr,
-          char_offset + context_.char_offset_,
-          str.data() - text_line->text.text + text_line->markdown_offset,
-          false);
-      uint32_t char_count = para->GetCharCount();
-      context_.current_table_->SetCell(
-          row_index, col,
-          MarkdownTableCell{
-              .paragraph_ = std::move(para),
-              .alignment_ = align[col],
-              .vertical_alignment_ = style_.table_cell_.align_.vertical_align_,
-              .char_start_ = char_offset,
-              .char_count_ = char_count});
-      char_offset += char_count;
+      MarkdownTableCell cell{
+          .paragraph_ = nullptr,
+          .alignment_ = align[col],
+          .vertical_alignment_ = style_.table_cell_.align_.vertical_align_,
+          .char_start_ = char_offset,
+          .char_count_ = 0,
+      };
+      if (!str.empty()) {
+        auto para = tttext::Paragraph::Create();
+        para->SetParagraphStyle(&paragraph_style);
+        para->GetParagraphStyle().SetHorizontalAlign(align[col]);
+        ParseInlineSyntax(
+            std::string(str), para.get(), run_style, nullptr,
+            char_offset + context_.char_offset_,
+            str.data() - text_line->text.text + text_line->markdown_offset,
+            false);
+        cell.paragraph_ = std::move(para);
+        cell.char_count_ = cell.paragraph_->GetCharCount();
+      }
+      context_.current_table_->SetCell(row_index, col, std::move(cell));
+      char_offset +=
+          context_.current_table_->GetCell(row_index, col).char_count_;
     }
     row_index++;
     text_line = text_line->next;
@@ -967,19 +971,29 @@ std::vector<std::string_view> MarkdownParserEmbed::Split(
 }
 
 std::string_view MarkdownParserEmbed::TrimSpace(std::string_view origin) {
+  return TrimLeadingSpace(TrimTrailingSpace(origin));
+}
+
+std::string_view MarkdownParserEmbed::TrimLeadingSpace(
+    std::string_view origin) {
   size_t start = 0;
   for (; start < origin.size(); start++) {
     if (origin[start] != ' ' && origin[start] != '\t') {
       break;
     }
   }
+  return origin.substr(start, origin.length() - start);
+}
+
+std::string_view MarkdownParserEmbed::TrimTrailingSpace(
+    std::string_view origin) {
   int end = origin.size() - 1;
   for (; end >= 0; end--) {
     if (origin[end] != ' ' && origin[end] != '\t') {
       break;
     }
   }
-  return origin.substr(start, end - start + 1);
+  return origin.substr(0, end + 1);
 }
 
 std::vector<tttext::ParagraphHorizontalAlignment>
@@ -1125,10 +1139,10 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
     float width = style_.image_.size_.width_;
     float height = style_.image_.size_.height_;
     if (node->GetWidth() > 0) {
-      width = node->GetWidth();
+      width = MarkdownScreenMetrics::DPToPx(node->GetWidth());
     }
     if (node->GetHeight() > 0) {
-      height = node->GetHeight();
+      height = MarkdownScreenMetrics::DPToPx(node->GetHeight());
     }
     bool need_alt_text = false;
     if (loader_ != nullptr) {
@@ -1241,12 +1255,12 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
     attachment->start_index_ = char_offset;
     attachment->end_index_ = char_offset_end;
     attachment->rect_.left_ = std::make_unique<MarkdownLengthValue>(
-        -block.padding_left_, StyleValuePattern::kPx);
+        -block.padding_left_, StyleValuePattern::kRawPx);
     attachment->rect_.right_ = std::make_unique<MarkdownCalculateValue>(
         std::make_unique<MarkdownLengthValue>(100, StyleValuePattern::kPercent),
         OperatorType::kAdd,
         std::make_unique<MarkdownLengthValue>(block.padding_right_,
-                                              StyleValuePattern::kPx));
+                                              StyleValuePattern::kRawPx));
     if (background != nullptr && !background->background_image_.empty()) {
       attachment->rect_.gradient_ = ParseBackgroundDrawableValue(
           background->background_image_, document->GetResourceLoader(),
@@ -1259,11 +1273,11 @@ void MarkdownParserEmbed::AppendInlineBorderRight(
       attachment->rect_.color_ = base.background_color_;
     }
     attachment->rect_.radius_ = std::make_unique<MarkdownLengthValue>(
-        border.border_radius_, StyleValuePattern::kPx);
+        border.border_radius_, StyleValuePattern::kRawPx);
     if (border.border_width_ > 0) {
       attachment->rect_.stroke_color_ = border.border_color_;
       attachment->rect_.stroke_width_ = std::make_unique<MarkdownLengthValue>(
-          border.border_width_, StyleValuePattern::kPx);
+          border.border_width_, StyleValuePattern::kRawPx);
     }
     document->border_attachments_.emplace_back(std::move(attachment));
   }

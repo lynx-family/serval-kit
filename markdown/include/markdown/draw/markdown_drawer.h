@@ -31,13 +31,14 @@ class MarkdownDrawer {
   void DrawRegion(const MarkdownPageRegion& region,
                   tttext::LayoutDrawer* drawer);
   void DrawTableBorder(const MarkdownTableRegion& table,
-                       const MarkdownElement& element);
+                       const MarkdownElement& element, int32_t row_count);
   void DrawTableBackground(const MarkdownTableRegion& table,
-                           const MarkdownElement& element);
+                           const MarkdownElement& element, int32_t row_count);
   void DrawCellBackground(const MarkdownTableRegion& table,
-                          const MarkdownElement& element);
-  void DrawTable(const MarkdownTableRegion& table,
-                 const MarkdownElement& element, tttext::LayoutDrawer* drawer);
+                          const MarkdownElement& element, int32_t row_count);
+  virtual void DrawTable(const MarkdownTableRegion& table,
+                         const MarkdownElement& element,
+                         tttext::LayoutDrawer* drawer, int32_t row_count);
   virtual void DrawTextRegion(tttext::LayoutRegion* page,
                               tttext::LayoutDrawer* drawer);
   virtual void DrawAttachment(const MarkdownPage& page,
