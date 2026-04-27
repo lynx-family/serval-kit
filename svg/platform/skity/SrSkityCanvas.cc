@@ -1112,8 +1112,8 @@ std::shared_ptr<::skity::Data> SrSkityCanvas::GetSrSvgDrawImageWithData(
   }
   std::string svg_string =
       ConvertSvgBytesToUtf8String(data->RawData(), data->Size());
-  auto svg_dom =
-      serval::svg::parser::SrSVGDOM::make(svg_string.data(), svg_string.size());
+  auto svg_dom = serval::svg::parser::SrSVGDOM::make(
+      svg_string.data(), svg_string.size(), nullptr);
   if (!svg_dom) {
     return nullptr;
   }

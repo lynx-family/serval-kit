@@ -1,0 +1,12 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="shape">
+      <rect x="10" y="10" width="100" height="100" />
+      <use href="#shape" />
+    </g>
+    <mask id="m">
+      <use href="#shape" fill="white" />
+    </mask>
+  </defs>
+  <rect x="10" y="10" width="100" height="100" fill="#1E88E5" mask="url(#m)" />
+</svg>

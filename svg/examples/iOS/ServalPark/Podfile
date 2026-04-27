@@ -6,6 +6,6 @@ target 'ServalPark' do
   # use_frameworks!
 
   # Pods for ServalPark
-  pod 'ServalSVG', :path => "../../../"
+  pod 'ServalSVG', :path => "../../../../"
 
 end

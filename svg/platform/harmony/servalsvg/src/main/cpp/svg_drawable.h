@@ -14,20 +14,23 @@
 #include <string>
 #include <sys/stat.h>
 
-
 namespace serval {
 namespace svg {
 namespace harmony {
-class SvgDrawable {
 
+struct SvgRenderResult {
+    bool has_error{false};
+    std::string error_message;
+};
+
+class SvgDrawable {
 public:
     static napi_value Init(napi_env env, napi_value exports);
 
     void Render(OH_Drawing_Canvas *canvas);
 
-    void Update(const std::string &content, float left, float top, float width, float height, bool anti_alias,
-                bool has_color, std::string color);
-
+    SvgRenderResult Update(const std::string &content, float left, float top, float width, float height,
+                           bool anti_alias, bool has_color, std::string color);
 
 private:
     // JS methods
@@ -44,6 +47,7 @@ private:
     bool anti_alias_{true};
     bool has_color_{false};
     std::string color_;
+    SvgRenderResult last_result_{};
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
 };
@@ -52,5 +56,4 @@ private:
 
 } // namespace serval
 
-
-#endif // SVG_PLATFORM_HARMONY_SERVALSVG_SRC_MAIN_CPP_SVG_DRAWABLE_H_
+#endif  // SVG_PLATFORM_HARMONY_SERVALSVG_SRC_MAIN_CPP_SVG_DRAWABLE_H_

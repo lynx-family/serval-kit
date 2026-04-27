@@ -7,6 +7,7 @@ import android.graphics.Picture;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -58,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_OTHERS = "Others";
   private static final String CATEGORY_COLOR_PARSING = "ColorParsing";
   private static final String CATEGORY_CURRENT_COLOR = "CurrentColor";
+  private static final String CATEGORY_ILLEGAL_PARSING = "IllegalParsing";
   private static final String CATEGORY_MASK = "Mask";
   private static final String CATEGORY_PATTERN = "Pattern";
   private static final String CATEGORY_SVG_ROOT = "SvgRoot";
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_SHAPE = "Shape";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
   private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
+  private static final String DIAGNOSTIC_TAG = "SVGDiagnostic";
   private static final String[] PREVIEW_METADATA_FILES = {
       "svg_root_metadata.json", "svg_shape_metadata.json",
       "svg_use_metadata.json", "svg_gradient_metadata.json"};
@@ -203,8 +206,9 @@ public class MainActivity extends AppCompatActivity {
     categories.clear();
     for (String category : new String[] {
              CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
-             CATEGORY_MASK, CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
-             CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
+             CATEGORY_ILLEGAL_PARSING, CATEGORY_MASK, CATEGORY_PATTERN,
+             CATEGORY_SVG_ROOT, CATEGORY_USE, CATEGORY_GRADIENT,
+             CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -222,6 +226,9 @@ public class MainActivity extends AppCompatActivity {
     }
     if (fileName.startsWith("currentcolor-")) {
       return CATEGORY_CURRENT_COLOR;
+    }
+    if (fileName.startsWith("invalid-")) {
+      return CATEGORY_ILLEGAL_PARSING;
     }
     if (fileName.startsWith("mask-")) {
       return CATEGORY_MASK;
@@ -353,7 +360,14 @@ public class MainActivity extends AppCompatActivity {
     int safeWidth = Math.max(targetWidth, 1);
     int safeHeight = Math.max(targetHeight, 1);
     Rect renderRect = new Rect(0, 0, safeWidth, safeHeight);
-    Picture picture = render.renderPicture(svgContent, renderRect);
+    SVGRender.SVGRenderResult result =
+        render.renderPictureWithResult(svgContent, renderRect);
+    Picture picture = result.picture;
+    if (result.hasError) {
+      Log.i(DIAGNOSTIC_TAG,
+            "file=" + fileName + " errorMessage=" + result.errorMessage +
+                " diagnosticCount=" + result.diagnostics.size());
+    }
 
     SVGDrawable drawable = new SVGDrawable(picture);
     targetView.setImageDrawable(drawable);

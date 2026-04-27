@@ -85,14 +85,9 @@ public class SVGRenderEngine {
     sIsNativeLibraryLoaded = true;
   }
 
-  int render(SVGRender svgRender, String content, float left, float top,
-             float width, float height) {
-    return render(svgRender, content, left, top, width, height,
-                  svgRender.getColor());
-  }
-
-  native int render(SVGRender svgRender, String content, float left, float top,
-                    float width, float height, @Nullable String color);
+  native SVGRender.SVGDiagnostic[] renderWithDiagnostics(
+      SVGRender svgRender, String content, float left, float top, float width,
+      float height, @Nullable String color);
 
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,

@@ -29,6 +29,7 @@ struct Index {
   private static readonly CATEGORY_OTHERS: string = 'Others';
   private static readonly CATEGORY_COLOR_PARSING: string = 'ColorParsing';
   private static readonly CATEGORY_CURRENT_COLOR: string = 'CurrentColor';
+  private static readonly CATEGORY_ILLEGAL_PARSING: string = 'IllegalParsing';
   private static readonly CATEGORY_MASK: string = 'Mask';
   private static readonly CATEGORY_PATTERN: string = 'Pattern';
   private static readonly CATEGORY_SVG_ROOT: string = 'SvgRoot';
@@ -49,6 +50,7 @@ struct Index {
     Index.CATEGORY_SHAPE,
     Index.CATEGORY_COLOR_PARSING,
     Index.CATEGORY_CURRENT_COLOR,
+    Index.CATEGORY_ILLEGAL_PARSING,
     Index.CATEGORY_MASK,
     Index.CATEGORY_PATTERN,
     Index.CATEGORY_SVG_ROOT,
@@ -78,6 +80,27 @@ struct Index {
     'defs_use.svg',
     'gradients.svg',
     'image.svg',
+    'invalid-extra-close-tag.svg',
+    'invalid-path-garbage-token.svg',
+    'invalid-path-incomplete-command.svg',
+    'invalid-path-arc-flag.svg',
+    'invalid-style-garbage.svg',
+    'invalid-transform-garbage-token.svg',
+    'invalid-transform-incomplete.svg',
+    'invalid-color-function.svg',
+    'invalid-clipPath-recursive-iri.svg',
+    'invalid-iri-empty.svg',
+    'invalid-mask-recursive-iri.svg',
+    'invalid-polyline-garbage-token.svg',
+    'invalid-polyline-odd-points.svg',
+    'invalid-pattern-href-cycle.svg',
+    'invalid-pattern-use-cycle.svg',
+    'invalid-use-deep-chain.svg',
+    'invalid-use-long-cycle.svg',
+    'invalid-use-mutual-reference.svg',
+    'invalid-use-self-reference.svg',
+    'invalid-use-self-reference-in-clipPath.svg',
+    'invalid-viewbox-garbage-token.svg',
     'invalid-iri-test.svg',
     'mask-alpha-units-test.svg',
     'mask-comprehensive-test.svg',
@@ -129,6 +152,9 @@ struct Index {
     }
     if (fileName.startsWith('currentcolor-')) {
       return Index.CATEGORY_CURRENT_COLOR;
+    }
+    if (fileName.startsWith('invalid-')) {
+      return Index.CATEGORY_ILLEGAL_PARSING;
     }
     if (fileName.startsWith('mask-')) {
       return Index.CATEGORY_MASK;

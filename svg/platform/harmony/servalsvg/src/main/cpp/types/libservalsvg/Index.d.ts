@@ -1,5 +1,10 @@
 import { DrawContext } from "@kit.ArkUI";
 
+export interface SvgRenderResult {
+  hasError: boolean;
+  errorMessage?: string;
+}
+
 export class SvgDrawable {
   constructor();
 
@@ -14,5 +19,5 @@ export class SvgDrawable {
     content: string,
     antiAlias?: boolean,
     color?: string
-  ): void;
+  ): SvgRenderResult;
 }

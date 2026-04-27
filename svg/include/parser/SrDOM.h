@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include "element/SrSVGTypes.h"
+
 namespace serval {
 namespace svg {
 namespace parser {
@@ -31,6 +33,7 @@ struct SrDOMNode {
 
 class SrDOMParser;
 class SrXMLParser;
+class SrXMLParserError;
 
 class SrDOM {
  public:
@@ -42,7 +45,9 @@ class SrDOM {
 
   /** Returns null on failure
    */
-  const SrDOM::Node* build(const char* data, size_t len);
+  const SrDOM::Node* build(const char* data, size_t len,
+                           SrXMLParserError* error,
+                           const SrSVGDiagnosticSink* diagnostic_sink);
   const Node* Copy(const SrDOM& dom, const Node* node);
 
   [[nodiscard]] const Node* GetRootNode() const;
