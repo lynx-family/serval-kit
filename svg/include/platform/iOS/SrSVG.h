@@ -4,6 +4,8 @@
 
 #import <UIKit/UIKit.h>
 
+#import "SrSVGRenderResult.h"
+
 NS_ASSUME_NONNULL_BEGIN
 
 typedef UIImage* _Nullable (^SrSvgImageCallback)(NSString* _Nullable href);
@@ -19,6 +21,13 @@ typedef UIImage* _Nullable (^SrSvgImageCallback)(NSString* _Nullable href);
                               andSize:(CGSize)size
                              andColor:(nullable NSString*)color
                           andCallback:(SrSvgImageCallback)imageCb;
+// Preferred entry for callers that need both the rendered image and diagnostics.
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(nullable NSString*)color
+                          andCallback:(SrSvgImageCallback)imageCb
+                               result:(SrSVGRenderResult* _Nullable* _Nullable)
+                                          result;
 
 @end
 

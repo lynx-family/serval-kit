@@ -24,7 +24,7 @@ int main() {
 
   buffer[file_size] = '\0';
 
-  auto svgDom = SrSVGDOM::make(buffer, file_size + 1);
+  auto svgDom = SrSVGDOM::make(buffer, file_size + 1, nullptr);
 
   if (svgDom) {
     printf("build success!\n");

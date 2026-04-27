@@ -48,6 +48,16 @@ jobs:
       - name: Run coding-style check
         run: |
           source tools/envsetup.sh
+          export PATH="$PWD/tools_shared/buildtools/clang-format:$PATH"
+          which clang-format
+          clang-format --version
+          echo "----- target file -----"
+          sed -n '1,120p' svg/platform/harmony/servalsvg/src/main/cpp/svg_drawable.h
+          echo "----- visible chars -----"
+          sed -n '1,120p' svg/platform/harmony/servalsvg/src/main/cpp/svg_drawable.h | cat -A
+          echo "----- formatter diff -----"
+          clang-format -style=file svg/platform/harmony/servalsvg/src/main/cpp/svg_drawable.h > /tmp/svg_drawable.h.formatted
+          diff -u svg/platform/harmony/servalsvg/src/main/cpp/svg_drawable.h /tmp/svg_drawable.h.formatted || true
           python3 tools_shared/git_lynx.py check --checkers coding-style
       - name: Run android-check-style check
         run: |

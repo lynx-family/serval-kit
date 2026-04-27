@@ -31,7 +31,7 @@ void SrSVGPath::onDraw(canvas::SrCanvas* canvas,
 
 bool SrSVGPath::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "d") == 0) {
-    path_ = make_serval_path(value);
+    path_ = make_serval_path(value, diagnostic_sink_);
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);

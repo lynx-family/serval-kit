@@ -4,4 +4,4 @@
 
 export { SvgView, SvgRenderNodeController } from './components/SvgView';
 
-export { SvgData } from './components/SvgTypes'
+export { SvgData, SvgRenderResult } from './components/SvgTypes'

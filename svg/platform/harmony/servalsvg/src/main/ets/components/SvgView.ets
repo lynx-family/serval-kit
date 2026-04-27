@@ -1,6 +1,6 @@
 import { display, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
 import svg from 'libservalsvg.so';
-import { SvgData } from './SvgTypes';
+import { SvgData, SvgRenderResult } from './SvgTypes';
 
 
 @Component
@@ -73,15 +73,18 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
-  update(data?: SvgData): void;
-  update(data?: SvgData, parentColor?: string): void;
+  update(data?: SvgData): SvgRenderResult;
+  update(data?: SvgData, parentColor?: string): SvgRenderResult;
   update(data?: SvgData, parentColor?: string) {
     if (data) {
       this.data = data;
-      this.native.update(data.width, data.height, data.x, data.y, data.density,
-        data.content, data.antiAlias, parentColor);
+      const result: svg.SvgRenderResult =
+        this.native.update(data.width, data.height, data.x, data.y,
+          data.density, data.content, data.antiAlias, parentColor);
       this.invalidate();
+      return new SvgRenderResult(result.hasError, result.errorMessage);
     }
+    return new SvgRenderResult();
   }
 }
 
@@ -96,17 +99,18 @@ export class SvgRenderNodeController extends NodeController {
     super();
   }
 
-  updateData(data?: SvgData): void;
-  updateData(data?: SvgData, color?: string): void;
+  updateData(data?: SvgData): SvgRenderResult;
+  updateData(data?: SvgData, color?: string): SvgRenderResult;
   updateData(data?: SvgData, color?: string) {
     this.data = data;
     this.color = color;
     if (this.rootNode) {
       this.needUpdateData = false;
-      this.rootNode.update(data, color);
+      return this.rootNode.update(data, color);
     } else {
       this.needUpdateData = true;
     }
+    return new SvgRenderResult();
   }
 
   makeNode(uiContext: UIContext): FrameNode | null {
