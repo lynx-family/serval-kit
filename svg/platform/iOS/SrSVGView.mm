@@ -7,26 +7,60 @@
 #import <Foundation/Foundation.h>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 #include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/iOS/SrIOSCanvas.h"
 
 using serval::svg::ios::SrIOSCanvas;
+using serval::svg::parser::SrSVGDiagnostic;
 using serval::svg::parser::SrSVGDOM;
 
+@implementation SrSVGRenderResult {
+  BOOL _error;
+  NSString* _errorMessage;
+}
+
+@synthesize error = _error;
+@synthesize errorMessage = _errorMessage;
+
+- (instancetype)initWithError:(BOOL)error errorMessage:(NSString*)errorMessage {
+  self = [super init];
+  if (self) {
+    _error = error;
+    _errorMessage = [errorMessage copy];
+  }
+  return self;
+}
+
+@end
+
+static SrSVGRenderResult* SrSVGMakeRenderResult(
+    const std::vector<SrSVGDiagnostic>& diagnostics) {
+  NSString* errorMessage =
+      diagnostics.empty()
+          ? nil
+          : [NSString stringWithUTF8String:diagnostics.front().message.c_str()];
+  return [[SrSVGRenderResult alloc] initWithError:!diagnostics.empty()
+                                     errorMessage:errorMessage];
+}
+
 static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svgDom,
-                                   NSString* svgDoc) {
+                                   NSString* svgDoc,
+                                   std::vector<SrSVGDiagnostic>* diagnostics) {
   std::string svgCppString([svgDoc UTF8String]);
-  svgDom = SrSVGDOM::make(svgCppString.c_str(), svgCppString.length());
+  svgDom =
+      SrSVGDOM::make(svgCppString.c_str(), svgCppString.length(), diagnostics);
   return svgDom != nullptr;
 }
 
 static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
-                                 NSData* svgDoc) {
+                                 NSData* svgDoc,
+                                 std::vector<SrSVGDiagnostic>* diagnostics) {
   NSString* svgString = [[NSString alloc] initWithData:svgDoc
                                               encoding:NSUTF8StringEncoding];
-  return SrSVGParseSVGStringDoc(svgDom, svgString);
+  return SrSVGParseSVGStringDoc(svgDom, svgString, diagnostics);
 }
 
 @implementation SrSVGView {
@@ -56,9 +90,11 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
   }
 }
 
-- (void)parseContent:(NSString*)content {
-  SrSVGParseSVGStringDoc(self->_svgDom, content);
+- (SrSVGRenderResult*)parseContentWithResult:(NSString*)content {
+  std::vector<SrSVGDiagnostic> diagnostics;
+  SrSVGParseSVGStringDoc(self->_svgDom, content, &diagnostics);
   [self setNeedsDisplay];
+  return SrSVGMakeRenderResult(diagnostics);
 }
 
 - (void)setColor:(NSString*)color {
@@ -80,7 +116,8 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
   self = [super init];
   if (self) {
     self->_svgDoc = data;
-    SrSVGParseSVGDataDoc(self->_svgDom, data);
+    std::vector<SrSVGDiagnostic> diagnostics;
+    SrSVGParseSVGDataDoc(self->_svgDom, data, &diagnostics);
   }
   return self;
 }
@@ -88,7 +125,8 @@ static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
 - (instancetype)initWithString:(NSString*)svgDoc {
   self = [super init];
   if (self) {
-    SrSVGParseSVGStringDoc(self->_svgDom, svgDoc);
+    std::vector<SrSVGDiagnostic> diagnostics;
+    SrSVGParseSVGStringDoc(self->_svgDom, svgDoc, &diagnostics);
   }
   return self;
 }

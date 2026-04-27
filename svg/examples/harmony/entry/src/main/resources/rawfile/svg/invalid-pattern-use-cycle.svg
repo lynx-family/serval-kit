@@ -1,0 +1,12 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="tile">
+      <rect x="0" y="0" width="10" height="10" fill="#FFB300" />
+      <use href="#tile" />
+    </g>
+    <pattern id="p" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+      <use href="#tile" />
+    </pattern>
+  </defs>
+  <rect x="10" y="10" width="100" height="100" fill="url(#p)" />
+</svg>

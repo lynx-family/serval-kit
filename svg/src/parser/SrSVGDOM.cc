@@ -5,6 +5,7 @@
 #include "parser/SrSVGDOM.h"
 
 #include <cstring>
+#include <iterator>
 #include <string>
 
 #include "element/SrSVGCircle.h"
@@ -28,12 +29,53 @@
 #include "element/SrSVGText.h"
 #include "element/SrSVGUse.h"
 #include "parser/SrDOM.h"
+#include "parser/SrSVGTraversalState.h"
+#include "parser/SrXMLParserError.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGLog.h"
 
 namespace serval {
 namespace svg {
 namespace parser {
+
+namespace {
+
+SrSVGDiagnostic MakeParserDiagnostic(const SrXMLParserError& error) {
+  std::string message;
+  error.GetErrorString(message);
+  if (message.empty()) {
+    message = "Failed to build SVG DOM.";
+  }
+
+  SrSVGDiagnostic diagnostic;
+  diagnostic.code = error.HasError() && error.GetErrorCode() ==
+                                            SrXMLParserError::kUnknownError
+                        ? SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG
+                        : SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED;
+  diagnostic.message = message;
+  diagnostic.subject = error.HasNoun() ? error.GetNoun() : "";
+  diagnostic.fatal = true;
+  return diagnostic;
+}
+
+void ReportDiagnosticToTraversalState(void* ctx, ::SrSVGDiagnosticCode code,
+                                      const char* message, const char* subject,
+                                      uint8_t fatal) {
+  if (!ctx || code == SR_SVG_DIAGNOSTIC_NONE) {
+    return;
+  }
+  static_cast<SrSVGTraversalState*>(ctx)->Report(code, message, subject,
+                                                 fatal != 0);
+}
+
+SrSVGDiagnosticSink MakeDiagnosticSink(SrSVGTraversalState* state) {
+  SrSVGDiagnosticSink sink{};
+  sink.ctx = state;
+  sink.report = ReportDiagnosticToTraversalState;
+  return sink;
+}
+
+}  // namespace
 
 static bool gEnableDumpDom = false;
 
@@ -113,7 +155,9 @@ bool set_string_attribute(element::SrSVGNodeBase* node, const char* name,
 
 void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
                           element::SrSVGNodeBase* svgNode,
-                          element::IDMapper* id_mapper) {
+                          element::IDMapper* id_mapper,
+                          const SrSVGDiagnosticSink* diagnostic_sink) {
+  svgNode->SetDiagnosticSink(diagnostic_sink);
   const char *name, *value;
   SrDOM::AttrIter attr_iter(xmlNode);
   while ((name = attr_iter.Next(&value))) {
@@ -164,7 +208,8 @@ void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,
 element::SrSVGNodeBase* construct_svg_node(
     const SrDOM& dom, const element::SrSVGNodeBase* parentNode,
     const SrDOM::Node* curNode, element::IDMapper* id_mapper,
-    std::list<element::SrSVGNodeBase*>& holder) {
+    std::list<element::SrSVGNodeBase*>& holder,
+    const SrSVGDiagnosticSink* diagnostic_sink) {
   const char* el = dom.GetName(curNode);
   const auto type = dom.GetType(curNode);
 
@@ -243,11 +288,11 @@ element::SrSVGNodeBase* construct_svg_node(
     }
     pre_parse_inherit_color(parentNode, node);
   }
-  parse_node_attribute(dom, curNode, node, id_mapper);
+  parse_node_attribute(dom, curNode, node, id_mapper, diagnostic_sink);
   for (auto* child = dom.GetFirstChild(curNode, nullptr); child;
        child = dom.GetNextSibling(child)) {
-    element::SrSVGNodeBase* childNode =
-        construct_svg_node(dom, node, child, id_mapper, holder);
+    element::SrSVGNodeBase* childNode = construct_svg_node(
+        dom, node, child, id_mapper, holder, diagnostic_sink);
     if (ShouldAppendChild(node, childNode)) {
       node->AppendChild(childNode);
     }
@@ -255,10 +300,20 @@ element::SrSVGNodeBase* construct_svg_node(
   return node;
 }
 
-std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
+std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
+    const char* doc, size_t len, std::vector<SrSVGDiagnostic>* diagnostics) {
+  SrSVGTraversalState build_state;
+  SrSVGDiagnosticSink build_sink = MakeDiagnosticSink(&build_state);
   auto xml_dom = std::make_shared<SrDOM>();
-  if (!xml_dom->build(doc, len)) {
+  SrXMLParserError parser_error;
+  if (!xml_dom->build(doc, len, &parser_error, &build_sink)) {
+    if (diagnostics && parser_error.HasError()) {
+      diagnostics->push_back(MakeParserDiagnostic(parser_error));
+    }
     return nullptr;
+  }
+  if (parser_error.HasError()) {
+    build_state.diagnostics.push_back(MakeParserDiagnostic(parser_error));
   }
   if (gEnableDumpDom) {
     DumpDomTree(*xml_dom, xml_dom->GetRootNode(), 0);
@@ -267,23 +322,37 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(const char* doc, size_t len) {
   std::list<element::SrSVGNodeBase*> holder;
   auto* root_node = xml_dom->GetRootNode();
   if (!root_node) {
+    if (diagnostics && !build_state.diagnostics.empty()) {
+      *diagnostics = build_state.diagnostics;
+    }
     return nullptr;
   }
-  auto* root =
-      construct_svg_node(*xml_dom, nullptr, root_node, id_mapper.get(), holder);
+  auto* root = construct_svg_node(*xml_dom, nullptr, root_node, id_mapper.get(),
+                                  holder, &build_sink);
   if (!root) {
     for (auto* node : holder) {
       delete node;
     }
+    if (diagnostics && !build_state.diagnostics.empty()) {
+      *diagnostics = build_state.diagnostics;
+    }
     return nullptr;
   }
   if (root->Tag() == element::SrSVGTag::kSvg) {
-    return std::make_unique<SrSVGDOM>(static_cast<element::SrSVGSVG*>(root),
-                                      id_mapper.release(), std::move(holder),
-                                      xml_dom);
+    auto svg_dom = std::make_unique<SrSVGDOM>(
+        static_cast<element::SrSVGSVG*>(root), id_mapper.release(),
+        std::move(holder), xml_dom);
+    svg_dom->SetBuildDiagnostics(std::move(build_state.diagnostics));
+    if (diagnostics) {
+      *diagnostics = svg_dom->diagnostics();
+    }
+    return svg_dom;
   }
   for (auto* node : holder) {
     delete node;
+  }
+  if (diagnostics && !build_state.diagnostics.empty()) {
+    *diagnostics = build_state.diagnostics;
   }
   return nullptr;
 }
@@ -300,18 +369,21 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas) const {
   if (root_) {
     SrSVGBox view_box = root_->viewBox();
     float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
+    SrSVGTraversalState render_state;
     SrSVGRenderContext context{
         .width = view_box.width,
         .height = view_box.height,
         .dpi = local_dpi,
         .font_size = 0.f,
         .id_mapper = id_mapper_,
+        .traversal_state = &render_state,
         .view_port = view_box,
         .view_box = view_box,
         .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
         .default_color = default_color_.value_or(0),
     };
     root_->Render(canvas, context);
+    ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
   }
 }
 
@@ -319,19 +391,39 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
   if (root_) {
     SrSVGBox view_box = root_->viewBox();
     float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
+    SrSVGTraversalState render_state;
     SrSVGRenderContext context{
         .width = view_port.width,
         .height = view_port.height,
         .dpi = local_dpi,
         .font_size = 0.f,
         .id_mapper = id_mapper_,
+        .traversal_state = &render_state,
         .view_port = view_port,
         .view_box = view_box,
         .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
         .default_color = default_color_.value_or(0),
     };
     root_->Render(canvas, context);
+    ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
   }
+}
+
+const SrSVGDiagnostic* SrSVGDOM::last_diagnostic() const {
+  return diagnostics_.empty() ? nullptr : &diagnostics_.back();
+}
+
+void SrSVGDOM::SetBuildDiagnostics(std::vector<SrSVGDiagnostic> diagnostics) {
+  diagnostics_ = std::move(diagnostics);
+  static_diagnostic_count_ = diagnostics_.size();
+}
+
+void SrSVGDOM::ReplaceRuntimeDiagnostics(
+    std::vector<SrSVGDiagnostic> diagnostics) const {
+  diagnostics_.resize(static_diagnostic_count_);
+  diagnostics_.insert(diagnostics_.end(),
+                      std::make_move_iterator(diagnostics.begin()),
+                      std::make_move_iterator(diagnostics.end()));
 }
 
 // Id mapper should only ref to an svg node, but should never copy or delete

@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "element/SrSVGTypes.h"
+
 namespace serval {
 namespace svg {
 namespace parser {
@@ -18,7 +20,8 @@ static char* dupStr(const char src[], size_t srcLen) {
   return dst;
 }
 
-SrDOMParser::SrDOMParser() : SrXMLParser(&fParserError) {
+SrDOMParser::SrDOMParser(const SrSVGDiagnosticSink* diagnostic_sink)
+    : SrXMLParser(&fParserError), fDiagnosticSink(diagnostic_sink) {
   fRoot = nullptr;
   fLevel = 0;
   fNeedToFlush = true;
@@ -72,6 +75,17 @@ bool SrDOMParser::OnEndElement(const char elem[]) {
     this->flushAttributes();
   }
   fNeedToFlush = false;
+  if (fLevel <= 0 || fParentStack.empty()) {
+    if (fError) {
+      fError->SetCode(SrXMLParserError::kUnknownError);
+      fError->SetNoun(elem);
+    }
+    SrSVGReportDiagnostic(
+        fDiagnosticSink, SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG,
+        "Encountered unexpected closing tag while XML stack was empty.", elem,
+        1);
+    return false;
+  }
   --fLevel;
   SrDOM::Node* parent = fParentStack.back();
   fParentStack.pop_back();

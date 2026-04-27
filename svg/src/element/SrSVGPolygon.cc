@@ -31,7 +31,7 @@ void SrSVGPolygon::onDraw(canvas::SrCanvas* canvas,
 }
 bool SrSVGPolygon::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "points") == 0) {
-    polygon_ = make_serval_polygon(value);
+    polygon_ = make_serval_polygon(value, diagnostic_sink_);
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);

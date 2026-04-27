@@ -4,6 +4,8 @@
 
 #import <UIKit/UIKit.h>
 
+#import "SrSVGRenderResult.h"
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface SrSVGView : UIView
@@ -12,7 +14,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithString:(NSString*)svgDoc;
 - (instancetype)initWithData:(NSData*)data;
-- (void)parseContent:(NSString*)content;
+// Preferred entry for callers that need both rendering and diagnostics.
+- (SrSVGRenderResult*)parseContentWithResult:(NSString*)content;
 
 @end
 
