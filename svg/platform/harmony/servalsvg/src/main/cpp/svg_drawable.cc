@@ -44,7 +44,7 @@ SvgRenderResult MakeRenderResult(const std::vector<parser::SrSVGDiagnostic> &dia
     return result;
 }
 
-} // namespace
+}  // namespace
 
 napi_value SvgDrawable::Init(napi_env env, napi_value exports) {
     napi_value cons;
@@ -179,6 +179,6 @@ SvgRenderResult harmony::SvgDrawable::Update(const std::string &content, float l
     last_result_ = MakeRenderResult(diagnostics);
     return last_result_;
 }
-} // namespace harmony
-} // namespace svg
-} // namespace serval
+}  // namespace harmony
+}  // namespace svg
+}  // namespace serval

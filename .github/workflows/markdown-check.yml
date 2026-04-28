@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "markdown/**"
+      - "svg/**"
       - ".github/workflows/markdown-check.yml"
 
 jobs:

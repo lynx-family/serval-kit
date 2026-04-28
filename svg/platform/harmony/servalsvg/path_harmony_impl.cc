@@ -211,6 +211,6 @@ PathHarmonyImpl::~PathHarmonyImpl() {
     }
 }
 
-} // namespace harmony
-} // namespace svg
-} // namespace serval
+}  // namespace harmony
+}  // namespace svg
+}  // namespace serval

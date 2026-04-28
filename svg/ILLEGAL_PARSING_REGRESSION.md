@@ -86,7 +86,7 @@ tokens:
 
 - `invalid-path-arc-flag.svg`
 - `invalid-polyline-odd-points.svg`
-- `invalid-viewbox-garbage-token.svg`
+- `invalid-viewBox-garbage-token.svg`
 - `invalid-transform-garbage-token.svg`
 - `invalid-transform-incomplete.svg`
 
@@ -118,7 +118,7 @@ These cases validate invalid style and color parsing fallback behavior:
 - `invalid-pattern-href-cycle.svg`
 - `invalid-pattern-use-cycle.svg`
 - `invalid-transform-garbage-token.svg`
-- `invalid-viewbox-garbage-token.svg`
+- `invalid-viewBox-garbage-token.svg`
 
 ### Round 4: Full IllegalParsing Sweep
 

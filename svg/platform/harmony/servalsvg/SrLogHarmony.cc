@@ -31,6 +31,6 @@ void Log(SrLogger *sr_logger, const SrSvgLogLevel &level) {
     }
     OH_LOG_Print(LOG_APP, priority, LOG_PRINT_DOMAIN, "SrSVG", "%{public}s", sr_logger->info().c_str());
 }
-} // namespace log
-} // namespace svg
-} // namespace serval
+}  // namespace log
+}  // namespace svg
+}  // namespace serval

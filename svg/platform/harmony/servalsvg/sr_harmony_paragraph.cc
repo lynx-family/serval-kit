@@ -12,6 +12,6 @@ std::unique_ptr<canvas::ParagraphFactory> CreateParagraphFactoryFactory(const Sr
     return std::unique_ptr<canvas::ParagraphFactory>(new canvas::SrHarmonyParagraphFactory(srCanvas));
 }
 
-} // namespace canvas
-} // namespace svg
-} // namespace serval
+}  // namespace canvas
+}  // namespace svg
+}  // namespace serval
