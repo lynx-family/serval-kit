@@ -1,0 +1,11 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="n1"><use href="#n2" /></g>
+    <g id="n2"><use href="#n3" /></g>
+    <g id="n3"><use href="#n4" /></g>
+    <g id="n4"><use href="#n5" /></g>
+    <g id="n5"><use href="#leaf" /></g>
+    <g id="leaf"><rect x="20" y="20" width="80" height="80" fill="#4F6BFF" /></g>
+  </defs>
+  <use href="#n1" />
+</svg>

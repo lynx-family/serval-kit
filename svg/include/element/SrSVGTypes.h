@@ -88,12 +88,37 @@ typedef struct SrParagraphStyle {
 
 bool parse_svg_color(const char* str, uint32_t* out_color);
 
+typedef enum SrSVGDiagnosticCode {
+  SR_SVG_DIAGNOSTIC_NONE = 0,
+  SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG = 1,
+  SR_SVG_DIAGNOSTIC_PATH_PARSER_STALLED = 2,
+  SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED = 3,
+  SR_SVG_DIAGNOSTIC_USE_REFERENCE_CYCLE = 4,
+  SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED = 5,
+} SrSVGDiagnosticCode;
+
+typedef struct SrSVGDiagnosticSink {
+  void* ctx;
+  void (*report)(void* ctx, SrSVGDiagnosticCode code, const char* message,
+                 const char* subject, uint8_t fatal);
+} SrSVGDiagnosticSink;
+
+static inline void SrSVGReportDiagnostic(const SrSVGDiagnosticSink* sink,
+                                         SrSVGDiagnosticCode code,
+                                         const char* message,
+                                         const char* subject, uint8_t fatal) {
+  if (sink && sink->report) {
+    sink->report(sink->ctx, code, message, subject, fatal);
+  }
+}
+
 typedef struct SrSVGRenderContext {
   float width;
   float height;
   float dpi;
   float font_size;
   void* id_mapper;
+  void* traversal_state;
   SrSVGBox view_port;
   SrSVGBox view_box;
   uint8_t has_default_color;
@@ -226,12 +251,14 @@ SrSVGColor make_serval_color(const char* value);
 float convert_serval_length_to_float(const SrSVGLength* length,
                                      SrSVGRenderContext* render_context,
                                      SrSVGLengthType type);
-SrPolygon* make_serval_polygon(const char* value);
+SrPolygon* make_serval_polygon(const char* value,
+                               const SrSVGDiagnosticSink* diagnostic_sink);
 GradientSpread make_serval_spread_method(const char* value);
 void release_serval_polygon_path(SrPolygon*);
 
 #pragma region path
-SrPathData* make_serval_path(const char*);
+SrPathData* make_serval_path(const char*,
+                             const SrSVGDiagnosticSink* diagnostic_sink);
 void release_serval_path(SrPathData*);
 void add_circle_to_path(SrPathData* path, float cx, float cy, float r);
 #pragma endregion

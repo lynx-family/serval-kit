@@ -16,7 +16,7 @@ namespace parser {
 
 class SrDOMParser : public SrXMLParser {
  public:
-  SrDOMParser();
+  explicit SrDOMParser(const SrSVGDiagnosticSink* diagnostic_sink = nullptr);
 
   SrDOM::Node* getRoot() const { return fRoot; }
   SrXMLParserError fParserError;
@@ -40,6 +40,7 @@ class SrDOMParser : public SrXMLParser {
   char* fElemName;
   SrDOM::Type fElemType;
   int fLevel;
+  const SrSVGDiagnosticSink* fDiagnosticSink;
 };
 
 }  // namespace parser

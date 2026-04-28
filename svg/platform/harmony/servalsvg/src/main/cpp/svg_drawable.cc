@@ -11,10 +11,40 @@
 #include <memory>
 #include <native_drawing/drawing_types.h>
 #include <utility>
+#include <vector>
 
 namespace serval {
 namespace svg {
 namespace harmony {
+
+namespace {
+
+napi_value CreateRenderResult(napi_env env, const SvgRenderResult &result) {
+    napi_value js_result;
+    napi_create_object(env, &js_result);
+
+    napi_value has_error;
+    napi_get_boolean(env, result.has_error, &has_error);
+    napi_set_named_property(env, js_result, "hasError", has_error);
+
+    if (!result.error_message.empty()) {
+        napi_value error_message;
+        napi_create_string_utf8(env, result.error_message.c_str(), NAPI_AUTO_LENGTH, &error_message);
+        napi_set_named_property(env, js_result, "errorMessage", error_message);
+    }
+    return js_result;
+}
+
+SvgRenderResult MakeRenderResult(const std::vector<parser::SrSVGDiagnostic> &diagnostics) {
+    SvgRenderResult result;
+    result.has_error = !diagnostics.empty();
+    if (!diagnostics.empty()) {
+        result.error_message = diagnostics.front().message;
+    }
+    return result;
+}
+
+} // namespace
 
 napi_value SvgDrawable::Init(napi_env env, napi_value exports) {
     napi_value cons;
@@ -57,8 +87,6 @@ std::string SvgDrawable::ConvertToString(napi_env env, napi_value arg) {
 }
 
 napi_value SvgDrawable::Update(napi_env env, napi_callback_info info) {
-    napi_value result;
-    napi_get_undefined(env, &result);
     napi_value js_this;
     size_t argc = 8;
     napi_value argv[8];
@@ -88,8 +116,9 @@ napi_value SvgDrawable::Update(napi_env env, napi_callback_info info) {
         }
     }
     const auto &str = SvgDrawable::ConvertToString(env, argv[5]);
-    svg->Update(str, left * scale, top * scale, width * scale, height * scale, anti_alias, has_color, color);
-    return result;
+    const auto result =
+        svg->Update(str, left * scale, top * scale, width * scale, height * scale, anti_alias, has_color, color);
+    return CreateRenderResult(env, result);
 }
 
 napi_value SvgDrawable::Constructor(napi_env env, napi_callback_info info) {
@@ -132,12 +161,14 @@ void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
         }
         SrSVGBox box{left_, top_, width_, height_};
         svg_dom_->Render(sr_canvas_.get(), box);
+        last_result_ = MakeRenderResult(svg_dom_->diagnostics());
     }
 }
 
-void harmony::SvgDrawable::Update(const std::string &content, float left, float top, float width, float height,
-                                  bool anti_alias, bool has_color, std::string color) {
-    svg_dom_ = std::move(parser::SrSVGDOM::make(content.data(), content.size()));
+SvgRenderResult harmony::SvgDrawable::Update(const std::string &content, float left, float top, float width,
+                                             float height, bool anti_alias, bool has_color, std::string color) {
+    std::vector<parser::SrSVGDiagnostic> diagnostics;
+    svg_dom_ = std::move(parser::SrSVGDOM::make(content.data(), content.size(), &diagnostics));
     left_ = left;
     top_ = top;
     width_ = width;
@@ -145,6 +176,8 @@ void harmony::SvgDrawable::Update(const std::string &content, float left, float 
     anti_alias_ = anti_alias;
     has_color_ = has_color;
     color_ = std::move(color);
+    last_result_ = MakeRenderResult(diagnostics);
+    return last_result_;
 }
 } // namespace harmony
 } // namespace svg

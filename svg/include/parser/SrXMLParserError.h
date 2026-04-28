@@ -32,6 +32,7 @@ class SrXMLParserError {
   int GetNativeCode() const { return fNativeCode; }
   bool HasError() const { return fCode != kNoError || fNativeCode != -1; }
   bool HasNoun() const { return fNoun.size() > 0; }
+  const std::string& GetNoun() const { return fNoun; }
   void Reset();
   void SetCode(ErrorCode code) { fCode = code; }
   void SetNoun(const std::string& str) { fNoun = str; }

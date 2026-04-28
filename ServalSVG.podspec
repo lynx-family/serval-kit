@@ -21,7 +21,8 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = "9.0"
 
   s.public_header_files = "svg/include/platform/iOS/SrSVG.h",
-                          "svg/include/platform/iOS/SrSVGView.h"
+                          "svg/include/platform/iOS/SrSVGView.h",
+                          "svg/include/platform/iOS/SrSVGRenderResult.h"
 
   s.source_files = "svg/include/element/**/*.h",
                    "svg/include/parser/**/*.h",
