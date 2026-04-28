@@ -58,6 +58,9 @@ class SrSVGNodeBase {
   virtual ~SrSVGNodeBase() = default;
   void Render(canvas::SrCanvas* canvas, SrSVGRenderContext& context);
   virtual bool ParseAndSetAttribute(const char* name, const char* value) = 0;
+  void SetDiagnosticSink(const SrSVGDiagnosticSink* diagnostic_sink) {
+    diagnostic_sink_ = diagnostic_sink;
+  }
   virtual void AppendChild(SrSVGNodeBase*) {}
   virtual std::unique_ptr<canvas::Path> AsPath(
       canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
@@ -81,6 +84,7 @@ class SrSVGNodeBase {
  public:
   std::optional<SrSVGColor> color_;
   std::optional<SrSVGColor> inherit_color_;
+  const SrSVGDiagnosticSink* diagnostic_sink_{nullptr};
 
  protected:
   std::string id_;

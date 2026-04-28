@@ -87,10 +87,21 @@ const char* SrDOM::AttrIter::Next(const char** value) {
   return name;
 }
 
-const SrDOM::Node* SrDOM::build(const char* data, size_t len) {
-  SrDOMParser parser;
+const SrDOM::Node* SrDOM::build(const char* data, size_t len,
+                                SrXMLParserError* error,
+                                const SrSVGDiagnosticSink* diagnostic_sink) {
+  SrDOMParser parser(diagnostic_sink);
+  if (error) {
+    *error = parser.fParserError;
+  }
   if (!parser.parse(data, len)) {
+    if (error) {
+      *error = parser.fParserError;
+    }
     return nullptr;
+  }
+  if (error) {
+    *error = parser.fParserError;
   }
   fRoot = parser.getRoot();
   return fRoot;

@@ -8,8 +8,10 @@
 #include <list>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGSVG.h"
@@ -19,9 +21,17 @@ namespace serval {
 namespace svg {
 namespace parser {
 
+struct SrSVGDiagnostic {
+  SrSVGDiagnosticCode code{SR_SVG_DIAGNOSTIC_NONE};
+  std::string message;
+  std::string subject;
+  bool fatal{false};
+};
+
 class SrSVGDOM {
  public:
-  static std::unique_ptr<SrSVGDOM> make(const char*, size_t);
+  static std::unique_ptr<SrSVGDOM> make(const char*, size_t,
+                                        std::vector<SrSVGDiagnostic>*);
   ~SrSVGDOM();
   explicit SrSVGDOM(element::SrSVGSVG* root, element::IDMapper* id_mapper,
                     std::list<element::SrSVGNodeBase*>&& holder,
@@ -37,6 +47,13 @@ class SrSVGDOM {
   void ResetDefaultColor();
   void Render(canvas::SrCanvas* canvas) const;
   void Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const;
+  const std::vector<SrSVGDiagnostic>& diagnostics() const {
+    return diagnostics_;
+  }
+  const SrSVGDiagnostic* last_diagnostic() const;
+  void SetBuildDiagnostics(std::vector<SrSVGDiagnostic> diagnostics);
+  void ReplaceRuntimeDiagnostics(
+      std::vector<SrSVGDiagnostic> diagnostics) const;
 
  private:
   element::SrSVGSVG* root_;
@@ -44,6 +61,8 @@ class SrSVGDOM {
   std::list<element::SrSVGNodeBase*> nodes_;
   //release SrDOM after rendering is complete
   std::shared_ptr<SrDOM> xml_dom_;
+  mutable std::vector<SrSVGDiagnostic> diagnostics_;
+  mutable size_t static_diagnostic_count_{0};
 };
 
 }  // namespace parser

@@ -14,3 +14,13 @@ export class SvgData {
     }
   }
 }
+
+export class SvgRenderResult {
+  hasError: boolean = false;
+  errorMessage?: string = undefined;
+
+  constructor(hasError: boolean = false, errorMessage?: string) {
+    this.hasError = hasError;
+    this.errorMessage = errorMessage;
+  }
+}

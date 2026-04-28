@@ -680,7 +680,8 @@ static void add_args_to_path(SrPathData* path, float args[], size_t len) {
   path->n_args += len;
 }
 
-SrPathData* make_serval_path(const char* value) {
+SrPathData* make_serval_path(const char* value,
+                             const SrSVGDiagnosticSink* diagnostic_sink) {
   SrPathData* path = malloc(sizeof(SrPathData));
   memset(path, 0, sizeof(SrPathData));
   const char* s = value;
@@ -692,6 +693,7 @@ SrPathData* make_serval_path(const char* value) {
           control_point_y = 0;
     float sub_path_start_x = 0, sub_path_start_y = 0;
     while (*s) {
+      const char* loop_start = s;
       if (isalpha(*s)) {
         cmd = last_cmd = *s++;
       } else {
@@ -877,6 +879,12 @@ SrPathData* make_serval_path(const char* value) {
       }
       // next command
       skip_sep(&s);
+      if (s == loop_start) {
+        SrSVGReportDiagnostic(
+            diagnostic_sink, SR_SVG_DIAGNOSTIC_PATH_PARSER_STALLED,
+            "Stopped parsing path because the parser did not advance.", s, 0);
+        break;
+      }
     }
   }
   return path;
@@ -892,14 +900,29 @@ void release_serval_polygon_path(SrPolygon* path) {
   free(path);
 }
 
-SrPolygon* make_serval_polygon(const char* value) {
+SrPolygon* make_serval_polygon(const char* value,
+                               const SrSVGDiagnosticSink* diagnostic_sink) {
   SrPolygon* polygon = malloc(sizeof(SrPolygon));
   *polygon = (SrPolygon){0};
   const char* s = value;
   while (*s) {
+    const char* x_start = s;
     float x = strtof(s, (char**)&s);
+    if (s == x_start) {
+      SrSVGReportDiagnostic(
+          diagnostic_sink, SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED,
+          "Stopped parsing polygon/polyline because x did not advance.", s, 0);
+      break;
+    }
     skip_sep(&s);
+    const char* y_start = s;
     float y = strtof(s, (char**)&s);
+    if (s == y_start) {
+      SrSVGReportDiagnostic(
+          diagnostic_sink, SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED,
+          "Stopped parsing polygon/polyline because y did not advance.", s, 0);
+      break;
+    }
     // resize failed, return an empty path;
     if (!add_point_to_polygon(polygon, x, y))
       return polygon;

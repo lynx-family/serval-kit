@@ -4,6 +4,7 @@
 
 #include <android/log.h>
 #include <jni.h>
+#include <vector>
 
 #include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
@@ -15,19 +16,27 @@ using serval::svg::android::SrAndroidCanvas;
 using serval::svg::parser::SrSVGDOM;
 
 int registerNativeMethod(JNIEnv* env);
-jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
-            jfloat left, jfloat top, jfloat width, jfloat height,
-            jstring j_color);
+jobjectArray renderWithDiagnostics(JNIEnv* env, jobject j_engine,
+                                   jobject j_render, jstring j_str, jfloat left,
+                                   jfloat top, jfloat width, jfloat height,
+                                   jstring j_color);
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,
                                       jfloat vp_left, jfloat vp_top,
                                       jfloat vp_width, jfloat vp_height,
                                       jfloat vb_left, jfloat vb_top,
                                       jfloat vb_width, jfloat vb_height,
                                       jint align_x, jint align_y, jint scale);
-std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str);
+std::unique_ptr<SrSVGDOM> CreateSVGDom(
+    JNIEnv* env, jstring j_str,
+    std::vector<serval::svg::parser::SrSVGDiagnostic>* diagnostics);
 jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
-                  std::unique_ptr<SrSVGDOM> svg_dom, jfloat left, jfloat top,
-                  jfloat width, jfloat height);
+                  SrSVGDOM* svg_dom, jfloat left, jfloat top, jfloat width,
+                  jfloat height);
+jobject CreateJavaDiagnostic(
+    JNIEnv* env, const serval::svg::parser::SrSVGDiagnostic& diagnostic);
+jobjectArray CreateJavaDiagnosticArray(
+    JNIEnv* env,
+    const std::vector<serval::svg::parser::SrSVGDiagnostic>& diagnostics);
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   InitVM(vm);
@@ -55,10 +64,11 @@ int registerNativeMethod(JNIEnv* env) {
   }
   static const JNINativeMethod render_engine_method[] = {
       {
-          .name = "render",
+          .name = "renderWithDiagnostics",
           .signature = "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/"
-                       "String;FFFFLjava/lang/String;)I",
-          .fnPtr = reinterpret_cast<void*>(render),
+                       "String;FFFFLjava/lang/String;)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(renderWithDiagnostics),
       },
       {
           .name = "calculateViewBoxTransform",
@@ -74,12 +84,14 @@ int registerNativeMethod(JNIEnv* env) {
   return JNI_OK;
 }
 
-jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
-            jfloat left, jfloat top, jfloat width, jfloat height,
-            jstring j_color) {
-  auto svg_dom = CreateSVGDom(env, j_str);
+jobjectArray renderWithDiagnostics(JNIEnv* env, jobject j_engine,
+                                   jobject j_render, jstring j_str, jfloat left,
+                                   jfloat top, jfloat width, jfloat height,
+                                   jstring j_color) {
+  std::vector<serval::svg::parser::SrSVGDiagnostic> build_diagnostics;
+  auto svg_dom = CreateSVGDom(env, j_str, &build_diagnostics);
   if (!svg_dom) {
-    return JNI_ERR;
+    return CreateJavaDiagnosticArray(env, build_diagnostics);
   }
   if (j_color != nullptr) {
     const char* color_str = env->GetStringUTFChars(j_color, JNI_FALSE);
@@ -97,11 +109,14 @@ jint render(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
   } else {
     svg_dom->ResetDefaultColor();
   }
-  return RenderSvgDom(env, j_engine, j_render, std::move(svg_dom), left, top,
-                      width, height);
+  RenderSvgDom(env, j_engine, j_render, svg_dom.get(), left, top, width,
+               height);
+  return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
 }
 
-std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str) {
+std::unique_ptr<SrSVGDOM> CreateSVGDom(
+    JNIEnv* env, jstring j_str,
+    std::vector<serval::svg::parser::SrSVGDiagnostic>* diagnostics) {
   if (!j_str) {
     return nullptr;
   }
@@ -114,7 +129,8 @@ std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str) {
     env->ReleaseStringUTFChars(j_str, str);
     return nullptr;
   }
-  auto svg_dom = SrSVGDOM::make(str, static_cast<size_t>(utf8_length));
+  auto svg_dom =
+      SrSVGDOM::make(str, static_cast<size_t>(utf8_length), diagnostics);
   env->ReleaseStringUTFChars(j_str, str);
   if (!svg_dom) {
     __android_log_print(ANDROID_LOG_ERROR, "SrSVG",
@@ -125,8 +141,8 @@ std::unique_ptr<SrSVGDOM> CreateSVGDom(JNIEnv* env, jstring j_str) {
 }
 
 jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
-                  std::unique_ptr<SrSVGDOM> svg_dom, jfloat left, jfloat top,
-                  jfloat width, jfloat height) {
+                  SrSVGDOM* svg_dom, jfloat left, jfloat top, jfloat width,
+                  jfloat height) {
   if (!j_engine || !j_render || !svg_dom) {
     return JNI_ERR;
   }
@@ -134,6 +150,46 @@ jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
   SrSVGBox view_port{left, top, width, height};
   svg_dom->Render(&sr_android_canvas, view_port);
   return JNI_OK;
+}
+
+jobject CreateJavaDiagnostic(
+    JNIEnv* env, const serval::svg::parser::SrSVGDiagnostic& diagnostic) {
+  jclass diagnostic_class =
+      env->FindClass("com/lynx/serval/svg/SVGRender$SVGDiagnostic");
+  if (!diagnostic_class) {
+    return nullptr;
+  }
+  jmethodID constructor = env->GetMethodID(
+      diagnostic_class, "<init>", "(ILjava/lang/String;Ljava/lang/String;Z)V");
+  if (!constructor) {
+    return nullptr;
+  }
+  jstring message = env->NewStringUTF(diagnostic.message.c_str());
+  jstring subject = env->NewStringUTF(diagnostic.subject.c_str());
+  jobject result = env->NewObject(
+      diagnostic_class, constructor, static_cast<jint>(diagnostic.code),
+      message, subject, static_cast<jboolean>(diagnostic.fatal));
+  env->DeleteLocalRef(message);
+  env->DeleteLocalRef(subject);
+  return result;
+}
+
+jobjectArray CreateJavaDiagnosticArray(
+    JNIEnv* env,
+    const std::vector<serval::svg::parser::SrSVGDiagnostic>& diagnostics) {
+  jclass diagnostic_class =
+      env->FindClass("com/lynx/serval/svg/SVGRender$SVGDiagnostic");
+  if (!diagnostic_class) {
+    return nullptr;
+  }
+  jobjectArray result = env->NewObjectArray(
+      static_cast<jsize>(diagnostics.size()), diagnostic_class, nullptr);
+  for (jsize i = 0; i < static_cast<jsize>(diagnostics.size()); ++i) {
+    jobject diagnostic = CreateJavaDiagnostic(env, diagnostics[i]);
+    env->SetObjectArrayElement(result, i, diagnostic);
+    env->DeleteLocalRef(diagnostic);
+  }
+  return result;
 }
 
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,

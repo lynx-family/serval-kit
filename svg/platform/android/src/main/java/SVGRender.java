@@ -46,7 +46,10 @@ import com.lynx.serval.svg.model.PaintRef;
 import com.lynx.serval.svg.model.RadialGradientModel;
 import com.lynx.serval.svg.model.StopModel;
 import com.lynx.serval.svg.model.StrokePaintModel;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 public class SVGRender {
   private static final String TAG = "SVGRender";
@@ -79,6 +82,37 @@ public class SVGRender {
   private ResourceManager mResourceProvider;
   private String mColorString = null;
 
+  public static final class SVGDiagnostic {
+    public final int code;
+    @NonNull public final String message;
+    @NonNull public final String subject;
+    public final boolean fatal;
+
+    public SVGDiagnostic(int code, @Nullable String message,
+                         @Nullable String subject, boolean fatal) {
+      this.code = code;
+      this.message = message == null ? "" : message;
+      this.subject = subject == null ? "" : subject;
+      this.fatal = fatal;
+    }
+  }
+
+  public static final class SVGRenderResult {
+    @NonNull public final Picture picture;
+    @NonNull public final List<SVGDiagnostic> diagnostics;
+    public final boolean hasError;
+    @Nullable public final String errorMessage;
+
+    SVGRenderResult(@NonNull Picture picture,
+                    @NonNull List<SVGDiagnostic> diagnostics) {
+      this.picture = picture;
+      this.diagnostics = diagnostics;
+      this.hasError = !diagnostics.isEmpty();
+      this.errorMessage =
+          diagnostics.isEmpty() ? null : diagnostics.get(0).message;
+    }
+  }
+
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
     mGradientModels = new HashMap<>();
@@ -101,20 +135,29 @@ public class SVGRender {
     return mColorString;
   }
 
+  // Prefer renderPictureWithResult() so callers can inspect diagnostics per render.
+  @Deprecated
   public Picture renderPicture(String content, Rect viewPort) {
+    return renderPictureWithResult(content, viewPort).picture;
+  }
+
+  public SVGRenderResult renderPictureWithResult(String content,
+                                                 Rect viewPort) {
     Picture picture = new Picture();
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
+    SVGDiagnostic[] diagnostics = null;
     if (mSVGRenderEngineNG != null) {
-      int renderResult =
-          mSVGRenderEngineNG.render(this, content, viewPort.left, viewPort.top,
-                                    viewPort.width(), viewPort.height());
-      if (renderResult != 0) {
-        Log.e(TAG, "Failed to render SVG picture.");
-      }
+      diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
+          this, content, viewPort.left, viewPort.top, viewPort.width(),
+          viewPort.height(), getColor());
     }
     picture.endRecording();
-    return picture;
+    List<SVGDiagnostic> diagnosticList =
+        diagnostics == null || diagnostics.length == 0
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(Arrays.asList(diagnostics));
+    return new SVGRenderResult(picture, diagnosticList);
   }
 
   public void setViewBox(float x, float y, float width, float height) {}

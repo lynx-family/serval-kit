@@ -35,6 +35,7 @@ static NSString* const kHostDefaultColor = @"#4F6BFF";
 static NSString* const kCategoryOthers = @"Others";
 static NSString* const kCategoryColorParsing = @"ColorParsing";
 static NSString* const kCategoryCurrentColor = @"CurrentColor";
+static NSString* const kCategoryIllegalParsing = @"IllegalParsing";
 static NSString* const kCategoryMask = @"Mask";
 static NSString* const kCategoryPattern = @"Pattern";
 static NSString* const kCategorySvgRoot = @"SvgRoot";
@@ -52,8 +53,8 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 - (NSArray<NSString*>*)orderedCategories {
   return @[
     kCategoryShape, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
-    kCategoryPattern, kCategorySvgRoot, kCategoryUse, kCategoryGradient,
-    kCategoryVectorEffect, kCategoryOthers
+    kCategoryIllegalParsing, kCategoryPattern, kCategorySvgRoot, kCategoryUse,
+    kCategoryGradient, kCategoryVectorEffect, kCategoryOthers
   ];
 }
 
@@ -131,6 +132,9 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   }
   if ([fileName hasPrefix:@"currentcolor-"]) {
     return kCategoryCurrentColor;
+  }
+  if ([fileName hasPrefix:@"invalid-"]) {
+    return kCategoryIllegalParsing;
   }
   if ([fileName hasPrefix:@"mask-"]) {
     return kCategoryMask;
@@ -371,7 +375,11 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 
     NSString* content = [self svgContentForFile:fileName];
     if (content.length > 0) {
-      [previewView parseContent:content];
+      SrSVGRenderResult* result = [previewView parseContentWithResult:content];
+      if (result.hasError) {
+        NSLog(@"SVGDiagnostic file=%@ errorMessage=%@", fileName,
+              result.errorMessage);
+      }
     }
     [row addSubview:previewView];
     [self.scrollView addSubview:row];

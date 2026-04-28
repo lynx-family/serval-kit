@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "canvas/SrCanvas.h"
+#include "parser/SrSVGTraversalState.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif  // __ANDROID__
@@ -13,6 +14,43 @@
 namespace serval {
 namespace svg {
 namespace element {
+
+namespace {
+
+parser::SrSVGTraversalState* GetTraversalState(SrSVGRenderContext& context) {
+  return static_cast<parser::SrSVGTraversalState*>(context.traversal_state);
+}
+
+parser::SrSVGTraversalState* GetTraversalState(
+    const SrSVGRenderContext* context) {
+  return context ? static_cast<parser::SrSVGTraversalState*>(
+                       context->traversal_state)
+                 : nullptr;
+}
+
+bool TryEnterUseReference(parser::SrSVGTraversalState* state,
+                          const std::string& href) {
+  return state && !href.empty() && state->active_use_ids.insert(href).second;
+}
+
+void LeaveUseReference(parser::SrSVGTraversalState* state,
+                       const std::string& href) {
+  if (!state || href.empty()) {
+    return;
+  }
+  state->active_use_ids.erase(href);
+}
+
+void ReportUseCycle(parser::SrSVGTraversalState* state, const std::string& href,
+                    const char* message) {
+  if (!state) {
+    return;
+  }
+  state->Report(SR_SVG_DIAGNOSTIC_USE_REFERENCE_CYCLE, message, href.c_str(),
+                false);
+}
+
+}  // namespace
 
 bool SrSVGUse::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "href") == 0) {
@@ -54,7 +92,13 @@ bool SrSVGUse::OnPrepareToRender(canvas::SrCanvas* canvas,
 
 void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   IDMapper* id_mapper = static_cast<IDMapper*>(context.id_mapper);
-  if (!id_mapper || href_.empty()) {
+  auto* traversal_state = GetTraversalState(context);
+  if (!id_mapper || href_.empty() || !traversal_state) {
+    return;
+  }
+  if (!TryEnterUseReference(traversal_state, href_)) {
+    ReportUseCycle(traversal_state, href_,
+                   "Skipped recursive <use> reference.");
     return;
   }
 
@@ -62,19 +106,29 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   if (it != id_mapper->end() && it->second) {
     renderRealNode(it->second, canvas, context);
   }
+  LeaveUseReference(traversal_state, href_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
   IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
-  if (!id_mapper || href_.empty()) {
+  auto* traversal_state = GetTraversalState(context);
+  if (!id_mapper || href_.empty() || !traversal_state) {
+    return nullptr;
+  }
+  if (!TryEnterUseReference(traversal_state, href_)) {
+    ReportUseCycle(traversal_state, href_,
+                   "Skipped recursive <use> path expansion.");
     return nullptr;
   }
 
   auto it = id_mapper->find(href_);
   if (it != id_mapper->end() && it->second) {
-    return it->second->AsPath(path_factory, context);
+    auto path = it->second->AsPath(path_factory, context);
+    LeaveUseReference(traversal_state, href_);
+    return path;
   }
+  LeaveUseReference(traversal_state, href_);
   return nullptr;
 }
 
