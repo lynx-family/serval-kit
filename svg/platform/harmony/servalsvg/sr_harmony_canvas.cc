@@ -875,6 +875,6 @@ void SrHarmonyCanvas::ApplyLuminanceToAlpha() {
 
 void SrHarmonyCanvas::SetAntiAlias(bool anti_alias) { anti_alias_ = anti_alias; }
 
-} // namespace harmony
-} // namespace svg
-} // namespace serval
+}  // namespace harmony
+}  // namespace svg
+}  // namespace serval

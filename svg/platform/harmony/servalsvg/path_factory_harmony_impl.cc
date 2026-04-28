@@ -200,6 +200,6 @@ std::unique_ptr<canvas::Path> PathFactoryHarmonyImpl::CreateStrokePath(const can
     return nullptr;
 }
 
-} // namespace harmony
-} // namespace svg
-} // namespace serval
+}  // namespace harmony
+}  // namespace svg
+}  // namespace serval

@@ -48,6 +48,7 @@ BreakStringLiterals: true
 InsertBraces: false
 IndentExternBlock: NoIndent
 BreakBeforeBraces: Custom
+SpacesBeforeTrailingComments: 2
 BraceWrapping:
     AfterCaseLabel: false
     AfterClass: false

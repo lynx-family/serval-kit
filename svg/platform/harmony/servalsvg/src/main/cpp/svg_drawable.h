@@ -51,9 +51,9 @@ private:
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
 };
-} // namespace harmony
-} // namespace svg
+}  // namespace harmony
+}  // namespace svg
 
-} // namespace serval
+}  // namespace serval
 
-#endif // SVG_PLATFORM_HARMONY_SERVALSVG_SRC_MAIN_CPP_SVG_DRAWABLE_H_
+#endif  // SVG_PLATFORM_HARMONY_SERVALSVG_SRC_MAIN_CPP_SVG_DRAWABLE_H_
