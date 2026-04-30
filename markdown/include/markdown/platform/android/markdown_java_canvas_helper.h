@@ -48,7 +48,8 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
 
   void DrawLinearGradientOnPath(
       serval::markdown::MarkdownLinearGradient* gradient,
-      serval::markdown::MarkdownPath* path, tttext::Painter* painter) override;
+      serval::markdown::MarkdownPath* path, serval::markdown::RectF bounds,
+      tttext::Painter* painter) override;
 
  public:
   void WritePaint(tttext::Painter* painter);

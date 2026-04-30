@@ -57,8 +57,7 @@ class MarkdownLinearGradientDrawable final : public MarkdownBackgroundDrawable {
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
  private:
-  MarkdownLinearGradient MakeTranslatedGradient(float left, float top) const;
-  void UpdatePoints(float width, float height);
+  MarkdownLinearGradient MakeGradientForBounds(RectF bounds) const;
 
   float angle_{0};
   MarkdownLinearGradientDirection direction_{

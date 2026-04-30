@@ -7,11 +7,9 @@
 
 namespace serval::markdown {
 
-TEST(MarkdownStringUtilsTest, TrimToLowerAndPrefixMatch) {
+TEST(MarkdownStringUtilsTest, TrimAndToLower) {
   EXPECT_EQ(Trim(" \tHello World\n"), "Hello World");
   EXPECT_EQ(ToLower("LiNeAr-GrAdIeNt"), "linear-gradient");
-  EXPECT_TRUE(BeginsWithIgnoreCase("Linear-Gradient(", "linear-gradient("));
-  EXPECT_FALSE(BeginsWithIgnoreCase("url(test)", "linear-gradient("));
 }
 
 TEST(MarkdownStringUtilsTest, StringToFloatAcceptsStringView) {

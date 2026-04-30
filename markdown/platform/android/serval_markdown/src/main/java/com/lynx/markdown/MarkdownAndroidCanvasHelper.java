@@ -167,6 +167,7 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       throws IOException {
     Shader shader = readLinearGradient(stream);
     Path path = readPath(stream);
+    skipGradientBounds(stream);
     Paint p = readPaint(stream, paint_);
     applyLinearGradient(p, shader);
     if (shader == null) {
@@ -228,6 +229,14 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
     }
     return new LinearGradient(startX, startY, endX, endY, colors, stops,
                               Shader.TileMode.CLAMP);
+  }
+
+  protected void skipGradientBounds(BBufferInputStream stream)
+      throws IOException {
+    stream.readFloat();
+    stream.readFloat();
+    stream.readFloat();
+    stream.readFloat();
   }
 
   protected void applyPaintStyle(Paint painter) {

@@ -148,22 +148,6 @@ std::string ToLower(std::string_view value) {
   return result;
 }
 
-bool BeginsWithIgnoreCase(std::string_view value, std::string_view prefix) {
-  if (value.size() < prefix.size()) {
-    return false;
-  }
-  for (size_t i = 0; i < prefix.size(); i++) {
-    const auto left =
-        static_cast<char>(std::tolower(static_cast<unsigned char>(value[i])));
-    const auto right =
-        static_cast<char>(std::tolower(static_cast<unsigned char>(prefix[i])));
-    if (left != right) {
-      return false;
-    }
-  }
-  return true;
-}
-
 size_t FindMatchingParenthesis(std::string_view value, size_t open_index) {
   int depth = 0;
   for (size_t i = open_index; i < value.size(); i++) {

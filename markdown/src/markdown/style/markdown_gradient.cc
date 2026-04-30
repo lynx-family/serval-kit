@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -87,14 +86,14 @@ bool ExtractColorStop(std::string_view value, ColorStop* stop) {
   }
 
   float position = 0;
-  auto lower = ToLower(remainder);
-  if (!lower.empty() && lower.back() == '%') {
-    if (!StringToFloat(lower.substr(0, lower.size() - 1), position, true)) {
+  if (!remainder.empty() && remainder.back() == '%') {
+    if (!StringToFloat(remainder.substr(0, remainder.size() - 1), position,
+                       true)) {
       return false;
     }
     position /= 100.f;
   } else {
-    if (!StringToFloat(lower, position, true)) {
+    if (!StringToFloat(remainder, position, true)) {
       return false;
     }
   }
@@ -214,94 +213,98 @@ bool ParseColorStopList(const std::vector<std::string_view>& args,
 }
 
 bool ParseAngle(std::string_view value, float* angle) {
-  const auto lower = ToLower(Trim(value));
-  if (lower.empty()) {
+  const auto trimmed = Trim(value);
+  if (trimmed.empty()) {
     return false;
   }
   auto parse_angle_with_unit = [&](std::string_view suffix,
                                    float factor) -> bool {
-    if (!BeginsWithIgnoreCase(lower.substr(lower.size() - suffix.size()),
-                              suffix)) {
+    if (trimmed.size() < suffix.size() ||
+        trimmed.substr(trimmed.size() - suffix.size()) != suffix) {
       return false;
     }
     float number = 0;
-    if (!StringToFloat(lower.substr(0, lower.size() - suffix.size()), number,
-                       true)) {
+    if (!StringToFloat(trimmed.substr(0, trimmed.size() - suffix.size()),
+                       number, true)) {
       return false;
     }
     *angle = number * factor;
     return true;
   };
-  if (lower.size() >= 3 && lower.substr(lower.size() - 3) == "deg") {
-    return parse_angle_with_unit("deg", 1.f);
+  if (parse_angle_with_unit("deg", 1.f)) {
+    return true;
   }
-  if (lower.size() >= 4 && lower.substr(lower.size() - 4) == "grad") {
-    return parse_angle_with_unit("grad", 360.f / 400.f);
+  if (parse_angle_with_unit("grad", 360.f / 400.f)) {
+    return true;
   }
-  if (lower.size() >= 3 && lower.substr(lower.size() - 3) == "rad") {
-    return parse_angle_with_unit("rad", 180.f / static_cast<float>(M_PI));
+  if (parse_angle_with_unit("rad", 180.f / static_cast<float>(M_PI))) {
+    return true;
   }
-  if (lower.size() >= 4 && lower.substr(lower.size() - 4) == "turn") {
-    return parse_angle_with_unit("turn", 360.f);
+  if (parse_angle_with_unit("turn", 360.f)) {
+    return true;
   }
-  if (lower == "0") {
+  if (trimmed == "0") {
     *angle = 0;
     return true;
   }
   return false;
 }
 
+bool MatchesDirectionKey(std::string_view value, const char* key) {
+  size_t key_index = 0;
+  for (const char c : value) {
+    if (c == ' ' || c == '\t') {
+      continue;
+    }
+    if (key[key_index] == '\0' || c != key[key_index]) {
+      return false;
+    }
+    key_index++;
+  }
+  return key[key_index] == '\0';
+}
+
 ParseStatus ParseLinearPrelude(std::string_view value, float* angle,
                                MarkdownLinearGradientDirection* direction) {
-  const auto lower = ToLower(Trim(value));
-  if (lower.empty()) {
+  const auto trimmed = Trim(value);
+  if (trimmed.empty()) {
     return ParseStatus::kNotFound;
   }
-  if (ParseAngle(lower, angle)) {
+  if (ParseAngle(trimmed, angle)) {
     *direction = MarkdownLinearGradientDirection::kAngle;
     return ParseStatus::kSuccess;
   }
-  std::string key;
-  if (BeginsWithIgnoreCase(lower, "to")) {
-    key = lower.substr(2);
-  } else if (BeginsWithIgnoreCase(lower, "toleft") ||
-             BeginsWithIgnoreCase(lower, "toright") ||
-             BeginsWithIgnoreCase(lower, "totop") ||
-             BeginsWithIgnoreCase(lower, "tobottom")) {
-    key = lower.substr(2);
-  } else {
+  if (!BeginsWith(trimmed, "to")) {
     return ParseStatus::kNotFound;
   }
-  key.erase(std::remove_if(key.begin(), key.end(),
-                           [](char c) { return c == ' ' || c == '\t'; }),
-            key.end());
-  static const std::unordered_map<
-      std::string, std::pair<float, MarkdownLinearGradientDirection>>
-      kDirections = {
-          {"top", {0.f, MarkdownLinearGradientDirection::kToTop}},
-          {"bottom", {180.f, MarkdownLinearGradientDirection::kToBottom}},
-          {"left", {270.f, MarkdownLinearGradientDirection::kToLeft}},
-          {"right", {90.f, MarkdownLinearGradientDirection::kToRight}},
-          {"topleft", {315.f, MarkdownLinearGradientDirection::kToTopLeft}},
-          {"lefttop", {315.f, MarkdownLinearGradientDirection::kToTopLeft}},
-          {"topright", {45.f, MarkdownLinearGradientDirection::kToTopRight}},
-          {"righttop", {45.f, MarkdownLinearGradientDirection::kToTopRight}},
-          {"bottomleft",
-           {225.f, MarkdownLinearGradientDirection::kToBottomLeft}},
-          {"leftbottom",
-           {225.f, MarkdownLinearGradientDirection::kToBottomLeft}},
-          {"bottomright",
-           {135.f, MarkdownLinearGradientDirection::kToBottomRight}},
-          {"rightbottom",
-           {135.f, MarkdownLinearGradientDirection::kToBottomRight}},
-      };
-  const auto it = kDirections.find(key);
-  if (it == kDirections.end()) {
-    return ParseStatus::kInvalid;
+  struct Direction {
+    const char* key;
+    float angle;
+    MarkdownLinearGradientDirection direction;
+  };
+  static constexpr Direction kDirections[] = {
+      {"top", 0.f, MarkdownLinearGradientDirection::kToTop},
+      {"bottom", 180.f, MarkdownLinearGradientDirection::kToBottom},
+      {"left", 270.f, MarkdownLinearGradientDirection::kToLeft},
+      {"right", 90.f, MarkdownLinearGradientDirection::kToRight},
+      {"topleft", 315.f, MarkdownLinearGradientDirection::kToTopLeft},
+      {"lefttop", 315.f, MarkdownLinearGradientDirection::kToTopLeft},
+      {"topright", 45.f, MarkdownLinearGradientDirection::kToTopRight},
+      {"righttop", 45.f, MarkdownLinearGradientDirection::kToTopRight},
+      {"bottomleft", 225.f, MarkdownLinearGradientDirection::kToBottomLeft},
+      {"leftbottom", 225.f, MarkdownLinearGradientDirection::kToBottomLeft},
+      {"bottomright", 135.f, MarkdownLinearGradientDirection::kToBottomRight},
+      {"rightbottom", 135.f, MarkdownLinearGradientDirection::kToBottomRight},
+  };
+  const auto key = trimmed.substr(2);
+  for (const auto& candidate : kDirections) {
+    if (MatchesDirectionKey(key, candidate.key)) {
+      *angle = candidate.angle;
+      *direction = candidate.direction;
+      return ParseStatus::kSuccess;
+    }
   }
-  *angle = it->second.first;
-  *direction = it->second.second;
-  return ParseStatus::kSuccess;
+  return ParseStatus::kInvalid;
 }
 
 bool ParseLinearGradient(std::string_view args, float* angle,
@@ -328,7 +331,8 @@ bool ParseLinearGradient(std::string_view args, float* angle,
 
 std::string ExtractUrl(std::string_view value) {
   const auto trimmed = Trim(value);
-  if (!BeginsWithIgnoreCase(trimmed, kUrlPrefix) || trimmed.back() != ')') {
+  if (trimmed.empty() || !BeginsWith(trimmed, kUrlPrefix) ||
+      trimmed.back() != ')') {
     return "";
   }
   auto content = Trim(trimmed.substr(kUrlPrefix.size(),
@@ -452,8 +456,8 @@ void MarkdownLinearGradientDrawable::DrawOnRect(tttext::ICanvasHelper* canvas,
   if (rect.GetWidth() == 0 && rect.GetHeight() == 0) {
     return;
   }
-  auto shifted = MakeTranslatedGradient(rect.GetLeft(), rect.GetTop());
-  canvas_extend->DrawLinearGradientOnRect(&shifted, rect, painter);
+  auto gradient = MakeGradientForBounds(rect);
+  canvas_extend->DrawLinearGradientOnRect(&gradient, rect, painter);
 }
 
 void MarkdownLinearGradientDrawable::DrawOnPath(tttext::ICanvasHelper* canvas,
@@ -468,8 +472,8 @@ void MarkdownLinearGradientDrawable::DrawOnPath(tttext::ICanvasHelper* canvas,
   if (canvas_extend == nullptr) {
     return;
   }
-  auto shifted = MakeTranslatedGradient(bounds.GetLeft(), bounds.GetTop());
-  canvas_extend->DrawLinearGradientOnPath(&shifted, path, painter);
+  auto gradient = MakeGradientForBounds(bounds);
+  canvas_extend->DrawLinearGradientOnPath(&gradient, path, bounds, painter);
 }
 
 MeasureResult MarkdownLinearGradientDrawable::OnMeasure(MeasureSpec spec) {
@@ -479,7 +483,6 @@ MeasureResult MarkdownLinearGradientDrawable::OnMeasure(MeasureSpec spec) {
   const float height = spec.height_mode_ == tttext::LayoutMode::kIndefinite
                            ? MeasureSpec::LAYOUT_MAX_SIZE
                            : std::max(spec.height_, 0.f);
-  UpdatePoints(width, height);
   return {.width_ = width, .height_ = height, .baseline_ = height};
 }
 
@@ -558,36 +561,34 @@ std::shared_ptr<MarkdownDrawable> MarkdownBackgroundImageDrawable::EnsureImage(
   return image_;
 }
 
-MarkdownLinearGradient MarkdownLinearGradientDrawable::MakeTranslatedGradient(
-    float left, float top) const {
+MarkdownLinearGradient MarkdownLinearGradientDrawable::MakeGradientForBounds(
+    RectF bounds) const {
   MarkdownLinearGradient gradient = gradient_;
-  gradient.start.x_ += left;
-  gradient.start.y_ += top;
-  gradient.end.x_ += left;
-  gradient.end.y_ += top;
+  UpdateGradientPoints(bounds.GetWidth(), bounds.GetHeight(), angle_,
+                       direction_, &gradient.start, &gradient.end);
+  gradient.start.x_ += bounds.GetLeft();
+  gradient.start.y_ += bounds.GetTop();
+  gradient.end.x_ += bounds.GetLeft();
+  gradient.end.y_ += bounds.GetTop();
   return gradient;
-}
-
-void MarkdownLinearGradientDrawable::UpdatePoints(float width, float height) {
-  UpdateGradientPoints(width, height, angle_, direction_, &gradient_.start,
-                       &gradient_.end);
 }
 
 bool IsGradientValue(std::string_view value) {
   const auto trimmed = Trim(value);
-  return BeginsWithIgnoreCase(trimmed, kLinearPrefix);
+  return BeginsWith(trimmed, kLinearPrefix);
 }
 
 std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
     std::string_view value, const MarkdownLengthContext& length_context,
     MarkdownContext* context) {
   (void)length_context;
-  const auto trimmed = Trim(value);
+  const auto lower = ToLower(Trim(value));
+  const std::string_view trimmed = lower;
   if (trimmed.empty() || trimmed.back() != ')') {
     return nullptr;
   }
 
-  if (!BeginsWithIgnoreCase(trimmed, kLinearPrefix)) {
+  if (!BeginsWith(trimmed, kLinearPrefix)) {
     return nullptr;
   }
   const auto args = trimmed.substr(kLinearPrefix.size(),
@@ -607,15 +608,15 @@ std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
 std::shared_ptr<MarkdownBackgroundDrawable> ParseBackgroundDrawableValue(
     std::string_view value, MarkdownResourceLoader* loader,
     const MarkdownLengthContext& length_context, MarkdownContext* context) {
-  if (IsGradientValue(value)) {
-    return ParseGradientValue(value, length_context, context);
-  }
   const auto url = ExtractUrl(value);
-  if (url.empty() || loader == nullptr) {
-    return nullptr;
+  if (!url.empty()) {
+    if (loader == nullptr) {
+      return nullptr;
+    }
+    return std::make_shared<MarkdownBackgroundImageDrawable>(context, loader,
+                                                             url, nullptr);
   }
-  return std::make_shared<MarkdownBackgroundImageDrawable>(context, loader, url,
-                                                           nullptr);
+  return ParseGradientValue(value, length_context, context);
 }
 
 }  // namespace serval::markdown

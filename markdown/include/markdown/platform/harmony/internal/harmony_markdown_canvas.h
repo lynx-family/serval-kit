@@ -22,7 +22,7 @@ class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
   void DrawLinearGradientOnRect(MarkdownLinearGradient* gradient, RectF rect,
                                 tttext::Painter* painter) override;
   void DrawLinearGradientOnPath(MarkdownLinearGradient* gradient,
-                                MarkdownPath* path,
+                                MarkdownPath* path, RectF bounds,
                                 tttext::Painter* painter) override;
 
  private:

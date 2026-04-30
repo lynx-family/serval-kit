@@ -32,7 +32,7 @@ class MarkdownCanvasExtend {
                                         RectF rect,
                                         tttext::Painter* painter) = 0;
   virtual void DrawLinearGradientOnPath(MarkdownLinearGradient* gradient,
-                                        MarkdownPath* path,
+                                        MarkdownPath* path, RectF bounds,
                                         tttext::Painter* painter) = 0;
 };
 }  // namespace serval::markdown

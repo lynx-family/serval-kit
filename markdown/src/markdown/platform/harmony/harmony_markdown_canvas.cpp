@@ -270,8 +270,9 @@ void HarmonyMarkdownCanvas::DrawLinearGradientOnRect(
 }
 
 void HarmonyMarkdownCanvas::DrawLinearGradientOnPath(
-    MarkdownLinearGradient* gradient, MarkdownPath* path,
+    MarkdownLinearGradient* gradient, MarkdownPath* path, RectF bounds,
     tttext::Painter* painter) {
+  (void)bounds;
   auto* shader = CreateLinearGradientShader(gradient);
   auto* drawing_path = CreateDrawingPath(path);
   if (shader == nullptr || drawing_path == nullptr) {

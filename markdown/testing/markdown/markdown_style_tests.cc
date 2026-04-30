@@ -8,6 +8,8 @@
 #include "markdown/style/markdown_color.h"
 #include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style_value.h"
+#include "testing/markdown/markdown_tests_platform.h"
+#include "testing/markdown/mock_markdown_canvas.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
 namespace serval::markdown::testing {
 
@@ -182,10 +184,6 @@ TEST(MarkdownGradientTest, ParseLinearGradientDirection) {
                        .height_mode_ = tttext::LayoutMode::kDefinite});
   EXPECT_FLOAT_EQ(measure.width_, 100);
   EXPECT_FLOAT_EQ(measure.height_, 50);
-  EXPECT_FLOAT_EQ(linear->GetGradient().start.x_, 0);
-  EXPECT_FLOAT_EQ(linear->GetGradient().start.y_, 0);
-  EXPECT_FLOAT_EQ(linear->GetGradient().end.x_, 100);
-  EXPECT_FLOAT_EQ(linear->GetGradient().end.y_, 0);
 }
 
 TEST(MarkdownGradientTest, ParseLinearGradientClampStops) {
@@ -224,10 +222,11 @@ TEST(MarkdownGradientTest, ParseLinearGradientWithSharedColorParser) {
   EXPECT_EQ(gradient.colors[2], 0xff800080u);
 }
 
-TEST(MarkdownGradientTest, MeasureLinearGradientAngle) {
+TEST(MarkdownGradientTest, DrawLinearGradientUsesDrawBounds) {
   const auto ctx = MakeGradientTestContext();
-  auto drawable =
-      ParseGradientValue("linear-gradient(45deg, red 0%, blue 100%)", ctx);
+  auto markdown_context = CreateTestMarkdownSharedContext();
+  auto drawable = ParseGradientValue(
+      "linear-gradient(45deg, red 0%, blue 100%)", ctx, markdown_context.get());
   ASSERT_NE(drawable, nullptr);
   auto linear =
       std::static_pointer_cast<MarkdownLinearGradientDrawable>(drawable);
@@ -237,11 +236,17 @@ TEST(MarkdownGradientTest, MeasureLinearGradientAngle) {
                    .width_mode_ = tttext::LayoutMode::kDefinite,
                    .height_ = 100,
                    .height_mode_ = tttext::LayoutMode::kDefinite});
-  const auto& gradient = linear->GetGradient();
-  EXPECT_NEAR(gradient.start.x_, 0, 0.001);
-  EXPECT_NEAR(gradient.start.y_, 100, 0.001);
-  EXPECT_NEAR(gradient.end.x_, 100, 0.001);
-  EXPECT_NEAR(gradient.end.y_, 0, 0.001);
+
+  MockMarkdownCanvas canvas(nullptr, nullptr);
+  linear->DrawOnRect(&canvas, RectF::MakeLTWH(10, 20, 100, 100));
+  const auto& ops = canvas.GetJson();
+  ASSERT_EQ(ops.Size(), 1u);
+  ASSERT_TRUE(ops[0].HasMember("gradient"));
+  const auto& gradient = ops[0]["gradient"];
+  EXPECT_NEAR(gradient["start"]["x"].GetFloat(), 10, 0.001);
+  EXPECT_NEAR(gradient["start"]["y"].GetFloat(), 120, 0.001);
+  EXPECT_NEAR(gradient["end"]["x"].GetFloat(), 110, 0.001);
+  EXPECT_NEAR(gradient["end"]["y"].GetFloat(), 20, 0.001);
 }
 
 TEST(MarkdownGradientTest, ParseBackgroundImageUrl) {

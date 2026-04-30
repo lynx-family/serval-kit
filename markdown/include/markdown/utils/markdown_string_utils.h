@@ -68,7 +68,6 @@ bool StringToFloat(std::string_view input, float& output,
                    bool error_on_nan_or_inf = false);
 std::string_view Trim(std::string_view value);
 std::string ToLower(std::string_view value);
-bool BeginsWithIgnoreCase(std::string_view value, std::string_view prefix);
 size_t FindMatchingParenthesis(std::string_view value, size_t open_index);
 std::vector<std::string_view> SplitTopLevel(std::string_view value, char split);
 
