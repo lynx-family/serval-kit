@@ -297,13 +297,17 @@ void MockMarkdownCanvas::DrawLinearGradientOnRect(
 }
 
 void MockMarkdownCanvas::DrawLinearGradientOnPath(
-    MarkdownLinearGradient* gradient, MarkdownPath* path,
+    MarkdownLinearGradient* gradient, MarkdownPath* path, RectF bounds,
     tttext::Painter* painter) {
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "gradient path", result_.GetAllocator());
   op.AddMember("gradient", MakeGradient(gradient), result_.GetAllocator());
   op.AddMember("path", MakePath(path), result_.GetAllocator());
+  op.AddMember("bounds",
+               MakeRect(bounds.GetLeft(), bounds.GetTop(), bounds.GetRight(),
+                        bounds.GetBottom()),
+               result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
   result_.PushBack(op, result_.GetAllocator());
 }

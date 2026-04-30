@@ -99,6 +99,12 @@
             }
           }
         ],
+        "bounds": {
+          "left": 1.0,
+          "top": 1.0,
+          "right": 1.0,
+          "bottom": 1.0
+        },
         "painter": {
           "stroke_width": 0.0,
           "fill_color": 4294967295,

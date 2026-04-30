@@ -31,13 +31,6 @@ RectF MakeLineBounds(PointF start, PointF end, float stroke_width) {
   return RectF::MakeLTRB(left, top, right, bottom);
 }
 
-MeasureSpec MakeGradientMeasureSpec(float width, float height) {
-  return {.width_ = width,
-          .width_mode_ = tttext::LayoutMode::kDefinite,
-          .height_ = height,
-          .height_mode_ = tttext::LayoutMode::kDefinite};
-}
-
 }  // namespace
 
 void MarkdownTextAttachment::DrawOnMultiLines(
@@ -141,8 +134,6 @@ void MarkdownTextAttachment::DrawRect(tttext::ICanvasHelper* canvas, RectF rect,
       CalculateLength(length_context, style.stroke_width_.get(), 0));
   float radius = CalculateLength(length_context, style.radius_.get(), 0);
   if (style.gradient_ != nullptr) {
-    style.gradient_->Measure(
-        MakeGradientMeasureSpec(rect.GetWidth(), rect.GetHeight()));
     painter->SetFillColor(tttext::TTColor::WHITE);
     if (radius == 0) {
       style.gradient_->DrawOnRect(canvas, rect, painter.get());
@@ -222,8 +213,6 @@ void MarkdownTextAttachment::DrawLine(tttext::ICanvasHelper* canvas,
     auto path = CreatePath(start, end, context, style);
     if (style.gradient_ != nullptr) {
       const auto bounds = MakeLineBounds(start, end, width);
-      style.gradient_->Measure(
-          MakeGradientMeasureSpec(bounds.GetWidth(), bounds.GetHeight()));
       painter->SetStrokeColor(tttext::TTColor::WHITE);
       style.gradient_->DrawOnPath(canvas, &path, bounds, painter.get());
     } else {

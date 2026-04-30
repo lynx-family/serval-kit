@@ -69,7 +69,8 @@ void MarkdownJavaCanvasHelper::DrawLinearGradientOnRect(
 
 void MarkdownJavaCanvasHelper::DrawLinearGradientOnPath(
     serval::markdown::MarkdownLinearGradient* gradient,
-    serval::markdown::MarkdownPath* path, tttext::Painter* painter) {
+    serval::markdown::MarkdownPath* path, serval::markdown::RectF bounds,
+    tttext::Painter* painter) {
   if (gradient == nullptr || path == nullptr || painter == nullptr) {
     return;
   }
@@ -78,6 +79,7 @@ void MarkdownJavaCanvasHelper::DrawLinearGradientOnPath(
       static_cast<int8_t>(MarkdownCanvasOpExtend::kDrawLinearGradientOnPath));
   WriteGradient(gradient);
   WritePath(path);
+  WriteRect(bounds);
   WritePaint(painter);
 }
 

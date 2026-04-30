@@ -5,8 +5,7 @@
 #include "markdown/style/markdown_color.h"
 
 #include <cmath>
-#include <string>
-#include <unordered_map>
+#include <string_view>
 
 #include "markdown/utils/markdown_string_utils.h"
 
@@ -178,12 +177,16 @@ bool ParseFunctionalColor(std::string_view value, uint32_t* color) {
       close + 1 != value.size()) {
     return false;
   }
-  const auto name = ToLower(Trim(value.substr(0, open)));
+  const auto name = Trim(value.substr(0, open));
   const auto parts =
       SplitTopLevel(value.substr(open + 1, close - open - 1), ',');
-  if (name == "rgb" || name == "rgba") {
-    if ((name == "rgb" && parts.size() != 3) ||
-        (name == "rgba" && parts.size() != 4)) {
+  const bool is_rgb = name == "rgb";
+  const bool is_rgba = name == "rgba";
+  const bool is_hsl = name == "hsl";
+  const bool is_hsla = name == "hsla";
+
+  if (is_rgb || is_rgba) {
+    if ((is_rgb && parts.size() != 3) || (is_rgba && parts.size() != 4)) {
       return false;
     }
     float r = 0;
@@ -202,9 +205,8 @@ bool ParseFunctionalColor(std::string_view value, uint32_t* color) {
                                      ClampByte(ClampFloat01(a) * 255.f));
     return true;
   }
-  if (name == "hsl" || name == "hsla") {
-    if ((name == "hsl" && parts.size() != 3) ||
-        (name == "hsla" && parts.size() != 4)) {
+  if (is_hsl || is_hsla) {
+    if ((is_hsl && parts.size() != 3) || (is_hsla && parts.size() != 4)) {
       return false;
     }
     float h = 0;
@@ -226,7 +228,11 @@ bool ParseFunctionalColor(std::string_view value, uint32_t* color) {
 }
 
 bool ParseNamedColor(std::string_view value, uint32_t* color) {
-  static const std::unordered_map<std::string, uint32_t> kNamedColors = {
+  struct NamedColor {
+    const char* name;
+    uint32_t color;
+  };
+  static constexpr NamedColor kNamedColors[] = {
       {"transparent", 0x00000000}, {"black", 0xff000000},
       {"white", 0xffffffff},       {"red", 0xffff0000},
       {"green", 0xff008000},       {"blue", 0xff0000ff},
@@ -235,13 +241,14 @@ bool ParseNamedColor(std::string_view value, uint32_t* color) {
       {"grey", 0xff808080},        {"orange", 0xffffa500},
       {"purple", 0xff800080},
   };
-  const auto lower = ToLower(Trim(value));
-  const auto it = kNamedColors.find(lower);
-  if (it == kNamedColors.end()) {
-    return false;
+  const auto trimmed = Trim(value);
+  for (const auto& named_color : kNamedColors) {
+    if (trimmed == named_color.name) {
+      *color = named_color.color;
+      return true;
+    }
   }
-  *color = it->second;
-  return true;
+  return false;
 }
 
 }  // namespace
