@@ -16,6 +16,11 @@ include_directories(${SOURCE_ROOT_PATH}
                     ${HEADERS_PATH}
 )
 
+# Android 15 16KB page size support.
+if (${ANDROID_ABI} STREQUAL "arm64-v8a" OR ${ANDROID_ABI} STREQUAL "x86_64")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384 -fuse-ld=lld")
+endif()
+
 add_library(
     serval_markdown
     SHARED
