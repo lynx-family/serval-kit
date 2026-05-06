@@ -29,11 +29,11 @@ class HarmonyView : public MarkdownPlatformView {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   SizeF GetMeasuredSize() final;
   PointF GetAlignedPosition() final;
-  void SetMeasuredSize(SizeF size) final {
+  void SetMeasuredSize(SizeF size) override {
     SetMeasuredSize(static_cast<int32_t>(size.width_),
                     static_cast<int32_t>(size.height_));
   }
-  void SetAlignPosition(PointF position) final {
+  void SetAlignPosition(PointF position) override {
     SetLayoutPosition(static_cast<int32_t>(position.x_),
                       static_cast<int32_t>(position.y_));
   }

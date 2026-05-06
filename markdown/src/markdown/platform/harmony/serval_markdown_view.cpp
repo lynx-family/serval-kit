@@ -26,6 +26,19 @@
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "textra/platform_helper.h"
 namespace serval::markdown {
+class MarkdownRegionView : public HarmonyCustomView {
+ public:
+  ~MarkdownRegionView() override = default;
+  void SetMeasuredSize(SizeF size) override {
+    MarkdownDrawable::Measure(MeasureSpec{});
+    HarmonyView::SetMeasuredSize(size);
+  }
+  void SetAlignPosition(PointF position) override {
+    serval::markdown::HarmonyView::Align(position.x_, position.y_);
+    HarmonyView::SetAlignPosition(position);
+  }
+};
+
 void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyEnv::SetEnv(env);
   HarmonyUIThread::Init(env);
@@ -237,7 +250,7 @@ NativeServalMarkdownView::CreateCustomSubView() {
 
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateRegionSubView() {
-  auto custom_view = std::make_shared<HarmonyCustomView>();
+  auto custom_view = std::make_shared<MarkdownRegionView>();
   InsertChild(custom_view, 0);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
