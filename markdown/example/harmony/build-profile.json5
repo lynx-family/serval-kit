@@ -40,10 +40,6 @@
     {
       "name": "serval_markdown",
       "srcPath": "../../platform/harmony/serval_markdown",
-    },
-    {
-      "name": "lynxtextra",
-      "srcPath": "../../third_party/lynx-textra/platform/harmony/lynxtextra"
     }
   ]
 }

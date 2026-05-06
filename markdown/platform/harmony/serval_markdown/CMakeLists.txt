@@ -16,6 +16,14 @@ if(DEFINED PACKAGE_FIND_FILE)
     include(${PACKAGE_FIND_FILE})
 endif()
 
+set(LYNX_TEXTRA_ARTIFACT lynxtextra)
+find_package(${LYNX_TEXTRA_ARTIFACT} CONFIG)
+if (${${LYNX_TEXTRA_ARTIFACT}_FOUND})
+    get_target_property(LYNX_TEXTRA_INCLUDE_DIR
+        ${LYNX_TEXTRA_ARTIFACT}::lynxtextra
+        INTERFACE_INCLUDE_DIRECTORIES)
+    include_directories(${LYNX_TEXTRA_INCLUDE_DIR})
+endif()
 
 include_directories(${NATIVERENDER_ROOT_PATH}
                     ${NATIVERENDER_ROOT_PATH}/include)
@@ -28,9 +36,6 @@ include_directories(${SOURCE_ROOT_PATH}
                      ${BASE_ROOT_PATH}
                      ${HEADERS_PATH}
                      )
-
-set(TEXTRA_PATH ${SOURCE_ROOT_PATH}/third_party/lynx-textra)
-include_directories(${TEXTRA_PATH}/public)
 
 add_subdirectory(${SRC_ROOT_PATH} markdown_dir)
 add_subdirectory(${DISCOUNT_ROOT_PATH} discount_dir)
@@ -47,13 +52,9 @@ target_compile_options(serval_markdown PRIVATE
 set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS
              " -Wl,--gc-sections")
 
-
-
-add_library(lynxtextra SHARED IMPORTED)
-set_target_properties(lynxtextra
-    PROPERTIES
-    IMPORTED_LOCATION ${DEPENDENCY_PATH}/@lynx/lynxtextra/build/default/intermediates/libs/default/${OHOS_ARCH}/liblynxtextra.so)
-target_link_libraries(serval_markdown PUBLIC lynxtextra)
+if (${${LYNX_TEXTRA_ARTIFACT}_FOUND})
+    target_link_libraries(serval_markdown PUBLIC ${LYNX_TEXTRA_ARTIFACT}::lynxtextra)
+endif()
 
 target_link_libraries(serval_markdown PUBLIC
     libace_napi.z.so libace_ndk.z.so libnative_display_manager.so libnative_vsync.so libnative_drawing.so uv
