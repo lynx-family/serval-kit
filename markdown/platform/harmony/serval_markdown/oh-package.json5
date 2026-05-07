@@ -1,9 +1,9 @@
 {
   "name": "@lynx/serval_markdown",
   "version": "1.0.0",
-  "description": "Please describe the basic information.",
+  "description": "Serval Markdown is a high-performance Markdown rendering library.",
   "main": "Index.ets",
-  "author": "",
+  "author": "lynx",
   "license": "Apache-2.0",
   "dependencies": {
     "libserval_markdown.so": "file:./src/main/cpp/types/libserval_markdown",
