@@ -32,6 +32,11 @@
         "debugSymbol": {
           "strip": true,
           "exclude": []
+        },
+        "filter": {
+          "excludes": [
+            "**/libc++_shared.so"
+          ]
         }
       }
     },

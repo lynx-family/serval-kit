@@ -108,7 +108,6 @@ jobs:
       - name: Publish Harmony SDK
         shell: bash
         working-directory: .
-        if: false
         run: |
           source tools/envsetup.sh
           export PUBLISH_KEY_PASSPHRASE=${{ secrets.HARMONY_PUBLISH_KEY_PASSPHRASE }}
