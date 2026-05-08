@@ -1,0 +1,557 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		SVGMETA01 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA11 /* AppDelegate.m */; };
+		SVGMETA02 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA12 /* ViewController.mm */; };
+		SVGMETA03 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA13 /* main.m */; };
+		SVGMETA04 /* SVGMetalView.mm in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA14 /* SVGMetalView.mm */; };
+		SVGMETA05 /* svg in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA15 /* svg */; };
+		SVGMETA06 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA21 /* Metal.framework */; };
+		SVGMETA07 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA22 /* QuartzCore.framework */; };
+		SVGMETA08 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA23 /* Cocoa.framework */; };
+		SVGMETA100 /* SrSkityCanvas.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA200 /* SrSkityCanvas.cc */; };
+		SVGMETA101 /* SrSkityParagraph.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA201 /* SrSkityParagraph.cc */; };
+		SVGMETA102 /* SrSVGCircle.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA202 /* SrSVGCircle.cc */; };
+		SVGMETA103 /* SrSVGClipPath.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA203 /* SrSVGClipPath.cc */; };
+		SVGMETA104 /* SrSVGContainer.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA204 /* SrSVGContainer.cc */; };
+		SVGMETA105 /* SrSVGDefs.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA205 /* SrSVGDefs.cc */; };
+		SVGMETA106 /* SrSVGEllipse.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA206 /* SrSVGEllipse.cc */; };
+		SVGMETA107 /* SrSVGFilter.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA207 /* SrSVGFilter.cc */; };
+		SVGMETA108 /* SrSVGFilterPrimitives.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA208 /* SrSVGFilterPrimitives.cc */; };
+		SVGMETA109 /* SrSVGImage.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA209 /* SrSVGImage.cc */; };
+		SVGMETA110 /* SrSVGLine.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA210 /* SrSVGLine.cc */; };
+		SVGMETA111 /* SrSVGLinearGradient.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA211 /* SrSVGLinearGradient.cc */; };
+		SVGMETA112 /* SrSVGMask.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA212 /* SrSVGMask.cc */; };
+		SVGMETA113 /* SrSVGNode.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA213 /* SrSVGNode.cc */; };
+		SVGMETA114 /* SrSVGPath.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA214 /* SrSVGPath.cc */; };
+		SVGMETA115 /* SrSVGPolyLine.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA215 /* SrSVGPolyLine.cc */; };
+		SVGMETA116 /* SrSVGPolygon.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA216 /* SrSVGPolygon.cc */; };
+		SVGMETA117 /* SrSVGRadialGradient.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA217 /* SrSVGRadialGradient.cc */; };
+		SVGMETA118 /* SrSVGRect.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA218 /* SrSVGRect.cc */; };
+		SVGMETA119 /* SrSVGSVG.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA219 /* SrSVGSVG.cc */; };
+		SVGMETA120 /* SrSVGShape.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA220 /* SrSVGShape.cc */; };
+		SVGMETA121 /* SrSVGStop.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA221 /* SrSVGStop.cc */; };
+		SVGMETA122 /* SrSVGText.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA222 /* SrSVGText.cc */; };
+		SVGMETA123 /* SrSVGTypes.c in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA223 /* SrSVGTypes.c */; };
+		SVGMETA124 /* SrSVGUse.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA224 /* SrSVGUse.cc */; };
+		SVGMETA125 /* SrDOM.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA225 /* SrDOM.cc */; };
+		SVGMETA126 /* SrDOMParser.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA226 /* SrDOMParser.cc */; };
+		SVGMETA127 /* SrSVGDOM.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA227 /* SrSVGDOM.cc */; };
+		SVGMETA128 /* SrXMLExtractor.c in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA228 /* SrXMLExtractor.c */; };
+		SVGMETA129 /* SrXMLParser.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA229 /* SrXMLParser.cc */; };
+		SVGMETA130 /* SrXMLParserError.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA230 /* SrXMLParserError.cc */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		SVGMETA10 /* SVGMetaRenderer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SVGMetaRenderer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		SVGMETA11 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		SVGMETA12 /* ViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
+		SVGMETA13 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		SVGMETA14 /* SVGMetalView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SVGMetalView.mm; sourceTree = "<group>"; };
+		SVGMETA15 /* svg */ = {isa = PBXFileReference; lastKnownFileType = folder; path = svg; sourceTree = "<group>"; };
+		SVGMETA16 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		SVGMETA17 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		SVGMETA18 /* SVGMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGMetalView.h; sourceTree = "<group>"; };
+		SVGMETA19 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		SVGMETA200 /* SrSkityCanvas.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSkityCanvas.cc; path = ../../../../platform/skity/SrSkityCanvas.cc; sourceTree = "<group>"; };
+		SVGMETA201 /* SrSkityParagraph.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSkityParagraph.cc; path = ../../../../platform/skity/SrSkityParagraph.cc; sourceTree = "<group>"; };
+		SVGMETA202 /* SrSVGCircle.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGCircle.cc; path = ../../../../src/element/SrSVGCircle.cc; sourceTree = "<group>"; };
+		SVGMETA203 /* SrSVGClipPath.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGClipPath.cc; path = ../../../../src/element/SrSVGClipPath.cc; sourceTree = "<group>"; };
+		SVGMETA204 /* SrSVGContainer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGContainer.cc; path = ../../../../src/element/SrSVGContainer.cc; sourceTree = "<group>"; };
+		SVGMETA205 /* SrSVGDefs.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGDefs.cc; path = ../../../../src/element/SrSVGDefs.cc; sourceTree = "<group>"; };
+		SVGMETA206 /* SrSVGEllipse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGEllipse.cc; path = ../../../../src/element/SrSVGEllipse.cc; sourceTree = "<group>"; };
+		SVGMETA207 /* SrSVGFilter.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGFilter.cc; path = ../../../../src/element/SrSVGFilter.cc; sourceTree = "<group>"; };
+		SVGMETA208 /* SrSVGFilterPrimitives.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGFilterPrimitives.cc; path = ../../../../src/element/SrSVGFilterPrimitives.cc; sourceTree = "<group>"; };
+		SVGMETA209 /* SrSVGImage.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGImage.cc; path = ../../../../src/element/SrSVGImage.cc; sourceTree = "<group>"; };
+		SVGMETA21 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		SVGMETA210 /* SrSVGLine.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGLine.cc; path = ../../../../src/element/SrSVGLine.cc; sourceTree = "<group>"; };
+		SVGMETA211 /* SrSVGLinearGradient.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGLinearGradient.cc; path = ../../../../src/element/SrSVGLinearGradient.cc; sourceTree = "<group>"; };
+		SVGMETA212 /* SrSVGMask.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGMask.cc; path = ../../../../src/element/SrSVGMask.cc; sourceTree = "<group>"; };
+		SVGMETA213 /* SrSVGNode.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGNode.cc; path = ../../../../src/element/SrSVGNode.cc; sourceTree = "<group>"; };
+		SVGMETA214 /* SrSVGPath.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPath.cc; path = ../../../../src/element/SrSVGPath.cc; sourceTree = "<group>"; };
+		SVGMETA215 /* SrSVGPolyLine.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPolyLine.cc; path = ../../../../src/element/SrSVGPolyLine.cc; sourceTree = "<group>"; };
+		SVGMETA216 /* SrSVGPolygon.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPolygon.cc; path = ../../../../src/element/SrSVGPolygon.cc; sourceTree = "<group>"; };
+		SVGMETA217 /* SrSVGRadialGradient.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGRadialGradient.cc; path = ../../../../src/element/SrSVGRadialGradient.cc; sourceTree = "<group>"; };
+		SVGMETA218 /* SrSVGRect.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGRect.cc; path = ../../../../src/element/SrSVGRect.cc; sourceTree = "<group>"; };
+		SVGMETA219 /* SrSVGSVG.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGSVG.cc; path = ../../../../src/element/SrSVGSVG.cc; sourceTree = "<group>"; };
+		SVGMETA22 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		SVGMETA220 /* SrSVGShape.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGShape.cc; path = ../../../../src/element/SrSVGShape.cc; sourceTree = "<group>"; };
+		SVGMETA221 /* SrSVGStop.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGStop.cc; path = ../../../../src/element/SrSVGStop.cc; sourceTree = "<group>"; };
+		SVGMETA222 /* SrSVGText.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGText.cc; path = ../../../../src/element/SrSVGText.cc; sourceTree = "<group>"; };
+		SVGMETA223 /* SrSVGTypes.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = SrSVGTypes.c; path = ../../../../src/element/SrSVGTypes.c; sourceTree = "<group>"; };
+		SVGMETA224 /* SrSVGUse.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGUse.cc; path = ../../../../src/element/SrSVGUse.cc; sourceTree = "<group>"; };
+		SVGMETA225 /* SrDOM.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrDOM.cc; path = ../../../../src/parser/SrDOM.cc; sourceTree = "<group>"; };
+		SVGMETA226 /* SrDOMParser.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrDOMParser.cc; path = ../../../../src/parser/SrDOMParser.cc; sourceTree = "<group>"; };
+		SVGMETA227 /* SrSVGDOM.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGDOM.cc; path = ../../../../src/parser/SrSVGDOM.cc; sourceTree = "<group>"; };
+		SVGMETA228 /* SrXMLExtractor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = SrXMLExtractor.c; path = ../../../../src/parser/SrXMLExtractor.c; sourceTree = "<group>"; };
+		SVGMETA229 /* SrXMLParser.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrXMLParser.cc; path = ../../../../src/parser/SrXMLParser.cc; sourceTree = "<group>"; };
+		SVGMETA23 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		SVGMETA230 /* SrXMLParserError.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrXMLParserError.cc; path = ../../../../src/parser/SrXMLParserError.cc; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		SVGMETA30 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SVGMETA06 /* Metal.framework in Frameworks */,
+				SVGMETA07 /* QuartzCore.framework in Frameworks */,
+				SVGMETA08 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		SVGMETA240 /* ServalSVG */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA241 /* Skity */,
+				SVGMETA242 /* Element */,
+				SVGMETA243 /* Parser */,
+			);
+			name = ServalSVG;
+			sourceTree = "<group>";
+		};
+		SVGMETA241 /* Skity */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA200 /* SrSkityCanvas.cc */,
+				SVGMETA201 /* SrSkityParagraph.cc */,
+			);
+			name = Skity;
+			sourceTree = "<group>";
+		};
+		SVGMETA242 /* Element */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA202 /* SrSVGCircle.cc */,
+				SVGMETA203 /* SrSVGClipPath.cc */,
+				SVGMETA204 /* SrSVGContainer.cc */,
+				SVGMETA205 /* SrSVGDefs.cc */,
+				SVGMETA206 /* SrSVGEllipse.cc */,
+				SVGMETA207 /* SrSVGFilter.cc */,
+				SVGMETA208 /* SrSVGFilterPrimitives.cc */,
+				SVGMETA209 /* SrSVGImage.cc */,
+				SVGMETA210 /* SrSVGLine.cc */,
+				SVGMETA211 /* SrSVGLinearGradient.cc */,
+				SVGMETA212 /* SrSVGMask.cc */,
+				SVGMETA213 /* SrSVGNode.cc */,
+				SVGMETA214 /* SrSVGPath.cc */,
+				SVGMETA215 /* SrSVGPolyLine.cc */,
+				SVGMETA216 /* SrSVGPolygon.cc */,
+				SVGMETA217 /* SrSVGRadialGradient.cc */,
+				SVGMETA218 /* SrSVGRect.cc */,
+				SVGMETA219 /* SrSVGSVG.cc */,
+				SVGMETA220 /* SrSVGShape.cc */,
+				SVGMETA221 /* SrSVGStop.cc */,
+				SVGMETA222 /* SrSVGText.cc */,
+				SVGMETA223 /* SrSVGTypes.c */,
+				SVGMETA224 /* SrSVGUse.cc */,
+			);
+			name = Element;
+			sourceTree = "<group>";
+		};
+		SVGMETA243 /* Parser */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA225 /* SrDOM.cc */,
+				SVGMETA226 /* SrDOMParser.cc */,
+				SVGMETA227 /* SrSVGDOM.cc */,
+				SVGMETA228 /* SrXMLExtractor.c */,
+				SVGMETA229 /* SrXMLParser.cc */,
+				SVGMETA230 /* SrXMLParserError.cc */,
+			);
+			name = Parser;
+			sourceTree = "<group>";
+		};
+		SVGMETA40 = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA41 /* SVGMetaRenderer */,
+				SVGMETA42 /* Products */,
+				SVGMETA43 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		SVGMETA41 /* SVGMetaRenderer */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA16 /* AppDelegate.h */,
+				SVGMETA11 /* AppDelegate.m */,
+				SVGMETA17 /* ViewController.h */,
+				SVGMETA12 /* ViewController.mm */,
+				SVGMETA18 /* SVGMetalView.h */,
+				SVGMETA14 /* SVGMetalView.mm */,
+				SVGMETA13 /* main.m */,
+				SVGMETA15 /* svg */,
+				SVGMETA19 /* Info.plist */,
+				SVGMETA240 /* ServalSVG */,
+			);
+			path = SVGMetaRenderer;
+			sourceTree = "<group>";
+		};
+		SVGMETA42 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA10 /* SVGMetaRenderer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		SVGMETA43 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				SVGMETA21 /* Metal.framework */,
+				SVGMETA22 /* QuartzCore.framework */,
+				SVGMETA23 /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		SVGMETA50 /* SVGMetaRenderer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = SVGMETA51 /* Build configuration list for PBXNativeTarget "SVGMetaRenderer" */;
+			buildPhases = (
+				SVGMETA52 /* Sources */,
+				SVGMETA30 /* Frameworks */,
+				SVGMETA53 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SVGMetaRenderer;
+			productName = SVGMetaRenderer;
+			productReference = SVGMETA10 /* SVGMetaRenderer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		SVGMETA60 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					SVGMETA50 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = SVGMETA61 /* Build configuration list for PBXProject "SVGMetaRenderer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = SVGMETA40;
+			productRefGroup = SVGMETA42 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				SVGMETA50 /* SVGMetaRenderer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		SVGMETA53 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SVGMETA05 /* svg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		SVGMETA52 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SVGMETA01 /* AppDelegate.m in Sources */,
+				SVGMETA02 /* ViewController.mm in Sources */,
+				SVGMETA03 /* main.m in Sources */,
+				SVGMETA04 /* SVGMetalView.mm in Sources */,
+				SVGMETA100 /* SrSkityCanvas.cc in Sources */,
+				SVGMETA101 /* SrSkityParagraph.cc in Sources */,
+				SVGMETA102 /* SrSVGCircle.cc in Sources */,
+				SVGMETA103 /* SrSVGClipPath.cc in Sources */,
+				SVGMETA104 /* SrSVGContainer.cc in Sources */,
+				SVGMETA105 /* SrSVGDefs.cc in Sources */,
+				SVGMETA106 /* SrSVGEllipse.cc in Sources */,
+				SVGMETA107 /* SrSVGFilter.cc in Sources */,
+				SVGMETA108 /* SrSVGFilterPrimitives.cc in Sources */,
+				SVGMETA109 /* SrSVGImage.cc in Sources */,
+				SVGMETA110 /* SrSVGLine.cc in Sources */,
+				SVGMETA111 /* SrSVGLinearGradient.cc in Sources */,
+				SVGMETA112 /* SrSVGMask.cc in Sources */,
+				SVGMETA113 /* SrSVGNode.cc in Sources */,
+				SVGMETA114 /* SrSVGPath.cc in Sources */,
+				SVGMETA115 /* SrSVGPolyLine.cc in Sources */,
+				SVGMETA116 /* SrSVGPolygon.cc in Sources */,
+				SVGMETA117 /* SrSVGRadialGradient.cc in Sources */,
+				SVGMETA118 /* SrSVGRect.cc in Sources */,
+				SVGMETA119 /* SrSVGSVG.cc in Sources */,
+				SVGMETA120 /* SrSVGShape.cc in Sources */,
+				SVGMETA121 /* SrSVGStop.cc in Sources */,
+				SVGMETA122 /* SrSVGText.cc in Sources */,
+				SVGMETA123 /* SrSVGTypes.c in Sources */,
+				SVGMETA124 /* SrSVGUse.cc in Sources */,
+				SVGMETA125 /* SrDOM.cc in Sources */,
+				SVGMETA126 /* SrDOMParser.cc in Sources */,
+				SVGMETA127 /* SrSVGDOM.cc in Sources */,
+				SVGMETA128 /* SrXMLExtractor.c in Sources */,
+				SVGMETA129 /* SrXMLParser.cc in Sources */,
+				SVGMETA130 /* SrXMLParserError.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		SVGMETA70 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+			};
+			name = Debug;
+		};
+		SVGMETA71 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		SVGMETA72 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+				INFOPLIST_FILE = SVGMetaRenderer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-std=c++17",
+					"-stdlib=libc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lynx.servalkit.svg.metal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+			};
+			name = Debug;
+		};
+		SVGMETA73 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+				INFOPLIST_FILE = SVGMetaRenderer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-std=c++17",
+					"-stdlib=libc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lynx.servalkit.svg.metal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../../include",
+				);
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		SVGMETA51 /* Build configuration list for PBXNativeTarget "SVGMetaRenderer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SVGMETA72 /* Debug */,
+				SVGMETA73 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		SVGMETA61 /* Build configuration list for PBXProject "SVGMetaRenderer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SVGMETA70 /* Debug */,
+				SVGMETA71 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = SVGMETA60 /* Project object */;
+}
