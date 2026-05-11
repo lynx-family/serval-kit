@@ -849,7 +849,7 @@ void SrSkityCanvas::DrawImage(
                           static_cast<float>(image->Height())};
         calculate_view_box_transform(&view_port, &view_box,
                                      preserve_aspect_radio, form);
-        canvas_->SaveLayer(::skity::Rect(), ::skity::Paint());
+        canvas_->Save();
         ::skity::Matrix box_transform{
             form[0], form[2], form[4], form[1], form[3], form[5], 0, 0, 1};
         canvas_->Concat(box_transform);
