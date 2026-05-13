@@ -12,13 +12,15 @@
 #include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
 namespace serval::markdown {
-class NativeServalMarkdownView final : public HarmonyCustomView,
-                                       public MarkdownViewContainerHandle,
-                                       public MarkdownResourceLoader,
-                                       public HarmonyVSyncCallback {
+class L_EXPORT NativeServalMarkdownView final
+    : public HarmonyCustomView,
+      public MarkdownViewContainerHandle,
+      public MarkdownResourceLoader,
+      public HarmonyVSyncCallback {
  public:
   static void InitEnv(napi_env env);
 
