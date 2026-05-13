@@ -5,6 +5,8 @@
 #include "parser/SrDOM.h"
 #include "parser/SrDOMParser.h"
 
+#include <cstdlib>
+
 namespace serval {
 namespace svg {
 namespace parser {

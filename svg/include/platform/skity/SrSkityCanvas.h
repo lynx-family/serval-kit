@@ -14,7 +14,6 @@
 
 #include "canvas/SrCanvas.h"
 #include "skity/effect/image_filter.hpp"
-#include "skity/io/data.hpp"
 #include "skity/render/canvas.hpp"
 
 namespace serval {
@@ -127,10 +126,6 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void RestoreLayer() override;
   void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
   void SetMaskIsLuminance(bool is_luminance) override;
-
-  std::shared_ptr<::skity::Data> GetSrSvgDrawImageWithData(
-      std::shared_ptr<::skity::Data> data, float width, float height,
-      SrSkityCanvas::ImageCallback image_callback);
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,
