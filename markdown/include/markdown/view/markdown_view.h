@@ -20,6 +20,7 @@
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_props.h"
@@ -28,7 +29,7 @@
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown_view_renderer.h"
 namespace serval::markdown {
-class MarkdownView final : public MarkdownDrawable {
+class L_EXPORT MarkdownView final : public MarkdownDrawable {
  public:
   MarkdownView(MarkdownPlatformView* view,
                std::shared_ptr<MarkdownContext> context);
