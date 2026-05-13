@@ -28,6 +28,7 @@ lynx_envsetup() {
   export COREPACK_HOME="${BUILDTOOLS_DIR}/corepack"
 
   export PATH="${LYNX_DIR}/tools_shared:$PATH"
+  export PATH="${LYNX_DIR}/tools_shared/buildtools/gn:$PATH"
   export PATH="${LYNX_DIR}/tools_shared/buildtools/clang-format:$PATH"
 }
 

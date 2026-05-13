@@ -4,149 +4,14 @@
 
 #include "platform/skity/SrSkityCanvas.h"
 #include <algorithm>
-#include <cstdlib>
 #include <cstring>
 #include <vector>
 #include "element/SrSVGFilter.h"
 #include "element/SrSVGFilterPrimitives.h"
-#include "parser/SrSVGDOM.h"
 #include "skity/skity.hpp"
 
 #include <cstdint>
-#include <stdexcept>
 #include <string>
-
-// write Unicode code point into UTF-8
-static inline void AppendUtf8(std::string& out, uint32_t cp) {
-  if (cp <= 0x7F) {
-    out.push_back(static_cast<char>(cp));
-  } else if (cp <= 0x7FF) {
-    out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
-    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-  } else if (cp <= 0xFFFF) {
-    out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
-    out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
-    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-  } else {
-    out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
-    out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
-    out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
-    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-  }
-}
-
-static inline uint16_t LoadU16BE(const uint8_t* p) {
-  return static_cast<uint16_t>((uint16_t(p[0]) << 8) | p[1]);
-}
-
-// main conversion: UTF-16BE (no BOM) → UTF-8
-std::string Utf16BE_To_Utf8_NoBOM(const void* raw, size_t size_bytes) {
-  if (size_bytes % 2 != 0) {
-    throw std::runtime_error("Invalid UTF-16BE byte length");
-  }
-  const uint8_t* p = static_cast<const uint8_t*>(raw);
-  const uint8_t* end = p + size_bytes;
-
-  std::string out;
-  out.reserve(size_bytes);  // rough estimate
-
-  while (p < end) {
-    uint16_t w1 = LoadU16BE(p);
-    p += 2;
-
-    if (w1 >= 0xD800 && w1 <= 0xDBFF) {
-      // high surrogate must be followed by low surrogate
-      if (p >= end)
-        throw std::runtime_error("Truncated surrogate pair");
-      uint16_t w2 = LoadU16BE(p);
-      if (w2 < 0xDC00 || w2 > 0xDFFF)
-        throw std::runtime_error("Invalid surrogate pair");
-      p += 2;
-      uint32_t cp =
-          0x10000 + (((uint32_t)(w1 - 0xD800) << 10) | (uint32_t)(w2 - 0xDC00));
-      AppendUtf8(out, cp);
-    } else if (w1 >= 0xDC00 && w1 <= 0xDFFF) {
-      throw std::runtime_error("Unpaired low surrogate");
-    } else {
-      // Basic Multilingual Plane (BMP)
-      AppendUtf8(out, w1);
-    }
-  }
-  return out;
-}
-
-std::string Utf16LE_To_Utf8_NoBOM(const void* raw, size_t size_bytes) {
-  if (size_bytes % 2 != 0) {
-    throw std::runtime_error("Invalid UTF-16LE byte length");
-  }
-  const uint8_t* p = static_cast<const uint8_t*>(raw);
-  const uint8_t* end = p + size_bytes;
-
-  std::string out;
-  out.reserve(size_bytes);
-
-  while (p < end) {
-    uint16_t w1 = static_cast<uint16_t>(p[0] | (uint16_t(p[1]) << 8));
-    p += 2;
-
-    if (w1 >= 0xD800 && w1 <= 0xDBFF) {
-      if (p >= end) {
-        throw std::runtime_error("Truncated surrogate pair");
-      }
-      uint16_t w2 = static_cast<uint16_t>(p[0] | (uint16_t(p[1]) << 8));
-      if (w2 < 0xDC00 || w2 > 0xDFFF) {
-        throw std::runtime_error("Invalid surrogate pair");
-      }
-      p += 2;
-      uint32_t cp =
-          0x10000 + (((uint32_t)(w1 - 0xD800) << 10) | (uint32_t)(w2 - 0xDC00));
-      AppendUtf8(out, cp);
-    } else if (w1 >= 0xDC00 && w1 <= 0xDFFF) {
-      throw std::runtime_error("Unpaired low surrogate");
-    } else {
-      AppendUtf8(out, w1);
-    }
-  }
-  return out;
-}
-
-std::string ConvertSvgBytesToUtf8String(const void* raw, size_t size_bytes) {
-  if (!raw || size_bytes == 0) {
-    return {};
-  }
-  const uint8_t* b = static_cast<const uint8_t*>(raw);
-  if (size_bytes >= 2) {
-    if (b[0] == 0xFF && b[1] == 0xFE) {
-      return Utf16LE_To_Utf8_NoBOM(b + 2, size_bytes - 2);
-    }
-    if (b[0] == 0xFE && b[1] == 0xFF) {
-      return Utf16BE_To_Utf8_NoBOM(b + 2, size_bytes - 2);
-    }
-  }
-
-  size_t zeros_even = 0;
-  size_t zeros_odd = 0;
-  size_t sample = std::min<size_t>(size_bytes, 256);
-  for (size_t i = 0; i < sample; ++i) {
-    if (b[i] == 0) {
-      if (i % 2 == 0) {
-        ++zeros_even;
-      } else {
-        ++zeros_odd;
-      }
-    }
-  }
-  const bool looks_utf16 = (zeros_even + zeros_odd) >= (sample / 8);
-  if (looks_utf16) {
-    try {
-      if (zeros_odd > zeros_even) {
-        return Utf16LE_To_Utf8_NoBOM(raw, size_bytes);
-      }
-      return Utf16BE_To_Utf8_NoBOM(raw, size_bytes);
-    } catch (...) {}
-  }
-  return std::string(static_cast<const char*>(raw), size_bytes);
-}
 
 #define M_PI 3.14159265358979323846264338327950288 /* pi             */
 #define LYNX_DEGREE_TO_RADIANS(X) ((M_PI * X) / 180)
@@ -1102,33 +967,6 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
   }
 
   return paint;
-}
-
-std::shared_ptr<::skity::Data> SrSkityCanvas::GetSrSvgDrawImageWithData(
-    std::shared_ptr<::skity::Data> data, float width, float height,
-    SrSkityCanvas::ImageCallback image_callback) {
-  if (!data || data->IsEmpty() || !data->RawData()) {
-    return nullptr;
-  }
-  std::string svg_string =
-      ConvertSvgBytesToUtf8String(data->RawData(), data->Size());
-  auto svg_dom = serval::svg::parser::SrSVGDOM::make(
-      svg_string.data(), svg_string.size(), nullptr);
-  if (!svg_dom) {
-    return nullptr;
-  }
-  ::skity::Bitmap bitmap(static_cast<uint32_t>(width),
-                         static_cast<uint32_t>(height));
-  auto canvas = ::skity::Canvas::MakeSoftwareCanvas(&bitmap);
-  if (!canvas) {
-    return nullptr;
-  }
-  SrSkityCanvas sr_canvas(canvas.get(), image_callback);
-  SrSVGBox view_port{0.f, 0.f, width, height};
-  svg_dom->Render(&sr_canvas, view_port);
-
-  return ::skity::Data::MakeWithCopy(bitmap.GetPixelAddr(),
-                                     bitmap.Height() * bitmap.RowBytes());
 }
 
 }  // namespace skity
