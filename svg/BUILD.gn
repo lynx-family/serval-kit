@@ -24,6 +24,8 @@ source_set("serval-svg") {
     "include/element/SrSVGMask.h",
     "include/element/SrSVGNode.h",
     "include/element/SrSVGPath.h",
+    "include/element/SrSVGPattern.h",
+    "include/element/SrSVGPatternResolver.h",
     "include/element/SrSVGPolyLine.h",
     "include/element/SrSVGPolygon.h",
     "include/element/SrSVGRadialGradient.h",
@@ -40,6 +42,7 @@ source_set("serval-svg") {
     "include/parser/SrXMLExtractor.h",
     "include/parser/SrXMLParser.h",
     "include/parser/SrXMLParserError.h",
+    "include/utils/SrSVGPatternUtils.h",
 
     # skity
     "include/platform/skity/SrSkityCanvas.h",
@@ -65,6 +68,8 @@ source_set("serval-svg") {
     "src/element/SrSVGMask.cc",
     "src/element/SrSVGNode.cc",
     "src/element/SrSVGPath.cc",
+    "src/element/SrSVGPattern.cc",
+    "src/element/SrSVGPatternResolver.cc",
     "src/element/SrSVGPolyLine.cc",
     "src/element/SrSVGPolygon.cc",
     "src/element/SrSVGRadialGradient.cc",
@@ -81,6 +86,7 @@ source_set("serval-svg") {
     "src/parser/SrXMLExtractor.c",
     "src/parser/SrXMLParser.cc",
     "src/parser/SrXMLParserError.cc",
+    "src/utils/SrSVGPatternUtils.cc",
   ]
 
   defines = []
