@@ -9,10 +9,12 @@
 #include "platform/harmony/sr_harmony_canvas.h"
 
 #include <memory>
+#include <multimedia/image_framework/image_pixel_map_mdk.h>
 #include <native_drawing/drawing_types.h>
 #include <node_api.h>
 #include <string>
 #include <sys/stat.h>
+#include <unordered_map>
 
 namespace serval {
 namespace svg {
@@ -25,6 +27,12 @@ struct SvgRenderResult {
 
 class SvgDrawable {
 public:
+    struct CachedImage {
+        napi_ref pixel_map_ref{nullptr};
+        NativePixelMap *native_pixel_map{nullptr};
+        SrHarmonyCanvas::ImageData image_data{};
+    };
+
     static napi_value Init(napi_env env, napi_value exports);
 
     void Render(OH_Drawing_Canvas *canvas);
@@ -37,9 +45,15 @@ private:
     static napi_value Update(napi_env env, napi_callback_info info);
     static napi_value Constructor(napi_env env, napi_callback_info info);
     static napi_value Render(napi_env env, napi_callback_info info);
+    static napi_value SetImageLoader(napi_env env, napi_callback_info info);
 
     static std::string ConvertToString(napi_env env, napi_value arg);
+    void ClearImageCache();
+    const CachedImage *RequestImage(const std::string &url);
+    bool CacheImage(const std::string &url, napi_value pixel_map_value);
 
+    napi_env env_{nullptr};
+    napi_ref image_loader_ref_{nullptr};
     float left_{0.f};
     float top_{0.f};
     float width_{0.f};
@@ -50,6 +64,7 @@ private:
     SvgRenderResult last_result_{};
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
+    std::unordered_map<std::string, CachedImage> image_cache_{};
 };
 }  // namespace harmony
 }  // namespace svg

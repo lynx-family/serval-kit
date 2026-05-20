@@ -9,6 +9,8 @@
 
 #include <iterator>
 #include <memory>
+#include <multimedia/image_framework/image_pixel_map_mdk.h>
+#include <native_drawing/drawing_pixel_map.h>
 #include <native_drawing/drawing_types.h>
 #include <utility>
 #include <vector>
@@ -50,7 +52,8 @@ napi_value SvgDrawable::Init(napi_env env, napi_value exports) {
     napi_value cons;
     constexpr napi_property_descriptor properties[] = {
         {"update", nullptr, Update, nullptr, nullptr, nullptr, napi_default, nullptr},
-        {"render", nullptr, Render, nullptr, nullptr, nullptr, napi_default, nullptr}};
+        {"render", nullptr, Render, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"setImageLoader", nullptr, SetImageLoader, nullptr, nullptr, nullptr, napi_default, nullptr}};
     constexpr size_t prop_size = std::size(properties);
     napi_define_class(env, "SvgDrawable", NAPI_AUTO_LENGTH, Constructor, nullptr, prop_size, properties, &cons);
     napi_set_named_property(env, exports, "SvgDrawable", cons);
@@ -127,18 +130,137 @@ napi_value SvgDrawable::Constructor(napi_env env, napi_callback_info info) {
     napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
 
     SvgDrawable *obj = new SvgDrawable();
+    obj->env_ = env;
 
     napi_wrap(
         env, js_this, obj,
         [](napi_env env, void *data, void *hint) {
             auto svg = static_cast<SvgDrawable *>(data);
             if (svg != nullptr) {
+                svg->ClearImageCache();
+                if (svg->image_loader_ref_ != nullptr) {
+                    napi_delete_reference(env, svg->image_loader_ref_);
+                    svg->image_loader_ref_ = nullptr;
+                }
                 delete svg;
             }
         },
         nullptr, nullptr);
 
     return js_this;
+}
+
+napi_value SvgDrawable::SetImageLoader(napi_env env, napi_callback_info info) {
+    napi_value result;
+    napi_value js_this;
+    napi_value argv[1];
+    size_t argc = 1;
+    napi_get_cb_info(env, info, &argc, argv, &js_this, nullptr);
+
+    SvgDrawable *svg;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&svg));
+    if (svg->image_loader_ref_ != nullptr) {
+        napi_delete_reference(env, svg->image_loader_ref_);
+        svg->image_loader_ref_ = nullptr;
+    }
+    svg->ClearImageCache();
+    if (argc > 0) {
+        napi_valuetype loader_type = napi_undefined;
+        napi_typeof(env, argv[0], &loader_type);
+        if (loader_type == napi_function) {
+            napi_create_reference(env, argv[0], 1, &svg->image_loader_ref_);
+        }
+    }
+
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+void SvgDrawable::ClearImageCache() {
+    if (env_ == nullptr) {
+        image_cache_.clear();
+        return;
+    }
+    for (auto &entry : image_cache_) {
+        if (entry.second.image_data.draw_pixel_map != nullptr) {
+            OH_Drawing_PixelMapDissolve(entry.second.image_data.draw_pixel_map);
+            entry.second.image_data.draw_pixel_map = nullptr;
+        }
+        if (entry.second.pixel_map_ref != nullptr) {
+            napi_delete_reference(env_, entry.second.pixel_map_ref);
+            entry.second.pixel_map_ref = nullptr;
+        }
+    }
+    image_cache_.clear();
+}
+
+bool SvgDrawable::CacheImage(const std::string &url, napi_value pixel_map_value) {
+    if (env_ == nullptr) {
+        return false;
+    }
+
+    napi_ref pixel_map_ref = nullptr;
+    if (napi_create_reference(env_, pixel_map_value, 1, &pixel_map_ref) != napi_ok) {
+        return false;
+    }
+
+    NativePixelMap *native_pixel_map = OH_PixelMap_InitNativePixelMap(env_, pixel_map_value);
+    if (native_pixel_map == nullptr) {
+        napi_delete_reference(env_, pixel_map_ref);
+        return false;
+    }
+
+    OhosPixelMapInfos image_info{};
+    if (OH_PixelMap_GetImageInfo(native_pixel_map, &image_info) != 0) {
+        napi_delete_reference(env_, pixel_map_ref);
+        return false;
+    }
+
+    OH_Drawing_PixelMap *draw_pixel_map = OH_Drawing_PixelMapGetFromNativePixelMap(native_pixel_map);
+    if (draw_pixel_map == nullptr) {
+        napi_delete_reference(env_, pixel_map_ref);
+        return false;
+    }
+
+    CachedImage cached_image;
+    cached_image.pixel_map_ref = pixel_map_ref;
+    cached_image.native_pixel_map = native_pixel_map;
+    cached_image.image_data.draw_pixel_map = draw_pixel_map;
+    cached_image.image_data.width = image_info.width;
+    cached_image.image_data.height = image_info.height;
+    image_cache_[url] = cached_image;
+    return true;
+}
+
+const SvgDrawable::CachedImage *SvgDrawable::RequestImage(const std::string &url) {
+    auto cached = image_cache_.find(url);
+    if (cached != image_cache_.end()) {
+        return &cached->second;
+    }
+    if (env_ == nullptr || image_loader_ref_ == nullptr) {
+        return nullptr;
+    }
+
+    napi_value loader;
+    napi_value global;
+    napi_value argv[1];
+    napi_value js_result;
+    napi_get_reference_value(env_, image_loader_ref_, &loader);
+    napi_get_global(env_, &global);
+    napi_create_string_utf8(env_, url.c_str(), NAPI_AUTO_LENGTH, &argv[0]);
+    if (napi_call_function(env_, global, loader, 1, argv, &js_result) != napi_ok) {
+        return nullptr;
+    }
+
+    napi_valuetype result_type = napi_undefined;
+    napi_typeof(env_, js_result, &result_type);
+    if (result_type == napi_undefined || result_type == napi_null) {
+        return nullptr;
+    }
+    if (!CacheImage(url, js_result)) {
+        return nullptr;
+    }
+    return &image_cache_[url];
 }
 
 void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
@@ -149,6 +271,10 @@ void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
             sr_canvas_->Reset(canvas);
         }
         sr_canvas_->SetAntiAlias(anti_alias_);
+        sr_canvas_->SetImageProvider([this](const std::string &url) -> const SrHarmonyCanvas::ImageData * {
+            const auto *image = this->RequestImage(url);
+            return image == nullptr ? nullptr : &image->image_data;
+        });
         if (has_color_) {
             uint32_t default_color = 0;
             if (parse_svg_color(color_.c_str(), &default_color)) {

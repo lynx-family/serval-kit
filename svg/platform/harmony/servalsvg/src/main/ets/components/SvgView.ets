@@ -1,7 +1,9 @@
 import { display, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
+import { image } from '@kit.ImageKit';
 import svg from 'libservalsvg.so';
 import { SvgData, SvgRenderResult } from './SvgTypes';
 
+export type SvgImageLoader = (url: string) => image.PixelMap | undefined;
 
 @Component
 export struct SvgView {
@@ -73,6 +75,10 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
+  setImageLoader(loader?: SvgImageLoader): void {
+    this.native.setImageLoader(loader);
+  }
+
   update(data?: SvgData): SvgRenderResult;
   update(data?: SvgData, parentColor?: string): SvgRenderResult;
   update(data?: SvgData, parentColor?: string) {
@@ -94,9 +100,19 @@ export class SvgRenderNodeController extends NodeController {
   private data?: SvgData;
   private color?: string;
   private needUpdateData = false;
+  private imageLoader?: SvgImageLoader;
 
   constructor() {
     super();
+  }
+
+  setImageLoader(loader?: SvgImageLoader): void {
+    this.imageLoader = loader;
+    this.rootNode?.setImageLoader(loader);
+  }
+
+  invalidate(): void {
+    this.rootNode?.invalidate();
   }
 
   updateData(data?: SvgData): SvgRenderResult;
@@ -116,6 +132,7 @@ export class SvgRenderNodeController extends NodeController {
   makeNode(uiContext: UIContext): FrameNode | null {
     if (this.rootNode === null) {
       this.rootNode = new SvgRenderNode(uiContext, new svg.SvgDrawable());
+      this.rootNode.setImageLoader(this.imageLoader);
       if (this.needUpdateData) {
         this.needUpdateData = false;
         this.rootNode.update(this.data, this.color);
