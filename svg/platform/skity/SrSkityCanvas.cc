@@ -654,7 +654,6 @@ void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
         path.QuadTo(cp1x, cp1y, x, y);
         break;
       case SPO_ELLIPTICAL_ARC: {
-        float c1x = args[iArg++], c1y = args[iArg++];
         float rx = args[iArg++];
         float ry = args[iArg++];
         float angle = args[iArg++];
