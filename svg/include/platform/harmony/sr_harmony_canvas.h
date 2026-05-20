@@ -6,6 +6,7 @@
 #define SVG_INCLUDE_PLATFORM_HARMONY_SR_HARMONY_CANVAS_H_
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -27,6 +28,13 @@ namespace harmony {
 
 class SrHarmonyCanvas : public canvas::SrCanvas {
  public:
+  struct ImageData {
+    OH_Drawing_PixelMap* draw_pixel_map{nullptr};
+    uint32_t width{0};
+    uint32_t height{0};
+  };
+  using ImageProvider = std::function<const ImageData*(const std::string&)>;
+
   explicit SrHarmonyCanvas(OH_Drawing_Canvas* canvas);
   void SetRenderContext(const SrSVGRenderContext* context) override {
     current_render_context_ = context;
@@ -37,6 +45,9 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   void Save() override;
   void Restore() override;
   void SetAntiAlias(bool anti_alias);
+  void SetImageProvider(ImageProvider provider) {
+    image_provider_ = std::move(provider);
+  }
   void DrawLine(const char*, float x1, float y1, float x2, float y2,
                 const SrSVGRenderState& render_state) override;
   void DrawRect(const char* id, float x, float y, float rx, float ry,
@@ -98,8 +109,10 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   bool anti_alias_{true};
   canvas::SrCanvasBlendMode blend_mode_{canvas::SrCanvasBlendMode::kSrcOver};
   bool mask_is_luminance_{false};
+  OH_Drawing_SamplingOptions* image_sampling_{nullptr};
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
   std::vector<std::array<float, 6>> transform_stack_;
+  ImageProvider image_provider_{};
 
   void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
   void StrokePath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);

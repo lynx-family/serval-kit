@@ -11,6 +11,8 @@
 #include <native_drawing/drawing_filter.h>
 #include <native_drawing/drawing_matrix.h>
 #include <native_drawing/drawing_path_effect.h>
+#include <native_drawing/drawing_rect.h>
+#include <native_drawing/drawing_sampling_options.h>
 #include <native_drawing/drawing_shader_effect.h>
 namespace serval {
 namespace svg {
@@ -59,6 +61,7 @@ SrHarmonyCanvas::SrHarmonyCanvas(OH_Drawing_Canvas *context) {
     context_ = context;
     pen_ = OH_Drawing_PenCreate();
     brush_ = OH_Drawing_BrushCreate();
+    image_sampling_ = OH_Drawing_SamplingOptionsCreate(FILTER_MODE_LINEAR, MIPMAP_MODE_NONE);
     path_factory_ = std::make_unique<harmony::PathFactoryHarmonyImpl>();
 }
 void SrHarmonyCanvas::Reset(OH_Drawing_Canvas *context) {
@@ -81,6 +84,9 @@ SrHarmonyCanvas::~SrHarmonyCanvas() {
     }
     if (path_effect_) {
         OH_Drawing_PathEffectDestroy(path_effect_);
+    }
+    if (image_sampling_) {
+        OH_Drawing_SamplingOptionsDestroy(image_sampling_);
     }
 }
 
@@ -180,7 +186,36 @@ void SrHarmonyCanvas::DrawPath(const char *, uint8_t *ops, uint32_t n_ops, float
 void SrHarmonyCanvas::DrawUse(const char *href, float x, float y, float width, float height) {}
 
 void SrHarmonyCanvas::DrawImage(const char *url, float x, float y, float width, float height,
-                                const SrSVGPreserveAspectRatio &preserve_aspect_radio) {}
+                                const SrSVGPreserveAspectRatio &preserve_aspect_radio) {
+    if (url == nullptr || image_provider_ == nullptr) {
+        return;
+    }
+    const auto *image = image_provider_(std::string(url));
+    if (image == nullptr || image->draw_pixel_map == nullptr || image->width == 0 || image->height == 0) {
+        return;
+    }
+
+    float form[6];
+    SrSVGBox view_port{x, y, width, height};
+    SrSVGBox view_box{0.f, 0.f, static_cast<float>(image->width), static_cast<float>(image->height)};
+    calculate_view_box_transform(&view_port, &view_box, preserve_aspect_radio, form);
+
+    auto *src_rect =
+        OH_Drawing_RectCreate(0.f, 0.f, static_cast<float>(image->width), static_cast<float>(image->height));
+    auto *dst_rect =
+        OH_Drawing_RectCreate(0.f, 0.f, static_cast<float>(image->width), static_cast<float>(image->height));
+    auto *matrix = OH_Drawing_MatrixCreate();
+    OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+
+    OH_Drawing_CanvasSave(context_);
+    OH_Drawing_CanvasConcatMatrix(context_, matrix);
+    OH_Drawing_CanvasDrawPixelMapRect(context_, image->draw_pixel_map, src_rect, dst_rect, image_sampling_);
+    OH_Drawing_CanvasRestore(context_);
+
+    OH_Drawing_MatrixDestroy(matrix);
+    OH_Drawing_RectDestroy(src_rect);
+    OH_Drawing_RectDestroy(dst_rect);
+}
 
 void SrHarmonyCanvas::SetViewBox(float x, float y, float width, float height) {}
 
