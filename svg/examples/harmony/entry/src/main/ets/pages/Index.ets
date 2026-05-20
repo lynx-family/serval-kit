@@ -1,4 +1,5 @@
-import { SvgData, SvgView } from '@lynx/servalsvg';
+import { SvgData } from '@lynx/servalsvg';
+import { ExampleSvgView } from '../components/ExampleSvgView';
 import util from '@ohos.util';
 
 class SvgPreviewMetadata {
@@ -337,7 +338,7 @@ struct Index {
 
               Stack() {
                 if (item.svgData.content.length > 0) {
-                  SvgView({
+                  ExampleSvgView({
                     svgData: item.svgData,
                     color: this.shouldUseHostColor(item.fileName)
                       ? Index.HOST_DEFAULT_COLOR

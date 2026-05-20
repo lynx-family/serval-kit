@@ -8,11 +8,14 @@
 #include "parser/SrSVGDOM.h"
 #include "platform/harmony/sr_harmony_canvas.h"
 
+#include <cstdint>
 #include <memory>
+#include <multimedia/image_framework/image_pixel_map_mdk.h>
 #include <native_drawing/drawing_types.h>
 #include <node_api.h>
 #include <string>
 #include <sys/stat.h>
+#include <unordered_map>
 
 namespace serval {
 namespace svg {
@@ -23,8 +26,21 @@ struct SvgRenderResult {
     std::string error_message;
 };
 
+enum class ImageLoadState {
+    kIdle,
+    kLoading,
+    kReady,
+    kFailed,
+};
+
 class SvgDrawable {
 public:
+    struct CachedImage {
+        ImageLoadState state{ImageLoadState::kIdle};
+        napi_ref pixel_map_ref{nullptr};
+        SrHarmonyCanvas::ImageData image_data{};
+    };
+
     static napi_value Init(napi_env env, napi_value exports);
 
     void Render(OH_Drawing_Canvas *canvas);
@@ -33,13 +49,43 @@ public:
                            bool anti_alias, bool has_color, std::string color);
 
 private:
+    struct ImageFetchContext {
+        SvgDrawable *svg{nullptr};
+        std::string url;
+        uint64_t epoch{0};
+    };
+
     // JS methods
     static napi_value Update(napi_env env, napi_callback_info info);
     static napi_value Constructor(napi_env env, napi_callback_info info);
     static napi_value Render(napi_env env, napi_callback_info info);
+    static napi_value Dispose(napi_env env, napi_callback_info info);
+    static napi_value SetImageFetcher(napi_env env, napi_callback_info info);
+    static napi_value SetInvalidateCallback(napi_env env, napi_callback_info info);
+    static napi_value RetryFailedImages(napi_env env, napi_callback_info info);
+    static napi_value OnFetchFulfilled(napi_env env, napi_callback_info info);
+    static napi_value OnFetchRejected(napi_env env, napi_callback_info info);
 
     static std::string ConvertToString(napi_env env, napi_value arg);
+    void ReleaseResources();
+    void ClearImageCache();
+    void RetryFailedImages();
+    const CachedImage *RequestImage(const std::string &url);
+    void StartFetchImage(const std::string &url);
+    void MarkImageFailed(const std::string &url);
+    void NotifyInvalidate();
+    bool CacheImage(const std::string &url, napi_value pixel_map_value);
+    void RetainSelf();
+    void ReleaseSelf();
+    void DeleteReference(napi_ref &ref);
 
+    napi_env env_{nullptr};
+    napi_ref self_ref_{nullptr};
+    napi_ref image_fetcher_ref_{nullptr};
+    napi_ref invalidate_ref_{nullptr};
+    bool disposed_{false};
+    size_t inflight_count_{0};
+    uint64_t image_request_epoch_{0};
     float left_{0.f};
     float top_{0.f};
     float width_{0.f};
@@ -50,6 +96,7 @@ private:
     SvgRenderResult last_result_{};
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
+    std::unordered_map<std::string, CachedImage> image_cache_{};
 };
 }  // namespace harmony
 }  // namespace svg

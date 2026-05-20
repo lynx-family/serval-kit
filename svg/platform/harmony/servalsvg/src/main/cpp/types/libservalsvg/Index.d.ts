@@ -1,4 +1,5 @@
 import { DrawContext } from "@kit.ArkUI";
+import { image } from "@kit.ImageKit";
 
 export interface SvgRenderResult {
   hasError: boolean;
@@ -9,6 +10,12 @@ export class SvgDrawable {
   constructor();
 
   render(canvas: DrawContext): void;
+  dispose(): void;
+  setImageFetcher(
+    fetcher?: (url: string) => Promise<image.PixelMap | undefined>
+  ): void;
+  setInvalidateCallback(callback?: () => void): void;
+  retryFailedImages(): void;
 
   update(
     width: number,
