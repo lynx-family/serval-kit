@@ -17,10 +17,6 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   void RequestDraw() override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  bool HasGestureListener() const;
-  bool DispatchTap(PointF position, GestureEventType event);
-  bool DispatchLongPress(PointF position, GestureEventType event);
-  bool DispatchPan(PointF position, PointF motion, GestureEventType event);
   PointF GetAlignedPosition() override;
   SizeF GetMeasuredSize() override;
 

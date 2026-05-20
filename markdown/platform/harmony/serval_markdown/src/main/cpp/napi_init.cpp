@@ -82,6 +82,15 @@ static napi_value NAPI_Global_setMarkdownStyle(napi_env env,
   }
   return nullptr;
 }
+static napi_value NAPI_Global_markDirty(napi_env env, napi_callback_info info) {
+  const auto& [content_value] = HarmonyValues::GetValueFromParams<1>(env, info);
+  if (auto* holder = HarmonyValues::UnwrapObject<NativeMarkdownViewHolder>(
+          env, content_value);
+      holder != nullptr) {
+    holder->view_->MarkDirty();
+  }
+  return nullptr;
+}
 static napi_value NAPI_Global_setMarkdownConfig(napi_env env,
                                                 napi_callback_info info) {
   const auto& [content_value, config_value] =
@@ -197,6 +206,8 @@ static napi_value Init(napi_env env, napi_value exports) {
        nullptr, nullptr, napi_default, nullptr},
       {"setMarkdownStyle", nullptr, NAPI_Global_setMarkdownStyle, nullptr,
        nullptr, nullptr, napi_default, nullptr},
+      {"markDirty", nullptr, NAPI_Global_markDirty, nullptr, nullptr, nullptr,
+       napi_default, nullptr},
       {"setMarkdownConfig", nullptr, NAPI_Global_setMarkdownConfig, nullptr,
        nullptr, nullptr, napi_default, nullptr},
       {"registerImageLoader", nullptr, NAPI_Global_registerImageLoader, nullptr,

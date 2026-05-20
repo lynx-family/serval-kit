@@ -318,6 +318,74 @@ bool MarkdownDocument::TouchPointCanScroll(PointF point, float safe_offset) {
   return false;
 }
 
+bool MarkdownDocument::GetScrollXRegionOffset(uint32_t region_index,
+                                              float* scroll_offset) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return false;
+  }
+  auto* region = page->GetRegion(region_index);
+  if (region == nullptr || !region->scroll_x_) {
+    return false;
+  }
+  if (scroll_offset != nullptr) {
+    *scroll_offset = region->scroll_x_offset_;
+  }
+  return true;
+}
+
+bool MarkdownDocument::SetScrollXRegionOffset(uint32_t region_index,
+                                              float scroll_offset) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return false;
+  }
+  auto* region = page->GetRegion(region_index);
+  if (region == nullptr || !region->scroll_x_) {
+    return false;
+  }
+  const auto outer_rect =
+      region->border_ == nullptr ? region->rect_ : region->border_->rect_;
+  const float min_offset =
+      region->scroll_x_view_rect_.GetRight() - outer_rect.GetRight();
+  const float max_offset =
+      region->scroll_x_view_rect_.GetLeft() - outer_rect.GetLeft();
+  scroll_offset = std::min(max_offset, scroll_offset);
+  scroll_offset = std::max(min_offset, scroll_offset);
+  if (scroll_offset == region->scroll_x_offset_) {
+    return false;
+  }
+  region->scroll_x_offset_ = scroll_offset;
+  return true;
+}
+
+void MarkdownDocument::UpdateInlineViewBoundsInRegion(uint32_t region_index) {
+  auto page = GetPage();
+  if (page == nullptr) {
+    return;
+  }
+  auto* region = page->GetRegion(region_index);
+  if (region == nullptr || region->element_ == nullptr) {
+    return;
+  }
+  const int32_t region_start =
+      static_cast<int32_t>(region->element_->GetCharStart());
+  const int32_t region_end =
+      region_start + static_cast<int32_t>(region->element_->GetCharCount());
+  for (const auto& inline_view : inline_views_) {
+    if (inline_view.view_ == nullptr ||
+        inline_view.char_index_ < region_start ||
+        inline_view.char_index_ >= region_end) {
+      continue;
+    }
+    auto pos =
+        GetElementOrigin(inline_view.char_index_, inline_view.is_block_view_);
+    inline_view.view_->SetBounds(RectF::MakeLTWH(
+        pos.x_, pos.y_, inline_view.view_->GetAdvance(),
+        inline_view.view_->GetDescent() - inline_view.view_->GetAscent()));
+  }
+}
+
 MarkdownTouchState MarkdownDocument::OnTouchEvent(
     serval::markdown::MarkdownTouchEventType type,
     serval::markdown::PointF point) {

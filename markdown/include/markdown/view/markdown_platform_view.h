@@ -11,7 +11,6 @@
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
-#include "markdown/view/markdown_gesture.h"
 namespace serval::markdown {
 
 class MarkdownPlatformView;
@@ -23,8 +22,11 @@ class MarkdownViewContainerHandle {
   virtual std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() {
     return CreateCustomSubView();
   }
+  virtual std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() {
+    return CreateRegionSubView();
+  }
   virtual std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
-      SelectionHandleType type, float size, float margin, uint32_t color) = 0;
+      SelectionHandleType type, float size, uint32_t color) = 0;
   virtual std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) = 0;
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
@@ -35,13 +37,13 @@ class MarkdownViewContainerHandle {
 class MarkdownCustomViewHandle {
  public:
   virtual ~MarkdownCustomViewHandle() = default;
-  virtual void AttachDrawable(std::unique_ptr<MarkdownDrawable> drawable) {
+  virtual void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) {
     drawable_ = std::move(drawable);
   }
   MarkdownDrawable* GetDrawable() const { return drawable_.get(); }
 
  protected:
-  std::unique_ptr<MarkdownDrawable> drawable_{nullptr};
+  std::shared_ptr<MarkdownDrawable> drawable_{nullptr};
 };
 
 class MarkdownPlatformView : public MarkdownDrawable {
@@ -60,19 +62,15 @@ class MarkdownPlatformView : public MarkdownDrawable {
 
   virtual void SetMeasuredSize(SizeF size) = 0;
   virtual void SetAlignPosition(PointF position) = 0;
+  void SetBounds(RectF bounds) override {
+    if (!CheckValidBounds(bounds)) {
+      return;
+    }
+    SetMeasuredSize({bounds.GetWidth(), bounds.GetHeight()});
+    SetAlignPosition({bounds.GetLeft(), bounds.GetTop()});
+  }
 
   virtual void SetVisibility(bool visible) = 0;
-
-  void SetTapListener(TapGestureListener tap_gesture_listener) {
-    tap_gesture_listener_ = tap_gesture_listener;
-  }
-  void SetLongPressListener(
-      LongPressGestureListener long_press_gesture_listener) {
-    long_press_gesture_listener_ = long_press_gesture_listener;
-  }
-  void SetPanGestureListener(PanGestureListener pan_gesture_listener) {
-    pan_gesture_listener_ = pan_gesture_listener;
-  }
 
   virtual MarkdownViewContainerHandle* GetViewContainerHandle() {
     return nullptr;
@@ -80,12 +78,16 @@ class MarkdownPlatformView : public MarkdownDrawable {
   virtual MarkdownCustomViewHandle* GetCustomViewHandle() { return nullptr; }
 
  protected:
-  TapGestureListener tap_gesture_listener_{};
-  LongPressGestureListener long_press_gesture_listener_{};
-  PanGestureListener pan_gesture_listener_{};
-
- protected:
+  bool CheckValidBounds(RectF bounds) {
+    const auto valid = !bounds.IsEmpty();
+    if (valid != valid_bounds_) {
+      valid_bounds_ = valid;
+      SetVisibility(valid);
+    }
+    return valid_bounds_;
+  }
   MeasureResult OnMeasure(MeasureSpec spec) override = 0;
+  bool valid_bounds_ = true;
 };
 
 }  // namespace serval::markdown

@@ -109,6 +109,18 @@ class MarkdownInlineViewRunDelegate : public MarkdownRunDelegate {
         handle_(handle) {}
   ~MarkdownInlineViewRunDelegate() override = default;
   void Align(float x, float y) override { [handle_ align:x top:y]; }
+  void SetBounds(RectF bounds) override {
+    bool new_visible = !bounds.IsEmpty();
+    if (new_visible != visible_) {
+      [handle_ setVisibility:new_visible];
+      visible_ = new_visible;
+    }
+    if (!visible_) {
+      return;
+    }
+    [handle_ setSize:bounds.GetWidth() height:bounds.GetHeight()];
+    [handle_ setPosition:bounds.GetLeft() top:bounds.GetTop()];
+  }
   id<IMarkdownPlatformViewHandle> GetHandle() const { return handle_; }
 
  protected:
@@ -128,6 +140,7 @@ class MarkdownInlineViewRunDelegate : public MarkdownRunDelegate {
 
  private:
   id<IMarkdownPlatformViewHandle> handle_;
+  bool visible_ = true;
 };
 
 class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {

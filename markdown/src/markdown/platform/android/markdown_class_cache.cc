@@ -121,7 +121,7 @@ AndroidCustomView::AndroidCustomView() : AndroidMarkdownView() {}
 AndroidCustomView::AndroidCustomView(JNIEnv* env, jobject ref)
     : AndroidMarkdownView(env, ref) {}
 void AndroidCustomView::AttachDrawable(
-    std::unique_ptr<serval::markdown::MarkdownDrawable> drawable) {
+    std::shared_ptr<serval::markdown::MarkdownDrawable> drawable) {
   serval::markdown::MarkdownCustomViewHandle::AttachDrawable(
       std::move(drawable));
   auto* drawable_ptr = drawable_.get();
@@ -148,9 +148,11 @@ void AndroidMainView::Initialize(JNIEnv* env) {
       clazz, "createCustomView", "()Lcom/lynx/markdown/CustomDrawView;");
   methods_.create_region_subview_ = env->GetMethodID(
       clazz, "createRegionView", "()Lcom/lynx/markdown/CustomDrawView;");
+  methods_.create_scroll_x_region_subview_ = env->GetMethodID(
+      clazz, "createScrollXRegionView", "()Lcom/lynx/markdown/CustomDrawView;");
   methods_.create_selection_handle_subview_ =
       env->GetMethodID(clazz, "createSelectionHandleView",
-                       "(J)Lcom/lynx/markdown/SelectionHandleView;");
+                       "()Lcom/lynx/markdown/CustomDrawView;");
   methods_.remove_subview_ =
       env->GetMethodID(clazz, "removeSubView", "(Landroid/view/View;)V");
   methods_.remove_all_subviews_ =
@@ -184,21 +186,29 @@ AndroidMainView::CreateRegionSubView() {
 }
 
 std::shared_ptr<serval::markdown::MarkdownPlatformView>
-AndroidMainView::CreateSelectionHandleSubView(
-    serval::markdown::SelectionHandleType type, float size, float margin,
-    uint32_t color) {
+AndroidMainView::CreateScrollXRegionView() {
   auto* env = MarkdownClassCache::GetEnv();
-  auto subview = std::make_shared<AndroidCustomView>();
-  subviews_.insert(subviews_.end(), subview);
   auto object = env->CallObjectMethod(ref_.Get(),
-                                      methods_.create_selection_handle_subview_,
-                                      reinterpret_cast<jlong>(subview.get()));
-  subview->UpdateObject(env, object);
+                                      methods_.create_scroll_x_region_subview_);
+  auto subview = std::make_shared<AndroidCustomView>(env, object);
+  subviews_.insert(subviews_.end(), subview);
+  return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
+      subview);
+}
+
+std::shared_ptr<serval::markdown::MarkdownPlatformView>
+AndroidMainView::CreateSelectionHandleSubView(
+    serval::markdown::SelectionHandleType type, float size, uint32_t color) {
+  auto* env = MarkdownClassCache::GetEnv();
+  auto object = env->CallObjectMethod(
+      ref_.Get(), methods_.create_selection_handle_subview_);
+  auto subview = std::make_shared<AndroidCustomView>(env, object);
+  subviews_.insert(subviews_.end(), subview);
   const auto view =
       std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(subview);
   auto selection_handle =
-      std::make_unique<serval::markdown::MarkdownSelectionHandle>(size, margin,
-                                                                  type, color);
+      std::make_shared<serval::markdown::MarkdownSelectionHandle>(
+          size, type, color, SelectionHandleShape::kWaterDrop);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   return view;
 }
@@ -206,8 +216,9 @@ std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateSelectionHighlightSubView(uint32_t color) {
   const auto view = CreateCustomSubView();
   auto highlight =
-      std::make_unique<serval::markdown::MarkdownSelectionHighlight>();
+      std::make_shared<serval::markdown::MarkdownSelectionHighlight>();
   highlight->SetColor(color);
+  highlight->SetDrawHandleLines(false);
   view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
   return view;
 }

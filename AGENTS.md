@@ -10,9 +10,14 @@ these two step must be ran before build or unittests.
 
 run `markdown/tools/${PLATFORM}_build.sh` script to build android/ios/harmony platform examples.
 
+### format and checks
+
+run `markdown/tools/check.sh` to check whether the latest commit changes follow the required rules.
+run `markdown/tools/format.sh` to format code for markdown changes.
+
 ### harmony markdown
 
-Harmony markdown depends on `@lynx/lynxtextra` from OHPM. Keep the dependency as `"@lynx/lynxtextra": "0.1.1"` in `markdown/platform/harmony/serval_markdown/oh-package.json5`.
+Harmony markdown depends on `@lynx/lynxtextra` from OHPM. Keep the dependency as `"@lynx/lynxtextra": "x.x.x"` in `markdown/platform/harmony/serval_markdown/oh-package.json5`.
 Do not add `third_party/lynx-textra/platform/harmony/lynxtextra` as a source module in the Harmony example `build-profile.json5`.
 In CMake, use `find_package(lynxtextra CONFIG)` and link `lynxtextra::lynxtextra`; do not hardcode paths under `oh_modules/@lynx/lynxtextra/build/.../liblynxtextra.so`.
 To package the Harmony markdown HAR, use the Harmony example app project: run `cd markdown/example/harmony && ohpm install && python3 scripts/build.py --modules serval_markdown`. For publish builds, pass `--publish_har --version <version>`.

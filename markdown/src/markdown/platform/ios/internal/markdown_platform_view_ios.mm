@@ -9,7 +9,6 @@
 @end
 
 namespace serval::markdown {
-
 MarkdownPlatformViewIOS::MarkdownPlatformViewIOS(
     id<IMarkdownPlatformViewHandle> handle)
     : handle_(handle) {
@@ -59,36 +58,6 @@ void MarkdownPlatformViewIOS::Align(float left, float top) {
 
 void MarkdownPlatformViewIOS::Draw(tttext::ICanvasHelper* canvas, float x,
                                    float y) {}
-
-bool MarkdownPlatformViewIOS::HasGestureListener() const {
-  return static_cast<bool>(tap_gesture_listener_) ||
-         static_cast<bool>(long_press_gesture_listener_) ||
-         static_cast<bool>(pan_gesture_listener_);
-}
-
-bool MarkdownPlatformViewIOS::DispatchTap(PointF position,
-                                          GestureEventType event) {
-  if (!tap_gesture_listener_) {
-    return false;
-  }
-  return tap_gesture_listener_(position, event);
-}
-
-bool MarkdownPlatformViewIOS::DispatchLongPress(PointF position,
-                                                GestureEventType event) {
-  if (!long_press_gesture_listener_) {
-    return false;
-  }
-  return long_press_gesture_listener_(position, event);
-}
-
-bool MarkdownPlatformViewIOS::DispatchPan(PointF position, PointF motion,
-                                          GestureEventType event) {
-  if (!pan_gesture_listener_) {
-    return false;
-  }
-  return pan_gesture_listener_(position, motion, event);
-}
 
 MeasureResult MarkdownPlatformViewIOS::OnMeasure(MeasureSpec spec) {
   if (handle_ == nil) {

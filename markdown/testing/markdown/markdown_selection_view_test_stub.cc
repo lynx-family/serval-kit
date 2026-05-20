@@ -55,11 +55,10 @@ class StubViewContainerHandle : public MarkdownViewContainerHandle {
   }
 
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
-      SelectionHandleType type, float size, float margin,
-      uint32_t color) override {
+      SelectionHandleType type, float size, uint32_t color) override {
     const auto view = CreateCustomSubView();
     auto drawable =
-        std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+        std::make_unique<MarkdownSelectionHandle>(size, type, color);
     view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
     return view;
   }

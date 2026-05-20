@@ -78,7 +78,7 @@ MeasureResult MockMarkdownPlatformView::OnMeasure(MeasureSpec spec) {
 }
 
 void MockMarkdownCustomView::AttachDrawable(
-    std::unique_ptr<MarkdownDrawable> drawable) {
+    std::shared_ptr<MarkdownDrawable> drawable) {
   MarkdownCustomViewHandle::AttachDrawable(std::move(drawable));
 }
 
@@ -152,13 +152,12 @@ std::shared_ptr<MockInlineView> MockMarkdownMainView::CreateInlineSubView(
 
 std::shared_ptr<MarkdownPlatformView>
 MockMarkdownMainView::CreateSelectionHandleSubView(SelectionHandleType type,
-                                                   float size, float margin,
-                                                   uint32_t color) {
+                                                   float size, uint32_t color) {
   const auto view = CreateCustomSubView();
   auto* handle = view->GetCustomViewHandle();
   if (handle != nullptr) {
     auto drawable =
-        std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+        std::make_unique<MarkdownSelectionHandle>(size, type, color);
     handle->AttachDrawable(std::move(drawable));
   }
   return view;

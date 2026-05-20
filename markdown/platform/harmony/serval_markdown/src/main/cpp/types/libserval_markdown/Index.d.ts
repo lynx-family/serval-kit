@@ -6,6 +6,8 @@ export const setMarkdownContent: (node: NodeContent, content: string) => void;
 
 export const setMarkdownStyle: (node: NodeContent, style: object) => void;
 
+export const markDirty: (node: NodeContent) => void;
+
 export const setMarkdownConfig: (node: NodeContent, config: object) => void;
 
 export const registerImageLoader: (node: NodeContent, fn: Function) => void;

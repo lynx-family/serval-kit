@@ -8,6 +8,8 @@
 
 namespace serval::markdown {
 namespace {
+constexpr CGFloat kDegreesToRadians =
+    static_cast<CGFloat>(3.14159265358979323846 / 180.0);
 
 bool HasFill(tttext::Painter* painter) {
   return painter == nullptr ||
@@ -290,12 +292,15 @@ void MarkdownCanvasIOS::AddPath(serval::markdown::MarkdownPath* path,
                                 CGMutablePathRef result) {
   for (auto& op : path->path_ops_) {
     switch (op.op_) {
-      case serval::markdown::MarkdownPath::PathOpType::kArc:
+      case serval::markdown::MarkdownPath::PathOpType::kArc: {
+        const bool clockwise =
+            op.data_.arc_.end_angle_ < op.data_.arc_.start_angle_;
         CGPathAddArc(result, NULL, op.data_.arc_.center_.x_,
                      op.data_.arc_.center_.y_, op.data_.arc_.radius_,
-                     op.data_.arc_.start_angle_, op.data_.arc_.end_angle_,
-                     true);
+                     op.data_.arc_.start_angle_ * kDegreesToRadians,
+                     op.data_.arc_.end_angle_ * kDegreesToRadians, clockwise);
         break;
+      }
       case serval::markdown::MarkdownPath::PathOpType::kOval: {
         auto rect = op.data_.rect_;
         CGPathAddEllipseInRect(result, NULL,

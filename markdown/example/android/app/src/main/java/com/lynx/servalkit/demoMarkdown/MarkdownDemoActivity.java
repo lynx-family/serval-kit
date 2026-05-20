@@ -34,15 +34,17 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "\n"
       + "### Plain text:\n"
       + "\n"
-      +
-      "This is a paragraph containing **bold**, *italic*, ***bold + italic***, ~~strikethrough~~, `inline code`, mixed inline styles, and emoji: \uD83D\uDE04 \n"
+      + "This is a paragraph containing **bold**, *italic*, ***bold + "
+      + "italic***, ~~strikethrough~~, `inline code`, mixed inline styles, "
+      + "and emoji: \uD83D\uDE04 \n"
       + "\n"
       + "### Blockquote:\n"
       + "\n"
       + "> Reading a good book is like talking to a noble soul. — Goethe\n"
       + "> \n"
-      +
-      "> The employment <span class=\"background\">system is unfavorable to workers</span>, but workers are powerless to break free from it. — Ruan Yifeng\n"
+      + "> The employment <span class=\"background\">system is unfavorable "
+      + "to workers</span>, but workers are powerless to break free from it. "
+      + "— Ruan Yifeng\n"
       + "\n"
       + "### Lists:\n"
       + "\n"
@@ -77,8 +79,8 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "        1. Ordered list nested under unordered list\n"
       + "        2. Ordered list 2\n"
       + "        3. Ordered list 3\n"
-      +
-      "    1. Ordered list at same level as unordered list, displayed as unordered\n"
+      + "    1. Ordered list at same level as unordered list, displayed as "
+      + "unordered\n"
       + "    2. Ordered list 2 at same level, displayed as unordered\n"
       + "2. Ordered list 2\n"
       + "3. Ordered list 3\n"
@@ -115,8 +117,8 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "\n"
       + "- Inline image:\n"
       + "\n"
-      +
-      "This is a paragraph with an inline image sized 10x10 ![image description here]().\n"
+      + "This is a paragraph with an inline image sized 10x10 ![image "
+      + "description here]().\n"
       + "\n"
       + "### Links:\n"
       + "\n"
@@ -125,37 +127,38 @@ public class MarkdownDemoActivity extends AppCompatActivity {
       + "\n"
       + "### Inline view:\n"
       + "\n"
-      +
-      "This is a paragraph embedding an inline view: ![](inlineview://baseline_align), and another inline view offset upward by 10px: ![](inlineview://vertical_align).\n"
+      + "This is a paragraph embedding an inline view: "
+      + "![](inlineview://baseline_align), and another inline view offset "
+      + "upward by 10px: ![](inlineview://vertical_align).\n"
       + "\n"
-      +
-      "1. Below is a block view, which should not be affected by the current ordered list indentation\n"
+      + "1. Below is a block view, which should not be affected by the "
+      + "current ordered list indentation\n"
       + "![](blockview://block)\n"
       + "\n"
       + "### Gradient background:\n"
       + "\n"
-      +
-      "> {{The employment system is unfavorable to workers, but workers are powerless to break free from it.}}[[2]] — Ruan Yifeng\n"
+      + "> {{The employment system is unfavorable to workers, but workers "
+      + "are powerless to break free from it.}}[[2]] — Ruan Yifeng\n"
       + "<mark>highlighted text</mark>";
 
   String mContent2 =
       "[I'm an inline-style link](https://www.google.com)\n"
       + "\n"
-      +
-      "[I'm an inline-style link with title](https://www.google.com \"Google's Homepage\")\n"
+      + "[I'm an inline-style link with title](https://www.google.com "
+      + "\"Google's Homepage\")\n"
       + "\n"
-      +
-      "[I'm a reference-style link][Arbitrary case-insensitive reference text]\n"
+      + "[I'm a reference-style link][Arbitrary case-insensitive reference "
+      + "text]\n"
       + "\n"
-      +
-      "[I'm a relative reference to a repository file](../blob/master/LICENSE)\n"
+      + "[I'm a relative reference to a repository "
+      + "file](../blob/master/LICENSE)\n"
       + "\n"
       + "[You can use numbers for reference-style link definitions][1]\n"
       + "\n"
       + "Or leave it empty and use the [link text itself].\n"
       + "\n"
-      +
-      "URLs and URLs in angle brackets will automatically get turned into links.\n"
+      + "URLs and URLs in angle brackets will automatically get turned into "
+      + "links.\n"
       + "http://www.example.com or <http://www.example.com> and sometimes\n"
       + "example.com (but not on Github, for example).\n"
       + "\n"
@@ -196,9 +199,9 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     style.put("link", linkStyle);
 
     Map<String, Object> background = new HashMap<>();
-    background.put(
-        "backgroundImage",
-        "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, rgba(255, 245, 157, 1) 100%)");
+    background.put("backgroundImage",
+                   "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, "
+                       + "rgba(255, 245, 157, 1) 100%)");
     background.put("borderRadius", 10);
     style.put(".background", background);
 
@@ -210,9 +213,8 @@ public class MarkdownDemoActivity extends AppCompatActivity {
     attachment.put("startIndex", 0);
     attachment.put("endIndex", 20);
     HashMap<String, Object> style = new HashMap<>();
-    style.put(
-        "color",
-        "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, rgba(255, 245, 157, 1) 100%)");
+    style.put("color", "linear-gradient(180deg, rgba(255, 245, 157, 0) 0%, "
+                           + "rgba(255, 245, 157, 1) 100%)");
     style.put("radius", 40);
     attachment.put("style", style);
     ArrayList result = new ArrayList<Object>();
@@ -250,5 +252,7 @@ public class MarkdownDemoActivity extends AppCompatActivity {
 
     mMarkdownView.setArrayProp(Constants.MARKDOWN_PROPS_TEXT_MARK_ATTACHMENTS,
                                generateAttachment());
+    mMarkdownView.setBooleanProp(Constants.MARKDOWN_PROPS_ENABLE_TEXT_SELECTION,
+                                 true);
   }
 }

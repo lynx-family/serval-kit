@@ -50,7 +50,7 @@ void AndroidServalMarkdownView::Initialize(JNIEnv* env) {
 
 AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view), view_ref_(env, view) {
-  AttachDrawable(std::make_unique<serval::markdown::MarkdownView>(
+  AttachDrawable(std::make_shared<serval::markdown::MarkdownView>(
       this, std::make_shared<serval::markdown::MarkdownContext>(
                 CreateAndroidMarkdownPlatform())));
   auto* markdown_view = GetMarkdownView();
@@ -58,6 +58,9 @@ AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
       static_cast<serval::markdown::MarkdownResourceLoader*>(this));
   markdown_view->SetEventListener(
       static_cast<serval::markdown::MarkdownEventListener*>(this));
+  markdown_view->SetSelectionHandleSize(MarkdownScreenMetrics::DPToPx(15));
+  markdown_view->SetSelectionHandleTouchMargin(
+      MarkdownScreenMetrics::DPToPx(20));
 }
 
 int AndroidServalMarkdownView::LoadImage(const char* source) {
