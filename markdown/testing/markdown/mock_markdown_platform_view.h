@@ -65,27 +65,6 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
     draw_count_ = 0;
   }
 
-  bool DispatchTap(PointF position, GestureEventType event) {
-    if (!tap_gesture_listener_) {
-      return false;
-    }
-    return tap_gesture_listener_(position, event);
-  }
-
-  bool DispatchLongPress(PointF position, GestureEventType event) {
-    if (!long_press_gesture_listener_) {
-      return false;
-    }
-    return long_press_gesture_listener_(position, event);
-  }
-
-  bool DispatchPan(PointF position, PointF motion, GestureEventType event) {
-    if (!pan_gesture_listener_) {
-      return false;
-    }
-    return pan_gesture_listener_(position, motion, event);
-  }
-
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
@@ -108,7 +87,7 @@ class MockMarkdownCustomView : public MockMarkdownPlatformView,
   explicit MockMarkdownCustomView() = default;
   ~MockMarkdownCustomView() override = default;
 
-  void AttachDrawable(std::unique_ptr<MarkdownDrawable> drawable) override;
+  void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   SizeF GetMeasuredSize() override;
@@ -149,8 +128,7 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
-      SelectionHandleType type, float size, float margin,
-      uint32_t color) override;
+      SelectionHandleType type, float size, uint32_t color) override;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) override;
   std::shared_ptr<MockInlineView> CreateInlineSubView(const char* id_selector,

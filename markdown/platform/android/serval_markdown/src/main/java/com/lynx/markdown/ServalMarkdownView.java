@@ -11,8 +11,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.view.Choreographer;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.Keep;
 import java.io.IOException;
@@ -20,14 +18,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 @Keep
-public class ServalMarkdownView extends CustomDrawView {
+public class ServalMarkdownView extends MarkdownGestureView {
   protected long mInstance = 0;
   protected IResourceLoader mLoader = null;
   protected IMarkdownEventListener mEventListener = null;
   protected IMarkdownExposureListener mExposureListener = null;
-  private final GestureDetector mGestureDetector;
-  private float mDownX = 0;
-  private float mDownY = 0;
   private boolean mAnimationPaused = false;
   private boolean mDisableInternalVSync = false;
   private boolean mInternalVSyncPosted = false;
@@ -38,49 +33,22 @@ public class ServalMarkdownView extends CustomDrawView {
       this::onVSync;
 
   public ServalMarkdownView(Context context) {
-    super(context);
+    super(context, 0);
     Markdown.ensureInitialized();
     updateDisplayMetrics();
     mInstance = nativeCreateInstance();
+    setNativeGestureTarget(mInstance);
     mResourceManager = new MarkdownResourceManager();
     initialVSync();
     setClipChildren(false);
     setClipToPadding(false);
-    setClickable(true);
-    setLongClickable(true);
-    mGestureDetector = new GestureDetector(
-        context, new GestureDetector.SimpleOnGestureListener() {
-          @Override
-          public boolean onDown(MotionEvent e) {
-            return true;
-          }
-
-          @Override
-          public void onLongPress(MotionEvent e) {
-            if (mInstance == 0) {
-              return;
-            }
-            boolean consumed =
-                nativeDispatchLongPress(mInstance, e.getX(), e.getY());
-            if (consumed) {
-              disallowParentIntercept(true);
-            }
-          }
-
-          @Override
-          public boolean onSingleTapUp(MotionEvent e) {
-            if (mInstance == 0) {
-              return false;
-            }
-            return nativeDispatchTap(mInstance, e.getX(), e.getY());
-          }
-        });
   }
   public void destroy() {
     clearInternalVSync();
     if (mInstance != 0) {
       nativeDestroyInstance(mInstance);
       mInstance = 0;
+      setNativeGestureTarget(0);
     }
     mAnimationPaused = false;
     mTotalPausedDurationMs = 0;
@@ -107,13 +75,11 @@ public class ServalMarkdownView extends CustomDrawView {
     addView(view, 0);
     return view;
   }
-  protected SelectionHandleView createSelectionHandleView(
-      long nativePlatformView) {
-    SelectionHandleView view =
-        new SelectionHandleView(getContext(), nativePlatformView);
-    view.mResourceManager = mResourceManager;
-    addView(view);
-    return view;
+  protected CustomDrawView createScrollXRegionView() {
+    return createRegionView();
+  }
+  protected CustomDrawView createSelectionHandleView() {
+    return createCustomView();
   }
   protected void removeSubView(View view) { removeView(view); }
   protected void removeAllSubviews() { removeAllViews(); }
@@ -140,6 +106,12 @@ public class ServalMarkdownView extends CustomDrawView {
 
   public void setContent(String content) {
     nativeSetContent(mInstance, content);
+  }
+  public void markDirty() {
+    if (mInstance == 0) {
+      return;
+    }
+    nativeMarkDirty(mInstance);
   }
   public String getContent() {
     if (mInstance == 0) {
@@ -409,48 +381,6 @@ public class ServalMarkdownView extends CustomDrawView {
     mInternalVSyncPosted = false;
   }
 
-  @Override
-  public boolean onTouchEvent(MotionEvent event) {
-    boolean handledByDetector = mGestureDetector.onTouchEvent(event);
-    if (mInstance == 0) {
-      return handledByDetector || super.onTouchEvent(event);
-    }
-    int action = event.getActionMasked();
-    float x = event.getX();
-    float y = event.getY();
-    int gestureEventType = 0;
-    if (action == MotionEvent.ACTION_DOWN) {
-      mDownX = x;
-      mDownY = y;
-      gestureEventType = 1;
-    } else if (action == MotionEvent.ACTION_MOVE) {
-      gestureEventType = 2;
-    } else if (action == MotionEvent.ACTION_UP) {
-      gestureEventType = 3;
-    } else if (action == MotionEvent.ACTION_CANCEL) {
-      gestureEventType = 4;
-    }
-
-    boolean panConsumed = false;
-    if (gestureEventType != 0) {
-      float motionX = x - mDownX;
-      float motionY = y - mDownY;
-      panConsumed = nativeDispatchPan(mInstance, x, y, motionX, motionY,
-                                      gestureEventType);
-      if (panConsumed && (gestureEventType == 1 || gestureEventType == 2)) {
-        disallowParentIntercept(true);
-      } else if (gestureEventType == 3 || gestureEventType == 4) {
-        disallowParentIntercept(false);
-      }
-    }
-    return true;
-  }
-
-  protected void disallowParentIntercept(boolean disallow) {
-    if (getParent() != null) {
-      getParent().requestDisallowInterceptTouchEvent(disallow);
-    }
-  }
   protected int loadImage(String source) {
     if (mLoader == null)
       return 0;
@@ -546,6 +476,7 @@ public class ServalMarkdownView extends CustomDrawView {
   private native long nativeCreateInstance();
   private native void nativeDestroyInstance(long instance);
   private native void nativeSetContent(long instance, String content);
+  private native void nativeMarkDirty(long instance);
   private native String nativeGetDocumentContent(long instance);
   private native String nativeGetContentID(long instance);
   private native String nativeGetContent(long instance, int start, int end,
@@ -581,10 +512,4 @@ public class ServalMarkdownView extends CustomDrawView {
   private native void nativeSetValueProp(long instance, int key, byte[] value);
   private native void nativeSetExposureListenerEnabled(long instance,
                                                        boolean enabled);
-  private native boolean nativeDispatchTap(long instance, float x, float y);
-  private native boolean nativeDispatchLongPress(long instance, float x,
-                                                 float y);
-  private native boolean nativeDispatchPan(long instance, float x, float y,
-                                           float motionX, float motionY,
-                                           int type);
 }

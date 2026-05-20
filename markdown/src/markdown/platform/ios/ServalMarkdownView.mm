@@ -6,6 +6,7 @@
 #import "markdown/platform/ios/MarkdownCustomDrawView.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include "markdown/element/markdown_context.h"
@@ -19,6 +20,10 @@
 #include "markdown/view/markdown_view.h"
 
 namespace {
+serval::markdown::PointF ConvertPoint(CGPoint point) {
+  return {static_cast<float>(point.x), static_cast<float>(point.y)};
+}
+
 serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     ServalMarkdownCharRangeType range_type) {
   switch (range_type) {
@@ -36,7 +41,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 
 }  // namespace
 
-@interface ServalMarkdownView () {
+@interface ServalMarkdownView () <UIGestureRecognizerDelegate> {
   std::unique_ptr<serval::markdown::MarkdownEventIOS> event_listener_;
   std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
   std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
@@ -46,6 +51,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   int64_t currentTimeMs_;
   int64_t pauseStartTimeMs_;
   int64_t totalPausedDurationMs_;
+  UITapGestureRecognizer* tapGestureRecognizer_;
+  UILongPressGestureRecognizer* longPressGestureRecognizer_;
+  UIPanGestureRecognizer* panGestureRecognizer_;
+  BOOL isLongPress_;
 }
 @property(nonatomic, strong) CADisplayLink* displayLink;
 @property(nonatomic, strong) NSMutableArray<UIView*>* customSubviews;
@@ -55,6 +64,9 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview;
 - (void)removeAllCustomViews;
 - (void)updateInternalDisplayLinkState;
+- (void)onTapGesture:(UITapGestureRecognizer*)recognizer;
+- (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer;
+- (void)onPanGesture:(UIPanGestureRecognizer*)recognizer;
 
 - (serval::markdown::MarkdownView*)getMarkdownView;
 @end
@@ -67,7 +79,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     markdown_view_handle_ =
         std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
     markdown_view_handle_->AttachDrawable(
-        std::make_unique<serval::markdown::MarkdownView>(
+        std::make_shared<serval::markdown::MarkdownView>(
             markdown_view_handle_.get(),
             std::make_shared<serval::markdown::MarkdownContext>(
                 serval::markdown::CreateIOSMarkdownPlatform())));
@@ -79,6 +91,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     auto* view = [self getMarkdownView];
     view->SetEventListener(event_listener_.get());
     view->SetResourceLoader(resource_loader_.get());
+    [self setupGesture];
     __unsafe_unretained id weakSelf = self;
     self.displayLink =
         [CADisplayLink displayLinkWithTarget:weakSelf
@@ -90,6 +103,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     currentTimeMs_ = 0;
     pauseStartTimeMs_ = 0;
     totalPausedDurationMs_ = 0;
+    isLongPress_ = NO;
     [self updateInternalDisplayLinkState];
   }
   return self;
@@ -107,6 +121,133 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   event_listener_.reset();
   resource_loader_.reset();
 }
+
+- (void)setupGesture {
+  tapGestureRecognizer_ =
+      [[UITapGestureRecognizer alloc] initWithTarget:self
+                                              action:@selector(onTapGesture:)];
+  tapGestureRecognizer_.delegate = self;
+  [self addGestureRecognizer:tapGestureRecognizer_];
+  longPressGestureRecognizer_ = [[UILongPressGestureRecognizer alloc]
+      initWithTarget:self
+              action:@selector(onLongPressGesture:)];
+  [self addGestureRecognizer:longPressGestureRecognizer_];
+  longPressGestureRecognizer_.delegate = self;
+  panGestureRecognizer_ =
+      [[UIPanGestureRecognizer alloc] initWithTarget:self
+                                              action:@selector(onPanGesture:)];
+  panGestureRecognizer_.delegate = self;
+  [self addGestureRecognizer:panGestureRecognizer_];
+}
+
+- (void)onTapGesture:(UITapGestureRecognizer*)recognizer {
+  if (recognizer.state != UIGestureRecognizerStateEnded || isLongPress_) {
+    return;
+  }
+  auto* markdown_view = [self getMarkdownView];
+  if (markdown_view == nullptr) {
+    return;
+  }
+  const CGPoint point = [recognizer locationInView:self];
+  markdown_view->OnTap(ConvertPoint(point),
+                       serval::markdown::GestureEventType::kDown);
+}
+
+- (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer {
+  if (recognizer.state == UIGestureRecognizerStateEnded ||
+      recognizer.state == UIGestureRecognizerStateCancelled ||
+      recognizer.state == UIGestureRecognizerStateFailed) {
+    isLongPress_ = NO;
+  }
+  if (recognizer.state != UIGestureRecognizerStateBegan) {
+    return;
+  }
+  isLongPress_ = YES;
+  auto* markdown_view = [self getMarkdownView];
+  if (markdown_view == nullptr) {
+    return;
+  }
+  const CGPoint point = [recognizer locationInView:self];
+  markdown_view->OnLongPress(ConvertPoint(point),
+                             serval::markdown::GestureEventType::kDown);
+}
+
+- (void)onPanGesture:(UIPanGestureRecognizer*)recognizer {
+  auto* markdown_view = [self getMarkdownView];
+  if (markdown_view == nullptr) {
+    return;
+  }
+  const CGPoint point = [recognizer locationInView:self];
+  const CGPoint motion = [recognizer translationInView:self];
+  const auto position = ConvertPoint(point);
+  const auto movement = ConvertPoint(motion);
+  switch (recognizer.state) {
+    case UIGestureRecognizerStateBegan:
+      markdown_view->OnPan(position, movement,
+                           serval::markdown::GestureEventType::kDown);
+      break;
+    case UIGestureRecognizerStateChanged:
+      markdown_view->OnPan(position, movement,
+                           serval::markdown::GestureEventType::kMove);
+      break;
+    case UIGestureRecognizerStateEnded:
+      markdown_view->OnPan(position, movement,
+                           serval::markdown::GestureEventType::kUp);
+      break;
+    case UIGestureRecognizerStateCancelled:
+    case UIGestureRecognizerStateFailed:
+      markdown_view->OnPan(position, movement,
+                           serval::markdown::GestureEventType::kCancel);
+      break;
+    default:
+      break;
+  }
+}
+
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer*)gestureRecognizer {
+  if (![gestureRecognizer isKindOfClass:UIPanGestureRecognizer.class]) {
+    return YES;
+  }
+  auto* markdown_view = [self getMarkdownView];
+  if (markdown_view == nullptr) {
+    return NO;
+  }
+  const CGPoint point = [gestureRecognizer locationInView:self];
+  const CGPoint motion =
+      [(UIPanGestureRecognizer*)gestureRecognizer translationInView:self];
+  bool should_pan =
+      markdown_view->ShouldBeginPan(ConvertPoint(point), ConvertPoint(motion));
+  if (gestureRecognizer == panGestureRecognizer_) {
+    return should_pan;
+  } else {
+    return !should_pan;
+  }
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer*)gestureRecognizer
+    shouldRecognizeSimultaneouslyWithGestureRecognizer:
+        (UIGestureRecognizer*)otherGestureRecognizer {
+  if ((gestureRecognizer == panGestureRecognizer_ &&
+       [otherGestureRecognizer isKindOfClass:UIPanGestureRecognizer.self]) ||
+      (otherGestureRecognizer == panGestureRecognizer_ &&
+       [gestureRecognizer isKindOfClass:UIPanGestureRecognizer.self])) {
+    return NO;
+  }
+  return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer*)gestureRecognizer
+    shouldBeRequiredToFailByGestureRecognizer:
+        (UIGestureRecognizer*)otherGestureRecognizer {
+  if ((gestureRecognizer == longPressGestureRecognizer_ &&
+       otherGestureRecognizer != panGestureRecognizer_) ||
+      (gestureRecognizer == panGestureRecognizer_ &&
+       otherGestureRecognizer == tapGestureRecognizer_)) {
+    return YES;
+  }
+  return NO;
+}
+
 - (MarkdownCustomDrawView*)createCustomView {
   MarkdownCustomDrawView* view = [[MarkdownCustomDrawView alloc] init];
   [self addSubview:view];
@@ -142,6 +283,9 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   [self onRendererFrame:frame_time_nanos];
 }
 - (serval::markdown::MarkdownView*)getMarkdownView {
+  if (markdown_view_handle_ == nullptr) {
+    return nullptr;
+  }
   return static_cast<serval::markdown::MarkdownView*>(
       markdown_view_handle_->GetDrawable());
 }
@@ -181,6 +325,13 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   auto* str = [content UTF8String];
   view->SetContent(str);
   _content = content;
+}
+- (void)markDirty {
+  auto* view = [self getMarkdownView];
+  if (view == nullptr) {
+    return;
+  }
+  view->MarkDirty();
 }
 - (NSString*)getContent {
   auto* view = [self getMarkdownView];

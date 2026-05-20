@@ -8,8 +8,11 @@
 #include "markdown/style/markdown_color.h"
 #include "markdown/style/markdown_gradient.h"
 #include "markdown/style/markdown_style_value.h"
+#include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/view/markdown_selection_view.h"
 #include "testing/markdown/markdown_tests_platform.h"
 #include "testing/markdown/mock_markdown_canvas.h"
+#include "testing/markdown/mock_markdown_platform_view.h"
 #include "testing/markdown/mock_markdown_resource_loader.h"
 namespace serval::markdown::testing {
 
@@ -247,6 +250,165 @@ TEST(MarkdownGradientTest, DrawLinearGradientUsesDrawBounds) {
   EXPECT_NEAR(gradient["start"]["y"].GetFloat(), 120, 0.001);
   EXPECT_NEAR(gradient["end"]["x"].GetFloat(), 110, 0.001);
   EXPECT_NEAR(gradient["end"]["y"].GetFloat(), 20, 0.001);
+}
+
+TEST(MarkdownSelectionViewTest, HandleDrawsOnlyKnob) {
+  MarkdownScreenMetrics::SetDensity(1);
+  MarkdownSelectionHandle left_handle(10, SelectionHandleType::kLeftHandle,
+                                      0xff0000ff);
+  left_handle.SetTextHeight(20);
+  MarkdownSelectionHandle right_handle(10, SelectionHandleType::kRightHandle,
+                                       0xff0000ff);
+  right_handle.SetTextHeight(20);
+
+  MockMarkdownCanvas canvas(nullptr, nullptr);
+  left_handle.Draw(&canvas, 0, 0);
+
+  const auto& ops = canvas.GetJson();
+  ASSERT_EQ(ops.Size(), 1u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "circle");
+
+  canvas.ResetResult();
+  right_handle.Draw(&canvas, 0, 0);
+
+  ASSERT_EQ(ops.Size(), 1u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "circle");
+}
+
+TEST(MarkdownSelectionViewTest, HighlightDrawsHandleLinesDisabled) {
+  MarkdownScreenMetrics::SetDensity(1);
+  MarkdownSelectionHighlight highlight;
+  highlight.SetColor(0x400000ff);
+  highlight.SetHandleColor(0xff0000ff);
+  highlight.SetDrawHandleLines(false);
+  highlight.SetRects(
+      {RectF::MakeLTRB(10, 20, 40, 50), RectF::MakeLTRB(50, 20, 80, 50)});
+
+  MockMarkdownCanvas canvas(nullptr, nullptr);
+  highlight.Draw(&canvas, 0, 0);
+
+  const auto& ops = canvas.GetJson();
+  ASSERT_EQ(ops.Size(), 2u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[1]["op"].GetString(), "rect");
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetLeft(), 10);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetTop(), 20);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetRight(), 80);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetBottom(), 50);
+}
+
+TEST(MarkdownSelectionViewTest, HighlightDrawsHandleLinesWhenEnabled) {
+  MarkdownScreenMetrics::SetDensity(1);
+  MarkdownSelectionHighlight highlight;
+  highlight.SetColor(0x400000ff);
+  highlight.SetHandleColor(0xff0000ff);
+  highlight.SetDrawHandleLines(true);
+  highlight.SetRects(
+      {RectF::MakeLTRB(10, 20, 40, 50), RectF::MakeLTRB(50, 20, 80, 50)});
+
+  MockMarkdownCanvas canvas(nullptr, nullptr);
+  highlight.Draw(&canvas, 0, 0);
+
+  const auto& ops = canvas.GetJson();
+  ASSERT_EQ(ops.Size(), 4u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[1]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[2]["op"].GetString(), "line");
+  EXPECT_STREQ(ops[3]["op"].GetString(), "line");
+  EXPECT_FLOAT_EQ(ops[2]["painter"]["stroke_width"].GetFloat(), 2);
+  EXPECT_EQ(ops[2]["painter"]["stroke_color"].GetUint(), 0xff0000ffu);
+  EXPECT_FLOAT_EQ(ops[2]["p1"]["x"].GetFloat(), 1);
+  EXPECT_FLOAT_EQ(ops[2]["p2"]["x"].GetFloat(), 1);
+  EXPECT_FLOAT_EQ(ops[3]["p1"]["x"].GetFloat(), 71);
+  EXPECT_FLOAT_EQ(ops[3]["p2"]["x"].GetFloat(), 71);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetLeft(), 9);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetTop(), 19);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetRight(), 81);
+  EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetBottom(), 51);
+}
+
+TEST(MarkdownSelectionViewTest, WaterDropHandleDrawsPath) {
+  MarkdownSelectionHandle left_handle(10, SelectionHandleType::kLeftHandle,
+                                      0xff0000ff,
+                                      SelectionHandleShape::kWaterDrop);
+  MarkdownSelectionHandle right_handle(10, SelectionHandleType::kRightHandle,
+                                       0xff0000ff,
+                                       SelectionHandleShape::kWaterDrop);
+  auto context = CreateTestMarkdownSharedContext();
+  left_handle.SetMarkdownContext(context.get());
+  right_handle.SetMarkdownContext(context.get());
+
+  MockMarkdownCanvas canvas(nullptr, nullptr);
+  left_handle.Draw(&canvas, 0, 0);
+
+  const auto& ops = canvas.GetJson();
+  ASSERT_EQ(ops.Size(), 1u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "draw path");
+  ASSERT_TRUE(ops[0].HasMember("path"));
+  ASSERT_EQ(ops[0]["path"].Size(), 4u);
+  EXPECT_STREQ(ops[0]["path"][0]["type"].GetString(), "move");
+  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["x"].GetFloat(), 10);
+  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["y"].GetFloat(), 0);
+  EXPECT_STREQ(ops[0]["path"][2]["type"].GetString(), "arc");
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["x"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["y"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["radius"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["start"].GetFloat(), -90);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["end"].GetFloat(), -360);
+
+  canvas.ResetResult();
+  right_handle.Draw(&canvas, 0, 0);
+
+  ASSERT_EQ(ops.Size(), 1u);
+  EXPECT_STREQ(ops[0]["op"].GetString(), "draw path");
+  ASSERT_TRUE(ops[0].HasMember("path"));
+  ASSERT_EQ(ops[0]["path"].Size(), 4u);
+  EXPECT_STREQ(ops[0]["path"][0]["type"].GetString(), "move");
+  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["x"].GetFloat(), 0);
+  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["y"].GetFloat(), 0);
+  EXPECT_STREQ(ops[0]["path"][2]["type"].GetString(), "arc");
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["x"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["y"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["radius"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["start"].GetFloat(), -90);
+  EXPECT_FLOAT_EQ(ops[0]["path"][2]["end"].GetFloat(), 180);
+}
+
+TEST(MarkdownSelectionViewTest, HandleSizeExcludesLineAndPositionFollowsShape) {
+  MarkdownSelectionHandle left_circle(10, SelectionHandleType::kLeftHandle,
+                                      0xff0000ff);
+  MarkdownSelectionHandle right_circle(10, SelectionHandleType::kRightHandle,
+                                       0xff0000ff);
+  MarkdownSelectionHandle left_waterdrop(10, SelectionHandleType::kLeftHandle,
+                                         0xff0000ff,
+                                         SelectionHandleShape::kWaterDrop);
+  MarkdownSelectionHandle right_waterdrop(10, SelectionHandleType::kRightHandle,
+                                          0xff0000ff,
+                                          SelectionHandleShape::kWaterDrop);
+  left_circle.SetTextHeight(20);
+  right_circle.SetTextHeight(20);
+  left_waterdrop.SetTextHeight(20);
+  right_waterdrop.SetTextHeight(20);
+
+  MockMarkdownPlatformView view;
+
+  left_circle.UpdateViewRect({40, 50}, &view);
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 10);
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().height_, 10);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 35);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 20);
+
+  right_circle.UpdateViewRect({40, 50}, &view);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 35);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
+
+  left_waterdrop.UpdateViewRect({40, 50}, &view);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 30);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
+
+  right_waterdrop.UpdateViewRect({40, 50}, &view);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 40);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
 }
 
 TEST(MarkdownGradientTest, ParseBackgroundImageUrl) {

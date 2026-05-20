@@ -13,8 +13,7 @@ namespace serval::markdown {
 class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
                             public MarkdownViewContainerHandle {
  public:
-  explicit MarkdownMainViewIOS(ServalMarkdownView* view)
-      : MarkdownCustomViewIOS(view) {}
+  explicit MarkdownMainViewIOS(ServalMarkdownView* view);
   ~MarkdownMainViewIOS() override = default;
 
   void RequestMeasure() override;
@@ -22,9 +21,9 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
 
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
+  std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() override;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
-      SelectionHandleType type, float size, float margin,
-      uint32_t color) override;
+      SelectionHandleType type, float size, uint32_t color) override;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) override;
 

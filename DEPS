@@ -14,10 +14,4 @@ deps = {
         'deps_file': 'dependencies/DEPS',
         "ignore_in_git": True,
     },
-    "./markdown/third_party/lynx-textra": {
-        'type': 'git',
-        'url': 'https://github.com/lynx-family/lynx-textra.git',
-        'commit': '27d334449d6521f7809fc9e80713932213a8c264',
-        'ignore_in_git': True,
-    },
 }

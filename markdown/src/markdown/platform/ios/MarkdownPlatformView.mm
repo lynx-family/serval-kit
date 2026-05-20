@@ -6,32 +6,12 @@
 
 #import "markdown/platform/ios/MarkdownPlatformView.h"
 
-#include "markdown/platform/ios/internal/markdown_platform_view_ios.h"
-
 static const CGFloat kMarkdownMaxMeasureSize = 1e8;
-
-namespace {
-serval::markdown::PointF ConvertPoint(CGPoint point) {
-  return {static_cast<float>(point.x), static_cast<float>(point.y)};
-}
-}  // namespace
 
 @interface MarkdownPlatformView () {
   void* _nativePlatformView;
-  BOOL _didSetupGestures;
 }
 
-- (void)setupGestureRecognizers;
-- (BOOL)dispatchTapAtPoint:(CGPoint)point
-                     event:(serval::markdown::GestureEventType)event;
-- (BOOL)dispatchLongPressAtPoint:(CGPoint)point
-                           event:(serval::markdown::GestureEventType)event;
-- (BOOL)dispatchPanAtPoint:(CGPoint)point
-                    motion:(CGPoint)motion
-                     event:(serval::markdown::GestureEventType)event;
-- (void)onTapGesture:(UITapGestureRecognizer*)recognizer;
-- (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer;
-- (void)onPanGesture:(UIPanGestureRecognizer*)recognizer;
 @end
 
 @implementation MarkdownPlatformView
@@ -39,7 +19,7 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
 - (instancetype)init {
   self = [super init];
   if (self != nil) {
-    [self setupGestureRecognizers];
+    self.userInteractionEnabled = YES;
   }
   return self;
 }
@@ -47,7 +27,7 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
 - (instancetype)initWithFrame:(CGRect)frame {
   self = [super initWithFrame:frame];
   if (self != nil) {
-    [self setupGestureRecognizers];
+    self.userInteractionEnabled = YES;
   }
   return self;
 }
@@ -55,33 +35,9 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
 - (instancetype)initWithCoder:(NSCoder*)coder {
   self = [super initWithCoder:coder];
   if (self != nil) {
-    [self setupGestureRecognizers];
+    self.userInteractionEnabled = YES;
   }
   return self;
-}
-
-- (void)setupGestureRecognizers {
-  if (_didSetupGestures) {
-    return;
-  }
-  _didSetupGestures = YES;
-  self.userInteractionEnabled = YES;
-  UITapGestureRecognizer* tap =
-      [[UITapGestureRecognizer alloc] initWithTarget:self
-                                              action:@selector(onTapGesture:)];
-  tap.cancelsTouchesInView = NO;
-  [self addGestureRecognizer:tap];
-  UILongPressGestureRecognizer* long_press =
-      [[UILongPressGestureRecognizer alloc]
-          initWithTarget:self
-                  action:@selector(onLongPressGesture:)];
-  long_press.cancelsTouchesInView = NO;
-  [self addGestureRecognizer:long_press];
-  UIPanGestureRecognizer* pan =
-      [[UIPanGestureRecognizer alloc] initWithTarget:self
-                                              action:@selector(onPanGesture:)];
-  pan.cancelsTouchesInView = NO;
-  [self addGestureRecognizer:pan];
 }
 
 - (void)setNativePlatformView:(void*)platform_view {
@@ -90,98 +46,6 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
 
 - (void*)nativePlatformView {
   return _nativePlatformView;
-}
-
-- (BOOL)dispatchTapAtPoint:(CGPoint)point
-                     event:(serval::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
-      _nativePlatformView);
-  if (view == nullptr) {
-    return NO;
-  }
-  return view->DispatchTap(ConvertPoint(point), event);
-}
-
-- (BOOL)dispatchLongPressAtPoint:(CGPoint)point
-                           event:(serval::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
-      _nativePlatformView);
-  if (view == nullptr) {
-    return NO;
-  }
-  return view->DispatchLongPress(ConvertPoint(point), event);
-}
-
-- (BOOL)dispatchPanAtPoint:(CGPoint)point
-                    motion:(CGPoint)motion
-                     event:(serval::markdown::GestureEventType)event {
-  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
-      _nativePlatformView);
-  if (view == nullptr) {
-    return NO;
-  }
-  return view->DispatchPan(ConvertPoint(point), ConvertPoint(motion), event);
-}
-
-- (void)onTapGesture:(UITapGestureRecognizer*)recognizer {
-  if (recognizer.state != UIGestureRecognizerStateEnded) {
-    return;
-  }
-  const CGPoint point = [recognizer locationInView:self];
-  [self dispatchTapAtPoint:point
-                     event:serval::markdown::GestureEventType::kDown];
-}
-
-- (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer {
-  if (recognizer.state != UIGestureRecognizerStateBegan) {
-    return;
-  }
-  const CGPoint point = [recognizer locationInView:self];
-  [self dispatchLongPressAtPoint:point
-                           event:serval::markdown::GestureEventType::kDown];
-}
-
-- (void)onPanGesture:(UIPanGestureRecognizer*)recognizer {
-  const CGPoint point = [recognizer locationInView:self];
-  const CGPoint motion = [recognizer translationInView:self];
-  switch (recognizer.state) {
-    case UIGestureRecognizerStateBegan:
-      [self dispatchPanAtPoint:point
-                        motion:CGPointZero
-                         event:serval::markdown::GestureEventType::kDown];
-      break;
-    case UIGestureRecognizerStateChanged:
-      [self dispatchPanAtPoint:point
-                        motion:motion
-                         event:serval::markdown::GestureEventType::kMove];
-      break;
-    case UIGestureRecognizerStateEnded:
-      [self dispatchPanAtPoint:point
-                        motion:motion
-                         event:serval::markdown::GestureEventType::kUp];
-      break;
-    case UIGestureRecognizerStateCancelled:
-    case UIGestureRecognizerStateFailed:
-      [self dispatchPanAtPoint:point
-                        motion:motion
-                         event:serval::markdown::GestureEventType::kCancel];
-      break;
-    default:
-      break;
-  }
-}
-
-- (UIView*)hitTest:(CGPoint)point withEvent:(UIEvent*)event {
-  UIView* target = [super hitTest:point withEvent:event];
-  if (target != self) {
-    return target;
-  }
-  auto* view = reinterpret_cast<serval::markdown::MarkdownPlatformViewIOS*>(
-      _nativePlatformView);
-  if (view == nullptr || !view->HasGestureListener()) {
-    return nil;
-  }
-  return target;
 }
 
 - (void)requestMeasure {

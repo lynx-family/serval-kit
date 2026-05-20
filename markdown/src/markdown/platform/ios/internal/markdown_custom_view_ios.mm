@@ -24,7 +24,7 @@ MarkdownCustomViewIOS::~MarkdownCustomViewIOS() {
   }
 }
 void MarkdownCustomViewIOS::AttachDrawable(
-    std::unique_ptr<MarkdownDrawable> drawable) {
+    std::shared_ptr<MarkdownDrawable> drawable) {
   MarkdownCustomViewHandle::AttachDrawable(std::move(drawable));
   auto* view = (MarkdownCustomDrawView*)handle_;
   if (view != nil) {

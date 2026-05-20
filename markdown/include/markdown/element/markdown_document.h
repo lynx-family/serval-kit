@@ -140,6 +140,9 @@ class L_EXPORT MarkdownDocument {
   }
   MarkdownTouchState OnTouchEvent(MarkdownTouchEventType type, PointF point);
   bool TouchPointCanScroll(PointF point, float safe_offset);
+  bool GetScrollXRegionOffset(uint32_t region_index, float* scroll_offset);
+  bool SetScrollXRegionOffset(uint32_t region_index, float scroll_offset);
+  void UpdateInlineViewBoundsInRegion(uint32_t region_index);
   void AddInlineBorder(std::unique_ptr<MarkdownTextAttachment> inline_border) {
     border_attachments_.emplace_back(std::move(inline_border));
   }

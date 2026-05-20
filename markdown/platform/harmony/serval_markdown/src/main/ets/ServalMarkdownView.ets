@@ -64,6 +64,10 @@ export class ServalMarkdownView extends NodeContent {
     serval_markdown.setMarkdownStyle(this, style)
   }
 
+  markDirty() {
+    serval_markdown.markDirty(this)
+  }
+
   applyStyleInRange(style:ServalMarkdownStyle, start:number, end: number) {
     serval_markdown.applyStyleInRange(this, style, start, end);
   }
@@ -88,4 +92,3 @@ export class ServalMarkdownView extends NodeContent {
     serval_markdown.bindExposure(this, name, fn);
   }
 }
-

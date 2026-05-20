@@ -25,6 +25,7 @@
 - (NSString*)getContent:(int)start
                     end:(int)end
               indexType:(ServalMarkdownIndexType)indexType;
+- (void)markDirty;
 - (NSString*)getContent;
 - (NSString*)getContentID;
 - (NSString*)getSelectedText;

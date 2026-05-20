@@ -813,5 +813,87 @@ TEST(MarkdownCaseUnittest, SetArrayPropAddsMarkAttachments) {
   const auto expected_ops = ConvertJson(expected.canvas_->GetJson());
   MarkdownCaseUnittest::ExpectValue(actual_ops, expected_ops);
 }
+
+TEST(MarkdownCaseUnittest, SetMapPropAddsMarkdownEffect) {
+  MarkdownCaseUnittest unittest;
+  ASSERT_TRUE(unittest.LoadCaseInDirectory(CASES_PATH / "template"));
+
+  auto main_view = std::make_unique<MockMarkdownMainView>();
+  auto* view_ptr = main_view->GetMarkdownView();
+  unittest.resource_loader_->SetMainView(main_view.get());
+  unittest.ConfigureView(view_ptr, false);
+
+  ValueMap effect;
+  effect.emplace("rangeStart", Value::MakeInt(5));
+  effect.emplace("rangeEnd", Value::MakeInt(16));
+  effect.emplace("color", Value::MakeString("#ff0000"));
+
+  main_view->ResetRequestCount();
+  view_ptr->SetMapProp(MarkdownProps::kMarkdownEffect, effect);
+  EXPECT_GT(main_view->GetRequestMeasureCount(), 0);
+
+  MockMarkdownFrameDriver driver(main_view.get(), unittest.canvas_.get());
+  driver.SetMeasureSpec(unittest.BuildMeasureSpec());
+  driver.SetDefaultVisibleRect(
+      RectF::MakeLTRB(0, 0, unittest.width_, unittest.height_));
+  const auto frames = driver.Run(unittest.BuildFrameSteps());
+  unittest.resource_loader_->SetMainView(nullptr);
+
+  ASSERT_EQ(frames.Size(), 1u);
+  const auto& ops = frames[0]["ops"];
+  ASSERT_TRUE(ops.IsArray());
+  bool has_effect_rect = false;
+  for (const auto& op : ops.GetArray()) {
+    if (op.IsObject() && op.HasMember("op") && op["op"].IsString() &&
+        std::string_view(op["op"].GetString()) == "rect" &&
+        op.HasMember("painter") && op["painter"].IsObject() &&
+        op["painter"].HasMember("fill_color") &&
+        op["painter"]["fill_color"].GetUint() == 0xffff0000) {
+      has_effect_rect = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(has_effect_rect);
+}
+
+TEST(MarkdownCaseUnittest, LongPressDragAdjustsEndHandle) {
+  MarkdownCaseUnittest unittest;
+  unittest.markdown_ = "abcdefg";
+  unittest.width_ = 300;
+  unittest.height_ = 200;
+
+  auto main_view = std::make_unique<MockMarkdownMainView>();
+  auto* view = main_view->GetMarkdownView();
+  unittest.resource_loader_->SetMainView(main_view.get());
+  unittest.ConfigureView(view, false);
+  view->SetEnableSelection(true);
+
+  MockMarkdownFrameDriver driver(main_view.get(), unittest.canvas_.get());
+  driver.SetMeasureSpec(unittest.BuildMeasureSpec());
+  driver.SetDefaultVisibleRect(
+      RectF::MakeLTRB(0, 0, unittest.width_, unittest.height_));
+  (void)driver.Run(unittest.BuildFrameSteps());
+  unittest.resource_loader_->SetMainView(nullptr);
+
+  const auto first_char_rect = view->GetTextBoundingRect({0, 1});
+  const PointF long_press_position{
+      (first_char_rect.GetLeft() + first_char_rect.GetRight()) * 0.5f,
+      (first_char_rect.GetTop() + first_char_rect.GetBottom()) * 0.5f};
+  ASSERT_TRUE(view->OnLongPress(long_press_position, GestureEventType::kDown));
+  EXPECT_EQ(view->GetSelectedRange().start_, 0);
+  EXPECT_EQ(view->GetSelectedRange().end_, 1);
+
+  const auto target_char_rect = view->GetTextBoundingRect({3, 4});
+  const PointF drag_position{
+      (target_char_rect.GetLeft() + target_char_rect.GetRight()) * 0.5f,
+      (target_char_rect.GetTop() + target_char_rect.GetBottom()) * 0.5f};
+  const auto motion = drag_position - long_press_position;
+  ASSERT_TRUE(view->ShouldBeginPan(drag_position, motion));
+  ASSERT_TRUE(view->OnPan(drag_position, motion, GestureEventType::kDown));
+  ASSERT_TRUE(view->OnPan(drag_position, motion, GestureEventType::kMove));
+
+  EXPECT_EQ(view->GetSelectedRange().start_, 1);
+  EXPECT_EQ(view->GetSelectedRange().end_, 3);
+}
 }  // namespace testing
 }  // namespace serval::markdown

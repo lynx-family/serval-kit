@@ -72,24 +72,6 @@ class AndroidMarkdownView : public MarkdownPlatformView {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     SetVisibility(true);
   }
-  bool DispatchTap(PointF position, GestureEventType event) {
-    if (!tap_gesture_listener_) {
-      return false;
-    }
-    return tap_gesture_listener_(position, event);
-  }
-  bool DispatchLongPress(PointF position, GestureEventType event) {
-    if (!long_press_gesture_listener_) {
-      return false;
-    }
-    return long_press_gesture_listener_(position, event);
-  }
-  bool DispatchPan(PointF position, PointF motion, GestureEventType event) {
-    if (!pan_gesture_listener_) {
-      return false;
-    }
-    return pan_gesture_listener_(position, motion, event);
-  }
   PointF GetAlignedPosition() final;
   SizeF GetMeasuredSize() override;
   void SetMeasuredSize(SizeF size) final;
@@ -123,7 +105,7 @@ class AndroidCustomView : public AndroidMarkdownView,
   static void Initialize(JNIEnv* env);
   AndroidCustomView();
   AndroidCustomView(JNIEnv* env, jobject ref);
-  void AttachDrawable(std::unique_ptr<MarkdownDrawable> drawable) final;
+  void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) final;
   MarkdownCustomViewHandle* GetCustomViewHandle() final { return this; }
   SizeF GetMeasuredSize() override;
 
@@ -141,8 +123,9 @@ class AndroidMainView : public AndroidCustomView,
   AndroidMainView(JNIEnv* env, jobject ref);
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() final;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() final;
+  std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() final;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(
-      SelectionHandleType type, float size, float margin, uint32_t color) final;
+      SelectionHandleType type, float size, uint32_t color) final;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) final;
 
@@ -158,10 +141,10 @@ class AndroidMainView : public AndroidCustomView,
   std::list<std::shared_ptr<AndroidMarkdownView>> subviews_;
   RectF cached_view_rect_in_screen_{};
 
- protected:
   static struct Methods {
     jmethodID create_custom_subview_{};
     jmethodID create_region_subview_{};
+    jmethodID create_scroll_x_region_subview_{};
     jmethodID create_selection_handle_subview_{};
     jmethodID remove_subview_{};
     jmethodID remove_all_subviews_{};

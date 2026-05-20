@@ -61,6 +61,12 @@ typedef NS_ENUM(NSUInteger, ServalMarkdownVerticalAlign) {
   kServalMarkdownVerticalAlignBottom = 3,
 };
 
+typedef NS_ENUM(NSUInteger, ServalMarkdownPanGestureDirection) {
+  kServalMarkdownPanGestureDirectionAll = 0,
+  kServalMarkdownPanGestureDirectionHorizontal = 1,
+  kServalMarkdownPanGestureDirectionVertical = 2,
+};
+
 typedef enum : NSUInteger {
   kServalMarkdownAnimationTypeNone,
   kServalMarkdownAnimationTypeTypewriter,

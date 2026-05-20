@@ -7,30 +7,52 @@
 #include "markdown/draw/markdown_typewriter_drawer.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/layout/markdown_selection.h"
+#include "markdown/markdown_event_listener.h"
+#include "markdown/markdown_exposure_listener.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/view/markdown_platform_view.h"
-#include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view_animator.h"
 namespace serval::markdown {
+namespace {
+std::unique_ptr<Value> ConvertEffectToAttachment(ValueMap& effect) {
+  const auto color = effect.find("color");
+  const auto start_iter = effect.find("rangeStart");
+  const auto end_iter = effect.find("rangeEnd");
+  const int32_t start =
+      start_iter != effect.end() ? start_iter->second->GetInt() : 0;
+  const int32_t end = end_iter != effect.end() ? end_iter->second->GetInt() : 0;
+  if (color == effect.end() || color->second->GetString().empty() ||
+      (start == 0 && end == 0)) {
+    return nullptr;
+  }
+
+  ValueMap style;
+  style.emplace("color", Value::MakeString(color->second->GetString()));
+
+  ValueMap attachment;
+  attachment.emplace("startIndex", Value::MakeInt(start));
+  attachment.emplace("endIndex", Value::MakeInt(end));
+  attachment.emplace("layer", Value::MakeString("foreground"));
+  attachment.emplace("style", Value::MakeMap(std::move(style)));
+
+  ValueArray attachments;
+  attachments.emplace_back(Value::MakeMap(std::move(attachment)));
+  return Value::MakeArray(std::move(attachments));
+}
+}  // namespace
+
 MarkdownView::MarkdownView(MarkdownPlatformView* view,
                            std::shared_ptr<MarkdownContext> context)
     : view_(view),
       handle_(view->GetViewContainerHandle()),
       context_(std::move(context)),
-      measurer_(context_) {
+      measurer_(context_),
+      gesture_(handle_, context_.get(), &renderer_) {
   renderer_.SetViewContainerHandle(handle_);
-  view_->SetTapListener([this](PointF position, GestureEventType event) {
-    return OnTap(position, event);
-  });
-  view_->SetLongPressListener([this](PointF position, GestureEventType event) {
-    return OnLongPress(position, event);
-  });
-  view_->SetPanGestureListener(
-      [this](PointF position, PointF motion, GestureEventType event) {
-        return OnPan(position, motion, event);
-      });
 }
-MarkdownView::~MarkdownView() = default;
+MarkdownView::~MarkdownView() {
+  gesture_.SetRenderer(nullptr);
+}
 void MarkdownView::SetResourceLoader(MarkdownResourceLoader* loader) {
   resource_loader_ = loader;
   measurer_.SetResourceLoader(loader);
@@ -43,6 +65,7 @@ void MarkdownView::SetEventListener(MarkdownEventListener* listener) {
   event_listener_ = listener;
   measurer_.SetEventListener(listener);
   animator_.SetEventListener(listener);
+  gesture_.SetEventListener(listener);
 }
 void MarkdownView::SetExposureListener(MarkdownExposureListener* listener) {
   exposure_listener_ = listener;
@@ -88,6 +111,10 @@ void MarkdownView::SetTextAttachments(std::unique_ptr<Value> attachments) {
   attachments_ = std::move(attachments);
   NeedsMeasure();
 }
+void MarkdownView::SetMarkdownEffect(std::unique_ptr<Value> effect) {
+  effect_ = std::move(effect);
+  NeedsMeasure();
+}
 void MarkdownView::SetAnimationType(const MarkdownAnimationType type) {
   animator_.SetAnimationType(type);
   NeedsMeasure();
@@ -128,70 +155,19 @@ void MarkdownView::SetSourceType(SourceType type) {
   NeedsMeasure();
 }
 void MarkdownView::SetEnableSelection(bool enable_selection) {
-  enable_selection_ = enable_selection;
-  CreateSelectionHandles();
+  gesture_.SetEnableSelection(enable_selection);
 }
 void MarkdownView::SetSelectionHandleSize(float size) {
-  selection_handle_size_ = size;
-  if (selection_handles_.left_ != nullptr) {
-    GetSelectionHandle(selection_handles_.left_)
-        ->SetSize(selection_handle_size_);
-    selection_handles_.left_->Measure(MeasureSpec{});
-    GetSelectionHandle(selection_handles_.right_)
-        ->SetSize(selection_handle_size_);
-    selection_handles_.right_->Measure(MeasureSpec{});
-  }
+  gesture_.SetSelectionHandleSize(size);
 }
 void MarkdownView::SetSelectionHandleTouchMargin(float margin) {
-  selection_handle_touch_margin_ = margin;
-  if (selection_handles_.left_ != nullptr) {
-    GetSelectionHandle(selection_handles_.left_)->SetTouchMargin(margin);
-    selection_handles_.left_->RequestMeasure();
-    GetSelectionHandle(selection_handles_.right_)->SetTouchMargin(margin);
-    selection_handles_.right_->RequestMeasure();
-  }
+  gesture_.SetSelectionHandleTouchMargin(margin);
 }
 void MarkdownView::SetSelectionHandleColor(uint32_t color) {
-  selection_handle_color_ = color;
-  if (selection_handles_.left_ != nullptr) {
-    GetSelectionHandle(selection_handles_.left_)
-        ->SetColor(selection_handle_color_);
-    GetSelectionHandle(selection_handles_.right_)
-        ->SetColor(selection_handle_color_);
-  }
+  gesture_.SetSelectionHandleColor(color);
 }
 void MarkdownView::SetSelectionHighlightColor(uint32_t color) {
-  selection_highlight_color_ = color;
-  if (selection_highlight_ != nullptr) {
-    GetSelectionHighlight(selection_highlight_)
-        ->SetColor(selection_highlight_color_);
-  }
-}
-void MarkdownView::CreateSelectionHandles() {
-  if (selection_highlight_ != nullptr || handle_ == nullptr) {
-    return;
-  }
-  selection_highlight_ =
-      handle_->CreateSelectionHighlightSubView(selection_highlight_color_);
-  selection_highlight_->SetVisibility(false);
-  selection_handles_.left_ = handle_->CreateSelectionHandleSubView(
-      SelectionHandleType::kLeftHandle, selection_handle_size_,
-      selection_handle_touch_margin_, selection_handle_color_);
-  selection_handles_.left_->Measure(MeasureSpec{});
-  selection_handles_.left_->SetPanGestureListener(
-      [this](PointF position, PointF motion, GestureEventType event) {
-        return OnStartHandleMove(position, motion, event);
-      });
-  selection_handles_.left_->SetVisibility(false);
-  selection_handles_.right_ = handle_->CreateSelectionHandleSubView(
-      SelectionHandleType::kRightHandle, selection_handle_size_,
-      selection_handle_touch_margin_, selection_handle_color_);
-  selection_handles_.right_->Measure(MeasureSpec{});
-  selection_handles_.right_->SetPanGestureListener(
-      [this](PointF position, PointF motion, GestureEventType event) {
-        return OnEndHandleMove(position, motion, event);
-      });
-  selection_handles_.right_->SetVisibility(false);
+  gesture_.SetSelectionHighlightColor(color);
 }
 MeasureResult MarkdownView::OnMeasure(MeasureSpec spec) {
   measurer_.Measure(spec);
@@ -249,6 +225,9 @@ void MarkdownView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   ConsumeRendererBundleIfNeeded();
   renderer_.Draw(canvas, x, y);
 }
+void MarkdownView::MarkDirty() {
+  NeedsMeasure();
+}
 void MarkdownView::NeedsMeasure() {
   measurer_.NeedsMeasure();
   view_->RequestMeasure();
@@ -268,12 +247,16 @@ void MarkdownView::UpdateTextAttachments() {
     return;
   }
   page->ClearAttachments();
-  if (attachments_ == nullptr) {
-    return;
+  if (attachments_ != nullptr) {
+    auto attachments = MarkdownStyleReader::ReadTextAttachments(
+        attachments_.get(), layout_data_.document_.get());
+    page->AddTextAttachments(std::move(attachments));
   }
-  auto attachments = MarkdownStyleReader::ReadTextAttachments(
-      attachments_.get(), layout_data_.document_.get());
-  page->AddTextAttachments(std::move(attachments));
+  if (effect_ != nullptr) {
+    auto effect = MarkdownStyleReader::ReadTextAttachments(
+        effect_.get(), layout_data_.document_.get());
+    page->AddTextAttachments(std::move(effect));
+  }
 }
 void MarkdownView::OnLayoutFrame(int64_t timestamp) {
   animator_.UpdateCurrentTime(timestamp);
@@ -286,133 +269,8 @@ void MarkdownView::OnRendererFrame(int64_t /*timestamp*/) {
   UpdateExposure();
   renderer_.OnNextFrame();
 }
-void MarkdownView::EnterSelection(PointF position) {
-  is_in_selection_ = true;
-  select_start_position_ = position;
-  select_end_position_ = position;
-  start_handle_position_ = end_handle_position_ = position;
-  select_start_index_ = GetCharIndexByPosition(position);
-  select_end_index_ = select_start_index_ + 1;
-  is_adjust_start_pos_ = false;
-  is_adjust_end_pos_ = false;
-  handle_pan_before_motion_ = {0, 0};
-  UpdateSelectionRects(SelectionState::kEnter);
-}
-void MarkdownView::ExitSelection() {
-  is_in_selection_ = false;
-  UpdateSelectionRects(SelectionState::kExit);
-}
-void MarkdownView::UpdateSelectionStart() {
-  auto new_start_index = GetCharIndexByPosition(select_start_position_);
-  if (new_start_index == select_end_index_) {
-    new_start_index++;
-  }
-  if (new_start_index == select_start_index_) {
-    return;
-  }
-  select_start_index_ = new_start_index;
-  if (select_start_index_ > select_end_index_) {
-    SwapSelectionStartAndEnd();
-  }
-  UpdateSelectionRects(SelectionState::kMove);
-}
-
-void MarkdownView::UpdateSelectionEnd() {
-  auto new_end_index = GetCharIndexByPosition(select_end_position_);
-  new_end_index++;
-  if (new_end_index == select_start_index_ && new_end_index > 0) {
-    new_end_index--;
-  }
-  if (new_end_index == select_end_index_) {
-    return;
-  }
-  select_end_index_ = new_end_index;
-  if (select_end_index_ < select_start_index_) {
-    SwapSelectionStartAndEnd();
-  }
-  UpdateSelectionRects(SelectionState::kMove);
-}
-
-void MarkdownView::SwapSelectionStartAndEnd() {
-  std::swap(select_start_index_, select_end_index_);
-  std::swap(select_start_position_, select_end_position_);
-  std::swap(is_adjust_start_pos_, is_adjust_end_pos_);
-}
-
-void MarkdownView::RecalculateSelectionPosition() {
-  is_adjust_start_pos_ = false;
-  is_adjust_end_pos_ = false;
-  handle_pan_before_motion_ = {0, 0};
-  if (selection_highlight_rects_.empty())
-    return;
-  const auto& rect_before = selection_highlight_rects_.front();
-  select_start_position_ =
-      PointF{rect_before.GetLeft(),
-             rect_before.GetTop() + rect_before.GetHeight() / 2};
-  start_handle_position_ =
-      PointF{rect_before.GetLeft(), rect_before.GetBottom()};
-  const auto& rect_end = selection_highlight_rects_.back();
-  select_end_position_ =
-      PointF{rect_end.GetRight(), rect_end.GetTop() + rect_end.GetHeight() / 2};
-  end_handle_position_ = PointF{rect_end.GetRight(), rect_end.GetBottom()};
-}
-
-void MarkdownView::UpdateSelectionViews() const {
-  if (selection_highlight_ == nullptr || selection_handles_.left_ == nullptr ||
-      selection_handles_.right_ == nullptr) {
-    return;
-  }
-  const bool visible = is_in_selection_ && !selection_highlight_rects_.empty();
-  selection_highlight_->SetVisibility(visible);
-  selection_handles_.left_->SetVisibility(visible);
-  selection_handles_.right_->SetVisibility(visible);
-  if (!visible) {
-    return;
-  }
-  GetSelectionHighlight(selection_highlight_)
-      ->SetRects(selection_highlight_rects_);
-  GetSelectionHighlight(selection_highlight_)
-      ->UpdateViewRect(selection_highlight_.get());
-  selection_highlight_->RequestMeasure();
-
-  const auto rect_start = selection_highlight_rects_.front();
-  auto* handle_start = GetSelectionHandle(selection_handles_.left_);
-  handle_start->SetTextHeight(rect_start.GetHeight());
-  handle_start->UpdateViewRect({rect_start.GetLeft(), rect_start.GetBottom()},
-                               selection_handles_.left_.get());
-  selection_highlight_->RequestMeasure();
-
-  const auto& rect_end = selection_highlight_rects_.back();
-  auto* handle_end = GetSelectionHandle(selection_handles_.right_);
-  handle_end->SetTextHeight(selection_highlight_rects_.back().GetHeight());
-  handle_end->UpdateViewRect({rect_end.GetRight(), rect_end.GetBottom()},
-                             selection_handles_.right_.get());
-  selection_highlight_->RequestMeasure();
-}
-
-void MarkdownView::UpdateSelectionRects(SelectionState state) {
-  selection_highlight_rects_.clear();
-  if (is_in_selection_ && renderer_data_.document_ != nullptr) {
-    auto page = renderer_data_.document_->GetPage();
-    if (page != nullptr) {
-      selection_highlight_rects_ = MarkdownSelection::GetSelectionRectByCharPos(
-          page.get(), select_start_index_, select_end_index_);
-    }
-  }
-  UpdateSelectionViews();
-  SendSelectionChanged(state);
-}
-
 int32_t MarkdownView::GetCharIndexByPosition(PointF position) const {
-  if (renderer_data_.document_ == nullptr) {
-    return -1;
-  }
-  auto page = renderer_data_.document_->GetPage();
-  if (!page)
-    return -1;
-  auto [start, end] = MarkdownSelection::GetCharRangeByPoint(
-      page.get(), position, MarkdownSelection::CharRangeType::kChar);
-  return start;
+  return gesture_.GetCharIndexByPosition(position);
 }
 
 void MarkdownView::UpdateAnimationStep() {
@@ -463,28 +321,14 @@ void MarkdownView::ConsumeRendererBundleIfNeeded() {
   if (renderer_data_.document_.get() != bundle->document_.get()) {
     renderer_.SetDocument(bundle->document_);
     renderer_data_.document_ = bundle->document_;
+    gesture_.SetDocument(bundle->document_);
     UpdateExposure();
-    if (is_in_selection_) {
-      UpdateSelectionRects(SelectionState::kMove);
-    }
   }
   renderer_.SetMarkdownAnimationType(bundle->animation_type_);
   renderer_.SetMarkdownAnimationStep(bundle->animation_step_);
   renderer_.SetContentComplete(bundle->content_complete_);
 }
 
-void MarkdownView::SendImageClicked(const char* url) const {
-  if (event_listener_ == nullptr) {
-    return;
-  }
-  event_listener_->OnImageClicked(url);
-}
-void MarkdownView::SendLinkClicked(const char* url, const char* content) const {
-  if (event_listener_ == nullptr) {
-    return;
-  }
-  event_listener_->OnLinkClicked(url, content);
-}
 void MarkdownView::SendDrawStart() {
   if (!draw_start_sent_) {
     draw_start_sent_ = true;
@@ -657,22 +501,11 @@ bool MarkdownView::IsAnimationComplete() const {
 }
 
 void MarkdownView::SetTextSelection(const Range char_range) {
-  select_start_index_ = char_range.start_;
-  select_end_index_ = char_range.end_;
-  if (char_range.start_ >= 0 && char_range.end_ >= 0) {
-    is_in_selection_ = true;
-    const auto draw_count =
-        animator_.GetAnimationType() == MarkdownAnimationType::kNone
-            ? GetCharCount()
-            : animator_.GetAnimationStep();
-    select_start_index_ = std::min(draw_count, select_start_index_);
-    select_end_index_ = std::min(draw_count, select_end_index_);
-    UpdateSelectionRects(SelectionState::kStop);
-  } else {
-    is_in_selection_ = false;
-    UpdateSelectionRects(SelectionState::kExit);
-  }
-  RecalculateSelectionPosition();
+  const auto draw_count =
+      animator_.GetAnimationType() == MarkdownAnimationType::kNone
+          ? GetCharCount()
+          : animator_.GetAnimationStep();
+  gesture_.SetTextSelection(char_range, draw_count);
 }
 
 void MarkdownView::SetTrimParagraphSpaces(bool trim_spaces) {
@@ -680,15 +513,11 @@ void MarkdownView::SetTrimParagraphSpaces(bool trim_spaces) {
 }
 
 Range MarkdownView::GetSelectedRange() const {
-  return {select_start_index_, select_end_index_};
+  return gesture_.GetSelectedRange();
 }
 
 std::string MarkdownView::GetSelectedText() const {
-  if (renderer_data_.document_ == nullptr) {
-    return {};
-  }
-  return renderer_data_.document_->GetContentByCharPos(select_start_index_,
-                                                       select_end_index_);
+  return gesture_.GetSelectedText();
 }
 
 std::string MarkdownView::GetContent() const {
@@ -703,23 +532,15 @@ std::string MarkdownView::GetContentID() const {
 }
 
 const std::vector<RectF>& MarkdownView::GetSelectedLineBoundingRect() {
-  return selection_highlight_rects_;
+  return gesture_.GetSelectedLineBoundingRect();
 }
 
 PointF MarkdownView::GetSelectionHandlePosition() const {
-  if (!is_in_selection_ || selection_highlight_rects_.empty()) {
-    return {-1, -1};
-  }
-  if (is_adjust_start_pos_) {
-    const auto& rect = selection_highlight_rects_.front();
-    return {rect.GetLeft(), rect.GetBottom()};
-  }
-  const auto& rect = selection_highlight_rects_.back();
-  return {rect.GetRight(), rect.GetBottom()};
+  return gesture_.GetSelectionHandlePosition();
 }
 
 float MarkdownView::GetSelectionHandleRadius() const {
-  return selection_handle_size_ * 0.5f;
+  return gesture_.GetSelectionHandleRadius();
 }
 
 std::vector<std::string> MarkdownView::GetAllImageUrl() const {
@@ -780,33 +601,15 @@ std::vector<Range> MarkdownView::GetSyntaxSourceRanges(
 
 Range MarkdownView::GetCharRangeByPosition(
     PointF position, MarkdownSelection::CharRangeType char_range_type) const {
-  if (renderer_data_.document_ == nullptr) {
-    return {};
-  }
-  auto page = renderer_data_.document_->GetPage();
-  if (page == nullptr)
-    return {};
-  return MarkdownSelection::GetCharRangeByPoint(page.get(), position,
-                                                char_range_type);
+  return gesture_.GetCharRangeByPosition(position, char_range_type);
 }
 
 RectF MarkdownView::GetTextBoundingRect(Range range) const {
-  if (renderer_data_.document_ == nullptr) {
-    return {};
-  }
-  auto page = renderer_data_.document_->GetPage();
-  if (page == nullptr)
-    return {};
-  return MarkdownSelection::GetSelectionClosedRectByCharPos(
-      page.get(), range.start_, range.end_);
+  return gesture_.GetTextBoundingRect(range);
 }
 
 std::string MarkdownView::GetParsedContent(Range char_range) const {
-  if (renderer_data_.document_ == nullptr) {
-    return {};
-  }
-  return renderer_data_.document_->GetContentByCharPos(char_range.start_,
-                                                       char_range.end_);
+  return gesture_.GetParsedContent(char_range);
 }
 
 int32_t MarkdownView::CharOffsetToSourceOffset(int32_t char_offset) const {
@@ -824,132 +627,24 @@ int32_t MarkdownView::SourceOffsetToCharOffset(int32_t source_offset) const {
 }
 
 std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) const {
-  if (renderer_data_.document_ == nullptr) {
-    return {};
-  }
-  auto page = renderer_data_.document_->GetPage();
-  if (page == nullptr)
-    return {};
-  return MarkdownSelection::GetSelectionRectByCharPos(page.get(), range.start_,
-                                                      range.end_);
-}
-void MarkdownView::SendSelectionChanged(SelectionState state) const {
-  if (event_listener_ != nullptr) {
-    const auto start = is_in_selection_ ? select_start_index_ : -1;
-    const auto end = is_in_selection_ ? select_end_index_ : -1;
-    const auto handle = is_adjust_start_pos_
-                            ? SelectionHandleType::kLeftHandle
-                            : SelectionHandleType::kRightHandle;
-    event_listener_->OnSelectionChanged(start, end, handle, state);
-  }
+  return gesture_.GetTextLineBoundingRect(range);
 }
 
 bool MarkdownView::OnTap(PointF position, GestureEventType event) {
-  if (event == GestureEventType::kDown) {
-    if (is_in_selection_) {
-      ExitSelection();
-      return true;
-    }
-    if (renderer_data_.document_ == nullptr || event_listener_ == nullptr) {
-      return false;
-    }
-    const auto* link =
-        renderer_data_.document_->GetLinkByTouchPosition(position);
-    if (link != nullptr) {
-      event_listener_->OnLinkClicked(link->url_.c_str(),
-                                     link->content_.c_str());
-      return true;
-    }
-    const auto image =
-        renderer_data_.document_->GetImageByTouchPosition(position);
-    if (!image.empty()) {
-      event_listener_->OnImageClicked(image.c_str());
-      return true;
-    }
-  }
-  return false;
+  return gesture_.OnTap(position, event);
 }
 
-bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
-  if (renderer_data_.document_ == nullptr) {
-    return false;
-  }
-  if (event == GestureEventType::kDown && enable_selection_ &&
-      !is_in_selection_) {
-    EnterSelection(position);
-    return true;
-  } else if (is_in_selection_) {
-    SendSelectionChanged(SelectionState::kStop);
-    RecalculateSelectionPosition();
-    return true;
-  }
-  return false;
+bool MarkdownView::ShouldBeginPan(PointF position, PointF motion) {
+  return gesture_.ShouldBeginPan(position, motion);
 }
 
 bool MarkdownView::OnPan(PointF position, PointF motion,
-                         GestureEventType event) const {
-  if (renderer_data_.document_ == nullptr) {
-    return false;
-  }
-  auto state = MarkdownTouchState::kNone;
-  if (event == GestureEventType::kDown) {
-    state = renderer_data_.document_->OnTouchEvent(
-        MarkdownTouchEventType::kDown, position);
-  } else if (event == GestureEventType::kMove) {
-    state = renderer_data_.document_->OnTouchEvent(
-        MarkdownTouchEventType::kMove, position);
-  } else {
-    state = renderer_data_.document_->OnTouchEvent(MarkdownTouchEventType::kUp,
-                                                   position);
-  }
-  if (state == MarkdownTouchState::kOnScroll) {
-    NeedsAlign();
-    return true;
-  }
-  return false;
+                         GestureEventType event) {
+  return gesture_.OnPan(position, motion, event);
 }
 
-bool MarkdownView::OnStartHandleMove(PointF position, PointF motion,
-                                     GestureEventType type) {
-  if (!is_in_selection_) {
-    return false;
-  }
-  if (!is_adjust_start_pos_ && !is_adjust_end_pos_) {
-    is_adjust_start_pos_ = true;
-  }
-  return OnHandleMove(position, motion, type);
-}
-
-bool MarkdownView::OnEndHandleMove(PointF position, PointF motion,
-                                   GestureEventType type) {
-  if (!is_in_selection_) {
-    return false;
-  }
-  if (!is_adjust_start_pos_ && !is_adjust_end_pos_) {
-    is_adjust_end_pos_ = true;
-  }
-  return OnHandleMove(position, motion, type);
-}
-
-bool MarkdownView::OnHandleMove(PointF position, PointF motion,
-                                GestureEventType type) {
-  if (!is_in_selection_) {
-    return false;
-  }
-  PointF delta = motion - handle_pan_before_motion_;
-  handle_pan_before_motion_ = motion;
-  if (is_adjust_start_pos_) {
-    select_start_position_ += delta;
-    UpdateSelectionStart();
-  } else if (is_adjust_end_pos_) {
-    select_end_position_ += delta;
-    UpdateSelectionEnd();
-  }
-  if (type != GestureEventType::kMove) {
-    RecalculateSelectionPosition();
-    SendSelectionChanged(SelectionState::kStop);
-  }
-  return true;
+bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
+  return gesture_.OnLongPress(position, event);
 }
 
 void MarkdownView::SetPadding(float padding) {
@@ -1032,7 +727,11 @@ void MarkdownView::SetArrayProp(MarkdownProps prop, ValueArray& array) {
     SetTextAttachments(Value::MakeArray(std::move(array)));
   }
 }
-void MarkdownView::SetMapProp(MarkdownProps prop, ValueMap& map) {}
+void MarkdownView::SetMapProp(MarkdownProps prop, ValueMap& map) {
+  if (prop == MarkdownProps::kMarkdownEffect) {
+    SetMarkdownEffect(ConvertEffectToAttachment(map));
+  }
+}
 
 void MarkdownView::OnFontLoaded(std::string_view family, int weight,
                                 int style) {

@@ -234,6 +234,8 @@ class BlockViewWrapper : public MarkdownDrawable {
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override {
+    spec.width_ = max_width_;
+    spec.width_mode_ = tttext::LayoutMode::kDefinite;
     const auto child = delegate_->Measure(spec);
     return {.width_ = max_width_,
             .height_ = child.height_,

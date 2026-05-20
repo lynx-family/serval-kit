@@ -25,6 +25,9 @@
 @end
 
 namespace serval::markdown {
+MarkdownMainViewIOS::MarkdownMainViewIOS(ServalMarkdownView* view)
+    : MarkdownCustomViewIOS(view) {}
+
 void MarkdownMainViewIOS::RequestMeasure() {
   MarkdownPlatformViewIOS::RequestMeasure();
 }
@@ -48,12 +51,16 @@ MarkdownMainViewIOS::CreateRegionSubView() {
 }
 
 std::shared_ptr<MarkdownPlatformView>
+MarkdownMainViewIOS::CreateScrollXRegionView() {
+  return CreateRegionSubView();
+}
+
+std::shared_ptr<MarkdownPlatformView>
 MarkdownMainViewIOS::CreateSelectionHandleSubView(SelectionHandleType type,
-                                                  float size, float margin,
-                                                  uint32_t color) {
+                                                  float size, uint32_t color) {
   const auto view = CreateCustomSubView();
   auto selection_handle =
-      std::make_unique<MarkdownSelectionHandle>(size, margin, type, color);
+      std::make_shared<MarkdownSelectionHandle>(size, type, color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   return view;
 }
@@ -61,7 +68,7 @@ MarkdownMainViewIOS::CreateSelectionHandleSubView(SelectionHandleType type,
 std::shared_ptr<MarkdownPlatformView>
 MarkdownMainViewIOS::CreateSelectionHighlightSubView(uint32_t color) {
   const auto view = CreateCustomSubView();
-  auto highlight = std::make_unique<MarkdownSelectionHighlight>();
+  auto highlight = std::make_shared<MarkdownSelectionHighlight>();
   highlight->SetColor(color);
   view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
   return view;

@@ -66,11 +66,6 @@ class HarmonyView : public MarkdownPlatformView {
   void RequestAlign() override { MarkNeedsLayout(); }
   void RequestDraw() override { MarkNeedsRender(); }
 
-  void EnableTapEvent(bool enable, ArkUI_GesturePriority priority);
-  void EnableLongPressEvent(bool enable, ArkUI_GesturePriority priority);
-  void EnablePanEvent(bool enable, ArkUI_GestureDirectionMask direction,
-                      ArkUI_GesturePriority priority);
-
   void SetWidth(float width) {
     ArkUI_NumberValue value[] = {{.f32 = width}};
     ArkUI_AttributeItem item = {value, 1};
@@ -153,15 +148,11 @@ class HarmonyView : public MarkdownPlatformView {
   virtual void OnLayout(int32_t offset_x, int32_t offset_y) {}
   virtual void OnDraw(ArkUI_DrawContext* context) {}
   virtual bool OnTouchEvent(int32_t action, float x, float y) { return false; }
-  static GestureEventType ConvertAction(int32_t action);
 
  protected:
   ArkUI_NodeHandle handle_{nullptr};
   ArkUI_NativeNodeAPI_1* api_{nullptr};
   std::list<std::shared_ptr<HarmonyView>> children_;
-  ArkUI_GestureRecognizer* long_press_{nullptr};
-  ArkUI_GestureRecognizer* tap_{nullptr};
-  ArkUI_GestureRecognizer* pan_{nullptr};
 };
 
 // visibility can't set to ets view, should using a custom view wrap it.

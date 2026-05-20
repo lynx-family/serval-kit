@@ -36,10 +36,11 @@ class MarkdownDrawable : public tttext::RunDelegate {
     return measure_result_;
   }
   virtual void Align(float x, float y) {}
+  virtual void SetBounds(RectF bounds) {}
 
  protected:
   virtual MeasureResult OnMeasure(MeasureSpec spec) = 0;
-  mutable MeasureResult measure_result_{};
+  MeasureResult measure_result_{};
 };
 
 class MarkdownBackgroundDrawable : public MarkdownDrawable {
@@ -47,12 +48,14 @@ class MarkdownBackgroundDrawable : public MarkdownDrawable {
   ~MarkdownBackgroundDrawable() override = default;
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) final {
-    DrawOnRect(canvas, RectF::MakeLTWH(x, y, measure_result_.width_,
-                                       measure_result_.height_));
+    DrawOnRect(
+        canvas,
+        RectF::MakeLTWH(x, y, measure_result_.width_, measure_result_.height_),
+        nullptr);
   }
 
   virtual void DrawOnRect(tttext::ICanvasHelper* canvas, RectF rect,
-                          tttext::Painter* painter = nullptr) = 0;
+                          tttext::Painter* painter) = 0;
   virtual void DrawOnPath(tttext::ICanvasHelper* canvas, MarkdownPath* path,
                           RectF bounds, tttext::Painter* painter) = 0;
 };

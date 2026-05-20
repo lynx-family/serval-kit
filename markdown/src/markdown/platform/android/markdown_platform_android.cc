@@ -35,7 +35,7 @@ class AndroidMarkdownPlatform final : public MarkdownPlatform {
 
   MarkdownCanvasExtend* GetMarkdownCanvasExtend(
       tttext::ICanvasHelper* canvas) override {
-    return nullptr;
+    return static_cast<MarkdownJavaCanvasHelper*>(canvas);
   }
 };
 }  // namespace

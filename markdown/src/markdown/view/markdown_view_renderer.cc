@@ -7,16 +7,19 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <utility>
 
 #include "markdown/draw/markdown_drawer.h"
 #include "markdown/draw/markdown_typewriter_drawer.h"
 #include "markdown/element/markdown_document.h"
+#include "markdown/layout/markdown_selection.h"
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_view_measurer.h"
 
 namespace serval::markdown {
 namespace {
 constexpr float kViewVisibilityTolerant = 5.f;
+constexpr size_t kRegionViewPoolCapacity = 16;
 
 class MarkdownRegionDrawable final : public MarkdownDrawable {
  public:
@@ -125,6 +128,7 @@ class MarkdownBorderDrawable final : public MarkdownDrawable {
   std::shared_ptr<MarkdownDocument> document_;
   uint32_t border_index_{0};
 };
+
 }  // namespace
 
 void MarkdownViewRenderer::SetDocument(
@@ -159,6 +163,7 @@ void MarkdownViewRenderer::SetMarkdownAnimationType(
     return;
   }
   animation_type_ = type;
+  UpdateTypewriterCursorBounds();
   region_views_dirty_ = true;
   full_redraw_required_ = true;
 }
@@ -166,19 +171,30 @@ void MarkdownViewRenderer::SetMarkdownAnimationType(
 void MarkdownViewRenderer::SetMarkdownAnimationStep(int32_t step) {
   const int32_t previous_step = animation_step_;
   animation_step_ = step;
+  UpdateTypewriterCursorBounds();
   UpdateRegionViewsByAnimationStep(previous_step);
 }
 void MarkdownViewRenderer::SetContentComplete(bool complete) {
   if (content_complete_ == complete)
     return;
   content_complete_ = complete;
+  UpdateTypewriterCursorBounds();
   for (auto& region : region_views_) {
     static_cast<MarkdownRegionDrawable*>(
-        region.second->GetCustomViewHandle()->GetDrawable())
+        region.second.view_->GetCustomViewHandle()->GetDrawable())
         ->SetContentComplete(content_complete_);
-    region.second->RequestDraw();
+    region.second.view_->RequestDraw();
   }
 }
+void MarkdownViewRenderer::RequestDrawRegion(uint32_t region_index) {
+  const auto iter = region_views_.find(static_cast<int32_t>(region_index));
+  if (iter != region_views_.end() && iter->second.view_ != nullptr) {
+    iter->second.view_->RequestDraw();
+  } else {
+    full_redraw_required_ = true;
+  }
+}
+
 void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
                                              const RectF& rect) {
   if (view == nullptr) {
@@ -186,6 +202,47 @@ void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
   }
   view->SetMeasuredSize({rect.GetWidth(), rect.GetHeight()});
   view->SetAlignPosition({rect.GetLeft(), rect.GetTop()});
+}
+std::shared_ptr<MarkdownPlatformView> MarkdownViewRenderer::CreateRegionView(
+    bool scroll_x) {
+  auto& pool = scroll_x ? scroll_x_region_view_pool_ : region_view_pool_;
+  if (!pool.empty()) {
+    auto view = pool.back();
+    pool.pop_back();
+    if (view != nullptr) {
+      view->SetVisibility(true);
+    }
+    return view;
+  }
+  if (handle_ == nullptr) {
+    return nullptr;
+  }
+  return scroll_x ? handle_->CreateScrollXRegionView()
+                  : handle_->CreateRegionSubView();
+}
+void MarkdownViewRenderer::RecycleRegionView(RegionViewEntry& entry) {
+  if (entry.view_ == nullptr) {
+    return;
+  }
+  entry.view_->SetVisibility(false);
+  auto& pool = entry.scroll_x_ ? scroll_x_region_view_pool_ : region_view_pool_;
+  if (pool.size() < kRegionViewPoolCapacity) {
+    pool.emplace_back(entry.view_);
+  } else if (handle_ != nullptr) {
+    handle_->RemoveSubView(entry.view_.get());
+  }
+}
+void MarkdownViewRenderer::ClearRegionViewPool() {
+  if (handle_ != nullptr) {
+    for (const auto& view : region_view_pool_) {
+      handle_->RemoveSubView(view.get());
+    }
+    for (const auto& view : scroll_x_region_view_pool_) {
+      handle_->RemoveSubView(view.get());
+    }
+  }
+  region_view_pool_.clear();
+  scroll_x_region_view_pool_.clear();
 }
 bool MarkdownViewRenderer::NeedUseRegionView() const {
   return handle_ != nullptr;
@@ -204,7 +261,7 @@ bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
 void MarkdownViewRenderer::RemoveAllRegionViews() {
   if (handle_ != nullptr) {
     for (const auto& pair : region_views_) {
-      handle_->RemoveSubView(pair.second.get());
+      handle_->RemoveSubView(pair.second.view_.get());
     }
     for (const auto& pair : border_views_) {
       handle_->RemoveSubView(pair.second.get());
@@ -212,6 +269,7 @@ void MarkdownViewRenderer::RemoveAllRegionViews() {
   }
   region_views_.clear();
   border_views_.clear();
+  ClearRegionViewPool();
 }
 
 void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
@@ -238,25 +296,37 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
     visible_region_end = 0;
   } else {
     for (int32_t i = visible_region_start; i <= visible_region_end; ++i) {
+      auto* region = page->GetRegion(static_cast<uint32_t>(i));
+      if (region == nullptr) {
+        continue;
+      }
+      const bool scroll_x = region->scroll_x_;
       auto iter = region_views_.find(i);
       bool created = false;
+      if (iter != region_views_.end() && iter->second.scroll_x_ != scroll_x) {
+        RecycleRegionView(iter->second);
+        region_views_.erase(iter);
+        iter = region_views_.end();
+      }
       if (iter == region_views_.end()) {
-        const auto view = handle_->CreateRegionSubView();
+        const auto view = CreateRegionView(scroll_x);
         if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
-          auto drawable = std::make_unique<MarkdownRegionDrawable>(
+          view->SetVisibility(true);
+          auto drawable = std::make_shared<MarkdownRegionDrawable>(
               document_, static_cast<uint32_t>(i), &animation_type_,
               &animation_step_);
           drawable->SetContentComplete(content_complete_);
           view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
-          iter = region_views_.emplace(i, view).first;
+          iter =
+              region_views_.emplace(i, RegionViewEntry{view, scroll_x}).first;
           created = true;
         }
       }
       if (iter != region_views_.end()) {
-        UpdateSubViewRect(iter->second.get(),
+        UpdateSubViewRect(iter->second.view_.get(),
                           page->GetRegionRect(static_cast<uint32_t>(i)));
         if (created) {
-          iter->second->RequestDraw();
+          iter->second.view_->RequestDraw();
         }
       }
     }
@@ -267,7 +337,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
                       iter->first <= visible_region_end &&
                       iter->first < region_count;
     if (!keep) {
-      handle_->RemoveSubView(iter->second.get());
+      RecycleRegionView(iter->second);
       iter = region_views_.erase(iter);
     } else {
       ++iter;
@@ -292,7 +362,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
         const auto view = handle_->CreateRegionSubView();
         if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
           auto drawable =
-              std::make_unique<MarkdownBorderDrawable>(document_, i);
+              std::make_shared<MarkdownBorderDrawable>(document_, i);
           view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
           iter = border_views_.emplace(i, view).first;
           created = true;
@@ -340,7 +410,7 @@ void MarkdownViewRenderer::UpdateRegionViewsByViewRect() {
   }
   if (full_redraw_required_) {
     for (auto& pair : region_views_) {
-      pair.second->RequestDraw();
+      pair.second.view_->RequestDraw();
     }
     for (auto& pair : border_views_) {
       pair.second->RequestDraw();
@@ -361,9 +431,49 @@ void MarkdownViewRenderer::UpdateRegionViewsByAnimationStep(
       std::max(0, previous_step - 1), animation_step_);
   for (auto& [index, view] : region_views_) {
     if (index >= range.start_ && index <= range.end_) {
-      view->RequestDraw();
+      view.view_->RequestDraw();
     }
   }
+}
+
+void MarkdownViewRenderer::UpdateTypewriterCursorBounds() {
+  if (document_ == nullptr) {
+    return;
+  }
+  auto page = document_->GetPage();
+  if (page == nullptr) {
+    return;
+  }
+  const auto cursor = page->GetCustomTypewriterCursor();
+  if (cursor == nullptr) {
+    return;
+  }
+  const auto clear_cursor_bounds = [&cursor]() {
+    cursor->SetBounds(RectF::MakeEmpty());
+  };
+  if (animation_type_ != MarkdownAnimationType::kTypewriter &&
+      animation_type_ != MarkdownAnimationType::kLineExpand) {
+    clear_cursor_bounds();
+    return;
+  }
+  if (animation_step_ <= 0) {
+    clear_cursor_bounds();
+    return;
+  }
+  const auto page_char_count = MarkdownSelection::GetPageCharCount(page.get());
+  if (page_char_count <= 0 ||
+      (content_complete_ && animation_step_ >= page_char_count)) {
+    clear_cursor_bounds();
+    return;
+  }
+  MarkdownCharTypewriterDrawer drawer(
+      document_->GetContextPtr(), nullptr, animation_step_,
+      document_->GetResourceLoader(), document_->GetStyle().typewriter_cursor_,
+      !content_complete_, cursor.get());
+  const auto cursor_position = drawer.CalculateCursorPosition(page.get());
+  cursor->SetBounds(RectF::MakeLTWH(
+      cursor_position.x_, cursor_position.y_, cursor->GetAdvance(),
+      cursor->GetDescent() - cursor->GetAscent()));
 }
 
 void MarkdownViewRenderer::OnNextFrame() {

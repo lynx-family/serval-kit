@@ -17,18 +17,19 @@
 #include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/layout/markdown_selection.h"
-#include "markdown/markdown_event_listener.h"
-#include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_props.h"
-#include "markdown/view/markdown_selection_view.h"
 #include "markdown/view/markdown_view_animator.h"
+#include "markdown/view/markdown_view_gesture.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown_view_renderer.h"
 namespace serval::markdown {
+class MarkdownEventListener;
+class MarkdownExposureListener;
+
 class L_EXPORT MarkdownView final : public MarkdownDrawable {
  public:
   MarkdownView(MarkdownPlatformView* view,
@@ -52,6 +53,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void SetTextMaxLines(int32_t max_lines);
   void SetEnableBreakAroundPunctuation(bool allow);
   void SetTextAttachments(std::unique_ptr<Value> attachments);
+  void SetMarkdownEffect(std::unique_ptr<Value> effect);
 
   void SetAnimationStep(int32_t animation_step);
   int32_t GetAnimationStep() const { return animator_.GetAnimationStep(); }
@@ -112,13 +114,15 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void OnLayoutFrame(int64_t timestamp);
   void OnRendererFrame(int64_t timestamp);
 
+  void MarkDirty();
   void NeedsMeasure();
   void NeedsAlign() const;
   void NeedsDraw() const;
 
   bool OnLongPress(PointF position, GestureEventType event);
   bool OnTap(PointF position, GestureEventType event);
-  bool OnPan(PointF position, PointF motion, GestureEventType event) const;
+  bool ShouldBeginPan(PointF position, PointF motion);
+  bool OnPan(PointF position, PointF motion, GestureEventType event);
 
   void OnFontLoaded(std::string_view family, int weight, int style);
   void OnImageLoaded(std::string_view url);
@@ -149,41 +153,12 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
  protected:
   void SendDrawStart();
   void SendDrawEnd();
-  void SendLinkClicked(const char* url, const char* content) const;
-  void SendImageClicked(const char* url) const;
-  void SendSelectionChanged(SelectionState state) const;
-
- protected:
-  void EnterSelection(PointF position);
-  void ExitSelection();
-  void UpdateSelectionStart();
-  void UpdateSelectionEnd();
-  void UpdateSelectionRects(SelectionState state);
-  void UpdateSelectionViews() const;
-  void SwapSelectionStartAndEnd();
-  void RecalculateSelectionPosition();
-  void CreateSelectionHandles();
-  bool OnStartHandleMove(PointF position, PointF motion, GestureEventType type);
-  bool OnEndHandleMove(PointF position, PointF motion, GestureEventType type);
-  bool OnHandleMove(PointF position, PointF motion, GestureEventType type);
-
- protected:
-  static MarkdownSelectionHandle* GetSelectionHandle(
-      const std::shared_ptr<MarkdownPlatformView>& view) {
-    return static_cast<MarkdownSelectionHandle*>(
-        view->GetCustomViewHandle()->GetDrawable());
-  }
-  static MarkdownSelectionHighlight* GetSelectionHighlight(
-      const std::shared_ptr<MarkdownPlatformView>& view) {
-    return static_cast<MarkdownSelectionHighlight*>(
-        view->GetCustomViewHandle()->GetDrawable());
-  }
 
  protected:
   MarkdownPlatformView* view_{nullptr};
   MarkdownViewContainerHandle* handle_{nullptr};
-  bool enable_selection_{false};
   std::unique_ptr<Value> attachments_;
+  std::unique_ptr<Value> effect_;
 
   struct LayoutData {
     std::shared_ptr<MarkdownDocument> document_{nullptr};
@@ -232,32 +207,10 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   MarkdownViewMeasurer measurer_;
   MarkdownViewAnimator animator_;
   MarkdownViewRenderer renderer_;
+  MarkdownViewGesture gesture_;
   MarkdownExposureListener* exposure_listener_{nullptr};
   MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
-
-  struct SelectionHandles {
-    std::shared_ptr<MarkdownPlatformView> left_;
-    std::shared_ptr<MarkdownPlatformView> right_;
-  };
-  SelectionHandles selection_handles_{nullptr, nullptr};
-  std::shared_ptr<MarkdownPlatformView> selection_highlight_{nullptr};
-  float selection_handle_size_{17};
-  float selection_handle_touch_margin_{0};
-  uint32_t selection_handle_color_{0xff0000ff};
-  uint32_t selection_highlight_color_{0x400000ff};
-
-  bool is_in_selection_{false};
-  PointF select_start_position_{};
-  PointF select_end_position_{};
-  int32_t select_start_index_{0};
-  int32_t select_end_index_{0};
-  bool is_adjust_start_pos_{false};
-  bool is_adjust_end_pos_{false};
-  std::vector<RectF> selection_highlight_rects_;
-  PointF start_handle_position_{};
-  PointF end_handle_position_{};
-  PointF handle_pan_before_motion_{0, 0};
 
   bool trim_paragraph_spaces_{false};
 
