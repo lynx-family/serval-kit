@@ -3,5 +3,6 @@
 // LICENSE file in the root directory of this source tree.
 
 export { SvgView, SvgRenderNodeController } from './components/SvgView';
+export type { SvgImageFetcher } from './components/SvgView';
 
 export { SvgData, SvgRenderResult } from './components/SvgTypes'

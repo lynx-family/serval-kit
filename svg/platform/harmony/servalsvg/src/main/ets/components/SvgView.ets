@@ -1,7 +1,9 @@
 import { display, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
+import { image } from '@kit.ImageKit';
 import svg from 'libservalsvg.so';
 import { SvgData, SvgRenderResult } from './SvgTypes';
 
+export type SvgImageFetcher = (url: string) => Promise<image.PixelMap | undefined>;
 
 @Component
 export struct SvgView {
@@ -22,6 +24,11 @@ export struct SvgView {
       this.svgData.density = display.getDefaultDisplaySync().scaledDensity;
     }
     this.watchSvgData();
+  }
+
+  aboutToDisappear(): void {
+    this.svgNodeController?.dispose();
+    this.svgNodeController = undefined;
   }
 
   watchSvgSrc() {
@@ -73,6 +80,23 @@ export class SvgRenderNode extends FrameNode {
     }
   }
 
+  setImageFetcher(fetcher?: SvgImageFetcher): void {
+    this.native.setImageFetcher(fetcher);
+  }
+
+  setInvalidateCallback(callback?: () => void): void {
+    this.native.setInvalidateCallback(callback);
+  }
+
+  retryFailedImages(): void {
+    this.native.retryFailedImages();
+  }
+
+  disposeNative(): void {
+    this.native.dispose();
+    this.data = undefined;
+  }
+
   update(data?: SvgData): SvgRenderResult;
   update(data?: SvgData, parentColor?: string): SvgRenderResult;
   update(data?: SvgData, parentColor?: string) {
@@ -94,9 +118,25 @@ export class SvgRenderNodeController extends NodeController {
   private data?: SvgData;
   private color?: string;
   private needUpdateData = false;
+  private imageFetcher?: SvgImageFetcher;
 
-  constructor() {
-    super();
+  setImageFetcher(fetcher?: SvgImageFetcher): void {
+    this.imageFetcher = fetcher;
+    this.rootNode?.setImageFetcher(fetcher);
+  }
+
+  invalidate(): void {
+    this.rootNode?.retryFailedImages();
+    this.rootNode?.invalidate();
+  }
+
+  dispose(): void {
+    this.rootNode?.disposeNative();
+    this.rootNode = null;
+    this.data = undefined;
+    this.color = undefined;
+    this.imageFetcher = undefined;
+    this.needUpdateData = false;
   }
 
   updateData(data?: SvgData): SvgRenderResult;
@@ -116,6 +156,10 @@ export class SvgRenderNodeController extends NodeController {
   makeNode(uiContext: UIContext): FrameNode | null {
     if (this.rootNode === null) {
       this.rootNode = new SvgRenderNode(uiContext, new svg.SvgDrawable());
+      this.rootNode.setImageFetcher(this.imageFetcher);
+      this.rootNode.setInvalidateCallback(() => {
+        this.rootNode?.invalidate();
+      });
       if (this.needUpdateData) {
         this.needUpdateData = false;
         this.rootNode.update(this.data, this.color);
