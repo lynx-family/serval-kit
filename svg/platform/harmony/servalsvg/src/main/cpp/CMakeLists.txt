@@ -113,19 +113,19 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPattern.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPatternResolver.cc
         ${SVG_SRC_DIRECTORY}/src/utils/SrSVGPatternUtils.cc
-        ${SVG_SRC_DIRECTORY}/platform/harmony/servalsvg/SrLogHarmony.cc
+        ${NATIVERENDER_ROOT_PATH}/platform/harmony/SrLogHarmony.cc
         #harmony
         ${NATIVERENDER_ROOT_PATH}/entry.cc
         ${NATIVERENDER_ROOT_PATH}/svg_drawable.h
         ${NATIVERENDER_ROOT_PATH}/svg_drawable.cc
         ${SVG_SRC_DIRECTORY}/include/platform/harmony/sr_harmony_canvas.h
         ${SVG_SRC_DIRECTORY}/include/platform/harmony/sr_harmony_paragraph.h
-        ${SVG_SRC_DIRECTORY}/platform/harmony/servalsvg/sr_harmony_canvas.cc
-        ${SVG_SRC_DIRECTORY}/platform/harmony/servalsvg/sr_harmony_paragraph.cc
+        ${NATIVERENDER_ROOT_PATH}/platform/harmony/sr_harmony_canvas.cc
+        ${NATIVERENDER_ROOT_PATH}/platform/harmony/sr_harmony_paragraph.cc
         ${SVG_SRC_DIRECTORY}/include/platform/harmony/path_harmony_impl.h
-        ${SVG_SRC_DIRECTORY}/platform/harmony/servalsvg/path_harmony_impl.cc
+        ${NATIVERENDER_ROOT_PATH}/platform/harmony/path_harmony_impl.cc
         ${SVG_SRC_DIRECTORY}/include/platform/harmony/path_factory_harmony_impl.h
-        ${SVG_SRC_DIRECTORY}/platform/harmony/servalsvg/path_factory_harmony_impl.cc
+        ${NATIVERENDER_ROOT_PATH}/platform/harmony/path_factory_harmony_impl.cc
 )
 target_link_libraries(servalsvg PUBLIC libace_napi.z.so
                                  libhilog_ndk.z.so
