@@ -70,13 +70,6 @@ jobs:
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
 
-      - name: Run Markdown Initial Env
-        shell: bash
-        run: |
-          source tools/envsetup.sh
-          chmod +x markdown/tools/initial-markdown.sh
-          ./markdown/tools/initial-markdown.sh
-
       - name: Generate Change Log
         shell: bash
         working-directory: .
