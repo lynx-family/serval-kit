@@ -982,18 +982,6 @@ static float clamp01(float v) {
   return v;
 }
 
-static float sr_linearize(float c) {
-  if (c <= 0.04045f)
-    return c / 12.92f;
-  return powf((c + 0.055f) / 1.055f, 2.4f);
-}
-
-static float sr_compand(float c) {
-  if (c <= 0.0031308f)
-    return c * 12.92f;
-  return 1.055f * powf(c, 1.0f / 2.4f) - 0.055f;
-}
-
 static void skip_spaces_only(const char** s) {
   if (!*s) {
     return;
@@ -1177,18 +1165,9 @@ static bool parse_color_display_p3(const char* str, uint32_t* out_color) {
   g = clamp01(g_percent ? g / 100.0f : g);
   b = clamp01(b_percent ? b / 100.0f : b);
   a = clamp01(a_percent ? a / 100.0f : a);
-  float rl = sr_linearize(r);
-  float gl = sr_linearize(g);
-  float bl = sr_linearize(b);
-  float rs = 1.224940172f * rl + (-0.224921230f) * gl + 0.0f * bl;
-  float gs = (-0.042056914f) * rl + 1.041981879f * gl + 0.0f * bl;
-  float bs = (-0.019637621f) * rl + (-0.078636137f) * gl + 1.097948550f * bl;
-  rs = sr_compand(clamp01(rs));
-  gs = sr_compand(clamp01(gs));
-  bs = sr_compand(clamp01(bs));
   *out_color =
-      NSVG_RGBA((uint32_t)lrintf(rs * 255.0f), (uint32_t)lrintf(gs * 255.0f),
-                (uint32_t)lrintf(bs * 255.0f), (uint32_t)lrintf(a * 255.0f));
+      NSVG_RGBA((uint32_t)lrintf(r * 255.0f), (uint32_t)lrintf(g * 255.0f),
+                (uint32_t)lrintf(b * 255.0f), (uint32_t)lrintf(a * 255.0f));
   return true;
 }
 
