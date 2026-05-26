@@ -126,6 +126,7 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void RestoreLayer() override;
   void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
   void SetMaskIsLuminance(bool is_luminance) override;
+  void ApplyLuminanceToAlpha() override;
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,
@@ -139,6 +140,7 @@ class SrSkityCanvas : public canvas::SrCanvas {
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
   std::optional<::skity::BlendMode> blend_mode_override_;
   bool mask_is_luminance_{false};
+  bool dst_in_layer_active_{false};
 };
 
 }  // namespace skity

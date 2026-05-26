@@ -337,14 +337,12 @@ void SrSkityCanvas::Restore() {
 }
 
 void SrSkityCanvas::SaveLayer(const SrSVGBox* bounds) {
+  ::skity::Rect layer_bounds = canvas_->GetLocalClipBounds();
   if (bounds) {
-    auto rect = ::skity::Rect::MakeXYWH(bounds->left, bounds->top,
-                                        bounds->width, bounds->height);
-    canvas_->SaveLayer(rect, ::skity::Paint());
-    canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
-    return;
+    layer_bounds = ::skity::Rect::MakeXYWH(bounds->left, bounds->top,
+                                           bounds->width, bounds->height);
   }
-  canvas_->SaveLayer(::skity::Rect(), ::skity::Paint());
+  canvas_->SaveLayer(layer_bounds, ::skity::Paint());
   canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
 }
 
@@ -497,15 +495,40 @@ void SrSkityCanvas::RestoreLayer() {
 void SrSkityCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
   if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver) {
     blend_mode_override_.reset();
+    if (dst_in_layer_active_) {
+      canvas_->Restore();
+      dst_in_layer_active_ = false;
+    }
     return;
   }
   if (blend_mode == canvas::SrCanvasBlendMode::kDstIn) {
-    blend_mode_override_ = ::skity::BlendMode::kDstIn;
+    if (dst_in_layer_active_) {
+      return;
+    }
+
+    ::skity::Paint paint;
+    paint.SetBlendMode(::skity::BlendMode::kDstIn);
+    if (mask_is_luminance_) {
+      static const float kLumaToAlpha[20] = {
+          0.f,     0.f,     0.f,     0.f, 0.f,  //
+          0.f,     0.f,     0.f,     0.f, 0.f,  //
+          0.f,     0.f,     0.f,     0.f, 0.f,  //
+          0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
+      };
+      paint.SetColorFilter(::skity::ColorFilters::Matrix(kLumaToAlpha));
+    }
+    canvas_->SaveLayer(canvas_->GetLocalClipBounds(), paint);
+    dst_in_layer_active_ = true;
   }
 }
 
 void SrSkityCanvas::SetMaskIsLuminance(bool is_luminance) {
   mask_is_luminance_ = is_luminance;
+}
+
+void SrSkityCanvas::ApplyLuminanceToAlpha() {
+  // Luminance-to-alpha is applied by the restore paint of the dedicated DstIn
+  // mask layer, so no extra post-processing is needed here.
 }
 
 void SrSkityCanvas::DrawLine(const char*, float x1, float y1, float x2,
@@ -953,16 +976,6 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
 
   if (blend_mode_override_) {
     paint.SetBlendMode(*blend_mode_override_);
-  }
-  if (mask_is_luminance_ && blend_mode_override_ &&
-      *blend_mode_override_ == ::skity::BlendMode::kDstIn) {
-    static const float kLumaToAlpha[20] = {
-        0.f,     0.f,     0.f,     0.f, 0.f,  //
-        0.f,     0.f,     0.f,     0.f, 0.f,  //
-        0.f,     0.f,     0.f,     0.f, 0.f,  //
-        0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
-    };
-    paint.SetColorFilter(::skity::ColorFilters::Matrix(kLumaToAlpha));
   }
 
   return paint;
