@@ -18,16 +18,18 @@ struct ParsingContext {
   explicit ParsingContext(SrXMLParser* parser) : fParser(parser) {}
   ~ParsingContext() = default;
 
-  void flushText() {
+  bool flushText() {
     if (!fBufferedText.empty()) {
-      fParser->Text(fBufferedText.data(),
-                    static_cast<int>(fBufferedText.size()));
+      const bool should_stop =
+          fParser->Text(fBufferedText.data(), fBufferedText.size());
       fBufferedText.clear();
+      return should_stop;
     }
+    return false;
   }
 
   void appendText(const char* txt, size_t len) {
-    fBufferedText.insert(fBufferedText.end(), txt, &txt[len]);
+    fBufferedText.insert(fBufferedText.end(), txt, txt + len);
   }
 
   SrXMLParser* fParser;
@@ -39,29 +41,41 @@ struct ParsingContext {
 #define HANDLER_CONTEXT(arg, name) \
   ParsingContext* name = static_cast<ParsingContext*>(arg)
 
-void start_element_handler(void* data, const char* tag,
-                           const char** attributes) {
+bool start_element_handler(void* data, const char* tag, size_t tag_len,
+                           const SrXMLAttrView* attributes, size_t attr_count) {
   HANDLER_CONTEXT(data, ctx);
-  ctx->flushText();
-
-  ctx->fParser->StartElement(tag);
-
-  for (size_t i = 0; attributes[i]; i += 2) {
-    ctx->fParser->AddAttribute(attributes[i], attributes[i + 1]);
+  if (ctx->flushText()) {
+    return true;
   }
+
+  if (ctx->fParser->StartElement(tag, tag_len)) {
+    return true;
+  }
+
+  for (size_t i = 0; i < attr_count; ++i) {
+    if (ctx->fParser->AddAttribute(attributes[i].name, attributes[i].name_len,
+                                   attributes[i].value,
+                                   attributes[i].value_len)) {
+      return true;
+    }
+  }
+  return false;
 }
 
-void end_element_handler(void* data, const char* tag) {
+bool end_element_handler(void* data, const char* tag, size_t tag_len) {
   HANDLER_CONTEXT(data, ctx);
-  ctx->flushText();
+  if (ctx->flushText()) {
+    return true;
+  }
 
-  ctx->fParser->EndElement(tag);
+  return ctx->fParser->EndElement(tag, tag_len);
 }
 
-void text_handler(void* data, const char* txt) {
+bool text_handler(void* data, const char* txt, size_t len) {
   HANDLER_CONTEXT(data, ctx);
 
-  ctx->appendText(txt, strlen(txt));
+  ctx->appendText(txt, len);
+  return false;
 }
 
 SrXMLParser::SrXMLParser(SrXMLParserError* parserError)
@@ -70,42 +84,69 @@ SrXMLParser::SrXMLParser(SrXMLParserError* parserError)
 SrXMLParser::~SrXMLParser() = default;
 
 bool SrXMLParser::parse(const char doc[], size_t len) {
+  if (!doc || len == 0) {
+    if (fError) {
+      fError->SetCode(SrXMLParserError::kEmptyFile);
+      fError->SetNoun("");
+    }
+    return false;
+  }
+
   ParsingContext ctx(this);
-  return SrXMLParseXML((char*)doc, start_element_handler, end_element_handler,
-                       text_handler, &ctx);
+  const bool ok = SrXMLParseXML(doc, len, start_element_handler,
+                                end_element_handler, text_handler, &ctx);
+  if (!ok && fError && !fError->HasError()) {
+    fError->SetCode(SrXMLParserError::kUnknownError);
+    fError->SetNoun("malformed xml");
+  }
+  return ok;
 }
 
 void SrXMLParser::GetNativeErrorString(int error, std::string* str) {}
 
+bool SrXMLParser::StartElement(const char elem[], size_t len) {
+  return this->OnStartElement(elem, len);
+}
+
 bool SrXMLParser::StartElement(const char elem[]) {
-  return this->OnStartElement(elem);
+  return this->StartElement(elem, std::strlen(elem));
+}
+
+bool SrXMLParser::AddAttribute(const char name[], size_t name_len,
+                               const char value[], size_t value_len) {
+  return this->OnAddAttribute(name, name_len, value, value_len);
 }
 
 bool SrXMLParser::AddAttribute(const char name[], const char value[]) {
-  return this->OnAddAttribute(name, value);
+  return this->AddAttribute(name, std::strlen(name), value, std::strlen(value));
+}
+
+bool SrXMLParser::EndElement(const char elem[], size_t len) {
+  return this->OnEndElement(elem, len);
 }
 
 bool SrXMLParser::EndElement(const char elem[]) {
-  return this->OnEndElement(elem);
+  return this->EndElement(elem, std::strlen(elem));
 }
 
-bool SrXMLParser::Text(const char text[], int len) {
+bool SrXMLParser::Text(const char text[], size_t len) {
   return this->OnText(text, len);
 }
 
-bool SrXMLParser::OnStartElement(const char elem[]) {
+bool SrXMLParser::OnStartElement(const char elem[], size_t len) {
   return false;
 }
 
-bool SrXMLParser::OnAddAttribute(const char name[], const char value[]) {
+bool SrXMLParser::OnAddAttribute(const char name[], size_t name_len,
+                                 const char value[], size_t value_len) {
   return false;
 }
 
-bool SrXMLParser::OnEndElement(const char elem[]) {
+bool SrXMLParser::OnEndElement(const char elem[], size_t len) {
   return false;
 }
 
-bool SrXMLParser::OnText(const char text[], int len) {
+bool SrXMLParser::OnText(const char text[], size_t len) {
   return false;
 }
 

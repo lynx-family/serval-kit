@@ -37,7 +37,7 @@ class SrXMLParserError {
   void SetCode(ErrorCode code) { fCode = code; }
   void SetNoun(const std::string& str) { fNoun = str; }
   void SetNoun(const char* ch) { fNoun = ch; }
-  void SetNoun(const char* ch, size_t len) { fNoun = ch; }
+  void SetNoun(const char* ch, size_t len) { fNoun.assign(ch, len); }
 
  protected:
   ErrorCode fCode;

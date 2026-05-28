@@ -53,6 +53,8 @@ These cases historically map to native crash or parser loop bugs and should be
 treated as must-pass:
 
 - `invalid-extra-close-tag.svg`
+- `invalid-mismatched-close-tag.svg`
+- `invalid-unclosed-root-tag.svg`
 - `invalid-path-garbage-token.svg`
 - `invalid-path-incomplete-command.svg`
 - `invalid-polyline-garbage-token.svg`
@@ -102,6 +104,7 @@ These cases validate invalid style and color parsing fallback behavior:
 ### Round 1: Core Stability
 
 - `invalid-extra-close-tag.svg`
+- `invalid-mismatched-close-tag.svg`
 - `invalid-path-garbage-token.svg`
 - `invalid-polyline-garbage-token.svg`
 - `invalid-use-self-reference.svg`
@@ -130,6 +133,7 @@ These cases validate invalid style and color parsing fallback behavior:
 The current regression set covers bugs or risk areas around:
 
 - XML end-tag stack safety
+- unterminated root / container tag rejection
 - `path` invalid token handling
 - `polyline` invalid token handling
 - `<use>` recursive self-reference and cycle detection

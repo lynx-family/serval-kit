@@ -102,10 +102,16 @@ const SrDOM::Node* SrDOM::build(const char* data, size_t len,
     }
     return nullptr;
   }
+  if (!parser.Finish()) {
+    if (error) {
+      *error = parser.fParserError;
+    }
+    return nullptr;
+  }
   if (error) {
     *error = parser.fParserError;
   }
-  fRoot = parser.getRoot();
+  fRoot = parser.releaseRoot();
   return fRoot;
 }
 
@@ -139,7 +145,7 @@ const SrDOM::Node* SrDOM::Copy(const SrDOM& dom, const SrDOM::Node* node) {
 
   Walk_dom(dom, node, &parser);
 
-  fRoot = parser.getRoot();
+  fRoot = parser.releaseRoot();
   return fRoot;
 }
 
@@ -150,7 +156,12 @@ SrXMLParser* SrDOM::BeginParsing() {
 }
 
 const SrDOM::Node* SrDOM::FinishParsing() {
-  fRoot = fParser->getRoot();
+  if (!fParser->Finish()) {
+    fRoot = nullptr;
+    fParser.reset();
+    return nullptr;
+  }
+  fRoot = fParser->releaseRoot();
   fParser.reset();
 
   return fRoot;
@@ -191,22 +202,24 @@ static void Destroy_node(SrDOMNode* node) {
   if (!node) {
     return;
   }
-  SrDOMNode* child = node->fFirstChild;
-  SrDOMNode* next = NULL;
-  while (child) {
-    next = child->fNextSibling;
-    Destroy_node(child);
-    child = next;
+  std::vector<SrDOMNode*> stack;
+  stack.push_back(node);
+  while (!stack.empty()) {
+    SrDOMNode* current = stack.back();
+    stack.pop_back();
+    for (SrDOMNode* child = current->fFirstChild; child != nullptr;
+         child = child->fNextSibling) {
+      stack.push_back(child);
+    }
+    for (int i = 0; i < current->fAttrCount; i++) {
+      SrDOMAttr* attr = current->fAttrs + i;
+      free((void*)attr->fName);
+      free((void*)attr->fValue);
+    }
+    free(current->fAttrs);
+    free((void*)current->fName);
+    free(current);
   }
-  SrDOMAttr* attr = NULL;
-  for (int i = 0; i < node->fAttrCount; i++) {
-    attr = node->fAttrs + i;
-    free((void*)attr->fName);
-    free((void*)attr->fValue);
-  }
-  free(node->fAttrs);
-  free((void*)node->fName);
-  free(node);
 }
 
 }  // namespace parser
