@@ -17,19 +17,27 @@ namespace parser {
 class SrDOMParser : public SrXMLParser {
  public:
   explicit SrDOMParser(const SrSVGDiagnosticSink* diagnostic_sink = nullptr);
+  ~SrDOMParser() override;
 
+  bool Finish();
   SrDOM::Node* getRoot() const { return fRoot; }
+  SrDOM::Node* releaseRoot() {
+    auto* root = fRoot;
+    fRoot = nullptr;
+    return root;
+  }
   SrXMLParserError fParserError;
 
  protected:
-  void flushAttributes();
-  bool OnStartElement(const char elem[]) override;
-  bool OnAddAttribute(const char name[], const char value[]) override;
-  bool OnEndElement(const char elem[]) override;
-  bool OnText(const char text[], int len) override;
+  bool flushAttributes();
+  bool OnStartElement(const char elem[], size_t len) override;
+  bool OnAddAttribute(const char name[], size_t name_len, const char value[],
+                      size_t value_len) override;
+  bool OnEndElement(const char elem[], size_t len) override;
+  bool OnText(const char text[], size_t len) override;
 
  private:
-  void startCommon(const char elem[], size_t elemSize, SrDOM::Type type);
+  bool startCommon(const char elem[], size_t elemSize, SrDOM::Type type);
 
  private:
   std::vector<SrDOM::Node*> fParentStack;

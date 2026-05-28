@@ -30,17 +30,22 @@ class SrXMLParser {
 
  protected:
   // override in subclasses; return true to stop parsing
-  virtual bool OnStartElement(const char elem[]);
-  virtual bool OnAddAttribute(const char name[], const char value[]);
-  virtual bool OnEndElement(const char elem[]);
-  virtual bool OnText(const char text[], int len);
+  virtual bool OnStartElement(const char elem[], size_t len);
+  virtual bool OnAddAttribute(const char name[], size_t name_len,
+                              const char value[], size_t value_len);
+  virtual bool OnEndElement(const char elem[], size_t len);
+  virtual bool OnText(const char text[], size_t len);
 
  public:
   // public for ported implementation, not meant for clients to call
+  bool StartElement(const char elem[], size_t len);
   bool StartElement(const char elem[]);
+  bool AddAttribute(const char name[], size_t name_len, const char value[],
+                    size_t value_len);
   bool AddAttribute(const char name[], const char value[]);
+  bool EndElement(const char elem[], size_t len);
   bool EndElement(const char elem[]);
-  bool Text(const char text[], int len);
+  bool Text(const char text[], size_t len);
   void* fParser;
 
  protected:

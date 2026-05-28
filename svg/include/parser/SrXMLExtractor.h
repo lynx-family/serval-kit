@@ -9,17 +9,30 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+
 #include "stdbool.h"
 
-typedef void (*SrSVGStartElementCb)(void* ud, const char* el,
-                                    const char** attr);
-typedef void (*SrSVGEndElementCb)(void* ud, const char* el);
-typedef void (*SrSVGContentCb)(void* ud, const char* s);
+typedef struct SrXMLAttrView {
+  const char* name;
+  size_t name_len;
+  const char* value;
+  size_t value_len;
+} SrXMLAttrView;
 
-void SrXMLParseContent(char* s, SrSVGContentCb content, void* context);
-void SrXMLParseElement(char* s, SrSVGStartElementCb start_element,
+typedef bool (*SrSVGStartElementCb)(void* ud, const char* el, size_t el_len,
+                                    const SrXMLAttrView* attr,
+                                    size_t attr_count);
+typedef bool (*SrSVGEndElementCb)(void* ud, const char* el, size_t el_len);
+typedef bool (*SrSVGContentCb)(void* ud, const char* s, size_t len);
+
+bool SrXMLParseContent(const char* s, size_t len, SrSVGContentCb content,
+                       void* context);
+bool SrXMLParseElement(const char* s, size_t len,
+                       SrSVGStartElementCb start_element,
                        SrSVGEndElementCb end_element, void* context);
-bool SrXMLParseXML(char* input, SrSVGStartElementCb start_element,
+bool SrXMLParseXML(const char* input, size_t len,
+                   SrSVGStartElementCb start_element,
                    SrSVGEndElementCb end_element, SrSVGContentCb content,
                    void* context);
 
