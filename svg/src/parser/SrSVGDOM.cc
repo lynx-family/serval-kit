@@ -184,8 +184,86 @@ void RestoreAnimations(const std::list<element::SrSVGNodeBase*>& nodes) {
   }
 }
 
+bool HasAnimationsRecursive(const element::SrSVGNodeBase* node) {
+  if (!node || !node->IsSVGNode()) {
+    return false;
+  }
+  const auto* svg_node = static_cast<const element::SrSVGNode*>(node);
+  if (svg_node->HasAnimations()) {
+    return true;
+  }
+  if (IsContainerTag(node->Tag())) {
+    const auto* container = static_cast<const element::SrSVGContainer*>(node);
+    for (auto* child : container->children()) {
+      if (HasAnimationsRecursive(child)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 element::SrSVGNodeBase* make_svg_node(const char* el) {
-  element::SrSVGNodeBase* node = make_svg_node(el);
+  element::SrSVGNodeBase* node = nullptr;
+  if (strcmp(el, "animate") == 0) {
+    node = element::SrSVGAnimation::MakeAnimate();
+  } else if (strcmp(el, "animateTransform") == 0) {
+    node = element::SrSVGAnimation::MakeAnimateTransform();
+  } else if (strcmp(el, "svg") == 0) {
+    node = element::SrSVGSVG::Make();
+  } else if (strcmp(el, "rect") == 0) {
+    node = element::SrSVGRect::Make();
+  } else if (strcmp(el, "circle") == 0) {
+    node = element::SrSVGCircle::Make();
+  } else if (strcmp(el, "line") == 0) {
+    node = element::SrSVGLine::Make();
+  } else if (strcmp(el, "polygon") == 0) {
+    node = element::SrSVGPolygon::Make();
+  } else if (strcmp(el, "polyline") == 0) {
+    node = element::SrSVGPolyLine::Make();
+  } else if (strcmp(el, "path") == 0) {
+    node = element::SrSVGPath::Make();
+  } else if (strcmp(el, "pattern") == 0) {
+    node = element::SrSVGPattern::Make();
+  } else if (strcmp(el, "ellipse") == 0) {
+    node = element::SrSVGEllipse::Make();
+  } else if (strcmp(el, "defs") == 0) {
+    node = element::SrSVGDefs::Make();
+  } else if (strcmp(el, "stop") == 0) {
+    node = element::SrSVGStop::Make();
+  } else if (strcmp(el, "linearGradient") == 0) {
+    node = element::SrSVGLinearGradient::Make();
+  } else if (strcmp(el, "radialGradient") == 0) {
+    node = element::SrSVGRadialGradient::Make();
+  } else if (strcmp(el, "mask") == 0) {
+    node = element::SrSVGMask::Make();
+  } else if (strcmp(el, "use") == 0) {
+    node = element::SrSVGUse::Make();
+  } else if (strcmp(el, "image") == 0) {
+    node = element::SrSVGImage::Make();
+  } else if (strcmp(el, "clipPath") == 0) {
+    node = element::SrSVGClipPath::Make();
+  } else if (strcmp(el, "filter") == 0) {
+    node = element::SrSVGFilter::Make();
+  } else if (strcmp(el, "feGaussianBlur") == 0) {
+    node = element::SrSVGFeGaussianBlur::Make();
+  } else if (strcmp(el, "feOffset") == 0) {
+    node = element::SrSVGFeOffset::Make();
+  } else if (strcmp(el, "feColorMatrix") == 0) {
+    node = element::SrSVGFeColorMatrix::Make();
+  } else if (strcmp(el, "feComposite") == 0) {
+    node = element::SrSVGFeComposite::Make();
+  } else if (strcmp(el, "feBlend") == 0) {
+    node = element::SrSVGFeBlend::Make();
+  } else if (strcmp(el, "feFlood") == 0) {
+    node = element::SrSVGFeFlood::Make();
+  } else if (strcmp(el, "g") == 0) {
+    node = element::SrSVGG::Make();
+  } else if (strcmp(el, "text") == 0) {
+    node = element::SrSVGText::Make();
+  } else if (strcmp(el, "tspan") == 0) {
+    node = element::SrSVGTextSpan::Make();
+  }
   return node;
 }
 
@@ -899,6 +977,43 @@ void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
   ApplyAnimations(nodes_, seconds);
   Render(canvas, view_port);
   RestoreAnimations(nodes_);
+}
+
+size_t SrSVGDOM::LayerCount() const {
+  return root_ ? root_->ChildCount() : 0;
+}
+
+bool SrSVGDOM::LayerHasAnimations(size_t index) const {
+  if (!root_ || index >= root_->children().size()) {
+    return false;
+  }
+  return HasAnimationsRecursive(root_->children()[index]);
+}
+
+void SrSVGDOM::RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                                 size_t index, double seconds) const {
+  if (!root_ || !canvas || index >= root_->children().size()) {
+    return;
+  }
+  ApplyAnimations(nodes_, seconds);
+  SrSVGBox view_box = root_->viewBox();
+  float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
+  SrSVGTraversalState render_state;
+  SrSVGRenderContext context{
+      .width = view_port.width,
+      .height = view_port.height,
+      .dpi = local_dpi,
+      .font_size = 0.f,
+      .id_mapper = id_mapper_,
+      .traversal_state = &render_state,
+      .view_port = view_port,
+      .view_box = view_box,
+      .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
+      .default_color = default_color_.value_or(0),
+  };
+  root_->RenderChildAt(canvas, context, index);
+  RestoreAnimations(nodes_);
+  ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
 }
 
 SrSVGHitTestResult SrSVGDOM::HitTest(canvas::PathFactory* path_factory, float x,

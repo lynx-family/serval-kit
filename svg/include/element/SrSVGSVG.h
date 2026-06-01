@@ -24,6 +24,8 @@ class SrSVGSVG : public SrSVGContainer {
   inline SrSVGPreserveAspectRatio preserveAspectRatio() const {
     return preserve_aspect_radio_;
   }
+  bool RenderChildAt(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                     size_t index) override;
 
  protected:
   bool OnPrepareToRender(canvas::SrCanvas* canvas,

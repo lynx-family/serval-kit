@@ -83,6 +83,29 @@ void SrSVGSVG::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   SrSVGContainer::OnRender(canvas, context);
 }
 
+bool SrSVGSVG::RenderChildAt(canvas::SrCanvas* canvas,
+                             SrSVGRenderContext& context, size_t index) {
+  canvas->Save();
+  canvas->SetRenderContext(&context);
+  if (!OnPrepareToRender(canvas, context)) {
+    canvas->Restore();
+    return false;
+  }
+  if (has_css_transform_) {
+    float centered[6];
+    xform_identity(centered);
+    const float cx = view_box_.left + view_box_.width * 0.5f;
+    const float cy = view_box_.top + view_box_.height * 0.5f;
+    xform_pre_translate(centered, cx, cy);
+    xform_multiply(centered, css_transform_);
+    xform_pre_translate(centered, -cx, -cy);
+    canvas->Transform(centered);
+  }
+  bool rendered = SrSVGContainer::RenderChildAt(canvas, context, index);
+  canvas->Restore();
+  return rendered;
+}
+
 }  // namespace element
 }  // namespace svg
 }  // namespace serval

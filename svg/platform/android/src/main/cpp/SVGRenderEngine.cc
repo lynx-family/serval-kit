@@ -51,6 +51,14 @@ jobjectArray renderStreamingSessionAtTimeWithDiagnostics(
     JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jfloat left,
     jfloat top, jfloat width, jfloat height, jstring j_color,
     jdouble seconds);
+jint getStreamingSessionLayerCount(JNIEnv* env, jobject j_engine,
+                                   jlong handle);
+jboolean isStreamingSessionLayerAnimated(JNIEnv* env, jobject j_engine,
+                                         jlong handle, jint index);
+jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
+    jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds);
 jobject hitTestStreamingSession(JNIEnv* env, jobject j_engine, jobject j_render,
                                 jlong handle, jfloat left, jfloat top,
                                 jfloat width, jfloat height, jfloat x,
@@ -231,6 +239,24 @@ int registerNativeMethod(JNIEnv* env) {
                        "SVGRender$SVGDiagnostic;",
           .fnPtr = reinterpret_cast<void*>(
               renderStreamingSessionAtTimeWithDiagnostics),
+      },
+      {
+          .name = "getStreamingSessionLayerCount",
+          .signature = "(J)I",
+          .fnPtr = reinterpret_cast<void*>(getStreamingSessionLayerCount),
+      },
+      {
+          .name = "isStreamingSessionLayerAnimated",
+          .signature = "(JI)Z",
+          .fnPtr = reinterpret_cast<void*>(isStreamingSessionLayerAnimated),
+      },
+      {
+          .name = "renderStreamingSessionLayerAtTimeWithDiagnostics",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JIFFFFLjava/lang/"
+                       "String;D)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(
+              renderStreamingSessionLayerAtTimeWithDiagnostics),
       },
       {
           .name = "hitTestStreamingSession",
@@ -449,6 +475,42 @@ jobjectArray renderStreamingSessionAtTimeWithDiagnostics(
   ApplyDefaultColor(env, svg_dom, j_color);
   RenderSvgDomAtTime(env, j_engine, j_render, svg_dom, left, top, width,
                      height, seconds);
+  return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
+}
+
+jint getStreamingSessionLayerCount(JNIEnv* env, jobject j_engine,
+                                   jlong handle) {
+  (void)env;
+  (void)j_engine;
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  return svg_dom ? static_cast<jint>(svg_dom->LayerCount()) : 0;
+}
+
+jboolean isStreamingSessionLayerAnimated(JNIEnv* env, jobject j_engine,
+                                         jlong handle, jint index) {
+  (void)env;
+  (void)j_engine;
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  if (!svg_dom || index < 0) {
+    return JNI_FALSE;
+  }
+  return svg_dom->LayerHasAnimations(static_cast<size_t>(index)) ? JNI_TRUE
+                                                                 : JNI_FALSE;
+}
+
+jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
+    jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds) {
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  if (!svg_dom || index < 0) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  ApplyDefaultColor(env, svg_dom, j_color);
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  svg_dom->RenderLayerAtTime(&sr_android_canvas, view_port,
+                             static_cast<size_t>(index), seconds);
   return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
 }
 

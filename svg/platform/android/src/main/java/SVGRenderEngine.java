@@ -131,6 +131,15 @@ public class SVGRenderEngine {
                                               @Nullable String color,
                                               double seconds);
 
+  native int getStreamingSessionLayerCount(long handle);
+
+  native boolean isStreamingSessionLayerAnimated(long handle, int index);
+
+  native SVGRender.SVGDiagnostic[]
+  renderStreamingSessionLayerAtTimeWithDiagnostics(
+      SVGRender svgRender, long handle, int index, float left, float top,
+      float width, float height, @Nullable String color, double seconds);
+
   native SVGRender.SVGHitTestResult hitTestStreamingSession(
       SVGRender svgRender, long handle, float left, float top, float width,
       float height, float x, float y);
