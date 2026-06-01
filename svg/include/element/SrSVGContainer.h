@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGCONTAINER_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGCONTAINER_H_
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -25,12 +26,17 @@ class SrSVGContainer : public SrSVGNode {
       SrSVGRenderContext* context) const override;
 
   const std::vector<SrSVGNodeBase*>& children() const { return children_; }
+  size_t ChildCount() const;
+  virtual bool RenderChildAt(canvas::SrCanvas* canvas,
+                             SrSVGRenderContext& context, size_t index);
 
  protected:
   explicit SrSVGContainer(SrSVGTag t) : SrSVGNode(t){};
   ~SrSVGContainer() override;
   void OnRender(canvas::SrCanvas*, SrSVGRenderContext&) override;
   [[nodiscard]] bool HasChildren() const final;
+  void RenderChild(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                   SrSVGNodeBase* child);
 
  protected:
   std::vector<SrSVGNodeBase*> children_;

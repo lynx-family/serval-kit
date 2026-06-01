@@ -32,98 +32,118 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
     canvas->BeginOpacityLayer(nullptr, group_opacity);
   }
   for (SrSVGNodeBase* child : children_) {
-    if (child) {
-      auto node = static_cast<SrSVGNode*>(child);
-      SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
-      SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
-      SrSVGPaint* local_clip_path = node->inherit_clip_path_;
-      SrSVGPaint* local_mask = node->inherit_mask_;
-      std::optional<SrSVGLength> local_stroke_width =
-          node->inherit_stroke_width_;
-      std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
-      std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
-      std::optional<SrSVGColor> local_color = node->inherit_color_;
-
-      if (node->fill_) {
-        node->inherit_fill_paint_ = node->fill_;
-      } else if (fill_) {
-        node->inherit_fill_paint_ = fill_;
-      } else if (inherit_fill_paint_) {
-        node->inherit_fill_paint_ = inherit_fill_paint_;
-      }
-
-      if (node->stroke_) {
-        node->inherit_stroke_paint_ = node->stroke_;
-      } else if (stroke_) {
-        node->inherit_stroke_paint_ = stroke_;
-      } else if (inherit_stroke_paint_) {
-        node->inherit_stroke_paint_ = inherit_stroke_paint_;
-      }
-
-      if (node->clip_path_) {
-        node->inherit_clip_path_ = node->clip_path_;
-      } else if (clip_path_) {
-        node->inherit_clip_path_ = clip_path_;
-      } else if (inherit_clip_path_) {
-        node->inherit_clip_path_ = inherit_clip_path_;
-      }
-
-      if (node->mask_) {
-        node->inherit_mask_ = node->mask_;
-      } else if (mask_) {
-        node->inherit_mask_ = mask_;
-      } else if (inherit_mask_) {
-        node->inherit_mask_ = inherit_mask_;
-      }
-
-      if (node->stroke_width_) {
-        node->inherit_stroke_width_ = node->stroke_width_;
-      } else if (stroke_width_) {
-        node->inherit_stroke_width_ = stroke_width_;
-      } else if (inherit_stroke_width_) {
-        node->inherit_stroke_width_ = inherit_stroke_width_;
-      }
-
-      if (node->fill_opacity_) {
-        node->inherit_fill_opacity_ = node->fill_opacity_;
-      } else if (fill_opacity_) {
-        node->inherit_fill_opacity_ = fill_opacity_;
-      } else if (inherit_fill_opacity_) {
-        node->inherit_fill_opacity_ = inherit_fill_opacity_;
-      } else {
-      }
-
-      if (node->stroke_opacity_) {
-        node->inherit_stroke_opacity_ = node->stroke_opacity_;
-      } else if (stroke_opacity_) {
-        node->inherit_stroke_opacity_ = stroke_opacity_;
-      } else if (inherit_stroke_opacity_) {
-        node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
-      }
-
-      if (node->color_) {
-        node->inherit_color_ = node->color_;
-      } else if (color_) {
-        node->inherit_color_ = color_;
-      } else if (inherit_color_) {
-        node->inherit_color_ = inherit_color_;
-      }
-
-      child->Render(canvas, context);
-
-      node->inherit_fill_paint_ = local_fill_paint;
-      node->inherit_stroke_paint_ = local_stroke_paint;
-      node->inherit_clip_path_ = local_clip_path;
-      node->inherit_mask_ = local_mask;
-      node->inherit_fill_opacity_ = local_fill_opacity;
-      node->inherit_stroke_opacity_ = local_stroke_opacity;
-      node->inherit_stroke_width_ = local_stroke_width;
-      node->inherit_color_ = local_color;
-    }
+    RenderChild(canvas, context, child);
   }
   if (has_opacity_layer) {
     canvas->EndOpacityLayer();
   }
+}
+
+void SrSVGContainer::RenderChild(canvas::SrCanvas* canvas,
+                                 SrSVGRenderContext& context,
+                                 SrSVGNodeBase* child) {
+  if (!child || !child->IsSVGNode()) {
+    return;
+  }
+  auto node = static_cast<SrSVGNode*>(child);
+  SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
+  SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
+  SrSVGPaint* local_clip_path = node->inherit_clip_path_;
+  SrSVGPaint* local_mask = node->inherit_mask_;
+  std::optional<SrSVGLength> local_stroke_width = node->inherit_stroke_width_;
+  std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
+  std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
+  std::optional<SrSVGColor> local_color = node->inherit_color_;
+
+  if (node->fill_) {
+    node->inherit_fill_paint_ = node->fill_;
+  } else if (fill_) {
+    node->inherit_fill_paint_ = fill_;
+  } else if (inherit_fill_paint_) {
+    node->inherit_fill_paint_ = inherit_fill_paint_;
+  }
+
+  if (node->stroke_) {
+    node->inherit_stroke_paint_ = node->stroke_;
+  } else if (stroke_) {
+    node->inherit_stroke_paint_ = stroke_;
+  } else if (inherit_stroke_paint_) {
+    node->inherit_stroke_paint_ = inherit_stroke_paint_;
+  }
+
+  if (node->clip_path_) {
+    node->inherit_clip_path_ = node->clip_path_;
+  } else if (clip_path_) {
+    node->inherit_clip_path_ = clip_path_;
+  } else if (inherit_clip_path_) {
+    node->inherit_clip_path_ = inherit_clip_path_;
+  }
+
+  if (node->mask_) {
+    node->inherit_mask_ = node->mask_;
+  } else if (mask_) {
+    node->inherit_mask_ = mask_;
+  } else if (inherit_mask_) {
+    node->inherit_mask_ = inherit_mask_;
+  }
+
+  if (node->stroke_width_) {
+    node->inherit_stroke_width_ = node->stroke_width_;
+  } else if (stroke_width_) {
+    node->inherit_stroke_width_ = stroke_width_;
+  } else if (inherit_stroke_width_) {
+    node->inherit_stroke_width_ = inherit_stroke_width_;
+  }
+
+  if (node->fill_opacity_) {
+    node->inherit_fill_opacity_ = node->fill_opacity_;
+  } else if (fill_opacity_) {
+    node->inherit_fill_opacity_ = fill_opacity_;
+  } else if (inherit_fill_opacity_) {
+    node->inherit_fill_opacity_ = inherit_fill_opacity_;
+  }
+
+  if (node->stroke_opacity_) {
+    node->inherit_stroke_opacity_ = node->stroke_opacity_;
+  } else if (stroke_opacity_) {
+    node->inherit_stroke_opacity_ = stroke_opacity_;
+  } else if (inherit_stroke_opacity_) {
+    node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
+  }
+
+  if (node->color_) {
+    node->inherit_color_ = node->color_;
+  } else if (color_) {
+    node->inherit_color_ = color_;
+  } else if (inherit_color_) {
+    node->inherit_color_ = inherit_color_;
+  }
+
+  child->Render(canvas, context);
+
+  node->inherit_fill_paint_ = local_fill_paint;
+  node->inherit_stroke_paint_ = local_stroke_paint;
+  node->inherit_clip_path_ = local_clip_path;
+  node->inherit_mask_ = local_mask;
+  node->inherit_fill_opacity_ = local_fill_opacity;
+  node->inherit_stroke_opacity_ = local_stroke_opacity;
+  node->inherit_stroke_width_ = local_stroke_width;
+  node->inherit_color_ = local_color;
+}
+
+size_t SrSVGContainer::ChildCount() const {
+  return children_.size();
+}
+
+bool SrSVGContainer::RenderChildAt(canvas::SrCanvas* canvas,
+                                   SrSVGRenderContext& context,
+                                   size_t index) {
+  if (index >= children_.size()) {
+    return false;
+  }
+  canvas->Transform(transform_);
+  RenderChild(canvas, context, children_[index]);
+  return true;
 }
 
 std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(

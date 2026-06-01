@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PARSER_SRSVGDOM_H_
 #define SVG_INCLUDE_PARSER_SRSVGDOM_H_
 
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <optional>
@@ -56,6 +57,10 @@ class SrSVGDOM {
   void RenderAtTime(canvas::SrCanvas* canvas, double seconds) const;
   void RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
                     double seconds) const;
+  size_t LayerCount() const;
+  bool LayerHasAnimations(size_t index) const;
+  void RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                         size_t index, double seconds) const;
   SrSVGHitTestResult HitTest(canvas::PathFactory* path_factory, float x,
                              float y) const;
   SrSVGHitTestResult HitTest(canvas::PathFactory* path_factory,
