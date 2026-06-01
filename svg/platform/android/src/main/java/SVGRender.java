@@ -154,6 +154,128 @@ public class SVGRender {
     }
   }
 
+  public static final class SVGSession implements AutoCloseable {
+    private final SVGRender mRender;
+    private long mNativeHandle;
+
+    SVGSession(@NonNull SVGRender render, long nativeHandle) {
+      mRender = render;
+      mNativeHandle = nativeHandle;
+    }
+
+    public boolean isValid() {
+      return mNativeHandle != 0;
+    }
+
+    public SVGRenderResult renderPictureAtTimeWithResult(
+        Rect viewPort, double seconds) {
+      Picture picture = new Picture();
+      mRender.mPictureCanvas =
+          picture.beginRecording(viewPort.width(), viewPort.height());
+      SVGDiagnostic[] diagnostics = null;
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        diagnostics =
+            mRender.mSVGRenderEngineNG.renderSessionAtTimeWithDiagnostics(
+                mRender, mNativeHandle, viewPort.left, viewPort.top,
+                viewPort.width(), viewPort.height(), mRender.getColor(),
+                seconds);
+      }
+      picture.endRecording();
+      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+    }
+
+    public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
+      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null) {
+        return new SVGHitTestResult(false, "", "");
+      }
+      return mRender.mSVGRenderEngineNG.hitTestSession(
+          mRender, mNativeHandle, viewPort.left, viewPort.top,
+          viewPort.width(), viewPort.height(), x, y);
+    }
+
+    @Override
+    public void close() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.destroySession(mNativeHandle);
+      }
+      mNativeHandle = 0;
+    }
+  }
+
+  public static final class StreamingSVGSession implements AutoCloseable {
+    private final SVGRender mRender;
+    private long mNativeHandle;
+    private boolean mFinished;
+
+    StreamingSVGSession(@NonNull SVGRender render, long nativeHandle) {
+      mRender = render;
+      mNativeHandle = nativeHandle;
+    }
+
+    public boolean isValid() {
+      return mNativeHandle != 0;
+    }
+
+    public boolean isFinished() {
+      return mFinished;
+    }
+
+    public List<SVGDiagnostic> append(String chunk) {
+      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null ||
+          mFinished) {
+        return Collections.emptyList();
+      }
+      return toDiagnosticList(
+          mRender.mSVGRenderEngineNG.appendStreamingSession(mNativeHandle,
+                                                            chunk));
+    }
+
+    public List<SVGDiagnostic> finish() {
+      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null ||
+          mFinished) {
+        return Collections.emptyList();
+      }
+      mFinished = true;
+      return toDiagnosticList(
+          mRender.mSVGRenderEngineNG.finishStreamingSession(mNativeHandle));
+    }
+
+    public SVGRenderResult renderPictureAtTimeWithResult(
+        Rect viewPort, double seconds) {
+      Picture picture = new Picture();
+      mRender.mPictureCanvas =
+          picture.beginRecording(viewPort.width(), viewPort.height());
+      SVGDiagnostic[] diagnostics = null;
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        diagnostics = mRender.mSVGRenderEngineNG
+                          .renderStreamingSessionAtTimeWithDiagnostics(
+                              mRender, mNativeHandle, viewPort.left,
+                              viewPort.top, viewPort.width(),
+                              viewPort.height(), mRender.getColor(), seconds);
+      }
+      picture.endRecording();
+      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+    }
+
+    public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
+      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null) {
+        return new SVGHitTestResult(false, "", "");
+      }
+      return mRender.mSVGRenderEngineNG.hitTestStreamingSession(
+          mRender, mNativeHandle, viewPort.left, viewPort.top,
+          viewPort.width(), viewPort.height(), x, y);
+    }
+
+    @Override
+    public void close() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.destroyStreamingSession(mNativeHandle);
+      }
+      mNativeHandle = 0;
+      mFinished = true;
+    }
+  }
+
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
     mGradientModels = new HashMap<>();
@@ -236,11 +358,7 @@ public class SVGRender {
           viewPort.height(), getColor(), seconds);
     }
     picture.endRecording();
-    List<SVGDiagnostic> diagnosticList =
-        diagnostics == null || diagnostics.length == 0
-            ? Collections.emptyList()
-            : Collections.unmodifiableList(Arrays.asList(diagnostics));
-    return new SVGRenderResult(picture, diagnosticList);
+    return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
   }
 
   public List<SVGDiagnostic> parseStreamingWithDiagnostics(String[] chunks) {
@@ -248,9 +366,7 @@ public class SVGRender {
         mSVGRenderEngineNG == null
             ? null
             : mSVGRenderEngineNG.parseStreamingWithDiagnostics(chunks);
-    return diagnostics == null || diagnostics.length == 0
-        ? Collections.emptyList()
-        : Collections.unmodifiableList(Arrays.asList(diagnostics));
+    return toDiagnosticList(diagnostics);
   }
 
   public SVGHitTestResult hitTest(String content, Rect viewPort, float x,
@@ -261,6 +377,27 @@ public class SVGRender {
     return mSVGRenderEngineNG.hitTest(this, content, viewPort.left,
                                       viewPort.top, viewPort.width(),
                                       viewPort.height(), x, y);
+  }
+
+  public SVGSession createSession(String content) {
+    long handle = mSVGRenderEngineNG == null
+                      ? 0
+                      : mSVGRenderEngineNG.createSession(content);
+    return new SVGSession(this, handle);
+  }
+
+  public StreamingSVGSession createStreamingSession() {
+    long handle = mSVGRenderEngineNG == null
+                      ? 0
+                      : mSVGRenderEngineNG.createStreamingSession();
+    return new StreamingSVGSession(this, handle);
+  }
+
+  private static List<SVGDiagnostic> toDiagnosticList(
+      SVGDiagnostic[] diagnostics) {
+    return diagnostics == null || diagnostics.length == 0
+        ? Collections.emptyList()
+        : Collections.unmodifiableList(Arrays.asList(diagnostics));
   }
 
   public void setViewBox(float x, float y, float width, float height) {}

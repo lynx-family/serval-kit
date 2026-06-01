@@ -4,6 +4,8 @@
 
 #include <android/log.h>
 #include <jni.h>
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -31,6 +33,29 @@ jobjectArray parseStreamingWithDiagnostics(JNIEnv* env, jobject j_engine,
 jobject hitTest(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
                 jfloat left, jfloat top, jfloat width, jfloat height, jfloat x,
                 jfloat y);
+jlong createSession(JNIEnv* env, jobject j_engine, jstring j_str);
+void destroySession(JNIEnv* env, jobject j_engine, jlong handle);
+jobjectArray renderSessionAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds);
+jobject hitTestSession(JNIEnv* env, jobject j_engine, jobject j_render,
+                       jlong handle, jfloat left, jfloat top, jfloat width,
+                       jfloat height, jfloat x, jfloat y);
+jlong createStreamingSession(JNIEnv* env, jobject j_engine);
+void destroyStreamingSession(JNIEnv* env, jobject j_engine, jlong handle);
+jobjectArray appendStreamingSession(JNIEnv* env, jobject j_engine,
+                                    jlong handle, jstring j_chunk);
+jobjectArray finishStreamingSession(JNIEnv* env, jobject j_engine,
+                                    jlong handle);
+jobjectArray renderStreamingSessionAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds);
+jobject hitTestStreamingSession(JNIEnv* env, jobject j_engine, jobject j_render,
+                                jlong handle, jfloat left, jfloat top,
+                                jfloat width, jfloat height, jfloat x,
+                                jfloat y);
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,
                                       jfloat vp_left, jfloat vp_top,
                                       jfloat vp_width, jfloat vp_height,
@@ -54,6 +79,211 @@ jobjectArray CreateJavaDiagnosticArray(
     const std::vector<serval::svg::parser::SrSVGDiagnostic>& diagnostics);
 jobject CreateJavaHitTestResult(
     JNIEnv* env, const serval::svg::parser::SrSVGHitTestResult& hit_result);
+
+namespace {
+
+struct NativeSvgSession {
+  std::unique_ptr<SrSVGDOM> dom;
+  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
+};
+
+struct NativeStreamingSvgSession {
+  std::unique_ptr<SrSVGDOMStreamBuilder> builder{
+      std::make_unique<SrSVGDOMStreamBuilder>()};
+  std::string content;
+  std::unique_ptr<SrSVGDOM> preview_dom;
+  std::unique_ptr<SrSVGDOM> final_dom;
+  std::string preview_source;
+  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
+  std::vector<serval::svg::parser::SrSVGDiagnostic> preview_diagnostics;
+  bool preview_dirty{true};
+  bool append_failed{false};
+  bool finished{false};
+};
+
+bool IsNameChar(char c) {
+  return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' ||
+         c == ':' || c == '.';
+}
+
+std::string TrimTagName(const std::string& tag, size_t start) {
+  while (start < tag.size() &&
+         std::isspace(static_cast<unsigned char>(tag[start]))) {
+    ++start;
+  }
+  const size_t name_start = start;
+  while (start < tag.size() && IsNameChar(tag[start])) {
+    ++start;
+  }
+  return tag.substr(name_start, start - name_start);
+}
+
+bool IsSelfClosingTag(const std::string& tag) {
+  for (auto it = tag.rbegin(); it != tag.rend(); ++it) {
+    if (std::isspace(static_cast<unsigned char>(*it))) {
+      continue;
+    }
+    return *it == '/';
+  }
+  return false;
+}
+
+void PopOpenTag(std::vector<std::string>* stack, const std::string& name) {
+  if (!stack || name.empty()) {
+    return;
+  }
+  for (auto it = stack->rbegin(); it != stack->rend(); ++it) {
+    if (*it == name) {
+      stack->resize(static_cast<size_t>(std::distance(it, stack->rend()) - 1));
+      return;
+    }
+  }
+}
+
+std::string BuildPreviewSvg(const std::string& input) {
+  const size_t svg_start = input.find("<svg");
+  if (svg_start == std::string::npos) {
+    return "";
+  }
+
+  std::vector<std::string> open_tags;
+  bool in_tag = false;
+  char quote = '\0';
+  size_t tag_start = std::string::npos;
+  size_t last_complete = std::string::npos;
+  size_t root_close = std::string::npos;
+
+  for (size_t i = svg_start; i < input.size(); ++i) {
+    const char token = input[i];
+    if (!in_tag) {
+      if (token == '<') {
+        in_tag = true;
+        quote = '\0';
+        tag_start = i;
+      }
+      continue;
+    }
+
+    if (quote != '\0') {
+      if (token == quote) {
+        quote = '\0';
+      }
+      continue;
+    }
+    if (token == '"' || token == '\'') {
+      quote = token;
+      continue;
+    }
+    if (token != '>') {
+      continue;
+    }
+
+    const std::string tag =
+        input.substr(tag_start + 1, i - tag_start - 1);
+    last_complete = i + 1;
+    in_tag = false;
+    tag_start = std::string::npos;
+
+    size_t tag_offset = 0;
+    while (tag_offset < tag.size() &&
+           std::isspace(static_cast<unsigned char>(tag[tag_offset]))) {
+      ++tag_offset;
+    }
+    if (tag_offset >= tag.size() || tag[tag_offset] == '!' ||
+        tag[tag_offset] == '?') {
+      continue;
+    }
+
+    if (tag[tag_offset] == '/') {
+      const std::string name = TrimTagName(tag, tag_offset + 1);
+      PopOpenTag(&open_tags, name);
+      if (name == "svg") {
+        root_close = i + 1;
+        break;
+      }
+      continue;
+    }
+
+    const std::string name = TrimTagName(tag, tag_offset);
+    if (!name.empty() && !IsSelfClosingTag(tag)) {
+      open_tags.push_back(name);
+    }
+  }
+
+  if (root_close != std::string::npos) {
+    return input.substr(svg_start, root_close - svg_start);
+  }
+  if (last_complete == std::string::npos || open_tags.empty() ||
+      open_tags.front() != "svg") {
+    return "";
+  }
+
+  std::string preview = input.substr(svg_start, last_complete - svg_start);
+  for (auto it = open_tags.rbegin(); it != open_tags.rend(); ++it) {
+    preview.append("</");
+    preview.append(*it);
+    preview.append(">");
+  }
+  return preview;
+}
+
+NativeSvgSession* AsSvgSession(jlong handle) {
+  return reinterpret_cast<NativeSvgSession*>(handle);
+}
+
+NativeStreamingSvgSession* AsStreamingSession(jlong handle) {
+  return reinterpret_cast<NativeStreamingSvgSession*>(handle);
+}
+
+SrSVGDOM* EnsureStreamingPreviewDom(NativeStreamingSvgSession* session) {
+  if (!session) {
+    return nullptr;
+  }
+  if (session->final_dom) {
+    return session->final_dom.get();
+  }
+  if (!session->preview_dirty) {
+    return session->preview_dom.get();
+  }
+
+  std::string preview = BuildPreviewSvg(session->content);
+  if (preview.empty()) {
+    session->preview_dirty = false;
+    return session->preview_dom.get();
+  }
+  if (preview == session->preview_source && session->preview_dom) {
+    session->preview_dirty = false;
+    return session->preview_dom.get();
+  }
+
+  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
+  auto preview_dom =
+      SrSVGDOM::make(preview.c_str(), preview.size(), &diagnostics);
+  session->preview_diagnostics = diagnostics;
+  if (preview_dom) {
+    session->preview_source = std::move(preview);
+    session->preview_dom = std::move(preview_dom);
+  }
+  session->preview_dirty = false;
+  return session->preview_dom.get();
+}
+
+const std::vector<serval::svg::parser::SrSVGDiagnostic>&
+RenderableStreamingDiagnostics(NativeStreamingSvgSession* session) {
+  if (!session) {
+    static const std::vector<serval::svg::parser::SrSVGDiagnostic> empty;
+    return empty;
+  }
+  if (session->final_dom) {
+    return session->final_dom->diagnostics();
+  }
+  if (session->preview_dom) {
+    return session->preview_dom->diagnostics();
+  }
+  return session->preview_diagnostics;
+}
+
+}  // namespace
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   InitVM(vm);
@@ -107,6 +337,67 @@ int registerNativeMethod(JNIEnv* env) {
                        "String;FFFFFF)Lcom/lynx/serval/svg/SVGRender$"
                        "SVGHitTestResult;",
           .fnPtr = reinterpret_cast<void*>(hitTest),
+      },
+      {
+          .name = "createSession",
+          .signature = "(Ljava/lang/String;)J",
+          .fnPtr = reinterpret_cast<void*>(createSession),
+      },
+      {
+          .name = "destroySession",
+          .signature = "(J)V",
+          .fnPtr = reinterpret_cast<void*>(destroySession),
+      },
+      {
+          .name = "renderSessionAtTimeWithDiagnostics",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JFFFFLjava/lang/"
+                       "String;D)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr =
+              reinterpret_cast<void*>(renderSessionAtTimeWithDiagnostics),
+      },
+      {
+          .name = "hitTestSession",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JFFFFFF)Lcom/lynx/"
+                       "serval/svg/SVGRender$SVGHitTestResult;",
+          .fnPtr = reinterpret_cast<void*>(hitTestSession),
+      },
+      {
+          .name = "createStreamingSession",
+          .signature = "()J",
+          .fnPtr = reinterpret_cast<void*>(createStreamingSession),
+      },
+      {
+          .name = "destroyStreamingSession",
+          .signature = "(J)V",
+          .fnPtr = reinterpret_cast<void*>(destroyStreamingSession),
+      },
+      {
+          .name = "appendStreamingSession",
+          .signature =
+              "(JLjava/lang/String;)[Lcom/lynx/serval/svg/SVGRender$"
+              "SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(appendStreamingSession),
+      },
+      {
+          .name = "finishStreamingSession",
+          .signature =
+              "(J)[Lcom/lynx/serval/svg/SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(finishStreamingSession),
+      },
+      {
+          .name = "renderStreamingSessionAtTimeWithDiagnostics",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JFFFFLjava/lang/"
+                       "String;D)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(
+              renderStreamingSessionAtTimeWithDiagnostics),
+      },
+      {
+          .name = "hitTestStreamingSession",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JFFFFFF)Lcom/lynx/"
+                       "serval/svg/SVGRender$SVGHitTestResult;",
+          .fnPtr = reinterpret_cast<void*>(hitTestStreamingSession),
       },
       {
           .name = "calculateViewBoxTransform",
@@ -192,6 +483,144 @@ jobject hitTest(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
                 jfloat y) {
   std::vector<serval::svg::parser::SrSVGDiagnostic> build_diagnostics;
   auto svg_dom = CreateSVGDom(env, j_str, &build_diagnostics);
+  if (!svg_dom) {
+    return CreateJavaHitTestResult(env, {});
+  }
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  auto result =
+      svg_dom->HitTest(sr_android_canvas.PathFactory(), view_port, x, y);
+  return CreateJavaHitTestResult(env, result);
+}
+
+jlong createSession(JNIEnv* env, jobject j_engine, jstring j_str) {
+  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
+  auto svg_dom = CreateSVGDom(env, j_str, &diagnostics);
+  (void)j_engine;
+  if (!svg_dom) {
+    return 0;
+  }
+  auto* session = new NativeSvgSession();
+  session->dom = std::move(svg_dom);
+  session->diagnostics = std::move(diagnostics);
+  return reinterpret_cast<jlong>(session);
+}
+
+void destroySession(JNIEnv* env, jobject j_engine, jlong handle) {
+  (void)env;
+  (void)j_engine;
+  if (auto* svg_session = AsSvgSession(handle)) {
+    delete svg_session;
+    return;
+  }
+}
+
+jobjectArray renderSessionAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds) {
+  auto* session = AsSvgSession(handle);
+  if (!session || !session->dom) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  ApplyDefaultColor(env, session->dom.get(), j_color);
+  RenderSvgDomAtTime(env, j_engine, j_render, session->dom.get(), left, top,
+                     width, height, seconds);
+  return CreateJavaDiagnosticArray(env, session->dom->diagnostics());
+}
+
+jobject hitTestSession(JNIEnv* env, jobject j_engine, jobject j_render,
+                       jlong handle, jfloat left, jfloat top, jfloat width,
+                       jfloat height, jfloat x, jfloat y) {
+  auto* session = AsSvgSession(handle);
+  if (!session || !session->dom) {
+    return CreateJavaHitTestResult(env, {});
+  }
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  auto result =
+      session->dom->HitTest(sr_android_canvas.PathFactory(), view_port, x, y);
+  return CreateJavaHitTestResult(env, result);
+}
+
+jlong createStreamingSession(JNIEnv* env, jobject j_engine) {
+  (void)env;
+  (void)j_engine;
+  return reinterpret_cast<jlong>(new NativeStreamingSvgSession());
+}
+
+void destroyStreamingSession(JNIEnv* env, jobject j_engine, jlong handle) {
+  (void)env;
+  (void)j_engine;
+  if (auto* session = AsStreamingSession(handle)) {
+    delete session;
+  }
+}
+
+jobjectArray appendStreamingSession(JNIEnv* env, jobject j_engine,
+                                    jlong handle, jstring j_chunk) {
+  auto* session = AsStreamingSession(handle);
+  if (!session || session->finished || !j_chunk) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  const char* chunk = env->GetStringUTFChars(j_chunk, JNI_FALSE);
+  const jsize chunk_length = env->GetStringUTFLength(j_chunk);
+  if (chunk) {
+    session->content.append(chunk, static_cast<size_t>(chunk_length));
+    if (session->builder) {
+      session->append_failed =
+          !session->builder->Append(chunk, static_cast<size_t>(chunk_length)) ||
+          session->append_failed;
+    }
+    env->ReleaseStringUTFChars(j_chunk, chunk);
+  } else {
+    session->append_failed = true;
+  }
+  session->preview_dirty = true;
+  (void)j_engine;
+  return CreateJavaDiagnosticArray(env, session->diagnostics);
+}
+
+jobjectArray finishStreamingSession(JNIEnv* env, jobject j_engine,
+                                    jlong handle) {
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  if (!session->finished) {
+    session->finished = true;
+    if (session->builder && !session->append_failed) {
+      session->final_dom = session->builder->Finish();
+      session->diagnostics = session->builder->diagnostics();
+    }
+    session->builder.reset();
+  }
+  (void)j_engine;
+  return CreateJavaDiagnosticArray(env, session->diagnostics);
+}
+
+jobjectArray renderStreamingSessionAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds) {
+  auto* session = AsStreamingSession(handle);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
+  if (!svg_dom) {
+    return CreateJavaDiagnosticArray(env,
+                                     RenderableStreamingDiagnostics(session));
+  }
+  ApplyDefaultColor(env, svg_dom, j_color);
+  RenderSvgDomAtTime(env, j_engine, j_render, svg_dom, left, top, width,
+                     height, seconds);
+  return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
+}
+
+jobject hitTestStreamingSession(JNIEnv* env, jobject j_engine, jobject j_render,
+                                jlong handle, jfloat left, jfloat top,
+                                jfloat width, jfloat height, jfloat x,
+                                jfloat y) {
+  auto* session = AsStreamingSession(handle);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   if (!svg_dom) {
     return CreateJavaHitTestResult(env, {});
   }

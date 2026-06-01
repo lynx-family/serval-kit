@@ -5,6 +5,7 @@ package com.lynx.serval.svg.example;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Picture;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -40,7 +41,17 @@ public class AdvancedSvgDemoView extends View {
   private Rect renderRect = new Rect(0, 0, 1, 1);
   private long startTimeMillis;
   private StatusListener statusListener;
-  private boolean streamChecked;
+  private SVGRender.StreamingSVGSession streamingSession;
+  private String[] streamChunks;
+  private int nextChunkIndex;
+
+  private final Runnable appendNextChunkRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          appendNextChunk();
+        }
+      };
 
   public AdvancedSvgDemoView(Context context) {
     super(context);
@@ -66,8 +77,18 @@ public class AdvancedSvgDemoView extends View {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     startTimeMillis = System.currentTimeMillis();
-    checkStreamingParse();
+    startStreamingSession();
     postInvalidateOnAnimation();
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    removeCallbacks(appendNextChunkRunnable);
+    if (streamingSession != null) {
+      streamingSession.close();
+      streamingSession = null;
+    }
+    super.onDetachedFromWindow();
   }
 
   @Override
@@ -79,12 +100,15 @@ public class AdvancedSvgDemoView extends View {
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
+    canvas.drawColor(Color.WHITE);
     double seconds = (System.currentTimeMillis() - startTimeMillis) / 1000.0;
-    SVGRender.SVGRenderResult result =
-        render.renderPictureAtTimeWithResult(SVG_CONTENT, renderRect, seconds);
-    Picture picture = result.picture;
-    if (picture != null) {
-      picture.draw(canvas);
+    if (streamingSession != null && streamingSession.isValid()) {
+      SVGRender.SVGRenderResult result =
+          streamingSession.renderPictureAtTimeWithResult(renderRect, seconds);
+      Picture picture = result.picture;
+      if (picture != null) {
+        picture.draw(canvas);
+      }
     }
     postInvalidateOnAnimation();
   }
@@ -92,8 +116,12 @@ public class AdvancedSvgDemoView extends View {
   @Override
   public boolean onTouchEvent(MotionEvent event) {
     if (event.getAction() == MotionEvent.ACTION_UP) {
+      if (streamingSession == null) {
+        notifyStatus("hit empty");
+        return true;
+      }
       SVGRender.SVGHitTestResult result =
-          render.hitTest(SVG_CONTENT, renderRect, event.getX(), event.getY());
+          streamingSession.hitTest(renderRect, event.getX(), event.getY());
       if (result.hit) {
         notifyStatus("hit id=" + result.id + " action=" + result.action);
       } else {
@@ -104,16 +132,43 @@ public class AdvancedSvgDemoView extends View {
     return true;
   }
 
-  private void checkStreamingParse() {
-    if (streamChecked) {
+  private void startStreamingSession() {
+    removeCallbacks(appendNextChunkRunnable);
+    if (streamingSession != null) {
+      streamingSession.close();
+    }
+    streamingSession = render.createStreamingSession();
+    streamChunks = createLineChunks(SVG_CONTENT);
+    nextChunkIndex = 0;
+    notifyStatus("streaming 0/" + streamChunks.length);
+    post(appendNextChunkRunnable);
+  }
+
+  private void appendNextChunk() {
+    if (streamingSession == null || streamChunks == null ||
+        nextChunkIndex >= streamChunks.length) {
       return;
     }
-    streamChecked = true;
-    String[] chunks = SVG_CONTENT.split("\n", -1);
     List<SVGRender.SVGDiagnostic> diagnostics =
-        render.parseStreamingWithDiagnostics(chunks);
-    notifyStatus("stream chunks=" + chunks.length + " diagnostics=" +
-                 diagnostics.size());
+        streamingSession.append(streamChunks[nextChunkIndex]);
+    nextChunkIndex++;
+    if (nextChunkIndex < streamChunks.length) {
+      notifyStatus("streaming " + nextChunkIndex + "/" + streamChunks.length +
+                   " diagnostics=" + diagnostics.size());
+      postDelayed(appendNextChunkRunnable, 300);
+      return;
+    }
+
+    diagnostics = streamingSession.finish();
+    notifyStatus("final DOM cached diagnostics=" + diagnostics.size());
+  }
+
+  private String[] createLineChunks(String content) {
+    String[] lines = content.split("\n", -1);
+    for (int i = 0; i < lines.length - 1; ++i) {
+      lines[i] = lines[i] + "\n";
+    }
+    return lines;
   }
 
   private void notifyStatus(String status) {
