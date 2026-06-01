@@ -677,6 +677,7 @@ void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
         path.QuadTo(cp1x, cp1y, x, y);
         break;
       case SPO_ELLIPTICAL_ARC: {
+        float c1x = args[iArg++], c1y = args[iArg++];
         float rx = args[iArg++];
         float ry = args[iArg++];
         float angle = args[iArg++];
@@ -684,12 +685,7 @@ void SrSkityCanvas::DrawPath(const char*, uint8_t* ops, uint32_t n_ops,
         bool sweep = fabs(args[iArg++]) > 1e-6 ? true : false;
         float x = args[iArg++];
         float y = args[iArg++];
-        path.ArcTo(rx, ry, angle,
-                   largeArc ? ::skity::Path::ArcSize::kLarge
-                            : ::skity::Path::ArcSize::kSmall,
-                   sweep ? ::skity::Path::Direction::kCW
-                         : ::skity::Path::Direction::kCCW,
-                   x, y);
+        SrSVGDrawArc(&path, c1x, c1y, x, y, rx, ry, angle, largeArc, sweep);
         break;
       }
       case SPO_CLOSE:
