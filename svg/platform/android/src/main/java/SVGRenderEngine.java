@@ -89,6 +89,18 @@ public class SVGRenderEngine {
       SVGRender svgRender, String content, float left, float top, float width,
       float height, @Nullable String color);
 
+  native SVGRender.SVGDiagnostic[] renderAtTimeWithDiagnostics(
+      SVGRender svgRender, String content, float left, float top, float width,
+      float height, @Nullable String color, double seconds);
+
+  native SVGRender.SVGDiagnostic[] parseStreamingWithDiagnostics(
+      String[] chunks);
+
+  native SVGRender.SVGHitTestResult hitTest(SVGRender svgRender,
+                                            String content, float left,
+                                            float top, float width,
+                                            float height, float x, float y);
+
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,
                                            float vbLeft, float vbTop,

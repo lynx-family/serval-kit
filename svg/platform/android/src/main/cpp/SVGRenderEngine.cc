@@ -4,6 +4,7 @@
 
 #include <android/log.h>
 #include <jni.h>
+#include <string>
 #include <vector>
 
 #include "element/SrSVGTypes.h"
@@ -14,12 +15,22 @@ using serval::svg::android::GetEnvForCurrentThread;
 using serval::svg::android::InitVM;
 using serval::svg::android::SrAndroidCanvas;
 using serval::svg::parser::SrSVGDOM;
+using serval::svg::parser::SrSVGDOMStreamBuilder;
 
 int registerNativeMethod(JNIEnv* env);
 jobjectArray renderWithDiagnostics(JNIEnv* env, jobject j_engine,
                                    jobject j_render, jstring j_str, jfloat left,
                                    jfloat top, jfloat width, jfloat height,
                                    jstring j_color);
+jobjectArray renderAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds);
+jobjectArray parseStreamingWithDiagnostics(JNIEnv* env, jobject j_engine,
+                                           jobjectArray j_chunks);
+jobject hitTest(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
+                jfloat left, jfloat top, jfloat width, jfloat height, jfloat x,
+                jfloat y);
 jfloatArray calculateViewBoxTransform(JNIEnv* env, jobject j_engine,
                                       jfloat vp_left, jfloat vp_top,
                                       jfloat vp_width, jfloat vp_height,
@@ -32,11 +43,17 @@ std::unique_ptr<SrSVGDOM> CreateSVGDom(
 jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
                   SrSVGDOM* svg_dom, jfloat left, jfloat top, jfloat width,
                   jfloat height);
+jint RenderSvgDomAtTime(JNIEnv* env, jobject j_engine, jobject j_render,
+                        SrSVGDOM* svg_dom, jfloat left, jfloat top,
+                        jfloat width, jfloat height, jdouble seconds);
+void ApplyDefaultColor(JNIEnv* env, SrSVGDOM* svg_dom, jstring j_color);
 jobject CreateJavaDiagnostic(
     JNIEnv* env, const serval::svg::parser::SrSVGDiagnostic& diagnostic);
 jobjectArray CreateJavaDiagnosticArray(
     JNIEnv* env,
     const std::vector<serval::svg::parser::SrSVGDiagnostic>& diagnostics);
+jobject CreateJavaHitTestResult(
+    JNIEnv* env, const serval::svg::parser::SrSVGHitTestResult& hit_result);
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   InitVM(vm);
@@ -71,6 +88,27 @@ int registerNativeMethod(JNIEnv* env) {
           .fnPtr = reinterpret_cast<void*>(renderWithDiagnostics),
       },
       {
+          .name = "renderAtTimeWithDiagnostics",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/"
+                       "String;FFFFLjava/lang/String;D)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(renderAtTimeWithDiagnostics),
+      },
+      {
+          .name = "parseStreamingWithDiagnostics",
+          .signature =
+              "([Ljava/lang/String;)[Lcom/lynx/serval/svg/SVGRender$"
+              "SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(parseStreamingWithDiagnostics),
+      },
+      {
+          .name = "hitTest",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;Ljava/lang/"
+                       "String;FFFFFF)Lcom/lynx/serval/svg/SVGRender$"
+                       "SVGHitTestResult;",
+          .fnPtr = reinterpret_cast<void*>(hitTest),
+      },
+      {
           .name = "calculateViewBoxTransform",
           .signature = "(FFFFFFFFIII)[F",
           .fnPtr = reinterpret_cast<void*>(calculateViewBoxTransform),
@@ -93,25 +131,75 @@ jobjectArray renderWithDiagnostics(JNIEnv* env, jobject j_engine,
   if (!svg_dom) {
     return CreateJavaDiagnosticArray(env, build_diagnostics);
   }
-  if (j_color != nullptr) {
-    const char* color_str = env->GetStringUTFChars(j_color, JNI_FALSE);
-    if (color_str != nullptr) {
-      uint32_t default_color = 0;
-      if (parse_svg_color(color_str, &default_color)) {
-        svg_dom->SetDefaultColor(default_color);
-      } else {
-        svg_dom->ResetDefaultColor();
-      }
-      env->ReleaseStringUTFChars(j_color, color_str);
-    } else {
-      svg_dom->ResetDefaultColor();
-    }
-  } else {
-    svg_dom->ResetDefaultColor();
-  }
+  ApplyDefaultColor(env, svg_dom.get(), j_color);
   RenderSvgDom(env, j_engine, j_render, svg_dom.get(), left, top, width,
                height);
   return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
+}
+
+jobjectArray renderAtTimeWithDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str, jfloat left,
+    jfloat top, jfloat width, jfloat height, jstring j_color,
+    jdouble seconds) {
+  std::vector<serval::svg::parser::SrSVGDiagnostic> build_diagnostics;
+  auto svg_dom = CreateSVGDom(env, j_str, &build_diagnostics);
+  if (!svg_dom) {
+    return CreateJavaDiagnosticArray(env, build_diagnostics);
+  }
+  ApplyDefaultColor(env, svg_dom.get(), j_color);
+  RenderSvgDomAtTime(env, j_engine, j_render, svg_dom.get(), left, top, width,
+                     height, seconds);
+  return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
+}
+
+jobjectArray parseStreamingWithDiagnostics(JNIEnv* env, jobject j_engine,
+                                           jobjectArray j_chunks) {
+  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
+  if (!j_chunks) {
+    return CreateJavaDiagnosticArray(env, diagnostics);
+  }
+  SrSVGDOMStreamBuilder builder;
+  const jsize chunk_count = env->GetArrayLength(j_chunks);
+  bool append_ok = true;
+  for (jsize i = 0; i < chunk_count; ++i) {
+    auto j_chunk =
+        static_cast<jstring>(env->GetObjectArrayElement(j_chunks, i));
+    if (!j_chunk) {
+      append_ok = false;
+      continue;
+    }
+    const char* chunk = env->GetStringUTFChars(j_chunk, JNI_FALSE);
+    const jsize chunk_length = env->GetStringUTFLength(j_chunk);
+    if (chunk) {
+      append_ok = builder.Append(chunk, static_cast<size_t>(chunk_length)) &&
+                  append_ok;
+      env->ReleaseStringUTFChars(j_chunk, chunk);
+    } else {
+      append_ok = false;
+    }
+    env->DeleteLocalRef(j_chunk);
+  }
+  auto svg_dom = builder.Finish();
+  diagnostics = builder.diagnostics();
+  (void)j_engine;
+  (void)append_ok;
+  (void)svg_dom;
+  return CreateJavaDiagnosticArray(env, diagnostics);
+}
+
+jobject hitTest(JNIEnv* env, jobject j_engine, jobject j_render, jstring j_str,
+                jfloat left, jfloat top, jfloat width, jfloat height, jfloat x,
+                jfloat y) {
+  std::vector<serval::svg::parser::SrSVGDiagnostic> build_diagnostics;
+  auto svg_dom = CreateSVGDom(env, j_str, &build_diagnostics);
+  if (!svg_dom) {
+    return CreateJavaHitTestResult(env, {});
+  }
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  auto result =
+      svg_dom->HitTest(sr_android_canvas.PathFactory(), view_port, x, y);
+  return CreateJavaHitTestResult(env, result);
 }
 
 std::unique_ptr<SrSVGDOM> CreateSVGDom(
@@ -152,6 +240,38 @@ jint RenderSvgDom(JNIEnv* env, jobject j_engine, jobject j_render,
   return JNI_OK;
 }
 
+jint RenderSvgDomAtTime(JNIEnv* env, jobject j_engine, jobject j_render,
+                        SrSVGDOM* svg_dom, jfloat left, jfloat top,
+                        jfloat width, jfloat height, jdouble seconds) {
+  if (!j_engine || !j_render || !svg_dom) {
+    return JNI_ERR;
+  }
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  svg_dom->RenderAtTime(&sr_android_canvas, view_port, seconds);
+  return JNI_OK;
+}
+
+void ApplyDefaultColor(JNIEnv* env, SrSVGDOM* svg_dom, jstring j_color) {
+  if (!svg_dom) {
+    return;
+  }
+  if (j_color != nullptr) {
+    const char* color_str = env->GetStringUTFChars(j_color, JNI_FALSE);
+    if (color_str != nullptr) {
+      uint32_t default_color = 0;
+      if (parse_svg_color(color_str, &default_color)) {
+        svg_dom->SetDefaultColor(default_color);
+      } else {
+        svg_dom->ResetDefaultColor();
+      }
+      env->ReleaseStringUTFChars(j_color, color_str);
+      return;
+    }
+  }
+  svg_dom->ResetDefaultColor();
+}
+
 jobject CreateJavaDiagnostic(
     JNIEnv* env, const serval::svg::parser::SrSVGDiagnostic& diagnostic) {
   jclass diagnostic_class =
@@ -189,6 +309,29 @@ jobjectArray CreateJavaDiagnosticArray(
     env->SetObjectArrayElement(result, i, diagnostic);
     env->DeleteLocalRef(diagnostic);
   }
+  return result;
+}
+
+jobject CreateJavaHitTestResult(
+    JNIEnv* env, const serval::svg::parser::SrSVGHitTestResult& hit_result) {
+  jclass hit_result_class =
+      env->FindClass("com/lynx/serval/svg/SVGRender$SVGHitTestResult");
+  if (!hit_result_class) {
+    return nullptr;
+  }
+  jmethodID constructor =
+      env->GetMethodID(hit_result_class, "<init>",
+                       "(ZLjava/lang/String;Ljava/lang/String;)V");
+  if (!constructor) {
+    return nullptr;
+  }
+  jstring id = env->NewStringUTF(hit_result.id.c_str());
+  jstring action = env->NewStringUTF(hit_result.action.c_str());
+  jobject result =
+      env->NewObject(hit_result_class, constructor,
+                     static_cast<jboolean>(hit_result.hit), id, action);
+  env->DeleteLocalRef(id);
+  env->DeleteLocalRef(action);
   return result;
 }
 
