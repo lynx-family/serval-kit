@@ -16,6 +16,8 @@ namespace serval {
 namespace svg {
 namespace parser {
 
+class SrXMLStreamParser;
+
 class SrXMLParser {
  public:
   SrXMLParser(SrXMLParserError* parserError = nullptr);
@@ -50,6 +52,7 @@ class SrXMLParser {
 
  protected:
   SrXMLParserError* fError;
+  friend class SrXMLStreamParser;
 
  private:
   void ReportError(void* parser);

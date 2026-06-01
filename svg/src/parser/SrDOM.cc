@@ -149,17 +149,23 @@ const SrDOM::Node* SrDOM::Copy(const SrDOM& dom, const SrDOM::Node* node) {
   return fRoot;
 }
 
-SrXMLParser* SrDOM::BeginParsing() {
-  fParser = std::make_unique<SrDOMParser>();
+SrXMLParser* SrDOM::BeginParsing(const SrSVGDiagnosticSink* diagnostic_sink) {
+  fParser = std::make_unique<SrDOMParser>(diagnostic_sink);
 
   return fParser.get();
 }
 
-const SrDOM::Node* SrDOM::FinishParsing() {
+const SrDOM::Node* SrDOM::FinishParsing(SrXMLParserError* error) {
   if (!fParser->Finish()) {
+    if (error) {
+      *error = fParser->fParserError;
+    }
     fRoot = nullptr;
     fParser.reset();
     return nullptr;
+  }
+  if (error) {
+    *error = fParser->fParserError;
   }
   fRoot = fParser->releaseRoot();
   fParser.reset();

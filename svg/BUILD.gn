@@ -11,6 +11,7 @@ source_set("serval-svg") {
     "include/canvas/SrCanvas.h",
     "include/canvas/SrParagraph.h",
     "include/element/SrSVGCircle.h",
+    "include/element/SrSVGAnimation.h",
     "include/element/SrSVGClipPath.h",
     "include/element/SrSVGContainer.h",
     "include/element/SrSVGDefs.h",
@@ -42,6 +43,7 @@ source_set("serval-svg") {
     "include/parser/SrXMLExtractor.h",
     "include/parser/SrXMLParser.h",
     "include/parser/SrXMLParserError.h",
+    "include/parser/SrXMLStreamParser.h",
     "include/utils/SrSVGPatternUtils.h",
 
     # skity
@@ -55,6 +57,7 @@ source_set("serval-svg") {
     # skity
     "platform/skity/SrSkityCanvas.cc",
     "platform/skity/SrSkityParagraph.cc",
+    "src/element/SrSVGAnimation.cc",
     "src/element/SrSVGCircle.cc",
     "src/element/SrSVGClipPath.cc",
     "src/element/SrSVGContainer.cc",
@@ -86,6 +89,7 @@ source_set("serval-svg") {
     "src/parser/SrXMLExtractor.c",
     "src/parser/SrXMLParser.cc",
     "src/parser/SrXMLParserError.cc",
+    "src/parser/SrXMLStreamParser.cc",
     "src/utils/SrSVGPatternUtils.cc",
   ]
 

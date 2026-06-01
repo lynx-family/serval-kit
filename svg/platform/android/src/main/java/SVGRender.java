@@ -141,6 +141,19 @@ public class SVGRender {
     }
   }
 
+  public static final class SVGHitTestResult {
+    public final boolean hit;
+    @NonNull public final String id;
+    @NonNull public final String action;
+
+    SVGHitTestResult(boolean hit, @Nullable String id,
+                     @Nullable String action) {
+      this.hit = hit;
+      this.id = id == null ? "" : id;
+      this.action = action == null ? "" : action;
+    }
+  }
+
   public SVGRender() {
     mSVGRenderEngineNG = SVGRenderEngine.getInstance();
     mGradientModels = new HashMap<>();
@@ -209,6 +222,45 @@ public class SVGRender {
       diagnosticList = Collections.unmodifiableList(Arrays.asList(diagnostics));
     }
     return new SVGRenderResult(picture, diagnosticList);
+  }
+
+  public SVGRenderResult renderPictureAtTimeWithResult(
+      String content, Rect viewPort, double seconds) {
+    Picture picture = new Picture();
+    mPictureCanvas =
+        picture.beginRecording(viewPort.width(), viewPort.height());
+    SVGDiagnostic[] diagnostics = null;
+    if (mSVGRenderEngineNG != null) {
+      diagnostics = mSVGRenderEngineNG.renderAtTimeWithDiagnostics(
+          this, content, viewPort.left, viewPort.top, viewPort.width(),
+          viewPort.height(), getColor(), seconds);
+    }
+    picture.endRecording();
+    List<SVGDiagnostic> diagnosticList =
+        diagnostics == null || diagnostics.length == 0
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(Arrays.asList(diagnostics));
+    return new SVGRenderResult(picture, diagnosticList);
+  }
+
+  public List<SVGDiagnostic> parseStreamingWithDiagnostics(String[] chunks) {
+    SVGDiagnostic[] diagnostics =
+        mSVGRenderEngineNG == null
+            ? null
+            : mSVGRenderEngineNG.parseStreamingWithDiagnostics(chunks);
+    return diagnostics == null || diagnostics.length == 0
+        ? Collections.emptyList()
+        : Collections.unmodifiableList(Arrays.asList(diagnostics));
+  }
+
+  public SVGHitTestResult hitTest(String content, Rect viewPort, float x,
+                                  float y) {
+    if (mSVGRenderEngineNG == null) {
+      return new SVGHitTestResult(false, "", "");
+    }
+    return mSVGRenderEngineNG.hitTest(this, content, viewPort.left,
+                                      viewPort.top, viewPort.width(),
+                                      viewPort.height(), x, y);
   }
 
   public void setViewBox(float x, float y, float width, float height) {}

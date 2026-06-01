@@ -12,6 +12,7 @@
 #include <string>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGAnimation.h"
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGFilter.h"
 #include "element/SrSVGFilterPrimitives.h"
@@ -233,6 +234,10 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
 bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "id") == 0) {
     id_ = value;
+  } else if (strcmp(name, "onclick") == 0 || strcmp(name, "onClick") == 0 ||
+             strcmp(name, "data-click") == 0 ||
+             strcmp(name, "data-action") == 0) {
+    click_event_ = value;
   } else if (strcmp(name, "fill") == 0) {
     release_serval_paint(fill_);
     fill_ = make_serval_paint(value);
@@ -277,6 +282,43 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     ParseStyle(value);
   }
   return false;
+}
+
+void SrSVGNode::StoreAttribute(const char* name, const char* value) {
+  if (name && value) {
+    base_attributes_[name] = value;
+  }
+}
+
+void SrSVGNode::AddAnimation(SrSVGAnimation* animation) {
+  if (animation) {
+    animations_.push_back(animation);
+  }
+}
+
+void SrSVGNode::ApplyAnimations(double seconds) {
+  for (auto* animation : animations_) {
+    std::string attribute;
+    std::string value;
+    if (!animation || !animation->Evaluate(seconds, &attribute, &value)) {
+      continue;
+    }
+    if (animated_attributes_.find(attribute) == animated_attributes_.end()) {
+      auto base_it = base_attributes_.find(attribute);
+      animated_attributes_[attribute] =
+          base_it == base_attributes_.end() ? "" : base_it->second;
+    }
+    ParseAndSetAttribute(attribute.c_str(), value.c_str());
+  }
+}
+
+void SrSVGNode::RestoreAnimatedAttributes() {
+  for (const auto& entry : animated_attributes_) {
+    if (!entry.second.empty()) {
+      ParseAndSetAttribute(entry.first.c_str(), entry.second.c_str());
+    }
+  }
+  animated_attributes_.clear();
 }
 
 SrSVGNode::~SrSVGNode() {

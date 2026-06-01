@@ -22,7 +22,11 @@ class SrCanvas;
 
 namespace element {
 
+class SrSVGAnimation;
+
 enum class SrSVGTag {
+  kAnimate,
+  kAnimateTransform,
   kCircle,
   kClipPath,
   kDefs,
@@ -68,6 +72,10 @@ class SrSVGNodeBase {
   }
   virtual bool IsSVGNode() const { return false; }
   SrSVGTag Tag() const { return tag_; }
+  const std::string& Id() const { return id_; }
+  bool HasClickEvent() const { return !click_event_.empty(); }
+  const std::string& ClickEvent() const { return click_event_; }
+  virtual void StoreAttribute(const char* name, const char* value) {}
 
  protected:
   explicit SrSVGNodeBase(SrSVGTag tag) : tag_(tag) {}
@@ -88,6 +96,7 @@ class SrSVGNodeBase {
 
  protected:
   std::string id_;
+  std::string click_event_;
 
  private:
   SrSVGTag tag_;
@@ -112,6 +121,11 @@ class SrSVGNode : public SrSVGNodeBase {
   ~SrSVGNode() override;
 
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  void StoreAttribute(const char* name, const char* value) override;
+  void AddAnimation(SrSVGAnimation* animation);
+  bool HasAnimations() const { return !animations_.empty(); }
+  void ApplyAnimations(double seconds);
+  void RestoreAnimatedAttributes();
 
   bool IsSVGNode() const override { return true; }
 
@@ -158,6 +172,11 @@ class SrSVGNode : public SrSVGNodeBase {
   std::optional<float> inherit_stroke_opacity_;
   std::optional<SrSVGLength> inherit_stroke_width_;
   float transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+
+ private:
+  std::unordered_map<std::string, std::string> base_attributes_;
+  std::unordered_map<std::string, std::string> animated_attributes_;
+  std::vector<SrSVGAnimation*> animations_;
 };
 
 using IDMapper = std::unordered_map<std::string, SrSVGNodeBase*>;

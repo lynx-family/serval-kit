@@ -52,8 +52,9 @@ class SrDOM {
 
   [[nodiscard]] const Node* GetRootNode() const;
 
-  SrXMLParser* BeginParsing();
-  const Node* FinishParsing();
+  SrXMLParser* BeginParsing(
+      const SrSVGDiagnosticSink* diagnostic_sink = nullptr);
+  const Node* FinishParsing(SrXMLParserError* error = nullptr);
 
   enum Type { kElement_Type, kText_Type };
   Type GetType(const Node*) const;

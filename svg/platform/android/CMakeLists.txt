@@ -75,12 +75,14 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/parser/SrXMLExtractor.h
         ${SVG_SRC_DIRECTORY}/include/parser/SrXMLParser.h
         ${SVG_SRC_DIRECTORY}/include/parser/SrXMLParserError.h
+        ${SVG_SRC_DIRECTORY}/include/parser/SrXMLStreamParser.h
         ${SVG_SRC_DIRECTORY}/include/parser/SrSVGDOM.h
         ${SVG_SRC_DIRECTORY}/src/parser/SrDOM.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrDOMParser.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLExtractor.c
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLParser.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLParserError.cc
+        ${SVG_SRC_DIRECTORY}/src/parser/SrXMLStreamParser.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrSVGDOM.cc
         # canvas
         ${SVG_SRC_DIRECTORY}/include/canvas/SrCanvas.h
@@ -89,6 +91,7 @@ add_library(
 
         # element
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGCircle.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGAnimation.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGContainer.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGEllipse.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLine.h
@@ -118,6 +121,7 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGText.h
         # source files
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGStop.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGAnimation.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGCircle.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGContainer.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGEllipse.cc

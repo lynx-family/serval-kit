@@ -21,6 +21,9 @@ class SrSVGSVG : public SrSVGContainer {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   static SrSVGSVG* Make() { return new SrSVGSVG(SrSVGTag::kSvg); }
   inline SrSVGBox viewBox() { return this->view_box_; }
+  inline SrSVGPreserveAspectRatio preserveAspectRatio() const {
+    return preserve_aspect_radio_;
+  }
 
  protected:
   bool OnPrepareToRender(canvas::SrCanvas* canvas,

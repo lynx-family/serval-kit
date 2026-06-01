@@ -10,12 +10,6 @@
 #define SR_XML_PARSING_STATE_CONTENT 2
 #define SR_XML_MAX_ATTR 256
 
-typedef enum SrXMLParseResult {
-  SR_XML_PARSE_RESULT_CONTINUE = 0,
-  SR_XML_PARSE_RESULT_STOP = 1,
-  SR_XML_PARSE_RESULT_ERROR = 2,
-} SrXMLParseResult;
-
 static const char* SrXMLSkipSpaces(const char* cursor, const char* end) {
   while (cursor < end && isspace((unsigned char)*cursor)) {
     cursor++;
@@ -178,8 +172,15 @@ static SrXMLParseResult SrXMLParseElementInternal(
 bool SrXMLParseElement(const char* s, size_t len,
                        SrSVGStartElementCb start_element,
                        SrSVGEndElementCb end_element, void* context) {
-  return SrXMLParseElementInternal(s, len, start_element, end_element,
-                                   context) == SR_XML_PARSE_RESULT_STOP;
+  return SrXMLParseElementResult(s, len, start_element, end_element, context) ==
+         SR_XML_PARSE_RESULT_STOP;
+}
+
+SrXMLParseResult SrXMLParseElementResult(const char* s, size_t len,
+                                         SrSVGStartElementCb start_element,
+                                         SrSVGEndElementCb end_element,
+                                         void* context) {
+  return SrXMLParseElementInternal(s, len, start_element, end_element, context);
 }
 
 bool SrXMLParseXML(const char* input, size_t len,

@@ -28,6 +28,12 @@ struct SrSVGDiagnostic {
   bool fatal{false};
 };
 
+struct SrSVGHitTestResult {
+  bool hit{false};
+  std::string id;
+  std::string action;
+};
+
 class SrSVGDOM {
  public:
   static std::unique_ptr<SrSVGDOM> make(const char*, size_t,
@@ -47,6 +53,13 @@ class SrSVGDOM {
   void ResetDefaultColor();
   void Render(canvas::SrCanvas* canvas) const;
   void Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const;
+  void RenderAtTime(canvas::SrCanvas* canvas, double seconds) const;
+  void RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                    double seconds) const;
+  SrSVGHitTestResult HitTest(canvas::PathFactory* path_factory, float x,
+                             float y) const;
+  SrSVGHitTestResult HitTest(canvas::PathFactory* path_factory,
+                             SrSVGBox view_port, float x, float y) const;
   const std::vector<SrSVGDiagnostic>& diagnostics() const {
     return diagnostics_;
   }
@@ -63,6 +76,23 @@ class SrSVGDOM {
   std::shared_ptr<SrDOM> xml_dom_;
   mutable std::vector<SrSVGDiagnostic> diagnostics_;
   mutable size_t static_diagnostic_count_{0};
+};
+
+class SrSVGDOMStreamBuilder {
+ public:
+  SrSVGDOMStreamBuilder();
+  ~SrSVGDOMStreamBuilder();
+
+  SrSVGDOMStreamBuilder(const SrSVGDOMStreamBuilder&) = delete;
+  SrSVGDOMStreamBuilder& operator=(const SrSVGDOMStreamBuilder&) = delete;
+
+  bool Append(const char* data, size_t len);
+  std::unique_ptr<SrSVGDOM> Finish();
+  const std::vector<SrSVGDiagnostic>& diagnostics() const;
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace parser

@@ -8,8 +8,10 @@
 #include <iterator>
 #include <string>
 
+#include "element/SrSVGAnimation.h"
 #include "element/SrSVGCircle.h"
 #include "element/SrSVGClipPath.h"
+#include "element/SrSVGContainer.h"
 #include "element/SrSVGDefs.h"
 #include "element/SrSVGEllipse.h"
 #include "element/SrSVGFilter.h"
@@ -31,6 +33,7 @@
 #include "parser/SrDOM.h"
 #include "parser/SrSVGTraversalState.h"
 #include "parser/SrXMLParserError.h"
+#include "parser/SrXMLStreamParser.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGLog.h"
 
@@ -75,7 +78,120 @@ SrSVGDiagnosticSink MakeDiagnosticSink(SrSVGTraversalState* state) {
   return sink;
 }
 
+bool IsContainerTag(element::SrSVGTag tag) {
+  switch (tag) {
+    case element::SrSVGTag::kSvg:
+    case element::SrSVGTag::kG:
+    case element::SrSVGTag::kDefs:
+    case element::SrSVGTag::kClipPath:
+    case element::SrSVGTag::kMask:
+    case element::SrSVGTag::kFilter:
+    case element::SrSVGTag::kPattern:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool BoundsContains(const SrSVGBox& bounds, float x, float y) {
+  return x >= bounds.left && x <= bounds.left + bounds.width &&
+         y >= bounds.top && y <= bounds.top + bounds.height;
+}
+
+void CopyTransform(const float (&src)[6], float (&dst)[6]) {
+  std::memcpy(dst, src, sizeof(float) * 6);
+}
+
+void SetHitResult(const element::SrSVGNodeBase* node,
+                  SrSVGHitTestResult* result) {
+  result->hit = true;
+  result->id = node->Id();
+  result->action = node->ClickEvent();
+}
+
+bool HitTestNode(const element::SrSVGNodeBase* node,
+                 canvas::PathFactory* path_factory,
+                 SrSVGRenderContext* context,
+                 const float (&ancestor_transform)[6], float x, float y,
+                 SrSVGHitTestResult* result) {
+  if (!node || !path_factory || !context) {
+    return false;
+  }
+
+  bool geometry_hit = false;
+
+  if (node->IsSVGNode() && IsContainerTag(node->Tag())) {
+    const auto* container = static_cast<const element::SrSVGContainer*>(node);
+    const auto* svg_node = static_cast<const element::SrSVGNode*>(node);
+    float child_transform[6];
+    CopyTransform(ancestor_transform, child_transform);
+    xform_multiply(child_transform, svg_node->transform_);
+
+    const auto& children = container->children();
+    for (auto it = children.rbegin(); it != children.rend(); ++it) {
+      const bool child_hit =
+          HitTestNode(*it, path_factory, context, child_transform, x, y, result);
+      if (result->hit) {
+        return true;
+      }
+      geometry_hit = geometry_hit || child_hit;
+    }
+
+    if (geometry_hit && node->HasClickEvent()) {
+      SetHitResult(node, result);
+      return true;
+    }
+    return geometry_hit;
+  }
+
+  auto path = node->AsPath(path_factory, context);
+  if (path) {
+    path->Transform(ancestor_transform);
+    geometry_hit = BoundsContains(path->GetBounds(), x, y);
+    if (geometry_hit && node->HasClickEvent()) {
+      SetHitResult(node, result);
+      return true;
+    }
+  }
+  return geometry_hit;
+}
+
+void ApplyAnimations(const std::list<element::SrSVGNodeBase*>& nodes,
+                     double seconds) {
+  for (auto* node : nodes) {
+    if (node && node->IsSVGNode()) {
+      static_cast<element::SrSVGNode*>(node)->ApplyAnimations(seconds);
+    }
+  }
+}
+
+void RestoreAnimations(const std::list<element::SrSVGNodeBase*>& nodes) {
+  for (auto* node : nodes) {
+    if (node && node->IsSVGNode()) {
+      static_cast<element::SrSVGNode*>(node)->RestoreAnimatedAttributes();
+    }
+  }
+}
+
 }  // namespace
+
+struct SrSVGDOMStreamBuilder::Impl {
+  Impl()
+      : xml_dom(std::make_shared<SrDOM>()),
+        sink(MakeDiagnosticSink(&build_state)),
+        xml_parser(xml_dom->BeginParsing(&sink)),
+        stream_parser(xml_parser) {}
+
+  std::shared_ptr<SrDOM> xml_dom;
+  SrSVGTraversalState build_state;
+  SrSVGDiagnosticSink sink;
+  SrXMLParser* xml_parser{nullptr};
+  SrXMLStreamParser stream_parser;
+  SrXMLParserError parser_error;
+  bool append_failed{false};
+  bool finished{false};
+  std::vector<SrSVGDiagnostic> diagnostics;
+};
 
 static bool gEnableDumpDom = false;
 
@@ -103,6 +219,8 @@ static void DumpDomTree(const SrDOM& dom, const SrDOM::Node* node, int depth) {
 static bool IsNonRenderingTag(element::SrSVGTag tag) {
   switch (tag) {
     case element::SrSVGTag::kDefs:
+    case element::SrSVGTag::kAnimate:
+    case element::SrSVGTag::kAnimateTransform:
     case element::SrSVGTag::kStop:
     case element::SrSVGTag::kLinearGradient:
     case element::SrSVGTag::kRadialGradient:
@@ -130,6 +248,10 @@ static bool IsNonRenderingTag(element::SrSVGTag tag) {
 static bool ShouldAppendChild(const element::SrSVGNodeBase* parent,
                               const element::SrSVGNodeBase* child) {
   if (!parent || !child) {
+    return false;
+  }
+  if (child->Tag() == element::SrSVGTag::kAnimate ||
+      child->Tag() == element::SrSVGTag::kAnimateTransform) {
     return false;
   }
   if (!IsNonRenderingTag(child->Tag())) {
@@ -161,6 +283,7 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
   const char *name, *value;
   SrDOM::AttrIter attr_iter(xmlNode);
   while ((name = attr_iter.Next(&value))) {
+    svgNode->StoreAttribute(name, value);
     if (!std::strcmp(name, "id")) {
       std::string key{value};
       (*id_mapper)[key] = svgNode;
@@ -218,7 +341,11 @@ element::SrSVGNodeBase* construct_svg_node(
   }
 
   element::SrSVGNodeBase* node = nullptr;
-  if (strcmp(el, "svg") == 0) {
+  if (strcmp(el, "animate") == 0) {
+    node = element::SrSVGAnimation::MakeAnimate();
+  } else if (strcmp(el, "animateTransform") == 0) {
+    node = element::SrSVGAnimation::MakeAnimateTransform();
+  } else if (strcmp(el, "svg") == 0) {
     node = element::SrSVGSVG::Make();
   } else if (strcmp(el, "rect") == 0) {
     node = element::SrSVGRect::Make();
@@ -290,6 +417,13 @@ element::SrSVGNodeBase* construct_svg_node(
        child = dom.GetNextSibling(child)) {
     element::SrSVGNodeBase* childNode = construct_svg_node(
         dom, node, child, id_mapper, holder, diagnostic_sink);
+    if (childNode &&
+        (childNode->Tag() == element::SrSVGTag::kAnimate ||
+         childNode->Tag() == element::SrSVGTag::kAnimateTransform) &&
+        node->IsSVGNode()) {
+      static_cast<element::SrSVGNode*>(node)->AddAnimation(
+          static_cast<element::SrSVGAnimation*>(childNode));
+    }
     if (ShouldAppendChild(node, childNode)) {
       node->AppendChild(childNode);
     }
@@ -354,6 +488,83 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
   return nullptr;
 }
 
+SrSVGDOMStreamBuilder::SrSVGDOMStreamBuilder()
+    : impl_(std::make_unique<Impl>()) {}
+
+SrSVGDOMStreamBuilder::~SrSVGDOMStreamBuilder() = default;
+
+bool SrSVGDOMStreamBuilder::Append(const char* data, size_t len) {
+  if (!impl_ || impl_->finished || impl_->append_failed) {
+    return false;
+  }
+  if (!impl_->stream_parser.Append(data, len)) {
+    impl_->append_failed = true;
+    return false;
+  }
+  return true;
+}
+
+std::unique_ptr<SrSVGDOM> SrSVGDOMStreamBuilder::Finish() {
+  if (!impl_ || impl_->finished) {
+    return nullptr;
+  }
+  impl_->finished = true;
+
+  const bool stream_ok =
+      !impl_->append_failed && impl_->stream_parser.Finish();
+  const bool dom_ok = impl_->xml_dom->FinishParsing(&impl_->parser_error);
+  if (!stream_ok || !dom_ok) {
+    if (impl_->parser_error.HasError()) {
+      impl_->diagnostics.push_back(MakeParserDiagnostic(impl_->parser_error));
+    }
+    return nullptr;
+  }
+
+  if (impl_->parser_error.HasError()) {
+    impl_->build_state.diagnostics.push_back(
+        MakeParserDiagnostic(impl_->parser_error));
+  }
+  if (gEnableDumpDom) {
+    DumpDomTree(*impl_->xml_dom, impl_->xml_dom->GetRootNode(), 0);
+  }
+
+  auto id_mapper = std::make_unique<element::IDMapper>();
+  std::list<element::SrSVGNodeBase*> holder;
+  auto* root_node = impl_->xml_dom->GetRootNode();
+  if (!root_node) {
+    impl_->diagnostics = impl_->build_state.diagnostics;
+    return nullptr;
+  }
+  auto* root =
+      construct_svg_node(*impl_->xml_dom, nullptr, root_node, id_mapper.get(),
+                         holder, &impl_->sink);
+  if (!root) {
+    for (auto* node : holder) {
+      delete node;
+    }
+    impl_->diagnostics = impl_->build_state.diagnostics;
+    return nullptr;
+  }
+  if (root->Tag() == element::SrSVGTag::kSvg) {
+    auto svg_dom = std::make_unique<SrSVGDOM>(
+        static_cast<element::SrSVGSVG*>(root), id_mapper.release(),
+        std::move(holder), impl_->xml_dom);
+    svg_dom->SetBuildDiagnostics(std::move(impl_->build_state.diagnostics));
+    impl_->diagnostics = svg_dom->diagnostics();
+    return svg_dom;
+  }
+  for (auto* node : holder) {
+    delete node;
+  }
+  impl_->diagnostics = impl_->build_state.diagnostics;
+  return nullptr;
+}
+
+const std::vector<SrSVGDiagnostic>& SrSVGDOMStreamBuilder::diagnostics()
+    const {
+  return impl_->diagnostics;
+}
+
 void SrSVGDOM::SetDefaultColor(uint32_t color) {
   default_color_ = color;
 }
@@ -404,6 +615,63 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
     root_->Render(canvas, context);
     ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
   }
+}
+
+void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, double seconds) const {
+  ApplyAnimations(nodes_, seconds);
+  Render(canvas);
+  RestoreAnimations(nodes_);
+}
+
+void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                            double seconds) const {
+  ApplyAnimations(nodes_, seconds);
+  Render(canvas, view_port);
+  RestoreAnimations(nodes_);
+}
+
+SrSVGHitTestResult SrSVGDOM::HitTest(canvas::PathFactory* path_factory, float x,
+                                     float y) const {
+  if (!root_) {
+    return {};
+  }
+  SrSVGBox view_box = root_->viewBox();
+  return HitTest(path_factory, view_box, x, y);
+}
+
+SrSVGHitTestResult SrSVGDOM::HitTest(canvas::PathFactory* path_factory,
+                                     SrSVGBox view_port, float x,
+                                     float y) const {
+  SrSVGHitTestResult result;
+  if (!root_ || !path_factory) {
+    return result;
+  }
+
+  SrSVGBox view_box = root_->viewBox();
+  if (IsZero(view_box.width) || IsZero(view_box.height)) {
+    view_box = SrSVGBox{0.f, 0.f, view_port.width, view_port.height};
+  }
+
+  SrSVGTraversalState traversal_state;
+  SrSVGRenderContext context{
+      .width = view_port.width,
+      .height = view_port.height,
+      .dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f,
+      .font_size = 0.f,
+      .id_mapper = id_mapper_,
+      .traversal_state = &traversal_state,
+      .view_port = view_port,
+      .view_box = view_box,
+      .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
+      .default_color = default_color_.value_or(0),
+  };
+
+  float root_transform[6];
+  calculate_view_box_transform(&view_port, &view_box,
+                               root_->preserveAspectRatio(), root_transform);
+  HitTestNode(root_, path_factory, &context, root_transform, x, y, &result);
+  ReplaceRuntimeDiagnostics(std::move(traversal_state.diagnostics));
+  return result;
 }
 
 const SrSVGDiagnostic* SrSVGDOM::last_diagnostic() const {

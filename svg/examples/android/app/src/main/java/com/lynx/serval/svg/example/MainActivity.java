@@ -11,6 +11,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -68,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_GRADIENT = "Gradient";
   private static final String CATEGORY_SHAPE = "Shape";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
+  private static final String CATEGORY_AI_SVG = "AI SVG";
+  private static final String ADVANCED_DEMO_FILE = "ai_svg_advanced_demo.svg";
   private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
   private static final String DIAGNOSTIC_TAG = "SVGDiagnostic";
   private static final String[] PREVIEW_METADATA_FILES = {
@@ -165,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
 
       List<String> fileList = new ArrayList<>(Arrays.asList(files));
       fileList.add("string_test.svg");  // Add string test case
+      fileList.add(ADVANCED_DEMO_FILE);
       loadPreviewMetadata();
       buildCategorizedFiles(fileList);
 
@@ -206,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
     categorizedFiles.clear();
     categories.clear();
     for (String category : new String[] {
+             CATEGORY_AI_SVG,
              CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
              CATEGORY_MASK, CATEGORY_FILTER, CATEGORY_ILLEGAL_PARSING,
              CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
@@ -222,6 +227,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private String categoryForFile(String fileName) {
+    if (ADVANCED_DEMO_FILE.equals(fileName)) {
+      return CATEGORY_AI_SVG;
+    }
     if (fileName.startsWith("color-parsing-")) {
       return CATEGORY_COLOR_PARSING;
     }
@@ -268,6 +276,10 @@ public class MainActivity extends AppCompatActivity {
     }
     LayoutInflater inflater = LayoutInflater.from(this);
     for (String fileName : files) {
+      if (ADVANCED_DEMO_FILE.equals(fileName)) {
+        previewListContainer.addView(createAdvancedDemoRow());
+        continue;
+      }
       View row = inflater.inflate(R.layout.svg_preview_row,
                                   previewListContainer, false);
       SvgPreviewMetadata metadata = metadataForFile(fileName);
@@ -302,6 +314,44 @@ public class MainActivity extends AppCompatActivity {
       previewListContainer.addView(row);
       loadAndRenderSvg(fileName, previewImageView);
     }
+  }
+
+  private View createAdvancedDemoRow() {
+    LinearLayout row = new LinearLayout(this);
+    row.setOrientation(LinearLayout.VERTICAL);
+    row.setPadding(0, dpToPx(8), 0, dpToPx(16));
+
+    TextView title = new TextView(this);
+    title.setText("AI SVG advanced demo");
+    title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+    title.setTextColor(0xFF1F2937);
+    row.addView(title, new LinearLayout.LayoutParams(
+                           ViewGroup.LayoutParams.MATCH_PARENT,
+                           ViewGroup.LayoutParams.WRAP_CONTENT));
+
+    TextView description = new TextView(this);
+    description.setText(
+        "Streams SVG chunks, plays SMIL animation, tap shapes for SVG node events.");
+    description.setTextColor(0xFF4B5563);
+    description.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+    row.addView(description, new LinearLayout.LayoutParams(
+                                 ViewGroup.LayoutParams.MATCH_PARENT,
+                                 ViewGroup.LayoutParams.WRAP_CONTENT));
+
+    TextView status = new TextView(this);
+    status.setTextColor(0xFF0F766E);
+    status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+    row.addView(status, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+
+    AdvancedSvgDemoView demoView = new AdvancedSvgDemoView(this);
+    demoView.setStatusListener(status::setText);
+    LinearLayout.LayoutParams demoParams = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(260));
+    demoParams.topMargin = dpToPx(12);
+    row.addView(demoView, demoParams);
+    return row;
   }
 
   private void loadAndRenderSvg(String fileName, ImageView targetView) {

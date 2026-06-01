@@ -26,8 +26,18 @@ typedef bool (*SrSVGStartElementCb)(void* ud, const char* el, size_t el_len,
 typedef bool (*SrSVGEndElementCb)(void* ud, const char* el, size_t el_len);
 typedef bool (*SrSVGContentCb)(void* ud, const char* s, size_t len);
 
+typedef enum SrXMLParseResult {
+  SR_XML_PARSE_RESULT_CONTINUE = 0,
+  SR_XML_PARSE_RESULT_STOP = 1,
+  SR_XML_PARSE_RESULT_ERROR = 2,
+} SrXMLParseResult;
+
 bool SrXMLParseContent(const char* s, size_t len, SrSVGContentCb content,
                        void* context);
+SrXMLParseResult SrXMLParseElementResult(const char* s, size_t len,
+                                         SrSVGStartElementCb start_element,
+                                         SrSVGEndElementCb end_element,
+                                         void* context);
 bool SrXMLParseElement(const char* s, size_t len,
                        SrSVGStartElementCb start_element,
                        SrSVGEndElementCb end_element, void* context);
