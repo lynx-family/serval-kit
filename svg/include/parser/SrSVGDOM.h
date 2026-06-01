@@ -67,6 +67,7 @@ class SrSVGDOM {
   void SetBuildDiagnostics(std::vector<SrSVGDiagnostic> diagnostics);
   void ReplaceRuntimeDiagnostics(
       std::vector<SrSVGDiagnostic> diagnostics) const;
+  void AdoptNode(element::SrSVGNodeBase* node);
 
  private:
   element::SrSVGSVG* root_;
@@ -88,6 +89,26 @@ class SrSVGDOMStreamBuilder {
 
   bool Append(const char* data, size_t len);
   std::unique_ptr<SrSVGDOM> Finish();
+  const std::vector<SrSVGDiagnostic>& diagnostics() const;
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+};
+
+class SrSVGDOMIncrementalBuilder {
+ public:
+  SrSVGDOMIncrementalBuilder();
+  ~SrSVGDOMIncrementalBuilder();
+
+  SrSVGDOMIncrementalBuilder(const SrSVGDOMIncrementalBuilder&) = delete;
+  SrSVGDOMIncrementalBuilder& operator=(const SrSVGDOMIncrementalBuilder&) =
+      delete;
+
+  bool Append(const char* data, size_t len);
+  bool Finish();
+  SrSVGDOM* Preview();
+  SrSVGDOM* Final();
   const std::vector<SrSVGDiagnostic>& diagnostics() const;
 
  private:

@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iterator>
 #include <string>
+#include <vector>
 
 #include "element/SrSVGAnimation.h"
 #include "element/SrSVGCircle.h"
@@ -32,6 +33,7 @@
 #include "element/SrSVGUse.h"
 #include "parser/SrDOM.h"
 #include "parser/SrSVGTraversalState.h"
+#include "parser/SrXMLParser.h"
 #include "parser/SrXMLParserError.h"
 #include "parser/SrXMLStreamParser.h"
 #include "utils/SrFloatComparison.h"
@@ -91,6 +93,15 @@ bool IsContainerTag(element::SrSVGTag tag) {
     default:
       return false;
   }
+}
+
+bool TagNamesMatch(const char* lhs, const char* rhs, size_t rhs_len) {
+  return lhs && rhs && std::strlen(lhs) == rhs_len &&
+         std::memcmp(lhs, rhs, rhs_len) == 0;
+}
+
+std::string ToString(const char* data, size_t len) {
+  return data ? std::string(data, len) : std::string();
 }
 
 bool BoundsContains(const SrSVGBox& bounds, float x, float y) {
@@ -171,6 +182,11 @@ void RestoreAnimations(const std::list<element::SrSVGNodeBase*>& nodes) {
       static_cast<element::SrSVGNode*>(node)->RestoreAnimatedAttributes();
     }
   }
+}
+
+element::SrSVGNodeBase* make_svg_node(const char* el) {
+  element::SrSVGNodeBase* node = make_svg_node(el);
+  return node;
 }
 
 }  // namespace
@@ -565,6 +581,258 @@ const std::vector<SrSVGDiagnostic>& SrSVGDOMStreamBuilder::diagnostics()
   return impl_->diagnostics;
 }
 
+class IncrementalSVGParser : public SrXMLParser {
+ public:
+  explicit IncrementalSVGParser(SrSVGTraversalState* build_state)
+      : SrXMLParser(&parser_error_),
+        build_state_(build_state),
+        sink_(MakeDiagnosticSink(build_state)) {}
+
+  bool Finish() {
+    if (!frames_.empty()) {
+      if (!parser_error_.HasError()) {
+        parser_error_.SetCode(SrXMLParserError::kUnknownError);
+        parser_error_.SetNoun(frames_.back().name.c_str());
+      }
+      SrSVGReportDiagnostic(&sink_, SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED,
+                            "Encountered unterminated XML element at end of "
+                            "stream.",
+                            frames_.back().name.c_str(), 1);
+      return false;
+    }
+    if (!dom_) {
+      if (!parser_error_.HasError()) {
+        parser_error_.SetCode(SrXMLParserError::kEmptyFile);
+        parser_error_.SetNoun("");
+      }
+      return false;
+    }
+    finished_ = true;
+    SyncBuildDiagnostics();
+    return true;
+  }
+
+  SrSVGDOM* Preview() {
+    SyncBuildDiagnostics();
+    return dom_.get();
+  }
+
+  SrSVGDOM* Final() {
+    return finished_ ? dom_.get() : nullptr;
+  }
+
+  SrXMLParserError& parser_error() { return parser_error_; }
+
+ protected:
+  bool OnStartElement(const char elem[], size_t len) override {
+    if (root_closed_) {
+      SetError(elem, len);
+      SrSVGReportDiagnostic(&sink_, SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED,
+                            "Encountered content after the root XML element.",
+                            ToString(elem, len).c_str(), 1);
+      return true;
+    }
+
+    element::SrSVGNodeBase* parent =
+        frames_.empty() ? nullptr : frames_.back().node;
+    element::SrSVGNodeBase* node = nullptr;
+    if (frames_.empty() || parent != nullptr) {
+      const std::string name = ToString(elem, len);
+      node = make_svg_node(name.c_str());
+      if (node && parent) {
+        if (parent->IsSVGNode() && node->IsSVGNode()) {
+          pre_parse_inherit_attribute(
+              static_cast<const element::SrSVGNode*>(parent),
+              static_cast<element::SrSVGNode*>(node));
+        }
+        pre_parse_inherit_color(parent, node);
+      }
+      if (node) {
+        node->SetDiagnosticSink(&sink_);
+      }
+    }
+
+    if (frames_.empty() && node) {
+      if (node->Tag() != element::SrSVGTag::kSvg) {
+        delete node;
+        SetError(elem, len);
+        return true;
+      }
+      auto id_mapper = std::make_unique<element::IDMapper>();
+      id_mapper_ = id_mapper.get();
+      std::list<element::SrSVGNodeBase*> holder;
+      holder.push_back(node);
+      dom_ = std::make_unique<SrSVGDOM>(
+          static_cast<element::SrSVGSVG*>(node), id_mapper.release(),
+          std::move(holder), std::make_shared<SrDOM>());
+    } else if (node && dom_) {
+      dom_->AdoptNode(node);
+    }
+
+    frames_.push_back(Frame{ToString(elem, len), node});
+    return false;
+  }
+
+  bool OnAddAttribute(const char name[], size_t name_len, const char value[],
+                      size_t value_len) override {
+    if (frames_.empty() || !frames_.back().node) {
+      return false;
+    }
+    auto* node = frames_.back().node;
+    const std::string attr_name = ToString(name, name_len);
+    const std::string attr_value = ToString(value, value_len);
+    node->StoreAttribute(attr_name.c_str(), attr_value.c_str());
+    if (attr_name == "id" && id_mapper_) {
+      (*id_mapper_)[attr_value] = node;
+    }
+    node->ParseAndSetAttribute(attr_name.c_str(), attr_value.c_str());
+    return false;
+  }
+
+  bool OnEndElement(const char elem[], size_t len) override {
+    if (frames_.empty()) {
+      SetError(elem, len);
+      SrSVGReportDiagnostic(
+          &sink_, SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG,
+          "Encountered unexpected closing tag while XML stack was empty.",
+          ToString(elem, len).c_str(), 1);
+      return true;
+    }
+    if (!TagNamesMatch(frames_.back().name.c_str(), elem, len)) {
+      SetError(elem, len);
+      SrSVGReportDiagnostic(&sink_,
+                            SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG,
+                            "Encountered mismatched closing tag.",
+                            ToString(elem, len).c_str(), 1);
+      return true;
+    }
+
+    Frame frame = frames_.back();
+    frames_.pop_back();
+    element::SrSVGNodeBase* parent =
+        frames_.empty() ? nullptr : frames_.back().node;
+    if (frame.node && parent) {
+      if ((frame.node->Tag() == element::SrSVGTag::kAnimate ||
+           frame.node->Tag() == element::SrSVGTag::kAnimateTransform) &&
+          parent->IsSVGNode()) {
+        static_cast<element::SrSVGNode*>(parent)->AddAnimation(
+            static_cast<element::SrSVGAnimation*>(frame.node));
+      }
+      if (ShouldAppendChild(parent, frame.node)) {
+        parent->AppendChild(frame.node);
+      }
+    }
+    if (!parent && frame.node && frame.node->Tag() == element::SrSVGTag::kSvg) {
+      root_closed_ = true;
+    }
+    SyncBuildDiagnostics();
+    return false;
+  }
+
+  bool OnText(const char text[], size_t len) override {
+    if (frames_.empty() || !frames_.back().node || len == 0 || !dom_) {
+      return false;
+    }
+    auto* text_el = element::SrSVGRawText::Make();
+    text_el->SetText(ToString(text, len).c_str());
+    text_el->SetDiagnosticSink(&sink_);
+    dom_->AdoptNode(text_el);
+    if (ShouldAppendChild(frames_.back().node, text_el)) {
+      frames_.back().node->AppendChild(text_el);
+    }
+    return false;
+  }
+
+ private:
+  struct Frame {
+    std::string name;
+    element::SrSVGNodeBase* node{nullptr};
+  };
+
+  void SetError(const char* noun, size_t noun_len) {
+    if (!parser_error_.HasError()) {
+      parser_error_.SetCode(SrXMLParserError::kUnknownError);
+      parser_error_.SetNoun(noun, noun_len);
+    }
+  }
+
+  void SyncBuildDiagnostics() {
+    if (dom_) {
+      dom_->SetBuildDiagnostics(build_state_->diagnostics);
+    }
+  }
+
+  SrXMLParserError parser_error_;
+  SrSVGTraversalState* build_state_;
+  SrSVGDiagnosticSink sink_;
+  std::unique_ptr<SrSVGDOM> dom_;
+  element::IDMapper* id_mapper_{nullptr};
+  std::vector<Frame> frames_;
+  bool root_closed_{false};
+  bool finished_{false};
+};
+
+struct SrSVGDOMIncrementalBuilder::Impl {
+  Impl() : parser(&build_state), stream_parser(&parser) {}
+
+  SrSVGTraversalState build_state;
+  IncrementalSVGParser parser;
+  SrXMLStreamParser stream_parser;
+  bool append_failed{false};
+  bool finished{false};
+  std::vector<SrSVGDiagnostic> diagnostics;
+
+  void RefreshDiagnostics() {
+    diagnostics = build_state.diagnostics;
+    if (parser.parser_error().HasError()) {
+      diagnostics.push_back(MakeParserDiagnostic(parser.parser_error()));
+    }
+  }
+};
+
+SrSVGDOMIncrementalBuilder::SrSVGDOMIncrementalBuilder()
+    : impl_(std::make_unique<Impl>()) {}
+
+SrSVGDOMIncrementalBuilder::~SrSVGDOMIncrementalBuilder() = default;
+
+bool SrSVGDOMIncrementalBuilder::Append(const char* data, size_t len) {
+  if (!impl_ || impl_->finished || impl_->append_failed) {
+    return false;
+  }
+  if (!impl_->stream_parser.Append(data, len)) {
+    impl_->append_failed = true;
+    impl_->RefreshDiagnostics();
+    return false;
+  }
+  impl_->RefreshDiagnostics();
+  return true;
+}
+
+bool SrSVGDOMIncrementalBuilder::Finish() {
+  if (!impl_ || impl_->finished) {
+    return false;
+  }
+  impl_->finished = true;
+  const bool ok =
+      !impl_->append_failed && impl_->stream_parser.Finish() &&
+      impl_->parser.Finish();
+  impl_->RefreshDiagnostics();
+  return ok;
+}
+
+SrSVGDOM* SrSVGDOMIncrementalBuilder::Preview() {
+  return impl_ ? impl_->parser.Preview() : nullptr;
+}
+
+SrSVGDOM* SrSVGDOMIncrementalBuilder::Final() {
+  return impl_ ? impl_->parser.Final() : nullptr;
+}
+
+const std::vector<SrSVGDiagnostic>& SrSVGDOMIncrementalBuilder::diagnostics()
+    const {
+  return impl_->diagnostics;
+}
+
 void SrSVGDOM::SetDefaultColor(uint32_t color) {
   default_color_ = color;
 }
@@ -689,6 +957,12 @@ void SrSVGDOM::ReplaceRuntimeDiagnostics(
   diagnostics_.insert(diagnostics_.end(),
                       std::make_move_iterator(diagnostics.begin()),
                       std::make_move_iterator(diagnostics.end()));
+}
+
+void SrSVGDOM::AdoptNode(element::SrSVGNodeBase* node) {
+  if (node) {
+    nodes_.push_back(node);
+  }
 }
 
 // Id mapper should only ref to an svg node, but should never copy or delete
