@@ -4,8 +4,6 @@
 
 #include <android/log.h>
 #include <jni.h>
-#include <algorithm>
-#include <cctype>
 #include <string>
 #include <vector>
 
@@ -17,6 +15,7 @@ using serval::svg::android::GetEnvForCurrentThread;
 using serval::svg::android::InitVM;
 using serval::svg::android::SrAndroidCanvas;
 using serval::svg::parser::SrSVGDOM;
+using serval::svg::parser::SrSVGDOMIncrementalBuilder;
 using serval::svg::parser::SrSVGDOMStreamBuilder;
 
 int registerNativeMethod(JNIEnv* env);
@@ -88,144 +87,12 @@ struct NativeSvgSession {
 };
 
 struct NativeStreamingSvgSession {
-  std::unique_ptr<SrSVGDOMStreamBuilder> builder{
-      std::make_unique<SrSVGDOMStreamBuilder>()};
-  std::string content;
-  std::unique_ptr<SrSVGDOM> preview_dom;
-  std::unique_ptr<SrSVGDOM> final_dom;
-  std::string preview_source;
+  std::unique_ptr<SrSVGDOMIncrementalBuilder> builder{
+      std::make_unique<SrSVGDOMIncrementalBuilder>()};
   std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
-  std::vector<serval::svg::parser::SrSVGDiagnostic> preview_diagnostics;
-  bool preview_dirty{true};
   bool append_failed{false};
   bool finished{false};
 };
-
-bool IsNameChar(char c) {
-  return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' ||
-         c == ':' || c == '.';
-}
-
-std::string TrimTagName(const std::string& tag, size_t start) {
-  while (start < tag.size() &&
-         std::isspace(static_cast<unsigned char>(tag[start]))) {
-    ++start;
-  }
-  const size_t name_start = start;
-  while (start < tag.size() && IsNameChar(tag[start])) {
-    ++start;
-  }
-  return tag.substr(name_start, start - name_start);
-}
-
-bool IsSelfClosingTag(const std::string& tag) {
-  for (auto it = tag.rbegin(); it != tag.rend(); ++it) {
-    if (std::isspace(static_cast<unsigned char>(*it))) {
-      continue;
-    }
-    return *it == '/';
-  }
-  return false;
-}
-
-void PopOpenTag(std::vector<std::string>* stack, const std::string& name) {
-  if (!stack || name.empty()) {
-    return;
-  }
-  for (auto it = stack->rbegin(); it != stack->rend(); ++it) {
-    if (*it == name) {
-      stack->resize(static_cast<size_t>(std::distance(it, stack->rend()) - 1));
-      return;
-    }
-  }
-}
-
-std::string BuildPreviewSvg(const std::string& input) {
-  const size_t svg_start = input.find("<svg");
-  if (svg_start == std::string::npos) {
-    return "";
-  }
-
-  std::vector<std::string> open_tags;
-  bool in_tag = false;
-  char quote = '\0';
-  size_t tag_start = std::string::npos;
-  size_t last_complete = std::string::npos;
-  size_t root_close = std::string::npos;
-
-  for (size_t i = svg_start; i < input.size(); ++i) {
-    const char token = input[i];
-    if (!in_tag) {
-      if (token == '<') {
-        in_tag = true;
-        quote = '\0';
-        tag_start = i;
-      }
-      continue;
-    }
-
-    if (quote != '\0') {
-      if (token == quote) {
-        quote = '\0';
-      }
-      continue;
-    }
-    if (token == '"' || token == '\'') {
-      quote = token;
-      continue;
-    }
-    if (token != '>') {
-      continue;
-    }
-
-    const std::string tag =
-        input.substr(tag_start + 1, i - tag_start - 1);
-    last_complete = i + 1;
-    in_tag = false;
-    tag_start = std::string::npos;
-
-    size_t tag_offset = 0;
-    while (tag_offset < tag.size() &&
-           std::isspace(static_cast<unsigned char>(tag[tag_offset]))) {
-      ++tag_offset;
-    }
-    if (tag_offset >= tag.size() || tag[tag_offset] == '!' ||
-        tag[tag_offset] == '?') {
-      continue;
-    }
-
-    if (tag[tag_offset] == '/') {
-      const std::string name = TrimTagName(tag, tag_offset + 1);
-      PopOpenTag(&open_tags, name);
-      if (name == "svg") {
-        root_close = i + 1;
-        break;
-      }
-      continue;
-    }
-
-    const std::string name = TrimTagName(tag, tag_offset);
-    if (!name.empty() && !IsSelfClosingTag(tag)) {
-      open_tags.push_back(name);
-    }
-  }
-
-  if (root_close != std::string::npos) {
-    return input.substr(svg_start, root_close - svg_start);
-  }
-  if (last_complete == std::string::npos || open_tags.empty() ||
-      open_tags.front() != "svg") {
-    return "";
-  }
-
-  std::string preview = input.substr(svg_start, last_complete - svg_start);
-  for (auto it = open_tags.rbegin(); it != open_tags.rend(); ++it) {
-    preview.append("</");
-    preview.append(*it);
-    preview.append(">");
-  }
-  return preview;
-}
 
 NativeSvgSession* AsSvgSession(jlong handle) {
   return reinterpret_cast<NativeSvgSession*>(handle);
@@ -236,36 +103,11 @@ NativeStreamingSvgSession* AsStreamingSession(jlong handle) {
 }
 
 SrSVGDOM* EnsureStreamingPreviewDom(NativeStreamingSvgSession* session) {
-  if (!session) {
+  if (!session || !session->builder) {
     return nullptr;
   }
-  if (session->final_dom) {
-    return session->final_dom.get();
-  }
-  if (!session->preview_dirty) {
-    return session->preview_dom.get();
-  }
-
-  std::string preview = BuildPreviewSvg(session->content);
-  if (preview.empty()) {
-    session->preview_dirty = false;
-    return session->preview_dom.get();
-  }
-  if (preview == session->preview_source && session->preview_dom) {
-    session->preview_dirty = false;
-    return session->preview_dom.get();
-  }
-
-  std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
-  auto preview_dom =
-      SrSVGDOM::make(preview.c_str(), preview.size(), &diagnostics);
-  session->preview_diagnostics = diagnostics;
-  if (preview_dom) {
-    session->preview_source = std::move(preview);
-    session->preview_dom = std::move(preview_dom);
-  }
-  session->preview_dirty = false;
-  return session->preview_dom.get();
+  return session->finished ? session->builder->Final()
+                           : session->builder->Preview();
 }
 
 const std::vector<serval::svg::parser::SrSVGDiagnostic>&
@@ -274,13 +116,10 @@ RenderableStreamingDiagnostics(NativeStreamingSvgSession* session) {
     static const std::vector<serval::svg::parser::SrSVGDiagnostic> empty;
     return empty;
   }
-  if (session->final_dom) {
-    return session->final_dom->diagnostics();
+  if (session->builder) {
+    return session->builder->diagnostics();
   }
-  if (session->preview_dom) {
-    return session->preview_dom->diagnostics();
-  }
-  return session->preview_diagnostics;
+  return session->diagnostics;
 }
 
 }  // namespace
@@ -566,17 +405,16 @@ jobjectArray appendStreamingSession(JNIEnv* env, jobject j_engine,
   const char* chunk = env->GetStringUTFChars(j_chunk, JNI_FALSE);
   const jsize chunk_length = env->GetStringUTFLength(j_chunk);
   if (chunk) {
-    session->content.append(chunk, static_cast<size_t>(chunk_length));
     if (session->builder) {
       session->append_failed =
           !session->builder->Append(chunk, static_cast<size_t>(chunk_length)) ||
           session->append_failed;
+      session->diagnostics = session->builder->diagnostics();
     }
     env->ReleaseStringUTFChars(j_chunk, chunk);
   } else {
     session->append_failed = true;
   }
-  session->preview_dirty = true;
   (void)j_engine;
   return CreateJavaDiagnosticArray(env, session->diagnostics);
 }
@@ -590,10 +428,9 @@ jobjectArray finishStreamingSession(JNIEnv* env, jobject j_engine,
   if (!session->finished) {
     session->finished = true;
     if (session->builder && !session->append_failed) {
-      session->final_dom = session->builder->Finish();
+      session->builder->Finish();
       session->diagnostics = session->builder->diagnostics();
     }
-    session->builder.reset();
   }
   (void)j_engine;
   return CreateJavaDiagnosticArray(env, session->diagnostics);
