@@ -229,6 +229,7 @@ public class SVGRender {
           mFinished) {
         return Collections.emptyList();
       }
+      mStaticLayerPictures.clear();
       return toDiagnosticList(
           mRender.mSVGRenderEngineNG.appendStreamingSession(mNativeHandle,
                                                             chunk));
@@ -240,6 +241,7 @@ public class SVGRender {
         return Collections.emptyList();
       }
       mFinished = true;
+      mStaticLayerPictures.clear();
       return toDiagnosticList(
           mRender.mSVGRenderEngineNG.finishStreamingSession(mNativeHandle));
     }

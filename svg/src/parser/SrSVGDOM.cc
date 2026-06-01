@@ -747,7 +747,13 @@ class IncrementalSVGParser : public SrXMLParser {
       dom_->AdoptNode(node);
     }
 
-    frames_.push_back(Frame{ToString(elem, len), node});
+    bool appended_to_parent = false;
+    if (node && parent && ShouldAppendChild(parent, node)) {
+      parent->AppendChild(node);
+      appended_to_parent = true;
+    }
+
+    frames_.push_back(Frame{ToString(elem, len), node, appended_to_parent});
     return false;
   }
 
@@ -796,7 +802,7 @@ class IncrementalSVGParser : public SrXMLParser {
         static_cast<element::SrSVGNode*>(parent)->AddAnimation(
             static_cast<element::SrSVGAnimation*>(frame.node));
       }
-      if (ShouldAppendChild(parent, frame.node)) {
+      if (!frame.appended_to_parent && ShouldAppendChild(parent, frame.node)) {
         parent->AppendChild(frame.node);
       }
     }
@@ -825,6 +831,7 @@ class IncrementalSVGParser : public SrXMLParser {
   struct Frame {
     std::string name;
     element::SrSVGNodeBase* node{nullptr};
+    bool appended_to_parent{false};
   };
 
   void SetError(const char* noun, size_t noun_len) {
