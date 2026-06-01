@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
             }
           });
 
-      String initialCategory = CATEGORY_SHAPE;
+      String initialCategory = CATEGORY_AI_SVG;
       int categoryIndex = Math.max(categories.indexOf(initialCategory), 0);
       categorySpinner.setSelection(categoryIndex);
       renderCategory(initialCategory);

@@ -101,6 +101,40 @@ public class SVGRenderEngine {
                                             float top, float width,
                                             float height, float x, float y);
 
+  native long createSession(String content);
+
+  native void destroySession(long handle);
+
+  native SVGRender.SVGDiagnostic[] renderSessionAtTimeWithDiagnostics(
+      SVGRender svgRender, long handle, float left, float top, float width,
+      float height, @Nullable String color, double seconds);
+
+  native SVGRender.SVGHitTestResult hitTestSession(SVGRender svgRender,
+                                                   long handle, float left,
+                                                   float top, float width,
+                                                   float height, float x,
+                                                   float y);
+
+  native long createStreamingSession();
+
+  native void destroyStreamingSession(long handle);
+
+  native SVGRender.SVGDiagnostic[] appendStreamingSession(long handle,
+                                                          String chunk);
+
+  native SVGRender.SVGDiagnostic[] finishStreamingSession(long handle);
+
+  native SVGRender.SVGDiagnostic[]
+  renderStreamingSessionAtTimeWithDiagnostics(SVGRender svgRender, long handle,
+                                              float left, float top,
+                                              float width, float height,
+                                              @Nullable String color,
+                                              double seconds);
+
+  native SVGRender.SVGHitTestResult hitTestStreamingSession(
+      SVGRender svgRender, long handle, float left, float top, float width,
+      float height, float x, float y);
+
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,
                                            float vbLeft, float vbTop,
