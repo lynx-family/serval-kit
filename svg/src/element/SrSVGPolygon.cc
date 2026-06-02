@@ -38,12 +38,15 @@ bool SrSVGPolygon::ParseAndSetAttribute(const char* name, const char* value) {
 }
 
 std::unique_ptr<canvas::Path> SrSVGPolygon::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   if (polygon_ && polygon_->n_points != 0) {
     auto path =
         path_factory->CreatePolygon(polygon_->points, polygon_->n_points);
-    if (path) {
-      path->Transform(transform_);
+    if (include_transform && path) {
+      float xform[6];
+      ResolvedTransform(xform, *context, path_factory);
+      path->Transform(xform);
     }
     return path;
   }

@@ -21,7 +21,8 @@ class SrSVGLine : public SrSVGShape {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   std::unique_ptr<canvas::Path> AsPath(
       canvas::PathFactory* path_factory,
-      SrSVGRenderContext* context) const override;
+      SrSVGRenderContext* context,
+      bool include_transform = true) const override;
 
  protected:
   void onDraw(canvas::SrCanvas* canvas,

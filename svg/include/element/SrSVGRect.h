@@ -24,7 +24,8 @@ class SrSVGRect : public SrSVGShape {
               SrSVGRenderContext& context) const override;
   std::unique_ptr<canvas::Path> AsPath(
       canvas::PathFactory* path_factory,
-      SrSVGRenderContext* context) const override;
+      SrSVGRenderContext* context,
+      bool include_transform = true) const override;
 
  private:
   SrSVGRect() : SrSVGShape(SrSVGTag::kRect) {}

@@ -73,6 +73,7 @@ class SrSVGDOM {
   void ReplaceRuntimeDiagnostics(
       std::vector<SrSVGDiagnostic> diagnostics) const;
   void AdoptNode(element::SrSVGNodeBase* node);
+  void BindTargetAnimations();
 
  private:
   element::SrSVGSVG* root_;

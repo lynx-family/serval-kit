@@ -26,6 +26,9 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Trace;
 import android.text.BoringLayout;
 import android.text.Layout;
 import android.text.SpannableString;
@@ -52,6 +55,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class SVGRender {
   private static final String TAG = "SVGRender";
@@ -90,6 +96,10 @@ public class SVGRender {
     public void onFailed();
   }
 
+  public interface StreamingCallback {
+    void onComplete(@NonNull List<SVGDiagnostic> diagnostics);
+  }
+
   @WorkerThread
   public interface ResourceManager {
     public void requestBitMap(String url, BitmapRequestCallBack callBack);
@@ -110,6 +120,18 @@ public class SVGRender {
   private int mCanvasWidth = 0;
   private int mCanvasHeight = 0;
   private final ArrayDeque<FilterLayer> mFilterLayers = new ArrayDeque<>();
+
+  private static void beginTraceSection(String name) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      Trace.beginSection(name);
+    }
+  }
+
+  private static void endTraceSection() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      Trace.endSection();
+    }
+  }
 
   public static final class SVGDiagnostic {
     public final int code;
@@ -170,19 +192,39 @@ public class SVGRender {
 
     public SVGRenderResult renderPictureAtTimeWithResult(
         Rect viewPort, double seconds) {
-      Picture picture = new Picture();
-      mRender.mPictureCanvas =
-          picture.beginRecording(viewPort.width(), viewPort.height());
-      SVGDiagnostic[] diagnostics = null;
-      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
-        diagnostics =
-            mRender.mSVGRenderEngineNG.renderSessionAtTimeWithDiagnostics(
-                mRender, mNativeHandle, viewPort.left, viewPort.top,
-                viewPort.width(), viewPort.height(), mRender.getColor(),
-                seconds);
+      beginTraceSection("SVG.session.renderFrame");
+      try {
+        Picture picture = new Picture();
+        beginTraceSection("SVG.picture.beginRecording");
+        try {
+          mRender.mPictureCanvas =
+              picture.beginRecording(viewPort.width(), viewPort.height());
+        } finally {
+          endTraceSection();
+        }
+        SVGDiagnostic[] diagnostics = null;
+        if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+          beginTraceSection("SVG.native.renderSessionAtTime");
+          try {
+            diagnostics =
+                mRender.mSVGRenderEngineNG.renderSessionAtTimeWithDiagnostics(
+                    mRender, mNativeHandle, viewPort.left, viewPort.top,
+                    viewPort.width(), viewPort.height(), mRender.getColor(),
+                    seconds);
+          } finally {
+            endTraceSection();
+          }
+        }
+        beginTraceSection("SVG.picture.endRecording");
+        try {
+          picture.endRecording();
+        } finally {
+          endTraceSection();
+        }
+        return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+      } finally {
+        endTraceSection();
       }
-      picture.endRecording();
-      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
     }
 
     public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
@@ -205,8 +247,14 @@ public class SVGRender {
 
   public static final class StreamingSVGSession implements AutoCloseable {
     private final SVGRender mRender;
+    private final Object mStateLock = new Object();
+    private final Object mNativeAccessLock = new Object();
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService mParserExecutor =
+        Executors.newSingleThreadExecutor();
     private long mNativeHandle;
     private boolean mFinished;
+    private boolean mClosed;
     private final ArrayList<Picture> mStaticLayerPictures = new ArrayList<>();
     @Nullable private Rect mLayerCacheViewPort;
     @Nullable private String mLayerCacheColor;
@@ -217,105 +265,271 @@ public class SVGRender {
     }
 
     public boolean isValid() {
-      return mNativeHandle != 0;
+      synchronized (mStateLock) {
+        return mNativeHandle != 0 && !mClosed;
+      }
     }
 
     public boolean isFinished() {
-      return mFinished;
+      synchronized (mStateLock) {
+        return mFinished;
+      }
     }
 
     public List<SVGDiagnostic> append(String chunk) {
-      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null ||
-          mFinished) {
-        return Collections.emptyList();
+      beginTraceSection("SVG.stream.append");
+      try {
+        long handle = getNativeHandleForMutation();
+        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+          return Collections.emptyList();
+        }
+        clearLayerCache();
+        synchronized (mNativeAccessLock) {
+          beginTraceSection("SVG.native.appendStreaming");
+          try {
+            return toDiagnosticList(
+                mRender.mSVGRenderEngineNG.appendStreamingSession(handle, chunk));
+          } finally {
+            endTraceSection();
+          }
+        }
+      } finally {
+        endTraceSection();
       }
-      mStaticLayerPictures.clear();
-      return toDiagnosticList(
-          mRender.mSVGRenderEngineNG.appendStreamingSession(mNativeHandle,
-                                                            chunk));
+    }
+
+    public boolean appendAsync(@NonNull final String chunk,
+                               @Nullable final StreamingCallback callback) {
+      if (!canMutate()) {
+        return false;
+      }
+      clearLayerCache();
+      try {
+        mParserExecutor.execute(new Runnable() {
+          @Override
+          public void run() {
+            final List<SVGDiagnostic> diagnostics = append(chunk);
+            postStreamingCallback(callback, diagnostics);
+          }
+        });
+      } catch (RejectedExecutionException ignored) {
+        return false;
+      }
+      return true;
     }
 
     public List<SVGDiagnostic> finish() {
-      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null ||
-          mFinished) {
-        return Collections.emptyList();
+      beginTraceSection("SVG.stream.finish");
+      try {
+        long handle = markFinishedForMutation();
+        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+          return Collections.emptyList();
+        }
+        clearLayerCache();
+        synchronized (mNativeAccessLock) {
+          beginTraceSection("SVG.native.finishStreaming");
+          try {
+            return toDiagnosticList(
+                mRender.mSVGRenderEngineNG.finishStreamingSession(handle));
+          } finally {
+            endTraceSection();
+          }
+        }
+      } finally {
+        endTraceSection();
       }
-      mFinished = true;
-      mStaticLayerPictures.clear();
-      return toDiagnosticList(
-          mRender.mSVGRenderEngineNG.finishStreamingSession(mNativeHandle));
+    }
+
+    public boolean finishAsync(@Nullable final StreamingCallback callback) {
+      if (!canMutate()) {
+        return false;
+      }
+      try {
+        mParserExecutor.execute(new Runnable() {
+          @Override
+          public void run() {
+            final List<SVGDiagnostic> diagnostics = finish();
+            postStreamingCallback(callback, diagnostics);
+          }
+        });
+      } catch (RejectedExecutionException ignored) {
+        return false;
+      }
+      return true;
     }
 
     public SVGRenderResult renderPictureAtTimeWithResult(
         Rect viewPort, double seconds) {
-      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null) {
-        Picture picture = new Picture();
-        picture.beginRecording(viewPort.width(), viewPort.height())
-            .drawColor(0x00000000);
-        picture.endRecording();
-        return new SVGRenderResult(picture, Collections.emptyList());
-      }
-      int layerCount =
-          mRender.mSVGRenderEngineNG.getStreamingSessionLayerCount(
-              mNativeHandle);
-      if (layerCount <= 0) {
-        return renderFullPictureAtTimeWithResult(viewPort, seconds);
-      }
-      ensureLayerCache(viewPort);
-
-      Picture picture = new Picture();
-      Canvas canvas = picture.beginRecording(viewPort.width(), viewPort.height());
-      ArrayList<SVGDiagnostic> diagnostics = new ArrayList<>();
-      for (int i = 0; i < layerCount; ++i) {
-        boolean animated =
-            mRender.mSVGRenderEngineNG.isStreamingSessionLayerAnimated(
-                mNativeHandle, i);
-        Picture layerPicture =
-            animated ? null
-                     : i < mStaticLayerPictures.size()
-                           ? mStaticLayerPictures.get(i)
-                           : null;
-        if (layerPicture == null) {
-          SVGRenderResult layer =
-              renderLayerPictureAtTimeWithResult(i, viewPort, seconds);
-          layerPicture = layer.picture;
-          diagnostics.addAll(layer.diagnostics);
-          if (!animated) {
-            while (mStaticLayerPictures.size() <= i) {
-              mStaticLayerPictures.add(null);
-            }
-            mStaticLayerPictures.set(i, layerPicture);
+      beginTraceSection("SVG.stream.renderFrame");
+      try {
+        long handle = getNativeHandleForRead();
+        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+          Picture picture = new Picture();
+          picture.beginRecording(viewPort.width(), viewPort.height())
+              .drawColor(0x00000000);
+          picture.endRecording();
+          return new SVGRenderResult(picture, Collections.emptyList());
+        }
+        synchronized (mNativeAccessLock) {
+          int layerCount;
+          beginTraceSection("SVG.stream.getLayerCount");
+          try {
+            layerCount =
+                mRender.mSVGRenderEngineNG.getStreamingSessionLayerCount(handle);
+          } finally {
+            endTraceSection();
           }
+          if (layerCount <= 0) {
+            return renderFullPictureAtTimeWithResult(handle, viewPort, seconds);
+          }
+          synchronized (mStateLock) {
+            ensureLayerCacheLocked(viewPort);
+          }
+
+          Picture picture = new Picture();
+          Canvas canvas;
+          beginTraceSection("SVG.picture.beginRecording");
+          try {
+            canvas =
+                picture.beginRecording(viewPort.width(), viewPort.height());
+          } finally {
+            endTraceSection();
+          }
+          ArrayList<SVGDiagnostic> diagnostics = new ArrayList<>();
+          for (int i = 0; i < layerCount; ++i) {
+            boolean animated =
+                mRender.mSVGRenderEngineNG.isStreamingSessionLayerAnimated(
+                    handle, i);
+            Picture layerPicture = null;
+            synchronized (mStateLock) {
+              if (!animated && i < mStaticLayerPictures.size()) {
+                layerPicture = mStaticLayerPictures.get(i);
+              }
+            }
+            if (layerPicture == null) {
+              SVGRenderResult layer = renderLayerPictureAtTimeWithResult(
+                  handle, i, viewPort, seconds);
+              layerPicture = layer.picture;
+              diagnostics.addAll(layer.diagnostics);
+              if (!animated) {
+                synchronized (mStateLock) {
+                  while (mStaticLayerPictures.size() <= i) {
+                    mStaticLayerPictures.add(null);
+                  }
+                  mStaticLayerPictures.set(i, layerPicture);
+                }
+              }
+            }
+            if (layerPicture != null) {
+              beginTraceSection(animated ? "SVG.stream.drawAnimatedLayer"
+                                         : "SVG.stream.drawStaticLayer");
+              try {
+                layerPicture.draw(canvas);
+              } finally {
+                endTraceSection();
+              }
+            }
+          }
+          beginTraceSection("SVG.picture.endRecording");
+          try {
+            picture.endRecording();
+          } finally {
+            endTraceSection();
+          }
+          return new SVGRenderResult(
+              picture, Collections.unmodifiableList(diagnostics));
         }
-        if (layerPicture != null) {
-          layerPicture.draw(canvas);
-        }
+      } finally {
+        endTraceSection();
       }
-      picture.endRecording();
-      return new SVGRenderResult(picture,
-                                 Collections.unmodifiableList(diagnostics));
     }
 
     public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
-      if (mNativeHandle == 0 || mRender.mSVGRenderEngineNG == null) {
+      long handle = getNativeHandleForRead();
+      if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
         return new SVGHitTestResult(false, "", "");
       }
-      return mRender.mSVGRenderEngineNG.hitTestStreamingSession(
-          mRender, mNativeHandle, viewPort.left, viewPort.top,
-          viewPort.width(), viewPort.height(), x, y);
+      synchronized (mNativeAccessLock) {
+        return mRender.mSVGRenderEngineNG.hitTestStreamingSession(
+            mRender, handle, viewPort.left, viewPort.top,
+            viewPort.width(), viewPort.height(), x, y);
+      }
     }
 
     @Override
     public void close() {
-      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
-        mRender.mSVGRenderEngineNG.destroyStreamingSession(mNativeHandle);
+      final long handle;
+      synchronized (mStateLock) {
+        handle = mNativeHandle;
+        mNativeHandle = 0;
+        mFinished = true;
+        mClosed = true;
+        clearLayerCacheLocked();
       }
-      mNativeHandle = 0;
-      mFinished = true;
+      try {
+        mParserExecutor.execute(new Runnable() {
+          @Override
+          public void run() {
+            if (handle != 0 && mRender.mSVGRenderEngineNG != null) {
+              synchronized (mNativeAccessLock) {
+                mRender.mSVGRenderEngineNG.destroyStreamingSession(handle);
+              }
+            }
+          }
+        });
+      } catch (RejectedExecutionException ignored) {
+        if (handle != 0 && mRender.mSVGRenderEngineNG != null) {
+          synchronized (mNativeAccessLock) {
+            mRender.mSVGRenderEngineNG.destroyStreamingSession(handle);
+          }
+        }
+      }
+      mParserExecutor.shutdown();
+    }
+
+    private boolean canMutate() {
+      synchronized (mStateLock) {
+        return mNativeHandle != 0 && !mFinished && !mClosed &&
+               mRender.mSVGRenderEngineNG != null;
+      }
+    }
+
+    private long getNativeHandleForRead() {
+      synchronized (mStateLock) {
+        return mClosed ? 0 : mNativeHandle;
+      }
+    }
+
+    private long getNativeHandleForMutation() {
+      synchronized (mStateLock) {
+        if (mNativeHandle == 0 || mFinished || mClosed) {
+          return 0;
+        }
+        return mNativeHandle;
+      }
+    }
+
+    private long markFinishedForMutation() {
+      synchronized (mStateLock) {
+        if (mNativeHandle == 0 || mFinished || mClosed) {
+          return 0;
+        }
+        mFinished = true;
+        return mNativeHandle;
+      }
+    }
+
+    private void clearLayerCache() {
+      synchronized (mStateLock) {
+        clearLayerCacheLocked();
+      }
+    }
+
+    private void clearLayerCacheLocked() {
       mStaticLayerPictures.clear();
     }
 
-    private void ensureLayerCache(Rect viewPort) {
+    private void ensureLayerCacheLocked(Rect viewPort) {
       String color = mRender.getColor();
       if (mLayerCacheViewPort != null && mLayerCacheViewPort.equals(viewPort) &&
           TextUtils.equals(mLayerCacheColor, color)) {
@@ -326,34 +540,90 @@ public class SVGRender {
       mLayerCacheColor = color;
     }
 
+    private void postStreamingCallback(
+        @Nullable final StreamingCallback callback,
+        @NonNull final List<SVGDiagnostic> diagnostics) {
+      if (callback == null) {
+        return;
+      }
+      mMainHandler.post(new Runnable() {
+        @Override
+        public void run() {
+          callback.onComplete(diagnostics);
+        }
+      });
+    }
+
     private SVGRenderResult renderLayerPictureAtTimeWithResult(
-        int index, Rect viewPort, double seconds) {
-      Picture picture = new Picture();
-      mRender.mPictureCanvas =
-          picture.beginRecording(viewPort.width(), viewPort.height());
-      SVGDiagnostic[] diagnostics =
-          mRender.mSVGRenderEngineNG
-              .renderStreamingSessionLayerAtTimeWithDiagnostics(
-                  mRender, mNativeHandle, index, viewPort.left, viewPort.top,
-                  viewPort.width(), viewPort.height(), mRender.getColor(),
-                  seconds);
-      picture.endRecording();
-      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+        long handle, int index, Rect viewPort, double seconds) {
+      beginTraceSection("SVG.stream.renderLayerPicture");
+      try {
+        Picture picture = new Picture();
+        beginTraceSection("SVG.picture.beginLayerRecording");
+        try {
+          mRender.mPictureCanvas =
+              picture.beginRecording(viewPort.width(), viewPort.height());
+        } finally {
+          endTraceSection();
+        }
+        SVGDiagnostic[] diagnostics;
+        beginTraceSection("SVG.native.renderLayerAtTime");
+        try {
+          diagnostics =
+              mRender.mSVGRenderEngineNG
+                  .renderStreamingSessionLayerAtTimeWithDiagnostics(
+                      mRender, handle, index, viewPort.left, viewPort.top,
+                      viewPort.width(), viewPort.height(), mRender.getColor(),
+                      seconds);
+        } finally {
+          endTraceSection();
+        }
+        beginTraceSection("SVG.picture.endLayerRecording");
+        try {
+          picture.endRecording();
+        } finally {
+          endTraceSection();
+        }
+        return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+      } finally {
+        endTraceSection();
+      }
     }
 
     private SVGRenderResult renderFullPictureAtTimeWithResult(
-        Rect viewPort, double seconds) {
-      Picture picture = new Picture();
-      mRender.mPictureCanvas =
-          picture.beginRecording(viewPort.width(), viewPort.height());
-      SVGDiagnostic[] diagnostics =
-          mRender.mSVGRenderEngineNG
-              .renderStreamingSessionAtTimeWithDiagnostics(
-                  mRender, mNativeHandle, viewPort.left, viewPort.top,
-                  viewPort.width(), viewPort.height(), mRender.getColor(),
-                  seconds);
-      picture.endRecording();
-      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+        long handle, Rect viewPort, double seconds) {
+      beginTraceSection("SVG.stream.renderFullPicture");
+      try {
+        Picture picture = new Picture();
+        beginTraceSection("SVG.picture.beginRecording");
+        try {
+          mRender.mPictureCanvas =
+              picture.beginRecording(viewPort.width(), viewPort.height());
+        } finally {
+          endTraceSection();
+        }
+        SVGDiagnostic[] diagnostics;
+        beginTraceSection("SVG.native.renderStreamingAtTime");
+        try {
+          diagnostics =
+              mRender.mSVGRenderEngineNG
+                  .renderStreamingSessionAtTimeWithDiagnostics(
+                      mRender, handle, viewPort.left, viewPort.top,
+                      viewPort.width(), viewPort.height(), mRender.getColor(),
+                      seconds);
+        } finally {
+          endTraceSection();
+        }
+        beginTraceSection("SVG.picture.endRecording");
+        try {
+          picture.endRecording();
+        } finally {
+          endTraceSection();
+        }
+        return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+      } finally {
+        endTraceSection();
+      }
     }
   }
 
@@ -397,49 +667,89 @@ public class SVGRender {
 
   public SVGRenderResult renderPictureWithResult(String content,
                                                  Rect viewPort) {
-    Picture picture = new Picture();
-    mCanvasWidth = viewPort.width();
-    mCanvasHeight = viewPort.height();
-    mFilterLayers.clear();
-    mDstInLayerActive = false;
-    mMaskIsLuminance = false;
-    mPictureCanvas =
-        picture.beginRecording(viewPort.width(), viewPort.height());
-    SVGDiagnostic[] diagnostics = null;
-    if (mSVGRenderEngineNG == null) {
-      mSVGRenderEngineNG = SVGRenderEngine.getInstance();
+    beginTraceSection("SVG.renderPicture");
+    try {
+      Picture picture = new Picture();
+      mCanvasWidth = viewPort.width();
+      mCanvasHeight = viewPort.height();
+      mFilterLayers.clear();
+      mDstInLayerActive = false;
+      mMaskIsLuminance = false;
+      beginTraceSection("SVG.picture.beginRecording");
+      try {
+        mPictureCanvas =
+            picture.beginRecording(viewPort.width(), viewPort.height());
+      } finally {
+        endTraceSection();
+      }
+      SVGDiagnostic[] diagnostics = null;
+      if (mSVGRenderEngineNG == null) {
+        mSVGRenderEngineNG = SVGRenderEngine.getInstance();
+      }
+      if (mSVGRenderEngineNG != null) {
+        beginTraceSection("SVG.native.render");
+        try {
+          diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
+              this, content, viewPort.left, viewPort.top, viewPort.width(),
+              viewPort.height(), getColor());
+        } finally {
+          endTraceSection();
+        }
+      }
+      beginTraceSection("SVG.picture.endRecording");
+      try {
+        picture.endRecording();
+      } finally {
+        endTraceSection();
+      }
+      List<SVGDiagnostic> diagnosticList;
+      if (mSVGRenderEngineNG == null) {
+        diagnosticList = Collections.singletonList(
+            makeNativeLibraryLoadFailedDiagnostic());
+      } else if (diagnostics == null || diagnostics.length == 0) {
+        diagnosticList = Collections.emptyList();
+      } else {
+        diagnosticList = Collections.unmodifiableList(Arrays.asList(diagnostics));
+      }
+      return new SVGRenderResult(picture, diagnosticList);
+    } finally {
+      endTraceSection();
     }
-    if (mSVGRenderEngineNG != null) {
-      diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
-          this, content, viewPort.left, viewPort.top, viewPort.width(),
-          viewPort.height(), getColor());
-    }
-    picture.endRecording();
-    List<SVGDiagnostic> diagnosticList;
-    if (mSVGRenderEngineNG == null) {
-      diagnosticList =
-          Collections.singletonList(makeNativeLibraryLoadFailedDiagnostic());
-    } else if (diagnostics == null || diagnostics.length == 0) {
-      diagnosticList = Collections.<SVGDiagnostic>emptyList();
-    } else {
-      diagnosticList = Collections.unmodifiableList(Arrays.asList(diagnostics));
-    }
-    return new SVGRenderResult(picture, diagnosticList);
   }
 
   public SVGRenderResult renderPictureAtTimeWithResult(
       String content, Rect viewPort, double seconds) {
-    Picture picture = new Picture();
-    mPictureCanvas =
-        picture.beginRecording(viewPort.width(), viewPort.height());
-    SVGDiagnostic[] diagnostics = null;
-    if (mSVGRenderEngineNG != null) {
-      diagnostics = mSVGRenderEngineNG.renderAtTimeWithDiagnostics(
-          this, content, viewPort.left, viewPort.top, viewPort.width(),
-          viewPort.height(), getColor(), seconds);
+    beginTraceSection("SVG.renderAtTime");
+    try {
+      Picture picture = new Picture();
+      beginTraceSection("SVG.picture.beginRecording");
+      try {
+        mPictureCanvas =
+            picture.beginRecording(viewPort.width(), viewPort.height());
+      } finally {
+        endTraceSection();
+      }
+      SVGDiagnostic[] diagnostics = null;
+      if (mSVGRenderEngineNG != null) {
+        beginTraceSection("SVG.native.renderAtTime");
+        try {
+          diagnostics = mSVGRenderEngineNG.renderAtTimeWithDiagnostics(
+              this, content, viewPort.left, viewPort.top, viewPort.width(),
+              viewPort.height(), getColor(), seconds);
+        } finally {
+          endTraceSection();
+        }
+      }
+      beginTraceSection("SVG.picture.endRecording");
+      try {
+        picture.endRecording();
+      } finally {
+        endTraceSection();
+      }
+      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+    } finally {
+      endTraceSection();
     }
-    picture.endRecording();
-    return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
   }
 
   public List<SVGDiagnostic> parseStreamingWithDiagnostics(String[] chunks) {

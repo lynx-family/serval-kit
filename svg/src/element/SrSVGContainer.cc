@@ -18,7 +18,9 @@ bool SrSVGContainer::ParseAndSetAttribute(const char* name, const char* value) {
 
 void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
                               SrSVGRenderContext& context) {
-  canvas->Transform(transform_);
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
   const float group_opacity =
       opacity_ ? SrSVGNode::ClampOpacity(opacity_.value_or(1.f)) : 1.f;
   if (opacity_ && group_opacity <= 0.f) {
@@ -141,13 +143,16 @@ bool SrSVGContainer::RenderChildAt(canvas::SrCanvas* canvas,
   if (index >= children_.size()) {
     return false;
   }
-  canvas->Transform(transform_);
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
   RenderChild(canvas, context, children_[index]);
   return true;
 }
 
 std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   std::unique_ptr<canvas::Path> path = path_factory->CreateMutable();
   for (SrSVGNodeBase* child : children_) {
     if (child) {
@@ -156,6 +161,11 @@ std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(
         path_factory->Op(path.get(), child_path.get(), canvas::OP::UNION);
       }
     }
+  }
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
   return path;
 }

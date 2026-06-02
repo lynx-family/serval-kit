@@ -38,11 +38,20 @@ bool SrSVGPath::ParseAndSetAttribute(const char* name, const char* value) {
 }
 
 std::unique_ptr<canvas::Path> SrSVGPath::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
+  if (!path_) {
+    return nullptr;
+  }
   auto path = path_factory->CreatePath(path_->ops, path_->n_ops, path_->args,
                                        path_->n_args);
   if (path) {
     path->SetFillType(fill_rule_);
+    if (include_transform) {
+      float xform[6];
+      ResolvedTransform(xform, *context, path_factory);
+      path->Transform(xform);
+    }
   }
   return path;
 }

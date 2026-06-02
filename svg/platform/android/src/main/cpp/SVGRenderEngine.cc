@@ -4,6 +4,7 @@
 
 #include <android/log.h>
 #include <jni.h>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -95,6 +96,7 @@ struct NativeSvgSession {
 };
 
 struct NativeStreamingSvgSession {
+  mutable std::mutex mutex;
   std::unique_ptr<SrSVGDOMIncrementalBuilder> builder{
       std::make_unique<SrSVGDOMIncrementalBuilder>()};
   std::vector<serval::svg::parser::SrSVGDiagnostic> diagnostics;
@@ -425,11 +427,18 @@ void destroyStreamingSession(JNIEnv* env, jobject j_engine, jlong handle) {
 jobjectArray appendStreamingSession(JNIEnv* env, jobject j_engine,
                                     jlong handle, jstring j_chunk) {
   auto* session = AsStreamingSession(handle);
-  if (!session || session->finished || !j_chunk) {
+  if (!session || !j_chunk) {
     return CreateJavaDiagnosticArray(env, {});
   }
   const char* chunk = env->GetStringUTFChars(j_chunk, JNI_FALSE);
   const jsize chunk_length = env->GetStringUTFLength(j_chunk);
+  std::lock_guard<std::mutex> lock(session->mutex);
+  if (session->finished) {
+    if (chunk) {
+      env->ReleaseStringUTFChars(j_chunk, chunk);
+    }
+    return CreateJavaDiagnosticArray(env, session->diagnostics);
+  }
   if (chunk) {
     if (session->builder) {
       session->append_failed =
@@ -451,6 +460,7 @@ jobjectArray finishStreamingSession(JNIEnv* env, jobject j_engine,
   if (!session) {
     return CreateJavaDiagnosticArray(env, {});
   }
+  std::lock_guard<std::mutex> lock(session->mutex);
   if (!session->finished) {
     session->finished = true;
     if (session->builder && !session->append_failed) {
@@ -467,6 +477,10 @@ jobjectArray renderStreamingSessionAtTimeWithDiagnostics(
     jfloat top, jfloat width, jfloat height, jstring j_color,
     jdouble seconds) {
   auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
   SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   if (!svg_dom) {
     return CreateJavaDiagnosticArray(env,
@@ -482,7 +496,12 @@ jint getStreamingSessionLayerCount(JNIEnv* env, jobject j_engine,
                                    jlong handle) {
   (void)env;
   (void)j_engine;
-  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return 0;
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   return svg_dom ? static_cast<jint>(svg_dom->LayerCount()) : 0;
 }
 
@@ -490,7 +509,12 @@ jboolean isStreamingSessionLayerAnimated(JNIEnv* env, jobject j_engine,
                                          jlong handle, jint index) {
   (void)env;
   (void)j_engine;
-  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return JNI_FALSE;
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   if (!svg_dom || index < 0) {
     return JNI_FALSE;
   }
@@ -502,7 +526,12 @@ jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
     JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
     jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color,
     jdouble seconds) {
-  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(AsStreamingSession(handle));
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   if (!svg_dom || index < 0) {
     return CreateJavaDiagnosticArray(env, {});
   }
@@ -519,6 +548,10 @@ jobject hitTestStreamingSession(JNIEnv* env, jobject j_engine, jobject j_render,
                                 jfloat width, jfloat height, jfloat x,
                                 jfloat y) {
   auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return CreateJavaHitTestResult(env, {});
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
   SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
   if (!svg_dom) {
     return CreateJavaHitTestResult(env, {});

@@ -66,7 +66,9 @@ void SrSVGTextContainer::AppendToParagraph(canvas::ParagraphFactory* paragraph,
 
 void SrSVGText::OnRender(canvas::SrCanvas* canvas,
                          SrSVGRenderContext& context) {
-  canvas->Transform(transform_);
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
   const auto paragraph_builder = canvas::CreateParagraphFactoryFactory(canvas);
   //TODO(renzhongyue hujing) need separate the paragraph_builder with the factory
   AppendToParagraph(paragraph_builder.get(), context);

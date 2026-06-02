@@ -348,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
     AdvancedSvgDemoView demoView = new AdvancedSvgDemoView(this);
     demoView.setStatusListener(status::setText);
     LinearLayout.LayoutParams demoParams = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(260));
+        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(300));
     demoParams.topMargin = dpToPx(12);
     row.addView(demoView, demoParams);
     return row;

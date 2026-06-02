@@ -26,6 +26,8 @@ class SrSVGAnimation;
 
 enum class SrSVGTag {
   kAnimate,
+  kAnimateColor,
+  kAnimateMotion,
   kAnimateTransform,
   kCircle,
   kClipPath,
@@ -43,6 +45,7 @@ enum class SrSVGTag {
   kLine,
   kLinearGradient,
   kMask,
+  kMPath,
   kPath,
   kPattern,
   kPolygon,
@@ -51,6 +54,7 @@ enum class SrSVGTag {
   kRect,
   kStop,
   kSvg,
+  kSet,
   kText,
   kTextLiteral,
   kTSpan,
@@ -67,7 +71,8 @@ class SrSVGNodeBase {
   }
   virtual void AppendChild(SrSVGNodeBase*) {}
   virtual std::unique_ptr<canvas::Path> AsPath(
-      canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+      canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+      bool include_transform = true) const {
     return nullptr;
   }
   virtual bool IsSVGNode() const { return false; }
@@ -102,6 +107,14 @@ class SrSVGNodeBase {
   SrSVGTag tag_;
 };
 
+using IDMapper = std::unordered_map<std::string, SrSVGNodeBase*>;
+
+enum class SrSVGTransformBox {
+  kViewBox,
+  kFillBox,
+  kStrokeBox,
+};
+
 class SrSVGNode : public SrSVGNodeBase {
  public:
   static void ParseTransform(const char* str, float* xform);
@@ -124,8 +137,17 @@ class SrSVGNode : public SrSVGNodeBase {
   void StoreAttribute(const char* name, const char* value) override;
   void AddAnimation(SrSVGAnimation* animation);
   bool HasAnimations() const { return !animations_.empty(); }
-  void ApplyAnimations(double seconds);
+  void ApplyAnimations(double seconds, const IDMapper* id_mapper);
   void RestoreAnimatedAttributes();
+  bool HasTransformOrigin() const { return has_transform_origin_; }
+  float TransformOriginX() const { return transform_origin_x_; }
+  float TransformOriginY() const { return transform_origin_y_; }
+  bool ResolveTransformOrigin(float* x, float* y,
+                              const SrSVGRenderContext& context,
+                              canvas::PathFactory* path_factory) const;
+  void ResolvedTransform(float (&xform)[6],
+                         const SrSVGRenderContext& context,
+                         canvas::PathFactory* path_factory) const;
 
   bool IsSVGNode() const override { return true; }
 
@@ -137,6 +159,8 @@ class SrSVGNode : public SrSVGNodeBase {
 
  private:
   void ParseStrokeDashArray(const char* value);
+  void ParseTransformOrigin(const char* value);
+  void ParseTransformBox(const char* value);
 
  public:
   static const float s_stroke_miter_limit;
@@ -162,6 +186,12 @@ class SrSVGNode : public SrSVGNodeBase {
   std::vector<float> stroke_dash_array_{};
 
   SrSVGVectorEffect vector_effect_{SR_SVG_VECTOR_EFFECT_NONE};
+  bool has_transform_origin_{false};
+  SrSVGLength transform_origin_x_length_{0.f, SR_SVG_UNITS_NUMBER};
+  SrSVGLength transform_origin_y_length_{0.f, SR_SVG_UNITS_NUMBER};
+  float transform_origin_x_{0.f};
+  float transform_origin_y_{0.f};
+  SrSVGTransformBox transform_box_{SrSVGTransformBox::kViewBox};
 
   //inherit
   SrSVGPaint* inherit_fill_paint_{nullptr};
@@ -178,8 +208,6 @@ class SrSVGNode : public SrSVGNodeBase {
   std::unordered_map<std::string, std::string> animated_attributes_;
   std::vector<SrSVGAnimation*> animations_;
 };
-
-using IDMapper = std::unordered_map<std::string, SrSVGNodeBase*>;
 
 }  // namespace element
 }  // namespace serval::svg

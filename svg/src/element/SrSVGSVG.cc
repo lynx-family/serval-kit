@@ -13,6 +13,31 @@ namespace serval {
 namespace svg {
 namespace element {
 
+namespace {
+
+void ApplyOriginWrappedTransform(canvas::SrCanvas* canvas,
+                                 const float (&transform)[6],
+                                 float origin_x, float origin_y) {
+  float centered[6];
+  xform_identity(centered);
+  xform_pre_translate(centered, origin_x, origin_y);
+  xform_multiply(centered, transform);
+  xform_pre_translate(centered, -origin_x, -origin_y);
+  canvas->Transform(centered);
+}
+
+void ResolveRootCssOrigin(const SrSVGSVG& svg, SrSVGRenderContext& context,
+                          canvas::PathFactory* path_factory, float* x,
+                          float* y) {
+  if (svg.ResolveTransformOrigin(x, y, context, path_factory)) {
+    return;
+  }
+  *x = context.view_box.left + context.view_box.width * 0.5f;
+  *y = context.view_box.top + context.view_box.height * 0.5f;
+}
+
+}  // namespace
+
 SrSVGSVG::SrSVGSVG(SrSVGTag tag)
     : SrSVGContainer(tag),
       preserve_aspect_radio_(make_default_preserve_aspect_radio()),
@@ -71,14 +96,11 @@ bool SrSVGSVG::OnPrepareToRender(canvas::SrCanvas* canvas,
 
 void SrSVGSVG::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   if (has_css_transform_) {
-    float centered[6];
-    xform_identity(centered);
-    const float cx = view_box_.left + view_box_.width * 0.5f;
-    const float cy = view_box_.top + view_box_.height * 0.5f;
-    xform_pre_translate(centered, cx, cy);
-    xform_multiply(centered, css_transform_);
-    xform_pre_translate(centered, -cx, -cy);
-    canvas->Transform(centered);
+    float origin_x = 0.f;
+    float origin_y = 0.f;
+    ResolveRootCssOrigin(*this, context, canvas->PathFactory(), &origin_x,
+                         &origin_y);
+    ApplyOriginWrappedTransform(canvas, css_transform_, origin_x, origin_y);
   }
   SrSVGContainer::OnRender(canvas, context);
 }
@@ -92,14 +114,11 @@ bool SrSVGSVG::RenderChildAt(canvas::SrCanvas* canvas,
     return false;
   }
   if (has_css_transform_) {
-    float centered[6];
-    xform_identity(centered);
-    const float cx = view_box_.left + view_box_.width * 0.5f;
-    const float cy = view_box_.top + view_box_.height * 0.5f;
-    xform_pre_translate(centered, cx, cy);
-    xform_multiply(centered, css_transform_);
-    xform_pre_translate(centered, -cx, -cy);
-    canvas->Transform(centered);
+    float origin_x = 0.f;
+    float origin_y = 0.f;
+    ResolveRootCssOrigin(*this, context, canvas->PathFactory(), &origin_x,
+                         &origin_y);
+    ApplyOriginWrappedTransform(canvas, css_transform_, origin_x, origin_y);
   }
   bool rendered = SrSVGContainer::RenderChildAt(canvas, context, index);
   canvas->Restore();
