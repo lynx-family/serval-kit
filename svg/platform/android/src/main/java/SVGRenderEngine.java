@@ -155,10 +155,19 @@ public class SVGRenderEngine {
 
   native boolean isStreamingSessionLayerAnimated(long handle, int index);
 
+  native void beginStreamingSessionFrame(long handle, double seconds);
+
+  native void endStreamingSessionFrame(long handle);
+
   native SVGRender.SVGDiagnostic[]
   renderStreamingSessionLayerAtTimeWithDiagnostics(
       SVGRender svgRender, long handle, int index, float left, float top,
       float width, float height, @Nullable String color, double seconds);
+
+  native SVGRender.SVGDiagnostic[]
+  renderStreamingSessionLayerWithCurrentFrameDiagnostics(
+      SVGRender svgRender, long handle, int index, float left, float top,
+      float width, float height, @Nullable String color);
 
   native SVGRender.SVGHitTestResult hitTestStreamingSession(
       SVGRender svgRender, long handle, float left, float top, float width,

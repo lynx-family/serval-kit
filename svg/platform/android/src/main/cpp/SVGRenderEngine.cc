@@ -56,10 +56,16 @@ jint getStreamingSessionLayerCount(JNIEnv* env, jobject j_engine,
                                    jlong handle);
 jboolean isStreamingSessionLayerAnimated(JNIEnv* env, jobject j_engine,
                                          jlong handle, jint index);
+void beginStreamingSessionFrame(JNIEnv* env, jobject j_engine, jlong handle,
+                                jdouble seconds);
+void endStreamingSessionFrame(JNIEnv* env, jobject j_engine, jlong handle);
 jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
     JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
     jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color,
     jdouble seconds);
+jobjectArray renderStreamingSessionLayerWithCurrentFrameDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
+    jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color);
 jobject hitTestStreamingSession(JNIEnv* env, jobject j_engine, jobject j_render,
                                 jlong handle, jfloat left, jfloat top,
                                 jfloat width, jfloat height, jfloat x,
@@ -253,12 +259,30 @@ int registerNativeMethod(JNIEnv* env) {
           .fnPtr = reinterpret_cast<void*>(isStreamingSessionLayerAnimated),
       },
       {
+          .name = "beginStreamingSessionFrame",
+          .signature = "(JD)V",
+          .fnPtr = reinterpret_cast<void*>(beginStreamingSessionFrame),
+      },
+      {
+          .name = "endStreamingSessionFrame",
+          .signature = "(J)V",
+          .fnPtr = reinterpret_cast<void*>(endStreamingSessionFrame),
+      },
+      {
           .name = "renderStreamingSessionLayerAtTimeWithDiagnostics",
           .signature = "(Lcom/lynx/serval/svg/SVGRender;JIFFFFLjava/lang/"
                        "String;D)[Lcom/lynx/serval/svg/"
                        "SVGRender$SVGDiagnostic;",
           .fnPtr = reinterpret_cast<void*>(
               renderStreamingSessionLayerAtTimeWithDiagnostics),
+      },
+      {
+          .name = "renderStreamingSessionLayerWithCurrentFrameDiagnostics",
+          .signature = "(Lcom/lynx/serval/svg/SVGRender;JIFFFFLjava/lang/"
+                       "String;)[Lcom/lynx/serval/svg/"
+                       "SVGRender$SVGDiagnostic;",
+          .fnPtr = reinterpret_cast<void*>(
+              renderStreamingSessionLayerWithCurrentFrameDiagnostics),
       },
       {
           .name = "hitTestStreamingSession",
@@ -522,6 +546,37 @@ jboolean isStreamingSessionLayerAnimated(JNIEnv* env, jobject j_engine,
                                                                  : JNI_FALSE;
 }
 
+void beginStreamingSessionFrame(JNIEnv* env, jobject j_engine, jlong handle,
+                                jdouble seconds) {
+  (void)env;
+  (void)j_engine;
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
+  if (!svg_dom) {
+    return;
+  }
+  svg_dom->BeginAnimationFrame(seconds);
+}
+
+void endStreamingSessionFrame(JNIEnv* env, jobject j_engine, jlong handle) {
+  (void)env;
+  (void)j_engine;
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
+  if (!svg_dom) {
+    return;
+  }
+  svg_dom->EndAnimationFrame();
+}
+
 jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
     JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
     jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color,
@@ -540,6 +595,26 @@ jobjectArray renderStreamingSessionLayerAtTimeWithDiagnostics(
   SrSVGBox view_port{left, top, width, height};
   svg_dom->RenderLayerAtTime(&sr_android_canvas, view_port,
                              static_cast<size_t>(index), seconds);
+  return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
+}
+
+jobjectArray renderStreamingSessionLayerWithCurrentFrameDiagnostics(
+    JNIEnv* env, jobject j_engine, jobject j_render, jlong handle, jint index,
+    jfloat left, jfloat top, jfloat width, jfloat height, jstring j_color) {
+  auto* session = AsStreamingSession(handle);
+  if (!session) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  std::lock_guard<std::mutex> lock(session->mutex);
+  SrSVGDOM* svg_dom = EnsureStreamingPreviewDom(session);
+  if (!svg_dom || index < 0) {
+    return CreateJavaDiagnosticArray(env, {});
+  }
+  ApplyDefaultColor(env, svg_dom, j_color);
+  SrAndroidCanvas sr_android_canvas(env, j_engine, j_render);
+  SrSVGBox view_port{left, top, width, height};
+  svg_dom->RenderLayer(&sr_android_canvas, view_port,
+                       static_cast<size_t>(index));
   return CreateJavaDiagnosticArray(env, svg_dom->diagnostics());
 }
 

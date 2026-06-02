@@ -125,6 +125,28 @@ bool SrSVGSVG::RenderChildAt(canvas::SrCanvas* canvas,
   return rendered;
 }
 
+bool SrSVGSVG::RenderChildPathAt(canvas::SrCanvas* canvas,
+                                 SrSVGRenderContext& context,
+                                 const std::vector<size_t>& path,
+                                 size_t depth) {
+  canvas->Save();
+  canvas->SetRenderContext(&context);
+  if (!OnPrepareToRender(canvas, context)) {
+    canvas->Restore();
+    return false;
+  }
+  if (has_css_transform_) {
+    float origin_x = 0.f;
+    float origin_y = 0.f;
+    ResolveRootCssOrigin(*this, context, canvas->PathFactory(), &origin_x,
+                         &origin_y);
+    ApplyOriginWrappedTransform(canvas, css_transform_, origin_x, origin_y);
+  }
+  bool rendered = SrSVGContainer::RenderChildPathAt(canvas, context, path, depth);
+  canvas->Restore();
+  return rendered;
+}
+
 }  // namespace element
 }  // namespace svg
 }  // namespace serval

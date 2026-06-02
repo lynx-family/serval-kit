@@ -9,17 +9,23 @@ import android.graphics.Color;
 import android.graphics.Picture;
 import android.graphics.Rect;
 import android.os.Build;
+import android.os.SystemClock;
 import android.os.Trace;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import com.lynx.serval.svg.SVGRender;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class AdvancedSvgDemoView extends View {
   public interface StatusListener {
     void onStatusChanged(String status);
   }
+
+  private static final long ASYNC_FRAME_INTERVAL_MS = 33L;
 
   private static final String SVG_CONTENT =
       "<svg viewBox=\"0 0 800 800\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
@@ -293,6 +299,13 @@ public class AdvancedSvgDemoView extends View {
   private SVGRender.StreamingSVGSession streamingSession;
   private String[] streamChunks;
   private int nextChunkIndex;
+  private ExecutorService frameRenderExecutor;
+  private boolean frameRenderInFlight;
+  private boolean frameRenderDelayPosted;
+  private long frameRenderGeneration;
+  private long nextFrameRenderUptimeMillis;
+  private Picture latestFramePicture;
+  private Picture[] latestFrameLayerPictures = new Picture[0];
 
   private static void beginTraceSection(String name) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -314,6 +327,15 @@ public class AdvancedSvgDemoView extends View {
         }
       };
 
+  private final Runnable frameRenderRequestRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          frameRenderDelayPosted = false;
+          postInvalidateOnAnimation();
+        }
+      };
+
   public AdvancedSvgDemoView(Context context) {
     super(context);
     init();
@@ -327,6 +349,7 @@ public class AdvancedSvgDemoView extends View {
   private void init() {
     setClickable(true);
     startTimeMillis = System.currentTimeMillis();
+    ensureFrameRenderExecutor();
   }
 
   public void setStatusListener(StatusListener listener) {
@@ -345,6 +368,9 @@ public class AdvancedSvgDemoView extends View {
   @Override
   protected void onDetachedFromWindow() {
     removeCallbacks(appendNextChunkRunnable);
+    removeCallbacks(frameRenderRequestRunnable);
+    resetFrameRenderState();
+    shutdownFrameRenderExecutor();
     if (streamingSession != null) {
       streamingSession.close();
       streamingSession = null;
@@ -356,6 +382,8 @@ public class AdvancedSvgDemoView extends View {
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
     super.onSizeChanged(w, h, oldw, oldh);
     renderRect = new Rect(0, 0, Math.max(w, 1), Math.max(h, 1));
+    resetFrameRenderState();
+    postInvalidateOnAnimation();
   }
 
   @Override
@@ -364,30 +392,19 @@ public class AdvancedSvgDemoView extends View {
     try {
       super.onDraw(canvas);
       canvas.drawColor(Color.WHITE);
-      double seconds = (System.currentTimeMillis() - startTimeMillis) / 1000.0;
-      if (streamingSession != null && streamingSession.isValid()) {
-        SVGRender.SVGRenderResult result;
-        beginTraceSection("SVGDemo.renderPictureAtTime");
+      requestNextFrameRender();
+      Picture picture = latestFramePicture;
+      if (picture != null) {
+        beginTraceSection("SVGDemo.drawFramePicture");
         try {
-          result =
-              streamingSession.renderPictureAtTimeWithResult(renderRect, seconds);
+          picture.draw(canvas);
         } finally {
           endTraceSection();
-        }
-        Picture picture = result.picture;
-        if (picture != null) {
-          beginTraceSection("SVGDemo.drawPicture");
-          try {
-            picture.draw(canvas);
-          } finally {
-            endTraceSection();
-          }
         }
       }
     } finally {
       endTraceSection();
     }
-    postInvalidateOnAnimation();
   }
 
   @Override
@@ -411,6 +428,8 @@ public class AdvancedSvgDemoView extends View {
 
   private void startStreamingSession() {
     removeCallbacks(appendNextChunkRunnable);
+    ensureFrameRenderExecutor();
+    resetFrameRenderState();
     if (streamingSession != null) {
       streamingSession.close();
     }
@@ -437,6 +456,7 @@ public class AdvancedSvgDemoView extends View {
               return;
             }
             nextChunkIndex = chunkIndex + 1;
+            requestNextFrameRender();
             postInvalidateOnAnimation();
             if (streamingSession == null || streamChunks == null) {
               return;
@@ -445,7 +465,7 @@ public class AdvancedSvgDemoView extends View {
               notifyStatus("streaming " + nextChunkIndex + "/" +
                            streamChunks.length + " diagnostics=" +
                            diagnostics.size());
-              postDelayed(appendNextChunkRunnable, 100);
+              postDelayed(appendNextChunkRunnable, 16);
               return;
             }
             finishStreamingSession();
@@ -468,6 +488,7 @@ public class AdvancedSvgDemoView extends View {
             if (streamingSession != session) {
               return;
             }
+            requestNextFrameRender();
             postInvalidateOnAnimation();
             notifyStatus("final DOM cached diagnostics=" + diagnostics.size());
           }
@@ -483,6 +504,164 @@ public class AdvancedSvgDemoView extends View {
       lines[i] = lines[i] + "\n";
     }
     return lines;
+  }
+
+  private void requestNextFrameRender() {
+    if (frameRenderInFlight || streamingSession == null ||
+        !streamingSession.isValid()) {
+      return;
+    }
+    long nowMillis = SystemClock.uptimeMillis();
+    long delayMillis = nextFrameRenderUptimeMillis - nowMillis;
+    if (delayMillis > 0) {
+      scheduleFrameRenderRequest(delayMillis);
+      return;
+    }
+    ensureFrameRenderExecutor();
+    if (frameRenderExecutor == null) {
+      return;
+    }
+    final SVGRender.StreamingSVGSession session = streamingSession;
+    final Rect frameRect = new Rect(renderRect);
+    final double seconds =
+        (System.currentTimeMillis() - startTimeMillis) / 1000.0;
+    final long generation = frameRenderGeneration;
+    frameRenderInFlight = true;
+    nextFrameRenderUptimeMillis = nowMillis + ASYNC_FRAME_INTERVAL_MS;
+    beginTraceSection("SVGDemo.scheduleAsyncFrame");
+    try {
+      frameRenderExecutor.execute(new Runnable() {
+        @Override
+        public void run() {
+          renderFrameInBackground(session, frameRect, seconds, generation);
+        }
+      });
+    } catch (RejectedExecutionException ignored) {
+      frameRenderInFlight = false;
+    } finally {
+      endTraceSection();
+    }
+  }
+
+  private void renderFrameInBackground(final SVGRender.StreamingSVGSession session,
+                                       final Rect frameRect,
+                                       final double seconds,
+                                       final long generation) {
+    SVGRender.SVGLayerRenderResult result = null;
+    Picture displayPicture = null;
+    RuntimeException error = null;
+    beginTraceSection("SVGDemo.asyncRenderFrame");
+    try {
+      result = session.renderLayerPicturesAtTimeWithResult(frameRect, seconds);
+      if (result != null && result.pictures != null &&
+          result.pictures.length > 0) {
+        displayPicture =
+            composeLayerPictures(frameRect, result.pictures, result.animated);
+      }
+    } catch (RuntimeException exception) {
+      error = exception;
+    } finally {
+      endTraceSection();
+    }
+    final SVGRender.SVGLayerRenderResult frameResult = result;
+    final Picture framePicture = displayPicture;
+    final RuntimeException frameError = error;
+    post(new Runnable() {
+      @Override
+      public void run() {
+        completeAsyncFrameRender(session, generation, frameResult,
+                                 framePicture, frameError);
+      }
+    });
+  }
+
+  private void completeAsyncFrameRender(
+      SVGRender.StreamingSVGSession session, long generation,
+      SVGRender.SVGLayerRenderResult result, Picture displayPicture,
+      RuntimeException error) {
+    if (streamingSession != session || frameRenderGeneration != generation) {
+      return;
+    }
+    frameRenderInFlight = false;
+    if (error != null) {
+      notifyStatus("async frame failed: " + error.getClass().getSimpleName());
+      return;
+    }
+    if (result != null && result.pictures != null) {
+      latestFrameLayerPictures = result.pictures;
+    }
+    latestFramePicture = displayPicture;
+    postInvalidateOnAnimation();
+  }
+
+  private Picture composeLayerPictures(Rect frameRect, Picture[] layerPictures,
+                                       boolean[] animatedFlags) {
+    beginTraceSection("SVGDemo.composeLayerPicture");
+    try {
+      Picture picture = new Picture();
+      Canvas canvas;
+      beginTraceSection("SVGDemo.compose.beginRecording");
+      try {
+        canvas = picture.beginRecording(frameRect.width(), frameRect.height());
+      } finally {
+        endTraceSection();
+      }
+      for (int i = 0; i < layerPictures.length; ++i) {
+        Picture layerPicture = layerPictures[i];
+        if (layerPicture == null) {
+          continue;
+        }
+        boolean animated = animatedFlags != null &&
+            i < animatedFlags.length && animatedFlags[i];
+        beginTraceSection(animated ? "SVGDemo.composeAnimatedLayer"
+                                   : "SVGDemo.composeStaticLayer");
+        try {
+          layerPicture.draw(canvas);
+        } finally {
+          endTraceSection();
+        }
+      }
+      beginTraceSection("SVGDemo.compose.endRecording");
+      try {
+        picture.endRecording();
+      } finally {
+        endTraceSection();
+      }
+      return picture;
+    } finally {
+      endTraceSection();
+    }
+  }
+
+  private void resetFrameRenderState() {
+    removeCallbacks(frameRenderRequestRunnable);
+    frameRenderGeneration++;
+    frameRenderInFlight = false;
+    frameRenderDelayPosted = false;
+    nextFrameRenderUptimeMillis = 0L;
+    latestFramePicture = null;
+    latestFrameLayerPictures = new Picture[0];
+  }
+
+  private void scheduleFrameRenderRequest(long delayMillis) {
+    if (frameRenderDelayPosted) {
+      return;
+    }
+    frameRenderDelayPosted = true;
+    postDelayed(frameRenderRequestRunnable, Math.max(1L, delayMillis));
+  }
+
+  private void ensureFrameRenderExecutor() {
+    if (frameRenderExecutor == null || frameRenderExecutor.isShutdown()) {
+      frameRenderExecutor = Executors.newSingleThreadExecutor();
+    }
+  }
+
+  private void shutdownFrameRenderExecutor() {
+    if (frameRenderExecutor != null) {
+      frameRenderExecutor.shutdownNow();
+      frameRenderExecutor = null;
+    }
   }
 
   private void notifyStatus(String status) {

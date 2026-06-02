@@ -164,6 +164,25 @@ public class SVGRender {
     }
   }
 
+  public static final class SVGLayerRenderResult {
+    @NonNull public final Picture[] pictures;
+    @NonNull public final boolean[] animated;
+    @NonNull public final List<SVGDiagnostic> diagnostics;
+    public final boolean hasError;
+    @Nullable public final String errorMessage;
+
+    SVGLayerRenderResult(@NonNull Picture[] pictures,
+                         @NonNull boolean[] animated,
+                         @NonNull List<SVGDiagnostic> diagnostics) {
+      this.pictures = pictures;
+      this.animated = animated;
+      this.diagnostics = diagnostics;
+      this.hasError = !diagnostics.isEmpty();
+      this.errorMessage =
+          diagnostics.isEmpty() ? null : diagnostics.get(0).message;
+    }
+  }
+
   public static final class SVGHitTestResult {
     public final boolean hit;
     @NonNull public final String id;
@@ -258,6 +277,8 @@ public class SVGRender {
     private final ArrayList<Picture> mStaticLayerPictures = new ArrayList<>();
     @Nullable private Rect mLayerCacheViewPort;
     @Nullable private String mLayerCacheColor;
+    private int mCachedLayerCount = -1;
+    @Nullable private boolean[] mCachedLayerAnimatedFlags;
 
     StreamingSVGSession(@NonNull SVGRender render, long nativeHandle) {
       mRender = render;
@@ -279,12 +300,12 @@ public class SVGRender {
     public List<SVGDiagnostic> append(String chunk) {
       beginTraceSection("SVG.stream.append");
       try {
-        long handle = getNativeHandleForMutation();
-        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
-          return Collections.emptyList();
-        }
-        clearLayerCache();
         synchronized (mNativeAccessLock) {
+          long handle = getNativeHandleForMutation();
+          if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+            return Collections.emptyList();
+          }
+          clearLayerCache();
           beginTraceSection("SVG.native.appendStreaming");
           try {
             return toDiagnosticList(
@@ -303,7 +324,6 @@ public class SVGRender {
       if (!canMutate()) {
         return false;
       }
-      clearLayerCache();
       try {
         mParserExecutor.execute(new Runnable() {
           @Override
@@ -321,12 +341,12 @@ public class SVGRender {
     public List<SVGDiagnostic> finish() {
       beginTraceSection("SVG.stream.finish");
       try {
-        long handle = markFinishedForMutation();
-        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
-          return Collections.emptyList();
-        }
-        clearLayerCache();
         synchronized (mNativeAccessLock) {
+          long handle = markFinishedForMutation();
+          if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+            return Collections.emptyList();
+          }
+          clearLayerCache();
           beginTraceSection("SVG.native.finishStreaming");
           try {
             return toDiagnosticList(
@@ -362,94 +382,185 @@ public class SVGRender {
         Rect viewPort, double seconds) {
       beginTraceSection("SVG.stream.renderFrame");
       try {
-        long handle = getNativeHandleForRead();
-        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
-          Picture picture = new Picture();
-          picture.beginRecording(viewPort.width(), viewPort.height())
-              .drawColor(0x00000000);
-          picture.endRecording();
-          return new SVGRenderResult(picture, Collections.emptyList());
+        SVGLayerRenderResult layers =
+            renderLayerPicturesAtTimeWithResult(viewPort, seconds);
+        Picture picture = new Picture();
+        Canvas canvas;
+        beginTraceSection("SVG.picture.beginRecording");
+        try {
+          canvas = picture.beginRecording(viewPort.width(), viewPort.height());
+        } finally {
+          endTraceSection();
         }
-        synchronized (mNativeAccessLock) {
-          int layerCount;
-          beginTraceSection("SVG.stream.getLayerCount");
+        for (int i = 0; i < layers.pictures.length; ++i) {
+          Picture layerPicture = layers.pictures[i];
+          if (layerPicture == null) {
+            continue;
+          }
+          final boolean animated =
+              i < layers.animated.length && layers.animated[i];
+          beginTraceSection(animated ? "SVG.stream.drawAnimatedLayer"
+                                     : "SVG.stream.drawStaticLayer");
           try {
-            layerCount =
-                mRender.mSVGRenderEngineNG.getStreamingSessionLayerCount(handle);
+            layerPicture.draw(canvas);
           } finally {
             endTraceSection();
           }
-          if (layerCount <= 0) {
-            return renderFullPictureAtTimeWithResult(handle, viewPort, seconds);
+        }
+        beginTraceSection("SVG.picture.endRecording");
+        try {
+          picture.endRecording();
+        } finally {
+          endTraceSection();
+        }
+        return new SVGRenderResult(picture, layers.diagnostics);
+      } finally {
+        endTraceSection();
+      }
+    }
+
+    public SVGLayerRenderResult renderLayerPicturesAtTimeWithResult(
+        Rect viewPort, double seconds) {
+      beginTraceSection("SVG.stream.renderLayerArray");
+      try {
+        synchronized (mNativeAccessLock) {
+          long handle = getNativeHandleForRead();
+          if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+            return new SVGLayerRenderResult(new Picture[0], new boolean[0],
+                                            Collections.emptyList());
           }
+          int layerCount = getLayerCountLocked(handle);
+          if (layerCount <= 0) {
+            SVGRenderResult full =
+                renderFullPictureAtTimeWithResult(handle, viewPort, seconds);
+            return new SVGLayerRenderResult(new Picture[] {full.picture},
+                                            new boolean[] {true},
+                                            full.diagnostics);
+          }
+          boolean[] animatedFlags = getLayerAnimatedFlagsLocked(handle, layerCount);
           synchronized (mStateLock) {
             ensureLayerCacheLocked(viewPort);
           }
 
-          Picture picture = new Picture();
-          Canvas canvas;
-          beginTraceSection("SVG.picture.beginRecording");
-          try {
-            canvas =
-                picture.beginRecording(viewPort.width(), viewPort.height());
-          } finally {
-            endTraceSection();
-          }
+          Picture[] pictures = new Picture[layerCount];
           ArrayList<SVGDiagnostic> diagnostics = new ArrayList<>();
-          for (int i = 0; i < layerCount; ++i) {
-            boolean animated =
-                mRender.mSVGRenderEngineNG.isStreamingSessionLayerAnimated(
-                    handle, i);
-            Picture layerPicture = null;
-            synchronized (mStateLock) {
-              if (!animated && i < mStaticLayerPictures.size()) {
-                layerPicture = mStaticLayerPictures.get(i);
+          boolean frameStarted = false;
+          try {
+            if (hasAnimatedLayer(animatedFlags)) {
+              beginTraceSection("SVG.native.beginStreamingFrame");
+              try {
+                mRender.mSVGRenderEngineNG.beginStreamingSessionFrame(
+                    handle, seconds);
+                frameStarted = true;
+              } finally {
+                endTraceSection();
               }
             }
-            if (layerPicture == null) {
-              SVGRenderResult layer = renderLayerPictureAtTimeWithResult(
-                  handle, i, viewPort, seconds);
-              layerPicture = layer.picture;
-              diagnostics.addAll(layer.diagnostics);
-              if (!animated) {
-                synchronized (mStateLock) {
-                  while (mStaticLayerPictures.size() <= i) {
-                    mStaticLayerPictures.add(null);
-                  }
-                  mStaticLayerPictures.set(i, layerPicture);
+            for (int i = 0; i < layerCount; ++i) {
+              boolean animated = animatedFlags[i];
+              Picture layerPicture = null;
+              synchronized (mStateLock) {
+                if (!animated && i < mStaticLayerPictures.size()) {
+                  layerPicture = mStaticLayerPictures.get(i);
                 }
               }
+              if (layerPicture == null) {
+                SVGRenderResult layer = renderLayerPictureAtTimeWithResult(
+                    handle, i, viewPort, seconds, frameStarted);
+                layerPicture = layer.picture;
+                diagnostics.addAll(layer.diagnostics);
+                if (!animated) {
+                  synchronized (mStateLock) {
+                    while (mStaticLayerPictures.size() <= i) {
+                      mStaticLayerPictures.add(null);
+                    }
+                    mStaticLayerPictures.set(i, layerPicture);
+                  }
+                }
+              }
+              pictures[i] = layerPicture;
             }
-            if (layerPicture != null) {
-              beginTraceSection(animated ? "SVG.stream.drawAnimatedLayer"
-                                         : "SVG.stream.drawStaticLayer");
+          } finally {
+            if (frameStarted) {
+              beginTraceSection("SVG.native.endStreamingFrame");
               try {
-                layerPicture.draw(canvas);
+                mRender.mSVGRenderEngineNG.endStreamingSessionFrame(handle);
               } finally {
                 endTraceSection();
               }
             }
           }
-          beginTraceSection("SVG.picture.endRecording");
-          try {
-            picture.endRecording();
-          } finally {
-            endTraceSection();
-          }
-          return new SVGRenderResult(
-              picture, Collections.unmodifiableList(diagnostics));
+          return new SVGLayerRenderResult(
+              pictures, animatedFlags.clone(),
+              Collections.unmodifiableList(diagnostics));
         }
       } finally {
         endTraceSection();
       }
     }
 
-    public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
-      long handle = getNativeHandleForRead();
-      if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
-        return new SVGHitTestResult(false, "", "");
+    private int getLayerCountLocked(long handle) {
+      synchronized (mStateLock) {
+        if (mCachedLayerCount >= 0) {
+          return mCachedLayerCount;
+        }
       }
+      int layerCount;
+      beginTraceSection("SVG.stream.getLayerCount");
+      try {
+        layerCount =
+            mRender.mSVGRenderEngineNG.getStreamingSessionLayerCount(handle);
+      } finally {
+        endTraceSection();
+      }
+      synchronized (mStateLock) {
+        mCachedLayerCount = layerCount;
+      }
+      return layerCount;
+    }
+
+    private boolean[] getLayerAnimatedFlagsLocked(long handle, int layerCount) {
+      synchronized (mStateLock) {
+        if (mCachedLayerAnimatedFlags != null &&
+            mCachedLayerAnimatedFlags.length == layerCount) {
+          return mCachedLayerAnimatedFlags;
+        }
+      }
+      boolean[] animatedFlags = new boolean[layerCount];
+      beginTraceSection("SVG.stream.getLayerAnimatedFlags");
+      try {
+        for (int i = 0; i < layerCount; ++i) {
+          animatedFlags[i] =
+              mRender.mSVGRenderEngineNG.isStreamingSessionLayerAnimated(
+                  handle, i);
+        }
+      } finally {
+        endTraceSection();
+      }
+      synchronized (mStateLock) {
+        mCachedLayerAnimatedFlags = animatedFlags;
+      }
+      return animatedFlags;
+    }
+
+    private boolean hasAnimatedLayer(boolean[] animatedFlags) {
+      if (animatedFlags == null) {
+        return false;
+      }
+      for (boolean animated : animatedFlags) {
+        if (animated) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public SVGHitTestResult hitTest(Rect viewPort, float x, float y) {
       synchronized (mNativeAccessLock) {
+        long handle = getNativeHandleForRead();
+        if (handle == 0 || mRender.mSVGRenderEngineNG == null) {
+          return new SVGHitTestResult(false, "", "");
+        }
         return mRender.mSVGRenderEngineNG.hitTestStreamingSession(
             mRender, handle, viewPort.left, viewPort.top,
             viewPort.width(), viewPort.height(), x, y);
@@ -527,6 +638,8 @@ public class SVGRender {
 
     private void clearLayerCacheLocked() {
       mStaticLayerPictures.clear();
+      mCachedLayerCount = -1;
+      mCachedLayerAnimatedFlags = null;
     }
 
     private void ensureLayerCacheLocked(Rect viewPort) {
@@ -555,7 +668,8 @@ public class SVGRender {
     }
 
     private SVGRenderResult renderLayerPictureAtTimeWithResult(
-        long handle, int index, Rect viewPort, double seconds) {
+        long handle, int index, Rect viewPort, double seconds,
+        boolean useCurrentFrame) {
       beginTraceSection("SVG.stream.renderLayerPicture");
       try {
         Picture picture = new Picture();
@@ -567,14 +681,24 @@ public class SVGRender {
           endTraceSection();
         }
         SVGDiagnostic[] diagnostics;
-        beginTraceSection("SVG.native.renderLayerAtTime");
+        beginTraceSection(useCurrentFrame ? "SVG.native.renderLayerCurrentFrame"
+                                          : "SVG.native.renderLayerAtTime");
         try {
-          diagnostics =
-              mRender.mSVGRenderEngineNG
-                  .renderStreamingSessionLayerAtTimeWithDiagnostics(
-                      mRender, handle, index, viewPort.left, viewPort.top,
-                      viewPort.width(), viewPort.height(), mRender.getColor(),
-                      seconds);
+          if (useCurrentFrame) {
+            diagnostics =
+                mRender.mSVGRenderEngineNG
+                    .renderStreamingSessionLayerWithCurrentFrameDiagnostics(
+                        mRender, handle, index, viewPort.left, viewPort.top,
+                        viewPort.width(), viewPort.height(),
+                        mRender.getColor());
+          } else {
+            diagnostics =
+                mRender.mSVGRenderEngineNG
+                    .renderStreamingSessionLayerAtTimeWithDiagnostics(
+                        mRender, handle, index, viewPort.left, viewPort.top,
+                        viewPort.width(), viewPort.height(),
+                        mRender.getColor(), seconds);
+          }
         } finally {
           endTraceSection();
         }

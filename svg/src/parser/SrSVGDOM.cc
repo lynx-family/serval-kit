@@ -89,6 +89,8 @@ bool IsContainerTag(element::SrSVGTag tag) {
     case element::SrSVGTag::kMask:
     case element::SrSVGTag::kFilter:
     case element::SrSVGTag::kPattern:
+    case element::SrSVGTag::kLinearGradient:
+    case element::SrSVGTag::kRadialGradient:
       return true;
     default:
       return false;
@@ -205,6 +207,95 @@ bool HasAnimationsRecursive(const element::SrSVGNodeBase* node) {
     }
   }
   return false;
+}
+
+using SrSVGLayerPath = std::vector<size_t>;
+
+bool HasLocalCompositingEffect(const element::SrSVGNode* node) {
+  if (!node) {
+    return false;
+  }
+  return node->filter_ || node->mask_ || node->clip_path_ ||
+         node->opacity_.has_value();
+}
+
+bool CanSplitContainerAsLayers(const element::SrSVGNodeBase* node) {
+  if (!node || !node->IsSVGNode()) {
+    return false;
+  }
+  const auto* svg_node = static_cast<const element::SrSVGNode*>(node);
+  if (HasLocalCompositingEffect(svg_node) ||
+      HasAnimationsRecursive(node)) {
+    return false;
+  }
+  if (!IsContainerTag(node->Tag())) {
+    return false;
+  }
+  const auto* container = static_cast<const element::SrSVGContainer*>(node);
+  return container->ChildCount() > 0;
+}
+
+void CollectLayerPathsRecursive(const element::SrSVGNodeBase* node,
+                                SrSVGLayerPath* path,
+                                std::vector<SrSVGLayerPath>* layers) {
+  if (!node || !path || !layers) {
+    return;
+  }
+  const auto* container =
+      IsContainerTag(node->Tag())
+          ? static_cast<const element::SrSVGContainer*>(node)
+          : nullptr;
+  if (container && CanSplitContainerAsLayers(node)) {
+    const auto& children = container->children();
+    for (size_t i = 0; i < children.size(); ++i) {
+      if (!children[i] || !children[i]->IsSVGNode()) {
+        continue;
+      }
+      path->push_back(i);
+      CollectLayerPathsRecursive(children[i], path, layers);
+      path->pop_back();
+    }
+    return;
+  }
+  layers->push_back(*path);
+}
+
+std::vector<SrSVGLayerPath> CollectLayerPaths(
+    const element::SrSVGSVG* root) {
+  std::vector<SrSVGLayerPath> layers;
+  if (!root) {
+    return layers;
+  }
+  const auto& children = root->children();
+  for (size_t i = 0; i < children.size(); ++i) {
+    if (!children[i] || !children[i]->IsSVGNode()) {
+      continue;
+    }
+    SrSVGLayerPath path;
+    path.push_back(i);
+    CollectLayerPathsRecursive(children[i], &path, &layers);
+  }
+  return layers;
+}
+
+bool HasAnimationsAlongPath(const element::SrSVGSVG* root,
+                            const SrSVGLayerPath& path) {
+  const element::SrSVGNodeBase* node = root;
+  for (size_t index : path) {
+    const auto* container =
+        node && IsContainerTag(node->Tag())
+            ? static_cast<const element::SrSVGContainer*>(node)
+            : nullptr;
+    if (!container || index >= container->children().size()) {
+      return false;
+    }
+    node = container->children()[index];
+    if (node && node->IsSVGNode() &&
+        static_cast<const element::SrSVGNode*>(node)->HasAnimations()) {
+      return true;
+    }
+  }
+  return HasAnimationsRecursive(node);
 }
 
 bool IsAnimationTag(element::SrSVGTag tag) {
@@ -941,6 +1032,7 @@ struct SrSVGDOMIncrementalBuilder::Impl {
   SrXMLStreamParser stream_parser;
   bool append_failed{false};
   bool finished{false};
+  bool animation_binding_dirty{false};
   std::vector<SrSVGDiagnostic> diagnostics;
 
   void RefreshDiagnostics() {
@@ -965,6 +1057,7 @@ bool SrSVGDOMIncrementalBuilder::Append(const char* data, size_t len) {
     impl_->RefreshDiagnostics();
     return false;
   }
+  impl_->animation_binding_dirty = true;
   impl_->RefreshDiagnostics();
   return true;
 }
@@ -977,22 +1070,25 @@ bool SrSVGDOMIncrementalBuilder::Finish() {
   const bool ok =
       !impl_->append_failed && impl_->stream_parser.Finish() &&
       impl_->parser.Finish();
+  impl_->animation_binding_dirty = true;
   impl_->RefreshDiagnostics();
   return ok;
 }
 
 SrSVGDOM* SrSVGDOMIncrementalBuilder::Preview() {
   SrSVGDOM* dom = impl_ ? impl_->parser.Preview() : nullptr;
-  if (dom) {
+  if (dom && impl_->animation_binding_dirty) {
     dom->BindTargetAnimations();
+    impl_->animation_binding_dirty = false;
   }
   return dom;
 }
 
 SrSVGDOM* SrSVGDOMIncrementalBuilder::Final() {
   SrSVGDOM* dom = impl_ ? impl_->parser.Final() : nullptr;
-  if (dom) {
+  if (dom && impl_->animation_binding_dirty) {
     dom->BindTargetAnimations();
+    impl_->animation_binding_dirty = false;
   }
   return dom;
 }
@@ -1068,22 +1164,29 @@ void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
 }
 
 size_t SrSVGDOM::LayerCount() const {
-  return root_ ? root_->ChildCount() : 0;
+  return LayerPaths().size();
 }
 
 bool SrSVGDOM::LayerHasAnimations(size_t index) const {
-  if (!root_ || index >= root_->children().size()) {
+  const auto& layers = LayerPaths();
+  if (index >= layers.size()) {
     return false;
   }
-  return HasAnimationsRecursive(root_->children()[index]);
+  return HasAnimationsAlongPath(root_, layers[index]);
 }
 
-void SrSVGDOM::RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
-                                 size_t index, double seconds) const {
-  if (!root_ || !canvas || index >= root_->children().size()) {
+void SrSVGDOM::BeginAnimationFrame(double seconds) const {
+  ApplyAnimations(nodes_, id_mapper_, seconds);
+}
+
+void SrSVGDOM::EndAnimationFrame() const { RestoreAnimations(nodes_); }
+
+void SrSVGDOM::RenderLayer(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                           size_t index) const {
+  const auto& layers = LayerPaths();
+  if (!root_ || !canvas || index >= layers.size()) {
     return;
   }
-  ApplyAnimations(nodes_, id_mapper_, seconds);
   SrSVGBox view_box = root_->viewBox();
   float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
   SrSVGTraversalState render_state;
@@ -1099,9 +1202,15 @@ void SrSVGDOM::RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
       .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
       .default_color = default_color_.value_or(0),
   };
-  root_->RenderChildAt(canvas, context, index);
-  RestoreAnimations(nodes_);
+  root_->RenderChildPathAt(canvas, context, layers[index]);
   ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
+}
+
+void SrSVGDOM::RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                                 size_t index, double seconds) const {
+  BeginAnimationFrame(seconds);
+  RenderLayer(canvas, view_port, index);
+  EndAnimationFrame();
 }
 
 SrSVGHitTestResult SrSVGDOM::HitTest(canvas::PathFactory* path_factory, float x,
@@ -1168,11 +1277,26 @@ void SrSVGDOM::ReplaceRuntimeDiagnostics(
 void SrSVGDOM::AdoptNode(element::SrSVGNodeBase* node) {
   if (node) {
     nodes_.push_back(node);
+    InvalidateLayerCache();
   }
 }
 
 void SrSVGDOM::BindTargetAnimations() {
   BindTargetAnimationsInNodes(nodes_, id_mapper_);
+  InvalidateLayerCache();
+}
+
+const std::vector<std::vector<size_t>>& SrSVGDOM::LayerPaths() const {
+  if (!layer_paths_valid_) {
+    layer_paths_ = CollectLayerPaths(root_);
+    layer_paths_valid_ = true;
+  }
+  return layer_paths_;
+}
+
+void SrSVGDOM::InvalidateLayerCache() const {
+  layer_paths_.clear();
+  layer_paths_valid_ = false;
 }
 
 // Id mapper should only ref to an svg node, but should never copy or delete

@@ -8,6 +8,27 @@ namespace serval {
 namespace svg {
 namespace element {
 
+namespace {
+
+bool IsContainerTag(SrSVGTag tag) {
+  switch (tag) {
+    case SrSVGTag::kSvg:
+    case SrSVGTag::kG:
+    case SrSVGTag::kDefs:
+    case SrSVGTag::kClipPath:
+    case SrSVGTag::kMask:
+    case SrSVGTag::kFilter:
+    case SrSVGTag::kPattern:
+    case SrSVGTag::kLinearGradient:
+    case SrSVGTag::kRadialGradient:
+      return true;
+    default:
+      return false;
+  }
+}
+
+}  // namespace
+
 bool SrSVGContainer::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "transform") == 0) {
     ParseTransform(value, transform_);
@@ -44,18 +65,28 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
 void SrSVGContainer::RenderChild(canvas::SrCanvas* canvas,
                                  SrSVGRenderContext& context,
                                  SrSVGNodeBase* child) {
-  if (!child || !child->IsSVGNode()) {
+  if (!PrepareChild(child)) {
     return;
   }
+  child->Render(canvas, context);
+  RestoreChild(child);
+}
+
+bool SrSVGContainer::PrepareChild(SrSVGNodeBase* child) {
+  if (!child || !child->IsSVGNode()) {
+    return false;
+  }
   auto node = static_cast<SrSVGNode*>(child);
-  SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
-  SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
-  SrSVGPaint* local_clip_path = node->inherit_clip_path_;
-  SrSVGPaint* local_mask = node->inherit_mask_;
-  std::optional<SrSVGLength> local_stroke_width = node->inherit_stroke_width_;
-  std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
-  std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
-  std::optional<SrSVGColor> local_color = node->inherit_color_;
+  child_render_state_stack_.push_back(ChildRenderState{
+      node->inherit_fill_paint_,
+      node->inherit_stroke_paint_,
+      node->inherit_clip_path_,
+      node->inherit_mask_,
+      node->inherit_stroke_width_,
+      node->inherit_fill_opacity_,
+      node->inherit_stroke_opacity_,
+      node->inherit_color_,
+  });
 
   if (node->fill_) {
     node->inherit_fill_paint_ = node->fill_;
@@ -121,16 +152,24 @@ void SrSVGContainer::RenderChild(canvas::SrCanvas* canvas,
     node->inherit_color_ = inherit_color_;
   }
 
-  child->Render(canvas, context);
+  return true;
+}
 
-  node->inherit_fill_paint_ = local_fill_paint;
-  node->inherit_stroke_paint_ = local_stroke_paint;
-  node->inherit_clip_path_ = local_clip_path;
-  node->inherit_mask_ = local_mask;
-  node->inherit_fill_opacity_ = local_fill_opacity;
-  node->inherit_stroke_opacity_ = local_stroke_opacity;
-  node->inherit_stroke_width_ = local_stroke_width;
-  node->inherit_color_ = local_color;
+void SrSVGContainer::RestoreChild(SrSVGNodeBase* child) {
+  if (!child || !child->IsSVGNode() || child_render_state_stack_.empty()) {
+    return;
+  }
+  auto node = static_cast<SrSVGNode*>(child);
+  const ChildRenderState state = child_render_state_stack_.back();
+  child_render_state_stack_.pop_back();
+  node->inherit_fill_paint_ = state.fill_paint;
+  node->inherit_stroke_paint_ = state.stroke_paint;
+  node->inherit_clip_path_ = state.clip_path;
+  node->inherit_mask_ = state.mask;
+  node->inherit_fill_opacity_ = state.fill_opacity;
+  node->inherit_stroke_opacity_ = state.stroke_opacity;
+  node->inherit_stroke_width_ = state.stroke_width;
+  node->inherit_color_ = state.color;
 }
 
 size_t SrSVGContainer::ChildCount() const {
@@ -148,6 +187,38 @@ bool SrSVGContainer::RenderChildAt(canvas::SrCanvas* canvas,
   canvas->Transform(xform);
   RenderChild(canvas, context, children_[index]);
   return true;
+}
+
+bool SrSVGContainer::RenderChildPathAt(canvas::SrCanvas* canvas,
+                                       SrSVGRenderContext& context,
+                                       const std::vector<size_t>& path,
+                                       size_t depth) {
+  if (depth >= path.size() || path[depth] >= children_.size()) {
+    return false;
+  }
+  if (depth + 1 == path.size()) {
+    float xform[6];
+    ResolvedTransform(xform, context, canvas->PathFactory());
+    canvas->Transform(xform);
+    RenderChild(canvas, context, children_[path[depth]]);
+    return true;
+  }
+
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
+
+  SrSVGNodeBase* child = children_[path[depth]];
+  if (!PrepareChild(child)) {
+    return false;
+  }
+  bool rendered = false;
+  if (IsContainerTag(child->Tag())) {
+    auto* container = static_cast<SrSVGContainer*>(child);
+    rendered = container->RenderChildPathAt(canvas, context, path, depth + 1);
+  }
+  RestoreChild(child);
+  return rendered;
 }
 
 std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(

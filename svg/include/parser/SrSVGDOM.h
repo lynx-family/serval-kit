@@ -59,6 +59,10 @@ class SrSVGDOM {
                     double seconds) const;
   size_t LayerCount() const;
   bool LayerHasAnimations(size_t index) const;
+  void BeginAnimationFrame(double seconds) const;
+  void EndAnimationFrame() const;
+  void RenderLayer(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                   size_t index) const;
   void RenderLayerAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
                          size_t index, double seconds) const;
   SrSVGHitTestResult HitTest(canvas::PathFactory* path_factory, float x,
@@ -76,6 +80,9 @@ class SrSVGDOM {
   void BindTargetAnimations();
 
  private:
+  const std::vector<std::vector<size_t>>& LayerPaths() const;
+  void InvalidateLayerCache() const;
+
   element::SrSVGSVG* root_;
   element::IDMapper* id_mapper_;
   std::list<element::SrSVGNodeBase*> nodes_;
@@ -83,6 +90,8 @@ class SrSVGDOM {
   std::shared_ptr<SrDOM> xml_dom_;
   mutable std::vector<SrSVGDiagnostic> diagnostics_;
   mutable size_t static_diagnostic_count_{0};
+  mutable bool layer_paths_valid_{false};
+  mutable std::vector<std::vector<size_t>> layer_paths_;
 };
 
 class SrSVGDOMStreamBuilder {

@@ -26,6 +26,9 @@ class SrSVGSVG : public SrSVGContainer {
   }
   bool RenderChildAt(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
                      size_t index) override;
+  bool RenderChildPathAt(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                         const std::vector<size_t>& path,
+                         size_t depth = 0) override;
 
  protected:
   bool OnPrepareToRender(canvas::SrCanvas* canvas,
