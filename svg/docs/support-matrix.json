@@ -146,6 +146,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "x",
         "y",
         "rx",
@@ -185,6 +186,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "cx",
         "cy",
         "r"
@@ -221,6 +223,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "cx",
         "cy",
         "rx",
@@ -258,6 +261,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "x1",
         "y1",
         "x2",
@@ -300,6 +304,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "points"
       ],
       "partially_supported_attributes": {},
@@ -334,6 +339,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "points"
       ],
       "partially_supported_attributes": {},
@@ -368,6 +374,7 @@
         "color",
         "style",
         "fill-rule",
+        "vector-effect",
         "d"
       ],
       "partially_supported_attributes": {},
@@ -418,7 +425,7 @@
       "platforms": {
         "android": "partial",
         "ios": "partial",
-        "harmony": "unsupported",
+        "harmony": "partial",
         "skity": "partial"
       },
       "supported_attributes": [
@@ -444,8 +451,7 @@
         "clip-path": "clip-path behavior on image is unreliable in the current renderer."
       },
       "caveats": [
-        "Android, iOS, and Skity can render images when the host app provides image loading support.",
-        "Harmony does not currently provide image rendering."
+        "Android, iOS, Harmony, and Skity can render images when the host app provides image loading support."
       ]
     },
     "text": {
@@ -560,6 +566,36 @@
       "unsupported_attributes": {},
       "caveats": [
         "Android ignores a distinct radial-gradient focus point in the final shader and uses cx/cy for the center."
+      ]
+    },
+    "pattern": {
+      "support": "supported",
+      "platforms": {
+        "android": "supported",
+        "ios": "supported",
+        "harmony": "supported",
+        "skity": "supported"
+      },
+      "supported_attributes": [
+        "id",
+        "x",
+        "y",
+        "width",
+        "height",
+        "patternUnits",
+        "patternContentUnits",
+        "patternTransform",
+        "viewBox",
+        "preserveAspectRatio",
+        "href",
+        "xlink:href"
+      ],
+      "partially_supported_attributes": {},
+      "unsupported_attributes": {},
+      "caveats": [
+        "Pattern definitions are resolved lazily when shapes reference url(#pattern-id).",
+        "All current backends support vector pattern fill and stroke through resolver-driven tile rendering.",
+        "Pattern stroke under vector-effect=\"non-scaling-stroke\" remains outside the current vector-effect support path."
       ]
     },
     "stop": {

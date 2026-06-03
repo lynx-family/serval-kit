@@ -308,6 +308,20 @@ Known caveat:
 - `use@width` and `use@height` are parsed but not applied in
   `SrSVGUse::renderRealNode()`
 
+### Pattern Support
+
+`<pattern>` is a paint-server definition. It is resolved lazily when a shape
+uses `fill="url(#...)"` or `stroke="url(#...)"`.
+
+Current backend status:
+
+- Android, iOS, Harmony, and Skity use resolver-driven tile rendering for
+  vector pattern fill and stroke.
+- Skity stroke patterns depend on `SrPathFactorySkity::CreateStrokePath()`,
+  which converts the stroked outline to a fill path via `skity::Stroke`.
+- `pattern stroke` under `vector-effect="non-scaling-stroke"` remains outside
+  the current vector-effect support path.
+
 ### Text Support Is Smaller Than The Parser Surface
 
 Because text goes through paragraph bridges instead of shape stroking/filling:

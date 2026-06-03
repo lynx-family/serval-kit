@@ -58,8 +58,8 @@
 
 /* Begin PBXFileReference section */
 		2B946B1E2FCD86B800D56B4C /* skity.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = skity.xcframework; path = "../../../../../skity-github/skity/out/skity.xcframework"; sourceTree = "<group>"; };
-		2B946B202FCD876800D56B4C /* SrSVGPattern.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPattern.cc; path = "/Users/bytedance/Documents/serval-kit/svg/src/element/SrSVGPattern.cc"; sourceTree = "<absolute>"; };
-		2B946B212FCD876800D56B4C /* SrSVGPatternResolver.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPatternResolver.cc; path = "/Users/bytedance/Documents/serval-kit/svg/src/element/SrSVGPatternResolver.cc"; sourceTree = "<absolute>"; };
+		2B946B202FCD876800D56B4C /* SrSVGPattern.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPattern.cc; path = ../../../../src/element/SrSVGPattern.cc; sourceTree = "<group>"; };
+		2B946B212FCD876800D56B4C /* SrSVGPatternResolver.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGPatternResolver.cc; path = ../../../../src/element/SrSVGPatternResolver.cc; sourceTree = "<group>"; };
 		2B946B252FCD87AC00D56B4C /* SrSVGPatternUtils.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SrSVGPatternUtils.cc; sourceTree = "<group>"; };
 		SVGMETA10 /* SVGMetaRenderer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SVGMetaRenderer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		SVGMETA11 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -132,8 +132,8 @@
 				2B946B252FCD87AC00D56B4C /* SrSVGPatternUtils.cc */,
 			);
 			name = utils;
-			path = "/Users/bytedance/Documents/serval-kit/svg/src/utils";
-			sourceTree = "<absolute>";
+			path = ../../../../src/utils;
+			sourceTree = "<group>";
 		};
 		SVGMETA240 /* ServalSVG */ = {
 			isa = PBXGroup;

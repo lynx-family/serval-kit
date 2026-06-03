@@ -84,8 +84,8 @@ PUBLIC_TEXT_REPLACEMENTS = OrderedDict(
             "Filters only run on backends with runtime filter support.",
         ),
         (
-            "Android, iOS, and Skity can draw images when the embedding app provides an image callback or resource manager.",
-            "Android, iOS, and Skity can render images when the host app provides image loading support.",
+            "Android, iOS, Harmony, and Skity can draw images when the embedding app provides an image callback, fetcher, or resource manager.",
+            "Android, iOS, Harmony, and Skity can render images when the host app provides image loading support.",
         ),
         (
             "Android and iOS have paragraph bridges.",
@@ -110,10 +110,6 @@ PUBLIC_TEXT_REPLACEMENTS = OrderedDict(
         (
             "Use renders the referenced node directly from the ID map instead of delegating to platform DrawUse().",
             "",
-        ),
-        (
-            "Harmony DrawImage() is currently empty.",
-            "Harmony does not currently provide image rendering.",
         ),
         (
             "Clip paths are converted to canvas clip operations through SrSVGNode::OnPrepareToRender().",
@@ -181,7 +177,7 @@ GRAPHIC_ATTRS = [
     "style",
 ]
 
-SHAPE_ATTRS = ordered_merge(GRAPHIC_ATTRS, ["fill-rule"])
+SHAPE_ATTRS = ordered_merge(GRAPHIC_ATTRS, ["fill-rule", "vector-effect"])
 GROUP_ATTRS = list(GRAPHIC_ATTRS)
 LINE_GEOMETRY_ATTRS = ["x1", "y1", "x2", "y2"]
 RECT_GEOMETRY_ATTRS = ["x", "y", "rx", "ry", "width", "height"]
@@ -566,7 +562,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="direct",
-                platform_ready=tag_platform("partial", "partial", "none", "partial"),
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
                 supported_attributes=[
                     "id",
                     "href",
@@ -624,8 +620,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     ]
                 ),
                 notes=[
-                    "Android, iOS, and Skity can draw images when the embedding app provides an image callback or resource manager.",
-                    "Harmony DrawImage() is currently empty.",
+                    "Android, iOS, Harmony, and Skity can draw images when the embedding app provides an image callback, fetcher, or resource manager.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -633,7 +628,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
                     "svg/platform/iOS/SrIOSCanvas.mm",
                     "svg/platform/skity/SrSkityCanvas.cc",
-                    "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
                 ],
             ),
         ),
@@ -838,6 +833,50 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "svg/platform/android/src/main/java/SVGRender.java",
                     "svg/platform/iOS/SrIOSCanvas.mm",
                     "svg/platform/harmony/servalsvg/sr_harmony_canvas.cc",
+                    "svg/platform/skity/SrSkityCanvas.cc",
+                ],
+            ),
+        ),
+        (
+            "pattern",
+            TagSpec(
+                node_class="SrSVGPattern",
+                category="pattern-definition",
+                recognized="yes",
+                parsed="yes",
+                rendered="yes",
+                render_mode="definition",
+                platform_ready=tag_platform("full", "full", "full", "full"),
+                supported_attributes=[
+                    "id",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                    "patternUnits",
+                    "patternContentUnits",
+                    "patternTransform",
+                    "viewBox",
+                    "preserveAspectRatio",
+                    "href",
+                    "xlink:href",
+                ],
+                partial_attributes=OrderedDict(),
+                parsed_but_not_rendered_attributes=OrderedDict(),
+                notes=[
+                    "Pattern definitions are resolved lazily when shapes reference url(#pattern-id).",
+                    "All current backends support vector pattern fill and stroke through resolver-driven tile rendering.",
+                    "Pattern stroke under vector-effect=\"non-scaling-stroke\" remains outside the current vector-effect support path.",
+                ],
+                source_files=[
+                    "svg/src/parser/SrSVGDOM.cc",
+                    "svg/src/element/SrSVGPattern.cc",
+                    "svg/src/element/SrSVGPatternResolver.cc",
+                    "svg/src/element/SrSVGNode.cc",
+                    "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+                    "svg/platform/iOS/SrIOSCanvas.mm",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
+                    "svg/include/platform/skity/SrSkityCanvas.h",
                     "svg/platform/skity/SrSkityCanvas.cc",
                 ],
             ),
@@ -1210,16 +1249,20 @@ def parse_local_attributes(file_path: Path) -> list[str]:
 def collect_example_hits(tag: str) -> list[str]:
     pattern = re.compile(rf"<\s*{re.escape(tag)}(?:[\s>/])")
     hits: list[str] = []
+    ignored_parts = {"build", "intermediates"}
     for base_dir in EXAMPLE_DIRS:
         if not base_dir.exists():
             continue
         for file_path in sorted(base_dir.rglob("*.svg")):
+            relative_path = file_path.relative_to(ROOT)
+            if ignored_parts.intersection(relative_path.parts):
+                continue
             try:
                 text = file_path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
                 continue
             if pattern.search(text):
-                hits.append(file_path.relative_to(ROOT).as_posix())
+                hits.append(relative_path.as_posix())
     return hits
 
 
