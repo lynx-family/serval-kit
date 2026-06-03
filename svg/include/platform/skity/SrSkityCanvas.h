@@ -5,14 +5,17 @@
 #ifndef SVG_INCLUDE_PLATFORM_SKITY_SRSKITYCANVAS_H_
 #define SVG_INCLUDE_PLATFORM_SKITY_SRSKITYCANVAS_H_
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGPatternResolver.h"
 #include "skity/effect/image_filter.hpp"
 #include "skity/render/canvas.hpp"
 
@@ -33,6 +36,7 @@ class SrWinPath : public canvas::Path {
   void Transform(const float (&xform)[6]) override;
   void SetFillType(SrSVGFillRule rule) override;
   ::skity::Path* GetSkityPath() { return &path_; }
+  const ::skity::Path* GetSkityPath() const { return &path_; }
 
  private:
   ::skity::Path path_;
@@ -55,6 +59,10 @@ class SrPathFactorySkity : public canvas::PathFactory {
                                                  SrSVGStrokeCap cap,
                                                  SrSVGStrokeJoin join,
                                                  float miter_limit) override;
+  std::unique_ptr<canvas::Path> CreateStrokePath(
+      const canvas::Path* path, float width, SrSVGStrokeCap cap,
+      SrSVGStrokeJoin join, float miter_limit, float dash_offset,
+      float* dash_array, size_t dash_array_length);
   std::unique_ptr<canvas::Path> CreateLine(float start_x, float start_y,
                                            float end_x, float end_y) override;
   std::unique_ptr<canvas::Path> CreateEllipse(float center_x, float center_y,
@@ -72,6 +80,9 @@ class SrSkityCanvas : public canvas::SrCanvas {
       std::function<std::shared_ptr<::skity::Image>(std::string)>;
   explicit SrSkityCanvas(::skity::Canvas* canvas, ImageCallback callback);
 
+  void SetRenderContext(const SrSVGRenderContext* context) override {
+    current_render_context_ = context;
+  }
   canvas::PathFactory* PathFactory() override;
   ~SrSkityCanvas() override;
   void Save() override;
@@ -130,7 +141,21 @@ class SrSkityCanvas : public canvas::SrCanvas {
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,
-                                ::skity::Rect bound, bool is_stroke);
+                                ::skity::Rect bound, bool is_stroke,
+                                const float* shader_transform = nullptr);
+  void DrawPathWithRenderState(::skity::Path& path,
+                               const SrSVGRenderState& render_state);
+  bool DrawNonScalingStroke(::skity::Path& path,
+                            const SrSVGRenderState& render_state);
+  void RenderPatternTiles(const element::ResolvedPattern& resolved_pattern,
+                          const SrSVGBox& target_bounds);
+  bool RenderPatternFill(const ::skity::Path& path,
+                         const SrSVGRenderState& render_state, const char* iri);
+  bool RenderPatternStroke(const ::skity::Path& path,
+                           const SrSVGRenderState& render_state,
+                           const char* iri);
+  void PushTransformState();
+  void PopTransformState();
 
  private:
   ::skity::Canvas* canvas_{nullptr};
@@ -141,6 +166,10 @@ class SrSkityCanvas : public canvas::SrCanvas {
   std::optional<::skity::BlendMode> blend_mode_override_;
   bool mask_is_luminance_{false};
   bool dst_in_layer_active_{false};
+  const SrSVGRenderContext* current_render_context_{nullptr};
+  std::unordered_set<std::string> active_pattern_ids_;
+  std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+  std::vector<std::array<float, 6>> transform_stack_;
 };
 
 }  // namespace skity
