@@ -429,19 +429,44 @@ bool SrHarmonyCanvas::RenderPatternStroke(OH_Drawing_Path *path, const SrSVGRend
         dash_array_length = render_state.stroke_state->dash_array_length;
     }
 
+    float current[6];
+    float inverse[6];
+    bool use_non_scaling_stroke = false;
+    if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+        CopyTransformArray(current_transform_, current);
+        use_non_scaling_stroke = element::InvertAffineTransform(current, inverse);
+    }
+
     auto source_path = std::make_unique<PathHarmonyImpl>(OH_Drawing_PathCopy(path));
+    std::unique_ptr<canvas::Path> transformed_path;
+    canvas::Path *stroke_source_path = source_path.get();
+    if (use_non_scaling_stroke) {
+        transformed_path = source_path->CreateTransformCopy(current);
+        stroke_source_path = transformed_path.get();
+    }
+
     auto *path_factory = static_cast<PathFactoryHarmonyImpl *>(path_factory_.get());
     std::unique_ptr<canvas::Path> stroke_clip_path =
-        path_factory->CreateStrokePath(source_path.get(), render_state.stroke_width, stroke_line_cap, stroke_line_join,
+        path_factory->CreateStrokePath(stroke_source_path, render_state.stroke_width, stroke_line_cap, stroke_line_join,
                                        stroke_miter_limit, stroke_dash_offset, dash_array, dash_array_length);
     if (!stroke_clip_path) {
         return false;
     }
 
+    SrSVGBox pattern_bounds = stroke_clip_path->GetBounds();
+    if (use_non_scaling_stroke) {
+        pattern_bounds = element::MapBounds(pattern_bounds, inverse);
+    }
+
     Save();
+    if (use_non_scaling_stroke) {
+        Transform(inverse);
+    }
     ClipPath(stroke_clip_path.get(), SR_SVG_FILL);
-    SrSVGBox stroke_bounds = stroke_clip_path->GetBounds();
-    RenderPatternTiles(resolved_pattern, stroke_bounds);
+    if (use_non_scaling_stroke) {
+        Transform(current);
+    }
+    RenderPatternTiles(resolved_pattern, pattern_bounds);
     Restore();
     return true;
 }

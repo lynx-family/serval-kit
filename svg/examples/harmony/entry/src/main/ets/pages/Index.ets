@@ -143,6 +143,7 @@ struct Index {
     'vector-effect-gradient-line.svg',
     'vector-effect-gradient-stroke.svg',
     'vector-effect-non-scaling-stroke.svg',
+    'vector-effect-pattern-stroke.svg',
     'string_test.svg'
   ];
 

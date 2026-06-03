@@ -622,20 +622,55 @@ bool SrIOSCanvas::RenderPatternStroke(CGPathRef cgPath,
     return false;
   }
 
-  CGPathRef stroked_path = CreateStrokeClipPath(cgPath, render_state);
+  CGAffineTransform ctm = CGContextGetCTM(_context);
+  CGFloat determinant = ctm.a * ctm.d - ctm.b * ctm.c;
+  const bool can_use_non_scaling_stroke =
+      render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE &&
+      fabs(determinant) > 1e-6;
+  bool use_non_scaling_stroke = false;
+  CGPathRef transformed_path = nullptr;
+  CGPathRef stroke_source_path = cgPath;
+  if (can_use_non_scaling_stroke) {
+    transformed_path = CGPathCreateCopyByTransformingPath(cgPath, &ctm);
+    if (transformed_path) {
+      stroke_source_path = transformed_path;
+      use_non_scaling_stroke = true;
+    }
+  }
+
+  CGPathRef stroked_path =
+      CreateStrokeClipPath(stroke_source_path, render_state);
+  if (transformed_path) {
+    CGPathRelease(transformed_path);
+  }
   if (!stroked_path) {
     return false;
   }
 
+  CGRect stroke_box = CGPathGetBoundingBox(stroked_path);
+  SrSVGBox pattern_bounds{static_cast<float>(CGRectGetMinX(stroke_box)),
+                          static_cast<float>(CGRectGetMinY(stroke_box)),
+                          static_cast<float>(CGRectGetWidth(stroke_box)),
+                          static_cast<float>(CGRectGetHeight(stroke_box))};
+  if (use_non_scaling_stroke) {
+    CGAffineTransform inverse_ctm = CGAffineTransformInvert(ctm);
+    float inverse[6] = {
+        static_cast<float>(inverse_ctm.a),  static_cast<float>(inverse_ctm.b),
+        static_cast<float>(inverse_ctm.c),  static_cast<float>(inverse_ctm.d),
+        static_cast<float>(inverse_ctm.tx), static_cast<float>(inverse_ctm.ty)};
+    pattern_bounds = element::MapBounds(pattern_bounds, inverse);
+  }
+
   Save();
+  if (use_non_scaling_stroke) {
+    CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
+  }
   CGContextAddPath(_context, stroked_path);
   CGContextClip(_context);
-  CGRect stroke_box = CGPathGetBoundingBox(stroked_path);
-  SrSVGBox stroke_bounds{static_cast<float>(CGRectGetMinX(stroke_box)),
-                         static_cast<float>(CGRectGetMinY(stroke_box)),
-                         static_cast<float>(CGRectGetWidth(stroke_box)),
-                         static_cast<float>(CGRectGetHeight(stroke_box))};
-  RenderPatternTiles(resolved_pattern, stroke_bounds);
+  if (use_non_scaling_stroke) {
+    CGContextConcatCTM(_context, ctm);
+  }
+  RenderPatternTiles(resolved_pattern, pattern_bounds);
   Restore();
   CGPathRelease(stroked_path);
   return true;

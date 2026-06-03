@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PLATFORM_ANDROID_SRANDROIDCANVAS_H_
 #define SVG_INCLUDE_PLATFORM_ANDROID_SRANDROIDCANVAS_H_
 
+#include <array>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -115,6 +116,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRenderEngine_makePolyLinePath_;
   static intptr_t g_SVGRenderEngine_makePath_;
   static intptr_t g_SVGRenderEngine_makeStrokePath_;
+  static intptr_t g_SVGRenderEngine_makeTransformedStrokePath_;
   static intptr_t g_SVGRenderEngine_setFillType_;
   static intptr_t g_SVGRenderEngine_makeLinearGradient_;
   static intptr_t g_SVGRenderEngine_makeRadialGradient_;
@@ -143,8 +145,11 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   jobject j_render_;
   JNIEnv* jni_env_;
   bool mask_is_luminance_{false};
+  bool dst_in_layer_active_{false};
   const SrSVGRenderContext* current_render_context_{nullptr};
   std::unordered_set<std::string> active_pattern_ids_;
+  std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+  std::vector<std::array<float, 6>> transform_stack_;
 
  public:
   JNIEnv* GetJNIEnv() const { return jni_env_; }
