@@ -42,11 +42,47 @@ static inline void MultiplyTransformArray(const float (&lhs)[6],
   out[5] = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
 }
 
+static inline void CopyTransformArray(const float (&src)[6], float (&out)[6]) {
+  for (size_t i = 0; i < 6; ++i) {
+    out[i] = src[i];
+  }
+}
+
 static inline void CopyTransformArray(const std::array<float, 6>& src,
                                       float (&out)[6]) {
   for (size_t i = 0; i < src.size(); ++i) {
     out[i] = src[i];
   }
+}
+
+static inline void ResolveObjectBoundingBoxTransform(const float (&form)[6],
+                                                     float left, float top,
+                                                     float width, float height,
+                                                     float (&out)[6]) {
+  if (width == 0.f || height == 0.f) {
+    CopyTransformArray(form, out);
+    return;
+  }
+  const float bbox_to_user[6] = {width, 0.f, 0.f, height, left, top};
+  const float user_to_bbox[6] = {1.f / width,  0.f,           0.f,
+                                 1.f / height, -left / width, -top / height};
+  float temp[6];
+  MultiplyTransformArray(bbox_to_user, form, temp);
+  MultiplyTransformArray(temp, user_to_bbox, out);
+}
+
+static ::skity::Matrix CreateRadialGradientAspectMatrix(::skity::Rect bound) {
+  float form[6] = {1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+  if (bound.Width() > bound.Height() && bound.Width() != 0.f) {
+    float scale = bound.Height() / bound.Width();
+    form[3] = scale;
+    form[5] = bound.Top() * (1.f - scale);
+  } else if (bound.Height() > bound.Width() && bound.Height() != 0.f) {
+    float scale = bound.Width() / bound.Height();
+    form[0] = scale;
+    form[4] = bound.Left() * (1.f - scale);
+  }
+  return CreateAffineMatrix(form);
 }
 
 static void SRSVGArcToBezier(::skity::Path* path, double cx, double cy,
@@ -1158,12 +1194,15 @@ std::shared_ptr<::skity::Shader> ConvertToLinearGradientShader(
   if (!lgs) {
     return nullptr;
   }
-  ::skity::Matrix matrix(
-      linear.gradient_transformer_[0], linear.gradient_transformer_[1], 0.0f,
-      0.0f, linear.gradient_transformer_[2], linear.gradient_transformer_[3],
-      0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, linear.gradient_transformer_[4],
-      linear.gradient_transformer_[5], 0.0f, 1.0f);
-  lgs->SetLocalMatrix(matrix);
+  float resolved_transform[6];
+  if (linear.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+    ResolveObjectBoundingBoxTransform(linear.gradient_transformer_,
+                                      bound.Left(), bound.Top(), bound.Width(),
+                                      bound.Height(), resolved_transform);
+  } else {
+    CopyTransformArray(linear.gradient_transformer_, resolved_transform);
+  }
+  lgs->SetLocalMatrix(CreateAffineMatrix(resolved_transform));
   return lgs;
 }
 
@@ -1205,12 +1244,18 @@ std::shared_ptr<::skity::Shader> ConvertToRadialGradientShader(
   if (!lgs) {
     return nullptr;
   }
-  ::skity::Matrix matrix(
-      radial.gradient_transformer_[0], radial.gradient_transformer_[1], 0.0f,
-      0.0f, radial.gradient_transformer_[2], radial.gradient_transformer_[3],
-      0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, radial.gradient_transformer_[4],
-      radial.gradient_transformer_[5], 0.0f, 1.0f);
-  lgs->SetLocalMatrix(matrix);
+  float resolved_transform[6];
+  if (radial.obb_type_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+    auto max_size = std::max(bound.Width(), bound.Height());
+    ResolveObjectBoundingBoxTransform(radial.gradient_transformer_,
+                                      bound.Left(), bound.Top(), max_size,
+                                      max_size, resolved_transform);
+    lgs->SetLocalMatrix(CreateRadialGradientAspectMatrix(bound) *
+                        CreateAffineMatrix(resolved_transform));
+  } else {
+    CopyTransformArray(radial.gradient_transformer_, resolved_transform);
+    lgs->SetLocalMatrix(CreateAffineMatrix(resolved_transform));
+  }
   return lgs;
 }
 
