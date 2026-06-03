@@ -45,6 +45,10 @@ class SrAndroidPathFactory : public canvas::PathFactory {
       const canvas::Path* path, float width, SrSVGStrokeCap cap,
       SrSVGStrokeJoin join, float miter_limit, float dash_offset,
       float* dash_array, size_t dash_array_length);
+  std::unique_ptr<canvas::Path> CreateTransformedStrokePath(
+      const canvas::Path* path, const float (&xform)[6], float width,
+      SrSVGStrokeCap cap, SrSVGStrokeJoin join, float miter_limit,
+      float dash_offset, float* dash_array, size_t dash_array_length);
 
   std::unique_ptr<canvas::Path> CreateMutable() override;
   void Op(canvas::Path* path1, canvas::Path* path2,

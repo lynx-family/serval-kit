@@ -2,9 +2,10 @@
 
 ## Background
 
-The current SVG pipeline does not support `vector-effect="non-scaling-stroke"`.
-By default, path geometry and stroke width are both affected by the current
-transform matrix (CTM), which means stroke thickness changes under scale.
+The original SVG pipeline did not support
+`vector-effect="non-scaling-stroke"`. By default, path geometry and stroke width
+are both affected by the current transform matrix (CTM), which means stroke
+thickness changes under scale.
 
 Legacy Android SVG rendering already supported `non-scaling-stroke` through a
 "pre-transform path + reset canvas matrix" strategy. This document records the
@@ -21,9 +22,8 @@ Support:
 Non-goals for phase 1:
 
 - Full SVG 2 `vector-effect` value set
-- Perfect cross-platform parity for every stroke paint server
-- Skity support
-- `pattern stroke` support under `non-scaling-stroke`
+- Perfect cross-platform parity for every stroke paint server in the first
+  milestone
 
 ## Candidate Approaches
 
@@ -194,18 +194,15 @@ Observed status:
   is not treated as the strongest conformance proof because the visual
   difference is less pronounced than in the line-based case.
 
-Known limitation:
+Pattern stroke follow-up:
 
-- `pattern stroke + non-scaling-stroke` is not supported in phase 1.
-- The root cause is architectural: pattern stroke on Android is rendered through
-  a dedicated native `RenderPatternStroke()` path instead of the Java
-  `drawNonScalingStroke()` branch used by normal stroke rendering.
-- That native branch currently generates the stroke clip path from the scaled
-  stroke width and does not consume `vector_effect`, so it does not implement
-  the C1 behavior.
-- The exploratory demos `vector-effect-pattern-stroke.svg` and
-  `vector-effect-pattern-line.svg` are removed from shipped example lists and
-  should not be treated as supported regression cases.
+- `pattern stroke + non-scaling-stroke` now participates in the C1 flow.
+- Pattern stroke still uses the dedicated `RenderPatternStroke()` branch, but
+  that branch now generates its stroke clip path in device space when
+  `vector-effect="non-scaling-stroke"` is active.
+- Pattern tiles are rendered under the original CTM after the device-space clip
+  is installed, so the stroke geometry is non-scaling without changing normal
+  pattern coordinate semantics.
 
 ### iOS
 
@@ -225,15 +222,7 @@ Supported in phase 1:
 
 - Solid stroke under `non-scaling-stroke`
 - Gradient stroke under `non-scaling-stroke`
-
-Not yet completed in phase 1:
-
 - Pattern stroke under `non-scaling-stroke`
-
-Reason:
-
-- Pattern stroke still uses the existing dedicated pattern rendering path and is
-  not wired into the non-scaling C1 flow.
 
 ### Harmony
 
@@ -259,21 +248,13 @@ Supported in phase 1:
 
 - Solid stroke under `non-scaling-stroke`
 - Gradient stroke under `non-scaling-stroke`
-
-Not yet completed in phase 1:
-
 - Pattern stroke under `non-scaling-stroke`
-
-Reason:
-
-- Pattern stroke still uses the existing pattern branch and does not consume the
-  full non-scaling C1 path.
 
 ### Skity
 
-Skity remains unsupported in phase 1. The backend already has known gaps around
-stroke-path capability, so this feature should stay explicitly documented as a
-limitation.
+Skity uses the same tracked-CTM C1 approach as Harmony. Solid and gradient
+strokes are drawn through the non-scaling stroke path, and pattern strokes use a
+device-space stroke clip before rendering pattern tiles under the original CTM.
 
 ## Data Model Changes
 
@@ -307,8 +288,7 @@ Recommended regression cases:
 - Scale + dashed stroke
 - Scale + linear gradient stroke
 - Scale + radial gradient stroke
-- `pattern stroke` under `non-scaling-stroke` is explicitly unsupported in
-  phase 1 and is not kept as a shipped demo regression case.
+- Scale + pattern stroke under `non-scaling-stroke`
 
 iOS / Harmony follow-up validation priorities:
 
@@ -349,12 +329,11 @@ At the current milestone:
 - Android linear gradient stroke support is validated by focused line-based demo
   coverage, while more complex gradient edge cases can still receive follow-up
   verification
-- Android pattern stroke under `non-scaling-stroke` remains explicitly out of
-  scope for phase 1, and the related pattern-stroke vector-effect demos are
-  removed from shipped example coverage
+- Android pattern stroke under `non-scaling-stroke` is implemented through the
+  native pattern stroke branch using device-space stroke clipping
 - iOS solid stroke and linear gradient stroke are validated on the phase-1 C1
   path
 - Harmony solid stroke and linear gradient stroke are validated on the phase-1
   C1 path
-- Pattern stroke under `non-scaling-stroke` remains unsupported across current
-  shipped demo coverage
+- Pattern stroke under `non-scaling-stroke` is implemented on Android, iOS,
+  Harmony, and Skity

@@ -319,8 +319,9 @@ Current backend status:
   vector pattern fill and stroke.
 - Skity stroke patterns depend on `SrPathFactorySkity::CreateStrokePath()`,
   which converts the stroked outline to a fill path via `skity::Stroke`.
-- `pattern stroke` under `vector-effect="non-scaling-stroke"` remains outside
-  the current vector-effect support path.
+- `pattern stroke` under `vector-effect="non-scaling-stroke"` uses
+  device-space stroke clipping before rendering pattern tiles under the original
+  CTM.
 
 ### Text Support Is Smaller Than The Parser Surface
 

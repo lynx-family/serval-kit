@@ -810,7 +810,22 @@ bool SrSkityCanvas::RenderPatternStroke(const ::skity::Path& path,
     dash_array_length = render_state.stroke_state->dash_array_length;
   }
 
-  SrWinPath source_path(path);
+  float current[6];
+  float inverse[6];
+  bool use_non_scaling_stroke = false;
+  if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+    CopyTransformArray(current_transform_, current);
+    use_non_scaling_stroke = element::InvertAffineTransform(current, inverse);
+  }
+
+  ::skity::Path transformed_path;
+  const ::skity::Path* stroke_source_path = &path;
+  if (use_non_scaling_stroke) {
+    transformed_path = path.CopyWithMatrix(CreateAffineMatrix(current));
+    stroke_source_path = &transformed_path;
+  }
+
+  SrWinPath source_path(*stroke_source_path);
   auto stroke_clip_path = path_factory_->CreateStrokePath(
       &source_path, render_state.stroke_width, stroke_line_cap,
       stroke_line_join, stroke_miter_limit, stroke_dash_offset, dash_array,
@@ -819,9 +834,20 @@ bool SrSkityCanvas::RenderPatternStroke(const ::skity::Path& path,
     return false;
   }
 
+  SrSVGBox pattern_bounds = stroke_clip_path->GetBounds();
+  if (use_non_scaling_stroke) {
+    pattern_bounds = element::MapBounds(pattern_bounds, inverse);
+  }
+
   Save();
+  if (use_non_scaling_stroke) {
+    Transform(inverse);
+  }
   ClipPath(stroke_clip_path.get(), SR_SVG_FILL);
-  RenderPatternTiles(resolved_pattern, stroke_clip_path->GetBounds());
+  if (use_non_scaling_stroke) {
+    Transform(current);
+  }
+  RenderPatternTiles(resolved_pattern, pattern_bounds);
   Restore();
   return true;
 }

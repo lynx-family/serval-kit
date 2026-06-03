@@ -20,6 +20,24 @@ namespace serval {
 namespace svg {
 namespace android {
 
+static inline void MultiplyTransformArray(const float (&lhs)[6],
+                                          const float (&rhs)[6],
+                                          float (&out)[6]) {
+  out[0] = lhs[0] * rhs[0] + lhs[2] * rhs[1];
+  out[1] = lhs[1] * rhs[0] + lhs[3] * rhs[1];
+  out[2] = lhs[0] * rhs[2] + lhs[2] * rhs[3];
+  out[3] = lhs[1] * rhs[2] + lhs[3] * rhs[3];
+  out[4] = lhs[0] * rhs[4] + lhs[2] * rhs[5] + lhs[4];
+  out[5] = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
+}
+
+static inline void CopyTransformArray(const std::array<float, 6>& src,
+                                      float (&out)[6]) {
+  for (size_t i = 0; i < src.size(); ++i) {
+    out[i] = src[i];
+  }
+}
+
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeFillPaintModel_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeStrokePaintModel_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeStopModel_ = 0;
@@ -33,6 +51,7 @@ intptr_t SrAndroidCanvas::g_SVGRenderEngine_makePolygonPath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makePolyLinePath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makePath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeStrokePath_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeTransformedStrokePath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_setFillType_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeLinearGradient_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRenderEngine_makeRadialGradient_ = 0;
@@ -80,6 +99,7 @@ void SrAndroidCanvas::Save() {
                 &(SrAndroidCanvas::g_SVGRender_save_));
   if (j_save) {
     jni_env_->CallVoidMethod(j_render_, j_save);
+    transform_stack_.push_back(current_transform_);
   }
 }
 
@@ -93,6 +113,10 @@ void SrAndroidCanvas::Restore() {
                 "()V", &(SrAndroidCanvas::g_SVGRender_restore_));
   if (j_restore) {
     jni_env_->CallVoidMethod(j_render_, j_restore);
+    if (!transform_stack_.empty()) {
+      current_transform_ = transform_stack_.back();
+      transform_stack_.pop_back();
+    }
   }
 }
 
@@ -106,6 +130,13 @@ void SrAndroidCanvas::Translate(float x, float y) {
                 "(FF)V", &(SrAndroidCanvas::g_SVGRender_translate_));
   if (j_translate) {
     jni_env_->CallVoidMethod(j_render_, j_translate, x, y);
+    float translation[6];
+    float current[6];
+    float out[6];
+    xform_set_translation(translation, x, y);
+    CopyTransformArray(current_transform_, current);
+    MultiplyTransformArray(current, translation, out);
+    current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
   }
 }
 
@@ -125,6 +156,11 @@ void SrAndroidCanvas::Transform(const float (&form)[6]) {
     jni_env_->SetFloatArrayRegion(j_transform_ref.Get(), 0, 6, form);
     // transform
     jni_env_->CallVoidMethod(j_render_, j_transform, j_transform_ref.Get());
+    float current[6];
+    float out[6];
+    CopyTransformArray(current_transform_, current);
+    MultiplyTransformArray(current, form, out);
+    current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
   }
 }
 
@@ -579,19 +615,44 @@ bool SrAndroidCanvas::RenderPatternStroke(JavaLocalRef<jobject>& path_ref,
     dash_array = stroke_state->dash_array;
     dash_array_length = stroke_state->dash_array_length;
   }
-  std::unique_ptr<canvas::Path> stroke_clip_path =
-      path_factory_->CreateStrokePath(&source_path, render_state.stroke_width,
-                                      stroke_line_cap, stroke_line_join,
-                                      stroke_miter_limit, stroke_dash_offset,
-                                      dash_array, dash_array_length);
+  float current[6];
+  float inverse[6];
+  bool use_non_scaling_stroke = false;
+  if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
+    CopyTransformArray(current_transform_, current);
+    use_non_scaling_stroke = element::InvertAffineTransform(current, inverse);
+  }
+
+  std::unique_ptr<canvas::Path> stroke_clip_path;
+  if (use_non_scaling_stroke) {
+    stroke_clip_path = path_factory_->CreateTransformedStrokePath(
+        &source_path, current, render_state.stroke_width, stroke_line_cap,
+        stroke_line_join, stroke_miter_limit, stroke_dash_offset, dash_array,
+        dash_array_length);
+  } else {
+    stroke_clip_path = path_factory_->CreateStrokePath(
+        &source_path, render_state.stroke_width, stroke_line_cap,
+        stroke_line_join, stroke_miter_limit, stroke_dash_offset, dash_array,
+        dash_array_length);
+  }
   if (!stroke_clip_path) {
     return false;
   }
 
+  SrSVGBox pattern_bounds = stroke_clip_path->GetBounds();
+  if (use_non_scaling_stroke) {
+    pattern_bounds = element::MapBounds(pattern_bounds, inverse);
+  }
+
   Save();
+  if (use_non_scaling_stroke) {
+    Transform(inverse);
+  }
   ClipPath(stroke_clip_path.get(), SR_SVG_FILL);
-  SrSVGBox stroke_bounds = stroke_clip_path->GetBounds();
-  RenderPatternTiles(path_ref, resolved_pattern, stroke_bounds);
+  if (use_non_scaling_stroke) {
+    Transform(current);
+  }
+  RenderPatternTiles(path_ref, resolved_pattern, pattern_bounds);
   Restore();
   return true;
 }
@@ -858,6 +919,7 @@ void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
       // Pass zeros to indicate full-canvas layer
       jni_env_->CallVoidMethod(j_render_, j_save_layer, 0.f, 0.f, 0.f, 0.f);
     }
+    transform_stack_.push_back(current_transform_);
   }
 }
 
@@ -871,6 +933,10 @@ void SrAndroidCanvas::RestoreLayer() {
       &(SrAndroidCanvas::g_SVGRender_restoreLayer_));
   if (j_restore_layer) {
     jni_env_->CallVoidMethod(j_render_, j_restore_layer);
+    if (!transform_stack_.empty()) {
+      current_transform_ = transform_stack_.back();
+      transform_stack_.pop_back();
+    }
   }
 }
 
@@ -886,6 +952,18 @@ void SrAndroidCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
     // 0 = SrcOver, 1 = DstIn
     int mode = (blend_mode == canvas::SrCanvasBlendMode::kDstIn) ? 1 : 0;
     jni_env_->CallVoidMethod(j_render_, j_set_blend_mode, mode);
+    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn &&
+        !dst_in_layer_active_) {
+      transform_stack_.push_back(current_transform_);
+      dst_in_layer_active_ = true;
+    } else if (blend_mode != canvas::SrCanvasBlendMode::kDstIn &&
+               dst_in_layer_active_) {
+      if (!transform_stack_.empty()) {
+        current_transform_ = transform_stack_.back();
+        transform_stack_.pop_back();
+      }
+      dst_in_layer_active_ = false;
+    }
   }
 }
 

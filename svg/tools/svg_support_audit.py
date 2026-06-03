@@ -866,7 +866,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 notes=[
                     "Pattern definitions are resolved lazily when shapes reference url(#pattern-id).",
                     "All current backends support vector pattern fill and stroke through resolver-driven tile rendering.",
-                    "Pattern stroke under vector-effect=\"non-scaling-stroke\" remains outside the current vector-effect support path.",
+                    "Pattern stroke participates in vector-effect=\"non-scaling-stroke\" through device-space stroke clipping.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",

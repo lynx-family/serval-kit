@@ -355,6 +355,50 @@ std::unique_ptr<canvas::Path> SrAndroidPathFactory::CreateStrokePath(
   return nullptr;
 }
 
+std::unique_ptr<canvas::Path> SrAndroidPathFactory::CreateTransformedStrokePath(
+    const canvas::Path* path, const float (&xform)[6], float width,
+    SrSVGStrokeCap cap, SrSVGStrokeJoin join, float miter_limit,
+    float dash_offset, float* dash_array, size_t dash_array_length) {
+  LOGD("SrAndroidCanvas::CreateTransformedStrokePath");
+  JavaLocalRef<jclass> engine_clazz_ref = GetClass(jni_env_, j_engine_);
+  if (engine_clazz_ref.IsNull() || !path) {
+    return nullptr;
+  }
+
+  jobject j_path = static_cast<const SrAndroidPath*>(path)->GetJPath();
+  if (!j_path) {
+    return nullptr;
+  }
+
+  jmethodID j_make_transformed_stroke_path = GetMethod(
+      jni_env_, engine_clazz_ref.Get(), STATIC_METHOD,
+      "makeTransformedStrokePath",
+      "(Landroid/graphics/Path;[FFIIFF[F)"
+      "Landroid/graphics/Path;",
+      &(SrAndroidCanvas::g_SVGRenderEngine_makeTransformedStrokePath_));
+
+  if (j_make_transformed_stroke_path) {
+    JavaLocalRef<jfloatArray> transform_ref(jni_env_,
+                                            jni_env_->NewFloatArray(6));
+    jni_env_->SetFloatArrayRegion(transform_ref.Get(), 0, 6, xform);
+    JavaLocalRef<jfloatArray> dash_array_ref(
+        jni_env_, jni_env_->NewFloatArray(dash_array_length));
+    if (dash_array_length > 0 && dash_array) {
+      jni_env_->SetFloatArrayRegion(dash_array_ref.Get(), 0, dash_array_length,
+                                    dash_array);
+    }
+    return std::make_unique<SrAndroidPath>(
+        jni_env_,
+        jni_env_->CallStaticObjectMethod(
+            engine_clazz_ref.Get(), j_make_transformed_stroke_path, j_path,
+            transform_ref.Get(), width, static_cast<int>(cap),
+            static_cast<int>(join), miter_limit, dash_offset,
+            dash_array_ref.Get()),
+        this);
+  }
+  return nullptr;
+}
+
 }  // namespace android
 }  // namespace svg
 }  // namespace serval

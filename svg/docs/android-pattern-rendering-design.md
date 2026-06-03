@@ -259,15 +259,13 @@ architectural direction.
 
 ## Current Limitations
 
-- The Skity backend does not yet have a confirmed `stroke-to-path` implementation.
-- `pattern fill` can be integrated with the same resolver + tile-loop approach,
-  but `pattern stroke` still depends on converting the stroke into a clip-able
-  outline path.
-- Android, iOS, and Harmony already rely on platform-native stroke outline
-  generation APIs, but Skity's current `CreateStrokePath(...)` implementation is
-  still a stub.
-- Until Skity gains a reliable stroke outline path capability, it should be
-  treated as incomplete for full vector `pattern stroke` parity.
+- Pattern stroke still depends on converting the stroke into a clip-able outline
+  path, so backend stroke-outline quality remains important for edge cases.
+- `pattern stroke` under `vector-effect="non-scaling-stroke"` now uses
+  device-space stroke clipping on Android, iOS, Harmony, and Skity.
+- Very small Skity stroke widths inside
+  `patternContentUnits="objectBoundingBox"` remain tracked as a Skity backend
+  stroke-geometry issue instead of a Serval pattern-rendering bypass.
 
 ## Conclusion
 

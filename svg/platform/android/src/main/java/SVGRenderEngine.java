@@ -6,6 +6,7 @@ package com.lynx.serval.svg;
 
 import android.graphics.Bitmap;
 import android.graphics.DashPathEffect;
+import android.graphics.Matrix;
 import android.graphics.Path;
 import android.os.Build;
 import android.text.BoringLayout;
@@ -201,6 +202,22 @@ public class SVGRenderEngine {
     Path dst = new Path();
     paint.getFillPath(src, dst);
     return dst;
+  }
+
+  public static Path makeTransformedStrokePath(Path src, float[] form,
+                                               float width, int cap, int join,
+                                               float miter, float dashOffset,
+                                               float[] dashArray) {
+    if (src == null || form == null || form.length != 6)
+      return null;
+    float[] formValue = new float[] {
+        form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f};
+    Matrix matrix = new Matrix();
+    matrix.setValues(formValue);
+    Path transformedPath = new Path();
+    src.transform(matrix, transformedPath);
+    return makeStrokePath(transformedPath, width, cap, join, miter, dashOffset,
+                          dashArray);
   }
 
   public static void setFillType(Path path, int rule) {
