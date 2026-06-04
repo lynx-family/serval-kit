@@ -155,7 +155,7 @@ public class SVGRender {
     picture.endRecording();
     List<SVGDiagnostic> diagnosticList =
         diagnostics == null || diagnostics.length == 0
-            ? Collections.emptyList()
+            ? Collections.<SVGDiagnostic>emptyList()
             : Collections.unmodifiableList(Arrays.asList(diagnostics));
     return new SVGRenderResult(picture, diagnosticList);
   }
