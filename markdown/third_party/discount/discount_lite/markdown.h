@@ -3,6 +3,12 @@
  * Copyright (C) 2007 David L Parsons.
  * The redistribution terms are provided in the COPYRIGHT file that must
  * be distributed with this source code.
+ *
+ * Use of this source code is governed by a BSD-style license
+ * that can be found in the COPYRIGHT file in the root of the source
+ * tree.
+ *
+ * This file may have been modified by The Lynx Authors.
  */
 #ifndef MARKDOWN_THIRD_PARTY_DISCOUNT_DISCOUNT_LITE_MARKDOWN_H_
 #define MARKDOWN_THIRD_PARTY_DISCOUNT_DISCOUNT_LITE_MARKDOWN_H_
