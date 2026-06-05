@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_CURRENT_COLOR = "CurrentColor";
   private static final String CATEGORY_ILLEGAL_PARSING = "IllegalParsing";
   private static final String CATEGORY_MASK = "Mask";
+  private static final String CATEGORY_FILTER = "Filter";
   private static final String CATEGORY_PATTERN = "Pattern";
   private static final String CATEGORY_SVG_ROOT = "SvgRoot";
   private static final String CATEGORY_USE = "Use";
@@ -206,9 +207,9 @@ public class MainActivity extends AppCompatActivity {
     categories.clear();
     for (String category : new String[] {
              CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
-             CATEGORY_ILLEGAL_PARSING, CATEGORY_MASK, CATEGORY_PATTERN,
-             CATEGORY_SVG_ROOT, CATEGORY_USE, CATEGORY_GRADIENT,
-             CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
+             CATEGORY_MASK, CATEGORY_FILTER, CATEGORY_ILLEGAL_PARSING,
+             CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
+             CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -232,6 +233,9 @@ public class MainActivity extends AppCompatActivity {
     }
     if (fileName.startsWith("mask-")) {
       return CATEGORY_MASK;
+    }
+    if (fileName.startsWith("filter-")) {
+      return CATEGORY_FILTER;
     }
     if (fileName.startsWith("pattern-") ||
         "stroke-gradient-vs-pattern.svg".equals(fileName)) {

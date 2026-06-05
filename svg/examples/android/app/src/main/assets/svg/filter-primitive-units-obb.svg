@@ -1,0 +1,26 @@
+<svg width="660" height="240" viewBox="0 0 660 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="obbPrimitiveUnits" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="-10%" y="-10%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.025" result="blur"/>
+      <feOffset in="blur" dx="0.12" dy="0.08"/>
+    </filter>
+    <filter id="userPrimitiveUnitsEquivalent" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="250" y="20" width="252" height="196">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4.5 3" result="blur"/>
+      <feOffset in="blur" dx="21.6" dy="9.6"/>
+    </filter>
+  </defs>
+
+  <rect width="660" height="240" fill="#f6f6f6"/>
+
+  <g transform="translate(40 40)">
+    <rect x="0" y="0" width="180" height="120" fill="#e5e7eb"/>
+    <rect x="20" y="18" width="136" height="80" rx="12" fill="#2563eb" filter="url(#obbPrimitiveUnits)"/>
+    <rect x="0" y="0" width="180" height="120" fill="none" stroke="#222" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(290 40)">
+    <rect x="0" y="0" width="180" height="120" fill="#e5e7eb"/>
+    <rect x="20" y="18" width="136" height="80" rx="12" fill="#16a34a" filter="url(#userPrimitiveUnitsEquivalent)"/>
+    <rect x="0" y="0" width="180" height="120" fill="none" stroke="#222" stroke-width="2"/>
+  </g>
+</svg>
