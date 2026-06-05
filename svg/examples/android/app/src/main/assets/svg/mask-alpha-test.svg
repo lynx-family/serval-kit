@@ -1,0 +1,153 @@
+<svg width="900" height="700" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+  <style>text { font-family: sans-serif; font-size: 13px; fill: #333; }</style>
+  <rect width="900" height="700" fill="#f0f0f0"/>
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="bold">mask-type="alpha" Test Cases</text>
+
+  <defs>
+    <!-- 1. Uniform semi-transparent -->
+    <mask id="a1" mask-type="alpha">
+      <rect width="160" height="160" fill="white" fill-opacity="0.5"/>
+    </mask>
+
+    <!-- 2. Concentric opacity rings -->
+    <mask id="a2" mask-type="alpha">
+      <rect width="160" height="160" fill="white" fill-opacity="0"/>
+      <circle cx="80" cy="80" r="75" fill="white" fill-opacity="0.2"/>
+      <circle cx="80" cy="80" r="55" fill="white" fill-opacity="0.5"/>
+      <circle cx="80" cy="80" r="35" fill="white" fill-opacity="0.8"/>
+      <circle cx="80" cy="80" r="15" fill="white" fill-opacity="1"/>
+    </mask>
+
+    <!-- 3. Color with varying alpha (alpha mode ignores RGB, uses only alpha) -->
+    <mask id="a3" mask-type="alpha">
+      <rect x="0" y="0" width="80" height="160" fill="red" fill-opacity="0.8"/>
+      <rect x="80" y="0" width="80" height="160" fill="blue" fill-opacity="0.8"/>
+    </mask>
+
+    <!-- 4. Gradient alpha -->
+    <linearGradient id="alphaGradLR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="white" stop-opacity="0"/>
+      <stop offset="100%" stop-color="white" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="a4" mask-type="alpha">
+      <rect width="160" height="160" fill="url(#alphaGradLR)"/>
+    </mask>
+
+    <!-- 5. Radial gradient alpha -->
+    <radialGradient id="alphaRadial" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="white" stop-opacity="1"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="a5" mask-type="alpha">
+      <rect width="160" height="160" fill="url(#alphaRadial)"/>
+    </mask>
+
+    <!-- 6. Shape cutout (donut) -->
+    <mask id="a6" mask-type="alpha">
+      <circle cx="80" cy="80" r="70" fill="white" fill-opacity="1"/>
+      <circle cx="80" cy="80" r="35" fill="black" fill-opacity="0"/>
+    </mask>
+
+    <!-- 7. Stroke-only mask -->
+    <mask id="a7" mask-type="alpha">
+      <circle cx="80" cy="80" r="55" fill="none" stroke="white" stroke-width="20" stroke-opacity="0.9"/>
+    </mask>
+
+    <!-- 8. Group with transform -->
+    <mask id="a8" mask-type="alpha">
+      <g transform="translate(80,80) rotate(45)">
+        <rect x="-60" y="-15" width="120" height="30" fill="white" fill-opacity="0.85"/>
+        <rect x="-15" y="-60" width="30" height="120" fill="white" fill-opacity="0.85"/>
+      </g>
+    </mask>
+
+    <!-- 9. objectBoundingBox units -->
+    <mask id="a9" mask-type="alpha" maskContentUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.45" fill="white" fill-opacity="1"/>
+    </mask>
+
+    <!-- 10. Multiple overlapping shapes -->
+    <mask id="a10" mask-type="alpha">
+      <circle cx="55" cy="65" r="40" fill="white" fill-opacity="0.6"/>
+      <circle cx="105" cy="65" r="40" fill="white" fill-opacity="0.6"/>
+      <circle cx="80" cy="105" r="40" fill="white" fill-opacity="0.6"/>
+    </mask>
+
+    <!-- 11. Path mask -->
+    <mask id="a11" mask-type="alpha">
+      <path d="M80,10 L145,55 L125,130 L35,130 L15,55 Z" fill="white" fill-opacity="0.9"/>
+    </mask>
+
+    <!-- 12. Zero-opacity region (should be fully transparent) -->
+    <mask id="a12" mask-type="alpha">
+      <rect width="160" height="80" fill="white" fill-opacity="1"/>
+      <rect y="80" width="160" height="80" fill="white" fill-opacity="0"/>
+    </mask>
+  </defs>
+
+  <!-- Row 1 -->
+  <g transform="translate(30,60)">
+    <text x="80" y="-5" text-anchor="middle">1. Uniform 50%</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#246bff" mask="url(#a1)"/>
+  </g>
+  <g transform="translate(220,60)">
+    <text x="80" y="-5" text-anchor="middle">2. Concentric Rings</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#246bff" mask="url(#a2)"/>
+  </g>
+  <g transform="translate(410,60)">
+    <text x="80" y="-5" text-anchor="middle">3. Color≠Alpha</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#246bff" mask="url(#a3)"/>
+  </g>
+  <g transform="translate(600,60)">
+    <text x="80" y="-5" text-anchor="middle">4. Linear Grad Alpha</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#246bff" mask="url(#a4)"/>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(30,270)">
+    <text x="80" y="-5" text-anchor="middle">5. Radial Grad Alpha</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#12b886" mask="url(#a5)"/>
+  </g>
+  <g transform="translate(220,270)">
+    <text x="80" y="-5" text-anchor="middle">6. Donut Cutout</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#12b886" mask="url(#a6)"/>
+  </g>
+  <g transform="translate(410,270)">
+    <text x="80" y="-5" text-anchor="middle">7. Stroke Only</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#12b886" mask="url(#a7)"/>
+  </g>
+  <g transform="translate(600,270)">
+    <text x="80" y="-5" text-anchor="middle">8. Group + Rotate</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#12b886" mask="url(#a8)"/>
+  </g>
+
+  <!-- Row 3 -->
+  <g transform="translate(30,480)">
+    <text x="80" y="-5" text-anchor="middle">9. objectBoundingBox</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#f76707" mask="url(#a9)"/>
+  </g>
+  <g transform="translate(220,480)">
+    <text x="80" y="-5" text-anchor="middle">10. Overlapping</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#f76707" mask="url(#a10)"/>
+  </g>
+  <g transform="translate(410,480)">
+    <text x="80" y="-5" text-anchor="middle">11. Path Mask</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#f76707" mask="url(#a11)"/>
+  </g>
+  <g transform="translate(600,480)">
+    <text x="80" y="-5" text-anchor="middle">12. Half Opaque/Zero</text>
+    <rect width="160" height="160" fill="#e0e0e0"/>
+    <rect width="160" height="160" rx="12" fill="#f76707" mask="url(#a12)"/>
+  </g>
+</svg>
