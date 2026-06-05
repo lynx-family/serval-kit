@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #import <CoreGraphics/CoreGraphics.h>
+#import <CoreImage/CoreImage.h>
 
 #include "element/SrSVGTypes.h"
 #include "platform/iOS/SrIOSCanvas.h"
@@ -121,6 +122,128 @@ static void SrSVGDrawArc(CGMutablePathRef path, float x, float y, float x1,
 namespace serval {
 namespace svg {
 namespace ios {
+
+static CGFloat SrMapVectorLength(CGAffineTransform transform, CGFloat x,
+                                 CGFloat y) {
+  CGFloat mapped_x = transform.a * x + transform.c * y;
+  CGFloat mapped_y = transform.b * x + transform.d * y;
+  return hypot(mapped_x, mapped_y);
+}
+
+static CIVector* SrColorVector(const std::vector<float>& values,
+                               size_t offset) {
+  return [CIVector vectorWithX:values[offset]
+                             Y:values[offset + 1]
+                             Z:values[offset + 2]
+                             W:values[offset + 3]];
+}
+
+static CIImage* SrApplyColorMatrix(CIImage* image,
+                                   const std::vector<float>& values) {
+  CIFilter* filter = [CIFilter filterWithName:@"CIColorMatrix"];
+  [filter setValue:image forKey:kCIInputImageKey];
+  [filter setValue:SrColorVector(values, 0) forKey:@"inputRVector"];
+  [filter setValue:SrColorVector(values, 5) forKey:@"inputGVector"];
+  [filter setValue:SrColorVector(values, 10) forKey:@"inputBVector"];
+  [filter setValue:SrColorVector(values, 15) forKey:@"inputAVector"];
+  [filter setValue:[CIVector vectorWithX:values[4]
+                                       Y:values[9]
+                                       Z:values[14]
+                                       W:values[19]]
+            forKey:@"inputBiasVector"];
+  return [filter valueForKey:kCIOutputImageKey];
+}
+
+static CIImage* SrApplyLuminanceToAlpha(CIImage* image) {
+  CIFilter* filter = [CIFilter filterWithName:@"CIColorMatrix"];
+  [filter setValue:image forKey:kCIInputImageKey];
+  [filter setValue:[CIVector vectorWithX:0 Y:0 Z:0 W:0] forKey:@"inputRVector"];
+  [filter setValue:[CIVector vectorWithX:0 Y:0 Z:0 W:0] forKey:@"inputGVector"];
+  [filter setValue:[CIVector vectorWithX:0 Y:0 Z:0 W:0] forKey:@"inputBVector"];
+  [filter setValue:[CIVector vectorWithX:0.2126 Y:0.7152 Z:0.0722 W:0]
+            forKey:@"inputAVector"];
+  [filter setValue:[CIVector vectorWithX:0 Y:0 Z:0 W:0]
+            forKey:@"inputBiasVector"];
+  return [filter valueForKey:kCIOutputImageKey];
+}
+
+static CIImage* SrApplyGaussianBlur(CIImage* image, CGFloat sigma_x,
+                                    CGFloat sigma_y, CGRect extent) {
+  if (sigma_x <= 0 && sigma_y <= 0) {
+    return image;
+  }
+  CGFloat radius = fmax(sigma_x, sigma_y);
+  if (radius <= 0) {
+    return image;
+  }
+
+  CGFloat scale_x = sigma_x > 0 ? radius / sigma_x : 1;
+  CGFloat scale_y = sigma_y > 0 ? radius / sigma_y : 1;
+  CIImage* scaled = image;
+  if (fabs(scale_x - 1) > 1e-5 || fabs(scale_y - 1) > 1e-5) {
+    scaled = [scaled
+        imageByApplyingTransform:CGAffineTransformMakeScale(scale_x, scale_y)];
+  }
+
+  CIFilter* filter = [CIFilter filterWithName:@"CIGaussianBlur"];
+  [filter setValue:scaled forKey:kCIInputImageKey];
+  [filter setValue:@(radius) forKey:kCIInputRadiusKey];
+  CIImage* output = [filter valueForKey:kCIOutputImageKey];
+  if (fabs(scale_x - 1) > 1e-5 || fabs(scale_y - 1) > 1e-5) {
+    output = [output imageByApplyingTransform:CGAffineTransformMakeScale(
+                                                  1 / scale_x, 1 / scale_y)];
+  }
+  return [output imageByCroppingToRect:extent];
+}
+
+static CGImageRef SrCreateFilteredImage(CGImageRef source_image,
+                                        const canvas::SrFilterModel& filter,
+                                        CGAffineTransform ctm) {
+  if (!source_image) {
+    return nullptr;
+  }
+
+  @autoreleasepool {
+    CIImage* image = [CIImage imageWithCGImage:source_image];
+    CGRect extent = [image extent];
+    for (const auto& primitive : filter.primitives) {
+      switch (primitive.type) {
+        case canvas::SrFilterPrimitiveType::kGaussianBlur: {
+          CGFloat sigma_x =
+              SrMapVectorLength(ctm, primitive.std_deviation_x, 0);
+          CGFloat sigma_y =
+              SrMapVectorLength(ctm, 0, primitive.std_deviation_y);
+          image = SrApplyGaussianBlur(image, sigma_x, sigma_y, extent);
+          break;
+        }
+        case canvas::SrFilterPrimitiveType::kOffset: {
+          CGFloat dx = ctm.a * primitive.dx + ctm.c * primitive.dy;
+          CGFloat dy = ctm.b * primitive.dx + ctm.d * primitive.dy;
+          image =
+              [image imageByApplyingTransform:CGAffineTransformMakeTranslation(
+                                                  dx, dy)];
+          image = [image imageByCroppingToRect:extent];
+          break;
+        }
+        case canvas::SrFilterPrimitiveType::kColorMatrix:
+          if (primitive.color_matrix_type == "luminanceToAlpha") {
+            image = SrApplyLuminanceToAlpha(image);
+          } else {
+            image = SrApplyColorMatrix(image, primitive.color_matrix_values);
+          }
+          break;
+        case canvas::SrFilterPrimitiveType::kComposite:
+        case canvas::SrFilterPrimitiveType::kBlend:
+        case canvas::SrFilterPrimitiveType::kFlood:
+          return CGImageRetain(source_image);
+      }
+    }
+
+    CIContext* context = [CIContext contextWithOptions:nil];
+    CGImageRef filtered_image = [context createCGImage:image fromRect:extent];
+    return filtered_image ? filtered_image : CGImageRetain(source_image);
+  }
+}
 
 static void MakeGradientColorsAndOffsets(const canvas::GradientModel& model,
                                          std::vector<CGFloat>& offsets,
@@ -364,6 +487,18 @@ SrIOSCanvas::~SrIOSCanvas() {
     CGContextRelease(luminance_mask_context_);
     luminance_mask_context_ = nullptr;
   }
+  for (auto& state : filter_layer_stack_) {
+    if (_context == state.layer_context) {
+      _context = state.saved_context;
+    }
+    if (state.layer_context) {
+      CGContextRelease(state.layer_context);
+    }
+    if (state.saved_context) {
+      CGContextRelease(state.saved_context);
+    }
+  }
+  filter_layer_stack_.clear();
   CGContextRelease(_context);
   _context = NULL;
 }
@@ -1047,6 +1182,7 @@ void SrIOSCanvas::ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) {
 }
 
 void SrIOSCanvas::SaveLayer(const SrSVGBox* bounds) {
+  (void)bounds;
   // CGContextBeginTransparencyLayer creates an off-screen buffer for compositing.
   // All subsequent drawing is redirected to this buffer until RestoreLayer().
   // The transparency layer starts fully transparent by default.
@@ -1054,77 +1190,148 @@ void SrIOSCanvas::SaveLayer(const SrSVGBox* bounds) {
 }
 
 void SrIOSCanvas::RestoreLayer() {
-  if (dst_in_layer_active_) {
-    SetBlendMode(canvas::SrCanvasBlendMode::kSrcOver);
-  }
   CGContextEndTransparencyLayer(_context);
 }
 
-void SrIOSCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
-  if (blend_mode_ == blend_mode) {
+bool SrIOSCanvas::SupportsFilterModel(
+    const canvas::SrFilterModel& filter) const {
+  return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
+}
+
+void SrIOSCanvas::BeginFilterLayer(const SrSVGBox* bounds,
+                                   const canvas::SrFilterModel& filter) {
+  (void)bounds;
+  size_t width = CGBitmapContextGetWidth(_context);
+  size_t height = CGBitmapContextGetHeight(_context);
+  if (width == 0 || height == 0) {
+    CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
+        _context, CGContextGetClipBoundingBox(_context));
+    width = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
+    height = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
+  }
+  if (width == 0 || height == 0) {
     return;
   }
 
-  if (blend_mode == canvas::SrCanvasBlendMode::kDstIn) {
-    blend_mode_ = blend_mode;
-    size_t w = CGBitmapContextGetWidth(_context);
-    size_t h = CGBitmapContextGetHeight(_context);
-    if (w == 0 || h == 0) {
-      CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
-          _context, CGContextGetClipBoundingBox(_context));
-      w = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
-      h = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
-    }
-    if (w > 0 && h > 0) {
-      CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-      luminance_mask_context_ = CGBitmapContextCreate(
-          NULL, w, h, 8, w * 4, cs,
-          kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
-      CGColorSpaceRelease(cs);
-    }
-    if (luminance_mask_context_) {
-      // Copy the current CTM so mask geometry aligns with the content.
+  CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+  CGContextRef layer_context = CGBitmapContextCreate(
+      NULL, width, height, 8, width * 4, color_space,
+      kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+  CGColorSpaceRelease(color_space);
+  if (!layer_context) {
+    return;
+  }
+
+  CGAffineTransform ctm = CGContextGetCTM(_context);
+  CGContextConcatCTM(layer_context, ctm);
+  CGContextRetain(_context);
+  filter_layer_stack_.push_back(
+      FilterLayerState{_context, layer_context, width, height, ctm, filter});
+  _context = layer_context;
+}
+
+void SrIOSCanvas::EndFilterLayer() {
+  if (!filter_layer_stack_.empty() &&
+      _context == filter_layer_stack_.back().layer_context) {
+    FilterLayerState state = filter_layer_stack_.back();
+    filter_layer_stack_.pop_back();
+    CGImageRef layer_image = CGBitmapContextCreateImage(state.layer_context);
+    CGImageRef filtered_image =
+        SrCreateFilteredImage(layer_image, state.filter, state.ctm);
+    _context = state.saved_context;
+    if (filtered_image) {
+      CGContextSaveGState(_context);
       CGAffineTransform ctm = CGContextGetCTM(_context);
-      CGContextConcatCTM(luminance_mask_context_, ctm);
-      saved_context_ = _context;
-      _context = luminance_mask_context_;
+      CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
+      CGContextDrawImage(_context, CGRectMake(0, 0, state.width, state.height),
+                         filtered_image);
+      CGContextRestoreGState(_context);
+      CGImageRelease(filtered_image);
     }
-    dst_in_layer_active_ = luminance_mask_context_ != nullptr;
-  } else {
-    blend_mode_ = blend_mode;
-    if (dst_in_layer_active_) {
-      if (_context == luminance_mask_context_) {
-        _context = saved_context_;
-      }
-      if (luminance_mask_context_ && saved_context_) {
-        CGImageRef maskImage =
-            CGBitmapContextCreateImage(luminance_mask_context_);
-        if (maskImage) {
-          size_t maskWidth = CGImageGetWidth(maskImage);
-          size_t maskHeight = CGImageGetHeight(maskImage);
-          CGContextSaveGState(_context);
-          CGAffineTransform ctm = CGContextGetCTM(_context);
-          CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
-          CGContextSetBlendMode(_context, kCGBlendModeDestinationIn);
-          CGContextDrawImage(_context, CGRectMake(0, 0, maskWidth, maskHeight),
-                             maskImage);
-          CGContextRestoreGState(_context);
-          CGImageRelease(maskImage);
-        }
-      }
-      CGContextRelease(luminance_mask_context_);
-      luminance_mask_context_ = nullptr;
-      saved_context_ = nullptr;
-      dst_in_layer_active_ = false;
+    if (layer_image) {
+      CGImageRelease(layer_image);
     }
+    CGContextRelease(state.layer_context);
+    CGContextRelease(state.saved_context);
+    return;
   }
 }
 
-void SrIOSCanvas::SetMaskIsLuminance(bool is_luminance) {
+void SrIOSCanvas::BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
   mask_is_luminance_ = is_luminance;
+  SaveLayer(bounds);
 }
 
-void SrIOSCanvas::ApplyLuminanceToAlpha() {
+void SrIOSCanvas::BeginMaskContentLayer() {
+  if (dst_in_layer_active_) {
+    return;
+  }
+
+  size_t w = CGBitmapContextGetWidth(_context);
+  size_t h = CGBitmapContextGetHeight(_context);
+  if (w == 0 || h == 0) {
+    CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
+        _context, CGContextGetClipBoundingBox(_context));
+    w = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
+    h = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
+  }
+  if (w > 0 && h > 0) {
+    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+    luminance_mask_context_ = CGBitmapContextCreate(
+        NULL, w, h, 8, w * 4, cs,
+        kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(cs);
+  }
+  if (luminance_mask_context_) {
+    // Copy the current CTM so mask geometry aligns with the content.
+    CGAffineTransform ctm = CGContextGetCTM(_context);
+    CGContextConcatCTM(luminance_mask_context_, ctm);
+    saved_context_ = _context;
+    _context = luminance_mask_context_;
+  }
+  dst_in_layer_active_ = luminance_mask_context_ != nullptr;
+}
+
+void SrIOSCanvas::EndMaskContentLayer() {
+  if (!dst_in_layer_active_) {
+    return;
+  }
+  if (mask_is_luminance_) {
+    ApplyLuminanceMaskToAlpha();
+  }
+  if (_context == luminance_mask_context_) {
+    _context = saved_context_;
+  }
+  if (luminance_mask_context_ && saved_context_) {
+    CGImageRef maskImage = CGBitmapContextCreateImage(luminance_mask_context_);
+    if (maskImage) {
+      size_t maskWidth = CGImageGetWidth(maskImage);
+      size_t maskHeight = CGImageGetHeight(maskImage);
+      CGContextSaveGState(_context);
+      CGAffineTransform ctm = CGContextGetCTM(_context);
+      CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
+      CGContextSetBlendMode(_context, kCGBlendModeDestinationIn);
+      CGContextDrawImage(_context, CGRectMake(0, 0, maskWidth, maskHeight),
+                         maskImage);
+      CGContextRestoreGState(_context);
+      CGImageRelease(maskImage);
+    }
+  }
+  CGContextRelease(luminance_mask_context_);
+  luminance_mask_context_ = nullptr;
+  saved_context_ = nullptr;
+  dst_in_layer_active_ = false;
+}
+
+void SrIOSCanvas::EndMaskLayer() {
+  if (dst_in_layer_active_) {
+    EndMaskContentLayer();
+  }
+  RestoreLayer();
+  mask_is_luminance_ = false;
+}
+
+void SrIOSCanvas::ApplyLuminanceMaskToAlpha() {
   if (!luminance_mask_context_) {
     return;
   }

@@ -131,13 +131,16 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void Transform(const float (&form)[6]) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
   bool SupportsFilters() const override { return true; }
+  bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
-  void SaveLayerWithFilter(const SrSVGBox* bounds, const SrSVGPaint* filter,
-                           void* id_mapper) override;
   void RestoreLayer() override;
-  void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
-  void SetMaskIsLuminance(bool is_luminance) override;
-  void ApplyLuminanceToAlpha() override;
+  void BeginFilterLayer(const SrSVGBox* bounds,
+                        const canvas::SrFilterModel& filter) override;
+  void EndFilterLayer() override;
+  void BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  void BeginMaskContentLayer() override;
+  void EndMaskContentLayer() override;
+  void EndMaskLayer() override;
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,

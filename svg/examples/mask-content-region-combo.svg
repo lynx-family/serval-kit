@@ -1,0 +1,31 @@
+<svg width="660" height="240" viewBox="0 0 660 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="obbContentClippedByUserRegion" mask-type="alpha" maskUnits="userSpaceOnUse" x="70" y="64" width="100" height="110" maskContentUnits="objectBoundingBox">
+      <rect x="0" y="0" width="1" height="1" fill="black"/>
+      <circle cx="0.5" cy="0.5" r="0.46" fill="white"/>
+      <rect x="0.48" y="0" width="0.08" height="1" fill="black"/>
+    </mask>
+    <mask id="userContentClippedByOBBRegion" mask-type="alpha" maskUnits="objectBoundingBox" x="0.1" y="0.2" width="0.72" height="0.55" maskContentUnits="userSpaceOnUse">
+      <rect x="250" y="40" width="180" height="160" fill="black"/>
+      <circle cx="340" cy="120" r="72" fill="white"/>
+      <rect x="330" y="40" width="20" height="160" fill="black"/>
+    </mask>
+    <mask id="defaultOBBRegion" mask-type="alpha">
+      <circle cx="560" cy="120" r="86" fill="white"/>
+    </mask>
+  </defs>
+
+  <rect width="660" height="240" fill="white"/>
+
+  <rect x="20" y="40" width="180" height="160" rx="16" fill="#0ea5e9" mask="url(#obbContentClippedByUserRegion)"/>
+  <rect x="20" y="40" width="180" height="160" fill="none" stroke="#222" stroke-width="2"/>
+  <rect x="70" y="64" width="100" height="110" fill="none" stroke="#ef4444" stroke-width="2"/>
+
+  <rect x="250" y="40" width="180" height="160" rx="16" fill="#22c55e" mask="url(#userContentClippedByOBBRegion)"/>
+  <rect x="250" y="40" width="180" height="160" fill="none" stroke="#222" stroke-width="2"/>
+  <rect x="268" y="72" width="129.6" height="88" fill="none" stroke="#ef4444" stroke-width="2"/>
+
+  <rect x="480" y="40" width="160" height="160" rx="16" fill="#a855f7" mask="url(#defaultOBBRegion)"/>
+  <rect x="480" y="40" width="160" height="160" fill="none" stroke="#222" stroke-width="2"/>
+  <rect x="464" y="24" width="192" height="192" fill="none" stroke="#ef4444" stroke-width="2"/>
+</svg>

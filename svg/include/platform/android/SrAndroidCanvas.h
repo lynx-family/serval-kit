@@ -76,11 +76,17 @@ class SrAndroidCanvas : public canvas::SrCanvas {
       const SrSVGPreserveAspectRatio& preserve_aspect_radio) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
   void ClipRect(float left, float top, float right, float bottom);
+  bool SupportsFilters() const override { return true; }
+  bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
-  void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
-  void SetMaskIsLuminance(bool is_luminance) override;
-  void ApplyLuminanceToAlpha() override;
+  void BeginFilterLayer(const SrSVGBox* bounds,
+                        const canvas::SrFilterModel& filter) override;
+  void EndFilterLayer() override;
+  void BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  void BeginMaskContentLayer() override;
+  void EndMaskContentLayer() override;
+  void EndMaskLayer() override;
   canvas::PathFactory* PathFactory() override { return path_factory_.get(); }
 
  private:
@@ -131,9 +137,12 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRender_clipRect_;
   static intptr_t g_SVGRender_saveLayer_;
   static intptr_t g_SVGRender_restoreLayer_;
-  static intptr_t g_SVGRender_setBlendMode_;
-  static intptr_t g_SVGRender_setMaskIsLuminance_;
-  static intptr_t g_SVGRender_applyLuminanceToAlpha_;
+  static intptr_t g_SVGRender_beginFilterLayer_;
+  static intptr_t g_SVGRender_endFilterLayer_;
+  static intptr_t g_SVGRender_beginMaskLayer_;
+  static intptr_t g_SVGRender_beginMaskContentLayer_;
+  static intptr_t g_SVGRender_endMaskContentLayer_;
+  static intptr_t g_SVGRender_endMaskLayer_;
   static intptr_t g_SVGRender_calculatePathBoundsArray_;
   static intptr_t g_SVGRender_applyTransform_;
   static intptr_t g_SVGRenderEngine_makeSpanStringBuilder_;
@@ -144,8 +153,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   jobject j_engine_;
   jobject j_render_;
   JNIEnv* jni_env_;
-  bool mask_is_luminance_{false};
-  bool dst_in_layer_active_{false};
+  bool mask_content_layer_active_{false};
   const SrSVGRenderContext* current_render_context_{nullptr};
   std::unordered_set<std::string> active_pattern_ids_;
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};

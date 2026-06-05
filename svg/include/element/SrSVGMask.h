@@ -20,6 +20,8 @@ class SrSVGMask : public SrSVGContainer {
     return mask_content_units_;
   }
   bool mask_is_luminance() const { return mask_is_luminance_; }
+  SrSVGBox ResolveMaskRegion(const SrSVGBox& object_bounds,
+                             const SrSVGRenderContext& context) const;
   ~SrSVGMask() override {}
 
  protected:
@@ -31,10 +33,10 @@ class SrSVGMask : public SrSVGContainer {
   SrSVGObjectBoundingBoxUnitType mask_content_units_{
       SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE};
   bool mask_is_luminance_{true};
-  float x_{-0.1f};
-  float y_{-0.1f};
-  float width_{1.2f};
-  float height_{1.2f};
+  SrSVGLength x_{-10.f, SR_SVG_UNITS_PERCENTAGE};
+  SrSVGLength y_{-10.f, SR_SVG_UNITS_PERCENTAGE};
+  SrSVGLength width_{120.f, SR_SVG_UNITS_PERCENTAGE};
+  SrSVGLength height_{120.f, SR_SVG_UNITS_PERCENTAGE};
 };
 
 }  // namespace element

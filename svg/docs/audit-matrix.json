@@ -27,7 +27,7 @@
     "skity": [
       "Core shapes, gradients, masks, clip paths, and image rendering are implemented.",
       "Text paragraphs are currently stubbed.",
-      "Filter execution is available but limited to a small subset of primitives and heuristics."
+      "Filter execution consumes the shared FilterModel but is limited to supported single-input linear chains."
     ]
   },
   "global_notes": [
@@ -209,6 +209,10 @@
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-non-scaling-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-pattern-stroke.svg",
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/color-parsing-display-p3.svg",
@@ -454,8 +458,11 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
+        "examples/mask-empty-region.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
+        "examples/mask-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/basic_shapes.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/clip_path.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/color-parsing-display-p3.svg",
@@ -700,6 +707,10 @@
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-non-scaling-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-pattern-stroke.svg",
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/currentcolor-content-color-override.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/currentcolor-fill-opacity-use.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/currentcolor-host-default-compare.svg",
@@ -765,8 +776,11 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
+        "examples/mask-empty-region.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
+        "examples/mask-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/currentcolor-content-color-override.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/currentcolor-fill-opacity-use.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/currentcolor-host-default-compare.svg",
@@ -913,6 +927,10 @@
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-line.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-pattern-stroke.svg",
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/currentcolor-fill-opacity-use.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/defs_use.svg",
@@ -1020,8 +1038,11 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
+        "examples/mask-empty-region.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
+        "examples/mask-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/clip_path.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/currentcolor-fill-opacity-use.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/defs_use.svg",
@@ -1258,6 +1279,10 @@
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-non-scaling-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-pattern-stroke.svg",
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/color-parsing-display-p3.svg",
@@ -1447,8 +1472,11 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
+        "examples/mask-empty-region.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
+        "examples/mask-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/basic_shapes.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/clip_path.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/color-parsing-display-p3.svg",
@@ -1673,6 +1701,8 @@
         "examples/android/app/src/main/assets/svg/svg-preserve-aspect-ratio-none.svg",
         "examples/android/app/src/main/assets/svg/svg-root-explicit-width-height.svg",
         "examples/android/app/src/main/assets/svg/svg-root-no-width-height.svg",
+        "examples/filter-linear-chain.svg",
+        "examples/filter-unsupported-graph.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/basic_shapes.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/clip_path.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/color-parsing-named.svg",
@@ -1750,6 +1780,7 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/basic_shapes.svg",
@@ -2986,6 +3017,7 @@
         "examples/android/app/src/main/assets/svg/stroke-gradient-vs-pattern.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-line.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
+        "examples/filter-linear-chain.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-gradient-stop-opacity.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-linearGradient-spread-reflect.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-linearGradient-spread-repeat.svg",
@@ -3348,6 +3380,7 @@
         "examples/android/app/src/main/assets/svg/stroke-gradient-vs-pattern.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-line.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-stroke.svg",
+        "examples/filter-linear-chain.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-gradient-stop-opacity.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-linearGradient-spread-reflect.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/gradient-linearGradient-spread-repeat.svg",
@@ -3565,8 +3598,11 @@
         "examples/mask-alpha-test.svg",
         "examples/mask-alpha-units-test.svg",
         "examples/mask-comprehensive-test.svg",
+        "examples/mask-content-region-combo.svg",
+        "examples/mask-empty-region.svg",
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
+        "examples/mask-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mask-recursive-iri.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-alpha-units-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-comprehensive-test.svg",
@@ -3634,23 +3670,30 @@
       },
       "attributes": {
         "supported": [
-          "id"
+          "id",
+          "x",
+          "y",
+          "width",
+          "height",
+          "filterUnits",
+          "primitiveUnits"
         ],
-        "partial": {},
-        "parsed_but_not_rendered": {
-          "x": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-          "y": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-          "width": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-          "height": "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-          "filterUnits": "Filter units are parsed but current backends do not consume them.",
-          "primitiveUnits": "Primitive units are parsed but current backends do not consume them."
-        }
+        "partial": {
+          "primitiveUnits": "Primitive units are resolved into the shared FilterModel, but execution still depends on backend-supported filter primitives."
+        },
+        "parsed_but_not_rendered": {}
       },
       "notes": [
-        "Filters only execute when the canvas backend reports SupportsFilters().",
-        "At present that is the Skity backend."
+        "The shared SVG layer resolves the W3C filter region and builds a FilterModel for filter primitives.",
+        "Filter execution only happens when the canvas backend supports the generated FilterModel.",
+        "At present only Skity exposes a runtime filter executor, and it is limited to single-input linear chains."
       ],
-      "examples": [],
+      "examples": [
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -3711,22 +3754,33 @@
       },
       "attributes": {
         "supported": [
-          "stdDeviation"
+          "stdDeviation",
+          "in",
+          "result",
+          "x",
+          "y",
+          "width",
+          "height"
         ],
-        "partial": {},
-        "parsed_but_not_rendered": {
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
-        }
+        "partial": {
+          "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+          "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+          "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        },
+        "parsed_but_not_rendered": {}
       },
       "notes": [
-        "Skity supports pure blur and blur-based drop-shadow heuristics."
+        "Skity can execute feGaussianBlur in supported single-input linear chains."
       ],
-      "examples": [],
+      "examples": [
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg",
+        "examples/filter-region-units.svg",
+        "examples/filter-unsupported-graph.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -3778,22 +3832,31 @@
       "attributes": {
         "supported": [
           "dx",
-          "dy"
+          "dy",
+          "in",
+          "result",
+          "x",
+          "y",
+          "width",
+          "height"
         ],
-        "partial": {},
-        "parsed_but_not_rendered": {
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
-        }
+        "partial": {
+          "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+          "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+          "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        },
+        "parsed_but_not_rendered": {}
       },
       "notes": [
-        "Skity uses feOffset as part of its drop-shadow style filter composition."
+        "Skity can execute feOffset in supported single-input linear chains."
       ],
-      "examples": [],
+      "examples": [
+        "examples/filter-linear-chain.svg",
+        "examples/filter-primitive-units-obb.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -3845,22 +3908,31 @@
       "attributes": {
         "supported": [
           "type",
-          "values"
+          "values",
+          "in",
+          "result",
+          "x",
+          "y",
+          "width",
+          "height"
         ],
-        "partial": {},
-        "parsed_but_not_rendered": {
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
-        }
+        "partial": {
+          "type": "Skity executes matrix and luminanceToAlpha color matrices in supported linear chains; other color matrix types are parsed but not executed.",
+          "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+          "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+          "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+          "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        },
+        "parsed_but_not_rendered": {}
       },
       "notes": [
-        "Skity reads color-matrix values only for its shadow-color heuristic."
+        "Skity can execute feColorMatrix in supported single-input linear chains."
       ],
-      "examples": [],
+      "examples": [
+        "examples/filter-linear-chain.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -3913,22 +3985,24 @@
         "supported": [],
         "partial": {},
         "parsed_but_not_rendered": {
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "in2": "Composite inputs are parsed but not evaluated.",
-          "operator": "Composite operator is parsed but not evaluated.",
-          "k1": "Arithmetic coefficients are parsed but not evaluated.",
-          "k2": "Arithmetic coefficients are parsed but not evaluated.",
-          "k3": "Arithmetic coefficients are parsed but not evaluated.",
-          "k4": "Arithmetic coefficients are parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
+          "in": "Filter input graph selection is captured in the shared FilterModel but no backend executes feComposite yet.",
+          "in2": "Composite inputs are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "operator": "Composite operator is captured in the shared FilterModel but no backend executes feComposite yet.",
+          "k1": "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "k2": "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "k3": "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "k4": "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "result": "Filter result chaining is captured in the shared FilterModel but no backend executes feComposite yet.",
+          "x": "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "y": "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "width": "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet.",
+          "height": "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."
         }
       },
       "notes": [],
-      "examples": [],
+      "examples": [
+        "examples/filter-unsupported-graph.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -3980,18 +4054,20 @@
         "supported": [],
         "partial": {},
         "parsed_but_not_rendered": {
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "in2": "Blend inputs are parsed but not evaluated.",
-          "mode": "Blend mode is parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
+          "in": "Filter input graph selection is captured in the shared FilterModel but no backend executes feBlend yet.",
+          "in2": "Blend inputs are captured in the shared FilterModel but no backend executes feBlend yet.",
+          "mode": "Blend mode is captured in the shared FilterModel but no backend executes feBlend yet.",
+          "result": "Filter result chaining is captured in the shared FilterModel but no backend executes feBlend yet.",
+          "x": "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet.",
+          "y": "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet.",
+          "width": "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet.",
+          "height": "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."
         }
       },
       "notes": [],
-      "examples": [],
+      "examples": [
+        "examples/filter-unsupported-graph.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [
@@ -4043,18 +4119,20 @@
         "supported": [],
         "partial": {},
         "parsed_but_not_rendered": {
-          "flood-color": "Flood color is parsed but not evaluated by any backend.",
-          "flood-opacity": "Flood opacity is parsed but not evaluated by any backend.",
-          "in": "Filter input graph selection is parsed but not evaluated.",
-          "result": "Filter result chaining is parsed but not evaluated.",
-          "x": "Primitive subregion coordinates are parsed but not evaluated.",
-          "y": "Primitive subregion coordinates are parsed but not evaluated.",
-          "width": "Primitive subregion coordinates are parsed but not evaluated.",
-          "height": "Primitive subregion coordinates are parsed but not evaluated."
+          "flood-color": "Flood color is captured in the shared FilterModel but no backend executes feFlood yet.",
+          "flood-opacity": "Flood opacity is captured in the shared FilterModel but no backend executes feFlood yet.",
+          "in": "Filter input graph selection is captured in the shared FilterModel but no backend executes feFlood yet.",
+          "result": "Filter result chaining is captured in the shared FilterModel but no backend executes feFlood yet.",
+          "x": "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet.",
+          "y": "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet.",
+          "width": "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet.",
+          "height": "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."
         }
       },
       "notes": [],
-      "examples": [],
+      "examples": [
+        "examples/filter-unsupported-graph.svg"
+      ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
         "source_files": [

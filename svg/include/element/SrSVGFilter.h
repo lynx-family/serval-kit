@@ -15,7 +15,6 @@ class SrSVGFilter : public SrSVGContainer {
  public:
   static SrSVGFilter* Make() { return new SrSVGFilter(SrSVGTag::kFilter); }
   bool ParseAndSetAttribute(const char* name, const char* value) override;
-  bool ShouldRenderSourceGraphicOnTop() const;
 
   SrSVGObjectBoundingBoxUnitType filter_units() const { return filter_units_; }
   SrSVGObjectBoundingBoxUnitType primitive_units() const {
@@ -26,6 +25,11 @@ class SrSVGFilter : public SrSVGContainer {
   const SrSVGLength& y() const { return y_; }
   const SrSVGLength& width() const { return width_; }
   const SrSVGLength& height() const { return height_; }
+  SrSVGBox ResolveFilterRegion(const SrSVGBox& object_bounds,
+                               const SrSVGRenderContext& context) const;
+  bool BuildFilterModel(const SrSVGBox& object_bounds, bool has_object_bounds,
+                        const SrSVGRenderContext& context,
+                        canvas::SrFilterModel* model) const;
 
  protected:
   explicit SrSVGFilter(SrSVGTag t) : SrSVGContainer(t) {}

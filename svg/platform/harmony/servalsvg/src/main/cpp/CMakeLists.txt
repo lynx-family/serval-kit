@@ -129,7 +129,9 @@ add_library(
 )
 target_link_libraries(servalsvg PUBLIC libace_napi.z.so
                                  libhilog_ndk.z.so
+                                 libdeviceinfo_ndk.z.so
                                  libpixelmap_ndk.z.so
                                  librawfile.z.so
                                  libace_ndk.z.so
-                                 libnative_drawing.so)
+                                 libnative_drawing.so
+                                 libdl.a)
