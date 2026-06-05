@@ -1,0 +1,35 @@
+<svg width="660" height="220" viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="userRegionBlur" filterUnits="userSpaceOnUse" x="50" y="50" width="92" height="88">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+    <filter id="obbRegionBlur" filterUnits="objectBoundingBox" x="25%" y="25%" width="50%" height="50%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+    <filter id="emptyRegionBlur" filterUnits="userSpaceOnUse" x="500" y="50" width="0" height="100">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <rect width="660" height="220" fill="#f6f6f6"/>
+
+  <g transform="translate(20 20)">
+    <rect x="0" y="0" width="160" height="160" fill="#e5e7eb"/>
+    <rect x="0" y="0" width="160" height="160" fill="#2563eb" filter="url(#userRegionBlur)"/>
+    <rect x="0" y="0" width="160" height="160" fill="none" stroke="#222" stroke-width="2"/>
+    <rect x="30" y="30" width="92" height="88" fill="none" stroke="#ef4444" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(250 20)">
+    <rect x="0" y="0" width="160" height="160" fill="#e5e7eb"/>
+    <rect x="0" y="0" width="160" height="160" fill="#16a34a" filter="url(#obbRegionBlur)"/>
+    <rect x="0" y="0" width="160" height="160" fill="none" stroke="#222" stroke-width="2"/>
+    <rect x="40" y="40" width="80" height="80" fill="none" stroke="#ef4444" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(480 20)">
+    <rect x="0" y="0" width="160" height="160" fill="#e5e7eb"/>
+    <rect x="0" y="0" width="160" height="160" fill="#f97316" filter="url(#emptyRegionBlur)"/>
+    <rect x="0" y="0" width="160" height="160" fill="none" stroke="#222" stroke-width="2"/>
+  </g>
+</svg>

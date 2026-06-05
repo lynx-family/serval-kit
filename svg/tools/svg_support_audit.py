@@ -97,15 +97,15 @@ PUBLIC_TEXT_REPLACEMENTS = OrderedDict(
         ),
         (
             "Skity supports pure blur and blur-based drop-shadow heuristics.",
-            "Skity provides limited blur and drop-shadow style filter behavior.",
+            "Skity provides limited model-based filter execution.",
         ),
         (
             "Skity uses feOffset as part of its drop-shadow style filter composition.",
-            "Skity uses feOffset only in limited shadow-style filter behavior.",
+            "Skity can execute feOffset only inside supported linear filter chains.",
         ),
         (
             "Skity reads color-matrix values only for its shadow-color heuristic.",
-            "Skity uses color-matrix values only in limited shadow-style filter behavior.",
+            "Skity can execute color matrices only inside supported linear filter chains.",
         ),
         (
             "Use renders the referenced node directly from the ID map instead of delegating to platform DrawUse().",
@@ -978,39 +978,28 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 rendered="partial",
                 render_mode="definition",
                 platform_ready=tag_platform("none", "none", "none", "partial"),
-                supported_attributes=["id"],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                supported_attributes=[
+                    "id",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                    "filterUnits",
+                    "primitiveUnits",
+                ],
+                partial_attributes=OrderedDict(
                     [
                         (
-                            "x",
-                            "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-                        ),
-                        (
-                            "y",
-                            "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-                        ),
-                        (
-                            "width",
-                            "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-                        ),
-                        (
-                            "height",
-                            "Filter region coordinates are parsed but current backends do not use them to drive filter evaluation.",
-                        ),
-                        (
-                            "filterUnits",
-                            "Filter units are parsed but current backends do not consume them.",
-                        ),
-                        (
                             "primitiveUnits",
-                            "Primitive units are parsed but current backends do not consume them.",
+                            "Primitive units are resolved into the shared FilterModel, but execution still depends on backend-supported filter primitives.",
                         ),
                     ]
                 ),
+                parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Filters only execute when the canvas backend reports SupportsFilters().",
-                    "At present that is the Skity backend.",
+                    "The shared SVG layer resolves the W3C filter region and builds a FilterModel for filter primitives.",
+                    "Filter execution only happens when the canvas backend supports the generated FilterModel.",
+                    "At present only Skity exposes a runtime filter executor, and it is limited to single-input linear chains.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1032,20 +1021,46 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 rendered="partial",
                 render_mode="definition",
                 platform_ready=tag_platform("none", "none", "none", "partial"),
-                supported_attributes=["stdDeviation"],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                supported_attributes=[
+                    "stdDeviation",
+                    "in",
+                    "result",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                ],
+                partial_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        (
+                            "in",
+                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                        ),
+                        (
+                            "result",
+                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                        ),
+                        (
+                            "x",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "y",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "width",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "height",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
                     ]
                 ),
+                parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity supports pure blur and blur-based drop-shadow heuristics.",
+                    "Skity can execute feGaussianBlur in supported single-input linear chains.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1064,20 +1079,47 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 rendered="partial",
                 render_mode="definition",
                 platform_ready=tag_platform("none", "none", "none", "partial"),
-                supported_attributes=["dx", "dy"],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                supported_attributes=[
+                    "dx",
+                    "dy",
+                    "in",
+                    "result",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                ],
+                partial_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        (
+                            "in",
+                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                        ),
+                        (
+                            "result",
+                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                        ),
+                        (
+                            "x",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "y",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "width",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "height",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
                     ]
                 ),
+                parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity uses feOffset as part of its drop-shadow style filter composition.",
+                    "Skity can execute feOffset in supported single-input linear chains.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1096,20 +1138,51 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 rendered="partial",
                 render_mode="definition",
                 platform_ready=tag_platform("none", "none", "none", "partial"),
-                supported_attributes=["type", "values"],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                supported_attributes=[
+                    "type",
+                    "values",
+                    "in",
+                    "result",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                ],
+                partial_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        (
+                            "type",
+                            "Skity executes matrix and luminanceToAlpha color matrices in supported linear chains; other color matrix types are parsed but not executed.",
+                        ),
+                        (
+                            "in",
+                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                        ),
+                        (
+                            "result",
+                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                        ),
+                        (
+                            "x",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "y",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "width",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
+                        (
+                            "height",
+                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                        ),
                     ]
                 ),
+                parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity reads color-matrix values only for its shadow-color heuristic.",
+                    "Skity can execute feColorMatrix in supported single-input linear chains.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1132,18 +1205,18 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 partial_attributes=OrderedDict(),
                 parsed_but_not_rendered_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("in2", "Composite inputs are parsed but not evaluated."),
-                        ("operator", "Composite operator is parsed but not evaluated."),
-                        ("k1", "Arithmetic coefficients are parsed but not evaluated."),
-                        ("k2", "Arithmetic coefficients are parsed but not evaluated."),
-                        ("k3", "Arithmetic coefficients are parsed but not evaluated."),
-                        ("k4", "Arithmetic coefficients are parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("in2", "Composite inputs are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("operator", "Composite operator is captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("k1", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("k2", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("k3", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("k4", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
                     ]
                 ),
                 notes=[],
@@ -1167,14 +1240,14 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 partial_attributes=OrderedDict(),
                 parsed_but_not_rendered_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("in2", "Blend inputs are parsed but not evaluated."),
-                        ("mode", "Blend mode is parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("in2", "Blend inputs are captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("mode", "Blend mode is captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
                     ]
                 ),
                 notes=[],
@@ -1198,14 +1271,14 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 partial_attributes=OrderedDict(),
                 parsed_but_not_rendered_attributes=OrderedDict(
                     [
-                        ("flood-color", "Flood color is parsed but not evaluated by any backend."),
-                        ("flood-opacity", "Flood opacity is parsed but not evaluated by any backend."),
-                        ("in", "Filter input graph selection is parsed but not evaluated."),
-                        ("result", "Filter result chaining is parsed but not evaluated."),
-                        ("x", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("y", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("width", "Primitive subregion coordinates are parsed but not evaluated."),
-                        ("height", "Primitive subregion coordinates are parsed but not evaluated."),
+                        ("flood-color", "Flood color is captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("flood-opacity", "Flood opacity is captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
                     ]
                 ),
                 notes=[],
@@ -1400,7 +1473,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             [
                                 "Core shapes, gradients, masks, clip paths, and image rendering are implemented.",
                                 "Text paragraphs are currently stubbed.",
-                                "Filter execution is available but limited to a small subset of primitives and heuristics.",
+                                "Filter execution consumes the shared FilterModel but is limited to supported single-input linear chains.",
                             ],
                         ),
                     ]

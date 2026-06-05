@@ -92,11 +92,17 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
+  bool SupportsFilters() const override { return true; }
+  bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
-  void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
-  void SetMaskIsLuminance(bool is_luminance) override;
-  void ApplyLuminanceToAlpha() override;
+  void BeginFilterLayer(const SrSVGBox* bounds,
+                        const canvas::SrFilterModel& filter) override;
+  void EndFilterLayer() override;
+  void BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  void BeginMaskContentLayer() override;
+  void EndMaskContentLayer() override;
+  void EndMaskLayer() override;
 
  private:
   OH_Drawing_Canvas* context_{nullptr};
@@ -108,7 +114,7 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
   bool anti_alias_{true};
-  canvas::SrCanvasBlendMode blend_mode_{canvas::SrCanvasBlendMode::kSrcOver};
+  bool mask_content_layer_active_{false};
   bool mask_is_luminance_{false};
   OH_Drawing_SamplingOptions* image_sampling_{nullptr};
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};

@@ -29,8 +29,16 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
   canvas->Save();
   canvas->SetRenderContext(&context);
   OnPrepareToRender(canvas, context);
-  bool filtered = false;
-  bool render_original = false;
+  bool filter_clipped = false;
+  bool filter_layer_active = false;
+  bool filter_output_empty = false;
+  auto clip_to_box = [&canvas](const SrSVGBox& box) {
+    auto clip_path = canvas->PathFactory()->CreateRect(
+        box.left, box.top, 0.f, 0.f, box.width, box.height);
+    if (clip_path) {
+      canvas->ClipPath(clip_path.get(), SR_SVG_FILL);
+    }
+  };
   if (canvas->SupportsFilters() && IsSVGNode() && Tag() != SrSVGTag::kMask &&
       Tag() != SrSVGTag::kFilter) {
     auto* svg_node = static_cast<SrSVGNode*>(this);
@@ -98,27 +106,44 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
           }
         }
       }
-      canvas->SaveLayerWithFilter(has_bounds ? &bounds : nullptr,
-                                  svg_node->filter_, context.id_mapper);
-      filtered = true;
 
-      // Hack for DropShadow: check if we should render original image
+      SrSVGFilter* filter_node = nullptr;
       if (context.id_mapper) {
         IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
         std::string id(svg_node->filter_->content.iri + 1);
         auto it = nodes->find(id);
         if (it != nodes->end()) {
-          auto* filter_node = static_cast<SrSVGFilter*>(it->second);
-          if (filter_node && filter_node->Tag() == SrSVGTag::kFilter) {
-            render_original = filter_node->ShouldRenderSourceGraphicOnTop();
+          if (it->second && it->second->Tag() == SrSVGTag::kFilter) {
+            filter_node = static_cast<SrSVGFilter*>(it->second);
           }
+        }
+      }
+
+      canvas::SrFilterModel filter_model;
+      if (filter_node) {
+        if (filter_node->BuildFilterModel(bounds, has_bounds, context,
+                                          &filter_model)) {
+          if (filter_model.region.width <= 0.f ||
+              filter_model.region.height <= 0.f) {
+            filter_output_empty = true;
+          } else if (canvas->SupportsFilterModel(filter_model)) {
+            canvas->BeginFilterLayer(&filter_model.region, filter_model);
+            filter_layer_active = true;
+            canvas->Save();
+            clip_to_box(filter_model.region);
+            filter_clipped = true;
+          } else {
+            filter_output_empty = true;
+          }
+        } else {
+          filter_output_empty = true;
         }
       }
     }
   }
 
-  // Mask rendering via off-screen compositing (SaveLayer + DstIn blend).
-  // All platforms implement SaveLayer for alpha-accurate masking
+  // Mask rendering via explicit source and mask-content phases. Backends can
+  // map these phases to their own off-screen layer and DstIn primitives.
   bool masked = false;
   if (IsSVGNode() && Tag() != SrSVGTag::kMask) {
     auto* svg_node = static_cast<SrSVGNode*>(this);
@@ -139,38 +164,64 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
             has_bounds = true;
           }
 
-          canvas->SetMaskIsLuminance(mask_node->mask_is_luminance());
-          canvas->SaveLayer();
-          OnRender(canvas, context);
-          canvas->SetBlendMode(canvas::SrCanvasBlendMode::kDstIn);
-          canvas->Save();
-          if (has_bounds && mask_node->mask_content_units() ==
-                                SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-            float xform[6] = {bounds.width,  0.f,         0.f,
-                              bounds.height, bounds.left, bounds.top};
-            canvas->Transform(xform);
+          SrSVGBox mask_region{0.f, 0.f, 0.f, 0.f};
+          bool has_mask_region = false;
+          bool has_empty_mask_region = false;
+          const bool can_resolve_mask_region =
+              has_bounds ||
+              mask_node->mask_units() == SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
+          if (can_resolve_mask_region) {
+            const SrSVGBox object_bounds =
+                has_bounds ? bounds : context.view_port;
+            mask_region = mask_node->ResolveMaskRegion(object_bounds, context);
+            has_mask_region =
+                mask_region.width > 0.f && mask_region.height > 0.f;
+            if (!has_mask_region) {
+              masked = true;
+              has_empty_mask_region = true;
+            }
           }
-          mask_node->Render(canvas, context);
-          canvas->Restore();
-          if (mask_node->mask_is_luminance()) {
-            canvas->ApplyLuminanceToAlpha();
+
+          if (!has_empty_mask_region) {
+            canvas->BeginMaskLayer(has_mask_region ? &mask_region : nullptr,
+                                   mask_node->mask_is_luminance());
+            if (has_mask_region) {
+              canvas->Save();
+              clip_to_box(mask_region);
+              OnRender(canvas, context);
+              canvas->Restore();
+            } else {
+              OnRender(canvas, context);
+            }
+            canvas->BeginMaskContentLayer();
+            canvas->Save();
+            if (has_mask_region) {
+              clip_to_box(mask_region);
+            }
+            if (has_bounds && mask_node->mask_content_units() ==
+                                  SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+              float xform[6] = {bounds.width,  0.f,         0.f,
+                                bounds.height, bounds.left, bounds.top};
+              canvas->Transform(xform);
+            }
+            mask_node->Render(canvas, context);
+            canvas->Restore();
+            canvas->EndMaskContentLayer();
+            canvas->EndMaskLayer();
+            masked = true;
           }
-          canvas->SetBlendMode(canvas::SrCanvasBlendMode::kSrcOver);
-          canvas->SetMaskIsLuminance(false);
-          canvas->RestoreLayer();
-          masked = true;
         }
       }
     }
   }
-  if (!masked) {
+  if (!masked && !filter_output_empty) {
     OnRender(canvas, context);
   }
-  if (filtered) {
-    canvas->RestoreLayer();
-  }
-  if (render_original) {
-    OnRender(canvas, context);
+  if (filter_layer_active) {
+    if (filter_clipped) {
+      canvas->Restore();
+    }
+    canvas->EndFilterLayer();
   }
   canvas->Restore();
 }

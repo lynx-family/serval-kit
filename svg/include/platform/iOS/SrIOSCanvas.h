@@ -6,6 +6,7 @@
 #define SERVAL_SVG_PLATFORM_IOS_SR_IOS_CANVAS_H
 
 #include <CoreGraphics/CoreGraphics.h>
+#import <UIKit/UIKit.h>
 #include <stdint.h>
 #include <functional>
 #include <memory>
@@ -138,11 +139,17 @@ class SrIOSCanvas : public canvas::SrCanvas {
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
   void ClipPath(canvas::Path*, SrSVGFillRule clip_rule) override;
+  bool SupportsFilters() const override { return true; }
+  bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
-  void SetBlendMode(canvas::SrCanvasBlendMode blend_mode) override;
-  void SetMaskIsLuminance(bool is_luminance) override;
-  void ApplyLuminanceToAlpha() override;
+  void BeginFilterLayer(const SrSVGBox* bounds,
+                        const canvas::SrFilterModel& filter) override;
+  void EndFilterLayer() override;
+  void BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  void BeginMaskContentLayer() override;
+  void EndMaskContentLayer() override;
+  void EndMaskLayer() override;
 
   CGContextRef Context() { return _context; }
 
@@ -159,6 +166,7 @@ class SrIOSCanvas : public canvas::SrCanvas {
                            const char* iri);
   CGPathRef CreateStrokeClipPath(CGPathRef cgPath,
                                  const SrSVGRenderState& render_state);
+  void ApplyLuminanceMaskToAlpha();
 
   // Todo: add more drawing methods as needed
  private:
@@ -167,7 +175,6 @@ class SrIOSCanvas : public canvas::SrCanvas {
   std::unique_ptr<PathFactoryQuartz2D> path_factory_;
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
-  canvas::SrCanvasBlendMode blend_mode_{canvas::SrCanvasBlendMode::kSrcOver};
   bool dst_in_layer_active_{false};
   bool mask_is_luminance_{false};
   const SrSVGRenderContext* current_render_context_{nullptr};
@@ -175,9 +182,18 @@ class SrIOSCanvas : public canvas::SrCanvas {
   // Temporary bitmap context for SVG mask rendering.
   // Mask content is drawn here with normal Source-Over semantics, then
   // alpha masks are composited back with DestinationIn and luminance masks
-  // are converted to alpha first via ApplyLuminanceToAlpha().
+  // are converted to alpha first via ApplyLuminanceMaskToAlpha().
   CGContextRef luminance_mask_context_{nullptr};
   CGContextRef saved_context_{nullptr};
+  struct FilterLayerState {
+    CGContextRef saved_context{nullptr};
+    CGContextRef layer_context{nullptr};
+    size_t width{0};
+    size_t height{0};
+    CGAffineTransform ctm{CGAffineTransformIdentity};
+    canvas::SrFilterModel filter;
+  };
+  std::vector<FilterLayerState> filter_layer_stack_;
 };
 
 }  // namespace ios

@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGFILTERPRIMITIVES_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGFILTERPRIMITIVES_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 #include "element/SrSVGNode.h"
@@ -15,15 +16,21 @@ namespace element {
 class SrSVGFilterPrimitive : public SrSVGNode {
  public:
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  const std::string& result() const { return result_; }
+  const std::string& input() const { return in_; }
+  const std::optional<SrSVGLength>& x() const { return x_; }
+  const std::optional<SrSVGLength>& y() const { return y_; }
+  const std::optional<SrSVGLength>& width() const { return width_; }
+  const std::optional<SrSVGLength>& height() const { return height_; }
 
  protected:
   explicit SrSVGFilterPrimitive(SrSVGTag t) : SrSVGNode(t) {}
   std::string result_;
   std::string in_;
-  SrSVGLength x_{.value = 0.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
-  SrSVGLength y_{.value = 0.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
-  SrSVGLength width_{.value = 100.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
-  SrSVGLength height_{.value = 100.0f, .unit = SR_SVG_UNITS_PERCENTAGE};
+  std::optional<SrSVGLength> x_;
+  std::optional<SrSVGLength> y_;
+  std::optional<SrSVGLength> width_;
+  std::optional<SrSVGLength> height_;
 };
 
 class SrSVGFeGaussianBlur : public SrSVGFilterPrimitive {
@@ -57,6 +64,7 @@ class SrSVGFeColorMatrix : public SrSVGFilterPrimitive {
   static SrSVGFeColorMatrix* Make() { return new SrSVGFeColorMatrix(); }
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   const std::vector<float>& values() const { return values_; }
+  const std::string& type() const { return type_; }
 
  private:
   SrSVGFeColorMatrix() : SrSVGFilterPrimitive(SrSVGTag::kFeColorMatrix) {}
@@ -69,6 +77,12 @@ class SrSVGFeComposite : public SrSVGFilterPrimitive {
  public:
   static SrSVGFeComposite* Make() { return new SrSVGFeComposite(); }
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  const std::string& input2() const { return in2_; }
+  const std::string& composite_operator() const { return operator_; }
+  float k1() const { return k1_; }
+  float k2() const { return k2_; }
+  float k3() const { return k3_; }
+  float k4() const { return k4_; }
 
  private:
   SrSVGFeComposite() : SrSVGFilterPrimitive(SrSVGTag::kFeComposite) {}
@@ -84,6 +98,8 @@ class SrSVGFeBlend : public SrSVGFilterPrimitive {
  public:
   static SrSVGFeBlend* Make() { return new SrSVGFeBlend(); }
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  const std::string& input2() const { return in2_; }
+  const std::string& mode() const { return mode_; }
 
  private:
   SrSVGFeBlend() : SrSVGFilterPrimitive(SrSVGTag::kFeBlend) {}
@@ -96,6 +112,8 @@ class SrSVGFeFlood : public SrSVGFilterPrimitive {
   static SrSVGFeFlood* Make() { return new SrSVGFeFlood(); }
   ~SrSVGFeFlood() override;
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  const SrSVGPaint* flood_color() const { return flood_color_; }
+  float flood_opacity() const { return flood_opacity_; }
 
  private:
   SrSVGFeFlood() : SrSVGFilterPrimitive(SrSVGTag::kFeFlood) {}

@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <cstring>
 #include <vector>
-#include "element/SrSVGFilter.h"
-#include "element/SrSVGFilterPrimitives.h"
 #include "element/SrSVGNode.h"
 #include "element/SrSVGPattern.h"
 #include "skity/effect/path_effect.hpp"
@@ -40,6 +38,70 @@ static inline void MultiplyTransformArray(const float (&lhs)[6],
   out[3] = lhs[1] * rhs[2] + lhs[3] * rhs[3];
   out[4] = lhs[0] * rhs[4] + lhs[2] * rhs[5] + lhs[4];
   out[5] = lhs[1] * rhs[4] + lhs[3] * rhs[5] + lhs[5];
+}
+
+std::shared_ptr<::skity::ColorFilter> BuildSkityColorFilter(
+    const canvas::SrFilterPrimitiveModel& primitive) {
+  if (primitive.color_matrix_type == "luminanceToAlpha") {
+    static const float kLumaToAlpha[20] = {
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
+    };
+    return ::skity::ColorFilters::Matrix(kLumaToAlpha);
+  }
+  if (primitive.color_matrix_values.size() != 20) {
+    return nullptr;
+  }
+  return ::skity::ColorFilters::Matrix(primitive.color_matrix_values.data());
+}
+
+std::shared_ptr<::skity::ImageFilter> BuildSkityImageFilter(
+    const canvas::SrFilterModel& filter) {
+  std::shared_ptr<::skity::ImageFilter> current_filter;
+  for (const auto& primitive : filter.primitives) {
+    std::shared_ptr<::skity::ImageFilter> next_filter;
+    switch (primitive.type) {
+      case canvas::SrFilterPrimitiveType::kGaussianBlur: {
+        if (primitive.std_deviation_x <= 0.f &&
+            primitive.std_deviation_y <= 0.f) {
+          continue;
+        }
+        next_filter = ::skity::ImageFilters::Blur(primitive.std_deviation_x,
+                                                  primitive.std_deviation_y);
+        break;
+      }
+      case canvas::SrFilterPrimitiveType::kOffset: {
+        if (primitive.dx == 0.f && primitive.dy == 0.f) {
+          continue;
+        }
+        next_filter = ::skity::ImageFilters::MatrixTransform(
+            ::skity::Matrix::Translate(primitive.dx, primitive.dy));
+        break;
+      }
+      case canvas::SrFilterPrimitiveType::kColorMatrix: {
+        auto color_filter = BuildSkityColorFilter(primitive);
+        if (!color_filter) {
+          return nullptr;
+        }
+        next_filter = ::skity::ImageFilters::ColorFilter(color_filter);
+        break;
+      }
+      case canvas::SrFilterPrimitiveType::kComposite:
+      case canvas::SrFilterPrimitiveType::kBlend:
+      case canvas::SrFilterPrimitiveType::kFlood:
+        return nullptr;
+    }
+
+    if (!next_filter) {
+      continue;
+    }
+    current_filter = current_filter ? ::skity::ImageFilters::Compose(
+                                          next_filter, current_filter)
+                                    : next_filter;
+  }
+  return current_filter;
 }
 
 static inline void CopyTransformArray(const float (&src)[6], float (&out)[6]) {
@@ -480,194 +542,76 @@ void SrSkityCanvas::SaveLayer(const SrSVGBox* bounds) {
   canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
 }
 
-void SrSkityCanvas::SaveLayerWithFilter(const SrSVGBox* bounds,
-                                        const SrSVGPaint* filter,
-                                        void* id_mapper) {
-  if (filter && filter->type == SERVAL_PAINT_IRI && id_mapper) {
-    const char* iri_str = filter->content.iri;
-    std::string id(iri_str + 1);
-    element::IDMapper* nodes = static_cast<element::IDMapper*>(id_mapper);
-    auto it = nodes->find(id);
-    if (it != nodes->end()) {
-      auto* filter_node = static_cast<element::SrSVGFilter*>(it->second);
-      if (filter_node && filter_node->Tag() == element::SrSVGTag::kFilter) {
-        // Attempt to detect DropShadow pattern: Offset + GaussianBlur + ColorMatrix
-        float dx = 0.f;
-        float dy = 0.f;
-        float sigma_x = 0.f;
-        float sigma_y = 0.f;
-        // Default shadow color: black with some alpha? Or just transparent?
-        // SVG default is usually transparent?
-        // But DropShadow filter needs a color.
-        // Let's assume black if no color matrix found, or try to parse.
-        float r = 0.f, g = 0.f, b = 0.f, a = 1.f;
-        bool has_color_matrix = false;
-
-        const auto& children = filter_node->children();
-        for (auto* child : children) {
-          if (child->Tag() == element::SrSVGTag::kFeGaussianBlur) {
-            auto* blur_node = static_cast<element::SrSVGFeGaussianBlur*>(child);
-            sigma_x = blur_node->std_deviation_x();
-            sigma_y = blur_node->std_deviation_y();
-          } else if (child->Tag() == element::SrSVGTag::kFeOffset) {
-            auto* offset_node = static_cast<element::SrSVGFeOffset*>(child);
-            dx = offset_node->dx();
-            dy = offset_node->dy();
-          } else if (child->Tag() == element::SrSVGTag::kFeColorMatrix) {
-            auto* cm_node = static_cast<element::SrSVGFeColorMatrix*>(child);
-            const auto& values = cm_node->values();
-            if (values.size() >= 20) {
-              // R G B A offset
-              // R = 0.12 (index 4)
-              // G = 0.25 (index 9)
-              // B = 0.40 (index 14)
-              // A = 0.16 (index 18) -- scale factor
-              r = values[4];
-              g = values[9];
-              b = values[14];
-              a = values[18];
-              has_color_matrix = true;
-            }
-          }
-        }
-
-        // --- Path A: Drop-shadow pattern (offset and/or color matrix present) ---
-        if (has_color_matrix || dx != 0 || dy != 0) {
-          // Clamp sigma to avoid Skity optimizing away small blurs (sigma <= 0.5)
-          if (sigma_x > 0 && sigma_x <= 0.57f)
-            sigma_x = 0.57f;
-          if (sigma_y > 0 && sigma_y <= 0.57f)
-            sigma_y = 0.57f;
-
-          uint8_t alpha = static_cast<uint8_t>(a * 255.f);
-          uint8_t red = static_cast<uint8_t>(r * 255.f);
-          uint8_t green = static_cast<uint8_t>(g * 255.f);
-          uint8_t blue = static_cast<uint8_t>(b * 255.f);
-          uint32_t color = ::skity::ColorSetARGB(alpha, red, green, blue);
-
-          std::shared_ptr<::skity::ImageFilter> current_filter;
-
-          // Blur (optional for shadow — offset-only shadows are valid)
-          if (sigma_x > 0 || sigma_y > 0) {
-            current_filter = ::skity::ImageFilters::Blur(sigma_x, sigma_y);
-          }
-
-          // Color Filter: Blend(color, kSrcIn) — colorize the shadow
-          auto color_blend =
-              ::skity::ColorFilters::Blend(color, ::skity::BlendMode::kSrcIn);
-          auto color_filter = ::skity::ImageFilters::ColorFilter(color_blend);
-          if (current_filter) {
-            current_filter =
-                ::skity::ImageFilters::Compose(color_filter, current_filter);
-          } else {
-            current_filter = color_filter;
-          }
-
-          // Matrix Filter: Translate(dx, dy)
-          if (dx != 0 || dy != 0) {
-            auto matrix_filter = ::skity::ImageFilters::MatrixTransform(
-                ::skity::Matrix::Translate(dx, dy));
-            current_filter =
-                ::skity::ImageFilters::Compose(matrix_filter, current_filter);
-          }
-
-          ::skity::Paint paint;
-          paint.SetImageFilter(current_filter);
-
-          ::skity::Rect layer_bounds;
-          if (bounds && bounds->width > 0 && bounds->height > 0) {
-            float pad_x = sigma_x * 6.f + std::abs(dx);
-            float pad_y = sigma_y * 6.f + std::abs(dy);
-            layer_bounds = ::skity::Rect::MakeXYWH(
-                bounds->left - pad_x, bounds->top - pad_y,
-                bounds->width + 2.f * pad_x, bounds->height + 2.f * pad_y);
-          } else {
-            layer_bounds =
-                ::skity::Rect::MakeXYWH(-10000.f, -10000.f, 20000.f, 20000.f);
-          }
-
-          canvas_->SaveLayer(layer_bounds, paint);
-          PushTransformState();
-          canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
-          return;
-        }
-
-        // --- Path B: Pure blur (feGaussianBlur only, no offset/color) ---
-        if (sigma_x > 0 || sigma_y > 0) {
-          if (sigma_x > 0 && sigma_x <= 0.57f)
-            sigma_x = 0.57f;
-          if (sigma_y > 0 && sigma_y <= 0.57f)
-            sigma_y = 0.57f;
-
-          auto blur_filter = ::skity::ImageFilters::Blur(sigma_x, sigma_y);
-          ::skity::Paint paint;
-          paint.SetImageFilter(blur_filter);
-
-          ::skity::Rect layer_bounds;
-          if (bounds && bounds->width > 0 && bounds->height > 0) {
-            float pad = std::max(sigma_x, sigma_y) * 6.f;
-            layer_bounds = ::skity::Rect::MakeXYWH(
-                bounds->left - pad, bounds->top - pad,
-                bounds->width + 2.f * pad, bounds->height + 2.f * pad);
-          } else {
-            layer_bounds =
-                ::skity::Rect::MakeXYWH(-10000.f, -10000.f, 20000.f, 20000.f);
-          }
-
-          canvas_->SaveLayer(layer_bounds, paint);
-          PushTransformState();
-          return;
-        }
-      }
-    }
-  }
-  SaveLayer(bounds);
-}
-
 void SrSkityCanvas::RestoreLayer() {
   canvas_->Restore();
   PopTransformState();
 }
 
-void SrSkityCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
-  if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver) {
-    blend_mode_override_.reset();
-    if (dst_in_layer_active_) {
-      canvas_->Restore();
-      PopTransformState();
-      dst_in_layer_active_ = false;
-    }
+bool SrSkityCanvas::SupportsFilterModel(
+    const canvas::SrFilterModel& filter) const {
+  return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
+}
+
+void SrSkityCanvas::BeginFilterLayer(const SrSVGBox* bounds,
+                                     const canvas::SrFilterModel& filter) {
+  auto image_filter = BuildSkityImageFilter(filter);
+  ::skity::Paint paint;
+  if (image_filter) {
+    paint.SetImageFilter(image_filter);
+  }
+
+  ::skity::Rect layer_bounds = canvas_->GetLocalClipBounds();
+  if (bounds && bounds->width > 0.f && bounds->height > 0.f) {
+    layer_bounds = ::skity::Rect::MakeXYWH(bounds->left, bounds->top,
+                                           bounds->width, bounds->height);
+  }
+  canvas_->SaveLayer(layer_bounds, paint);
+  PushTransformState();
+  canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+}
+
+void SrSkityCanvas::EndFilterLayer() {
+  RestoreLayer();
+}
+
+void SrSkityCanvas::BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
+  mask_is_luminance_ = is_luminance;
+  SaveLayer(bounds);
+}
+
+void SrSkityCanvas::BeginMaskContentLayer() {
+  if (dst_in_layer_active_) {
     return;
   }
-  if (blend_mode == canvas::SrCanvasBlendMode::kDstIn) {
-    if (dst_in_layer_active_) {
-      return;
-    }
 
-    ::skity::Paint paint;
-    paint.SetBlendMode(::skity::BlendMode::kDstIn);
-    if (mask_is_luminance_) {
-      static const float kLumaToAlpha[20] = {
-          0.f,     0.f,     0.f,     0.f, 0.f,  //
-          0.f,     0.f,     0.f,     0.f, 0.f,  //
-          0.f,     0.f,     0.f,     0.f, 0.f,  //
-          0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
-      };
-      paint.SetColorFilter(::skity::ColorFilters::Matrix(kLumaToAlpha));
-    }
-    canvas_->SaveLayer(canvas_->GetLocalClipBounds(), paint);
-    PushTransformState();
-    dst_in_layer_active_ = true;
+  ::skity::Paint paint;
+  paint.SetBlendMode(::skity::BlendMode::kDstIn);
+  if (mask_is_luminance_) {
+    static const float kLumaToAlpha[20] = {
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.f,     0.f,     0.f,     0.f, 0.f,  //
+        0.2126f, 0.7152f, 0.0722f, 0.f, 0.f,
+    };
+    paint.SetColorFilter(::skity::ColorFilters::Matrix(kLumaToAlpha));
+  }
+  canvas_->SaveLayer(canvas_->GetLocalClipBounds(), paint);
+  PushTransformState();
+  dst_in_layer_active_ = true;
+}
+
+void SrSkityCanvas::EndMaskContentLayer() {
+  blend_mode_override_.reset();
+  if (dst_in_layer_active_) {
+    canvas_->Restore();
+    PopTransformState();
+    dst_in_layer_active_ = false;
   }
 }
 
-void SrSkityCanvas::SetMaskIsLuminance(bool is_luminance) {
-  mask_is_luminance_ = is_luminance;
-}
-
-void SrSkityCanvas::ApplyLuminanceToAlpha() {
-  // Luminance-to-alpha is applied by the restore paint of the dedicated DstIn
-  // mask layer, so no extra post-processing is needed here.
+void SrSkityCanvas::EndMaskLayer() {
+  RestoreLayer();
+  mask_is_luminance_ = false;
 }
 
 void SrSkityCanvas::RenderPatternTiles(

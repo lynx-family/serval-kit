@@ -7,8 +7,11 @@
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGPatternUtils.h"
+#include <deviceinfo.h>
+#include <dlfcn.h>
 #include <native_drawing/drawing_color_filter.h>
 #include <native_drawing/drawing_filter.h>
+#include <native_drawing/drawing_image_filter.h>
 #include <native_drawing/drawing_matrix.h>
 #include <native_drawing/drawing_path_effect.h>
 #include <native_drawing/drawing_rect.h>
@@ -17,6 +20,32 @@
 namespace serval {
 namespace svg {
 namespace harmony {
+
+constexpr int kHarmonyImageFilterOffsetMinApi = 20;
+using CreateImageFilterOffsetProc = OH_Drawing_ImageFilter *(*)(float, float, OH_Drawing_ImageFilter *);
+
+static inline CreateImageFilterOffsetProc ResolveImageFilterCreateOffset() {
+    if (OH_GetSdkApiVersion() < kHarmonyImageFilterOffsetMinApi) {
+        return nullptr;
+    }
+    static auto create_offset =
+        reinterpret_cast<CreateImageFilterOffsetProc>(dlsym(RTLD_DEFAULT, "OH_Drawing_ImageFilterCreateOffset"));
+    return create_offset;
+}
+
+static inline bool HasUnavailableHarmonyOffsetFilter(const canvas::SrFilterModel &filter) {
+    // The common filter model treats feOffset as supported. Harmony exposes the
+    // native offset image filter only from API 20, so gate non-zero offsets here.
+    if (ResolveImageFilterCreateOffset()) {
+        return false;
+    }
+    for (const auto &primitive : filter.primitives) {
+        if (primitive.type == canvas::SrFilterPrimitiveType::kOffset && (primitive.dx != 0.f || primitive.dy != 0.f)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static inline void MultiplyTransformArray(const float (&lhs)[6], const float (&rhs)[6], float (&out)[6]) {
     out[0] = lhs[0] * rhs[0] + lhs[2] * rhs[1];
@@ -55,6 +84,70 @@ static inline void CopyTransformArray(const std::array<float, 6> &src, float (&o
     for (size_t i = 0; i < src.size(); ++i) {
         out[i] = src[i];
     }
+}
+
+OH_Drawing_ColorFilter *BuildHarmonyColorFilter(const canvas::SrFilterPrimitiveModel &primitive) {
+    if (primitive.color_matrix_type == "luminanceToAlpha") {
+        return OH_Drawing_ColorFilterCreateLuma();
+    }
+    if (primitive.color_matrix_values.size() != 20) {
+        return nullptr;
+    }
+    return OH_Drawing_ColorFilterCreateMatrix(primitive.color_matrix_values.data());
+}
+
+bool SupportsHarmonyLinearSourceGraphicFilterModel(const canvas::SrFilterModel &filter) {
+    const bool supports_linear_source_graphic = canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
+    if (!supports_linear_source_graphic || filter.region.width <= 0.f || filter.region.height <= 0.f) {
+        return supports_linear_source_graphic;
+    }
+    return !HasUnavailableHarmonyOffsetFilter(filter);
+}
+
+OH_Drawing_ImageFilter *BuildHarmonyImageFilter(const canvas::SrFilterModel &filter,
+                                                std::vector<OH_Drawing_ImageFilter *> *image_filters,
+                                                std::vector<OH_Drawing_ColorFilter *> *color_filters) {
+    OH_Drawing_ImageFilter *current_filter = nullptr;
+    for (const auto &primitive : filter.primitives) {
+        OH_Drawing_ImageFilter *next_filter = nullptr;
+        switch (primitive.type) {
+        case canvas::SrFilterPrimitiveType::kGaussianBlur:
+            if (primitive.std_deviation_x <= 0.f && primitive.std_deviation_y <= 0.f) {
+                continue;
+            }
+            next_filter = OH_Drawing_ImageFilterCreateBlur(primitive.std_deviation_x, primitive.std_deviation_y, CLAMP,
+                                                           current_filter);
+            break;
+        case canvas::SrFilterPrimitiveType::kOffset:
+            if (primitive.dx == 0.f && primitive.dy == 0.f) {
+                continue;
+            }
+            if (auto create_offset = ResolveImageFilterCreateOffset()) {
+                next_filter = create_offset(primitive.dx, primitive.dy, current_filter);
+            } else {
+                return nullptr;
+            }
+            break;
+        case canvas::SrFilterPrimitiveType::kColorMatrix: {
+            OH_Drawing_ColorFilter *color_filter = BuildHarmonyColorFilter(primitive);
+            if (!color_filter) {
+                return nullptr;
+            }
+            color_filters->push_back(color_filter);
+            next_filter = OH_Drawing_ImageFilterCreateFromColorFilter(color_filter, current_filter);
+            break;
+        }
+        case canvas::SrFilterPrimitiveType::kComposite:
+        case canvas::SrFilterPrimitiveType::kBlend:
+        case canvas::SrFilterPrimitiveType::kFlood:
+            return nullptr;
+        }
+        if (next_filter) {
+            image_filters->push_back(next_filter);
+            current_filter = next_filter;
+        }
+    }
+    return current_filter;
 }
 
 SrHarmonyCanvas::SrHarmonyCanvas(OH_Drawing_Canvas *context) {
@@ -911,38 +1004,98 @@ void SrHarmonyCanvas::RestoreLayer() {
     }
 }
 
-void SrHarmonyCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
-    auto prev = blend_mode_;
-    blend_mode_ = blend_mode;
-    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn && prev != canvas::SrCanvasBlendMode::kDstIn) {
-        OH_Drawing_Brush *blend_brush = OH_Drawing_BrushCreate();
-        OH_Drawing_Filter *blend_filter = nullptr;
-        OH_Drawing_ColorFilter *color_filter = nullptr;
-        OH_Drawing_BrushSetBlendMode(blend_brush, BLEND_MODE_DST_IN);
-        if (mask_is_luminance_) {
-            blend_filter = OH_Drawing_FilterCreate();
-            color_filter = OH_Drawing_ColorFilterCreateLuma();
-            OH_Drawing_FilterSetColorFilter(blend_filter, color_filter);
-            OH_Drawing_BrushSetFilter(blend_brush, blend_filter);
+bool SrHarmonyCanvas::SupportsFilterModel(const canvas::SrFilterModel &filter) const {
+    return SupportsHarmonyLinearSourceGraphicFilterModel(filter);
+}
+
+void SrHarmonyCanvas::BeginFilterLayer(const SrSVGBox *bounds, const canvas::SrFilterModel &filter) {
+    std::vector<OH_Drawing_ImageFilter *> image_filters;
+    std::vector<OH_Drawing_ColorFilter *> color_filters;
+    OH_Drawing_ImageFilter *image_filter = BuildHarmonyImageFilter(filter, &image_filters, &color_filters);
+    if (!image_filter) {
+        OH_Drawing_Rect *rect = nullptr;
+        if (bounds) {
+            rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
+                                         bounds->top + bounds->height);
         }
-        OH_Drawing_CanvasSaveLayer(context_, nullptr, blend_brush);
-        if (color_filter) {
-            OH_Drawing_ColorFilterDestroy(color_filter);
+        OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
+        transform_stack_.push_back(current_transform_);
+        if (rect) {
+            OH_Drawing_RectDestroy(rect);
         }
-        if (blend_filter) {
-            OH_Drawing_FilterDestroy(blend_filter);
-        }
-        OH_Drawing_BrushDestroy(blend_brush);
-    } else if (blend_mode == canvas::SrCanvasBlendMode::kSrcOver && prev == canvas::SrCanvasBlendMode::kDstIn) {
-        OH_Drawing_CanvasRestore(context_);
+        return;
+    }
+
+    OH_Drawing_Rect *rect = nullptr;
+    if (bounds) {
+        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
+                                     bounds->top + bounds->height);
+    }
+    OH_Drawing_Filter *drawing_filter = OH_Drawing_FilterCreate();
+    OH_Drawing_Brush *filter_brush = OH_Drawing_BrushCreate();
+    OH_Drawing_FilterSetImageFilter(drawing_filter, image_filter);
+    OH_Drawing_BrushSetFilter(filter_brush, drawing_filter);
+    OH_Drawing_CanvasSaveLayer(context_, rect, filter_brush);
+    transform_stack_.push_back(current_transform_);
+
+    if (rect) {
+        OH_Drawing_RectDestroy(rect);
+    }
+    OH_Drawing_BrushDestroy(filter_brush);
+    OH_Drawing_FilterDestroy(drawing_filter);
+    for (auto *created_filter : image_filters) {
+        OH_Drawing_ImageFilterDestroy(created_filter);
+    }
+    for (auto *created_filter : color_filters) {
+        OH_Drawing_ColorFilterDestroy(created_filter);
     }
 }
 
-void SrHarmonyCanvas::SetMaskIsLuminance(bool is_luminance) { mask_is_luminance_ = is_luminance; }
+void SrHarmonyCanvas::EndFilterLayer() { RestoreLayer(); }
 
-void SrHarmonyCanvas::ApplyLuminanceToAlpha() {
-    // Harmony applies luminance-to-alpha in the mask layer restore brush, so
-    // the post-process hook does not need extra work.
+void SrHarmonyCanvas::BeginMaskLayer(const SrSVGBox *bounds, bool is_luminance) {
+    mask_is_luminance_ = is_luminance;
+    SaveLayer(bounds);
+}
+
+void SrHarmonyCanvas::BeginMaskContentLayer() {
+    if (mask_content_layer_active_) {
+        return;
+    }
+    OH_Drawing_Brush *blend_brush = OH_Drawing_BrushCreate();
+    OH_Drawing_Filter *blend_filter = nullptr;
+    OH_Drawing_ColorFilter *color_filter = nullptr;
+    OH_Drawing_BrushSetBlendMode(blend_brush, BLEND_MODE_DST_IN);
+    if (mask_is_luminance_) {
+        blend_filter = OH_Drawing_FilterCreate();
+        color_filter = OH_Drawing_ColorFilterCreateLuma();
+        OH_Drawing_FilterSetColorFilter(blend_filter, color_filter);
+        OH_Drawing_BrushSetFilter(blend_brush, blend_filter);
+    }
+    OH_Drawing_CanvasSaveLayer(context_, nullptr, blend_brush);
+    if (color_filter) {
+        OH_Drawing_ColorFilterDestroy(color_filter);
+    }
+    if (blend_filter) {
+        OH_Drawing_FilterDestroy(blend_filter);
+    }
+    OH_Drawing_BrushDestroy(blend_brush);
+    mask_content_layer_active_ = true;
+}
+
+void SrHarmonyCanvas::EndMaskContentLayer() {
+    if (mask_content_layer_active_) {
+        OH_Drawing_CanvasRestore(context_);
+        mask_content_layer_active_ = false;
+    }
+}
+
+void SrHarmonyCanvas::EndMaskLayer() {
+    if (mask_content_layer_active_) {
+        EndMaskContentLayer();
+    }
+    RestoreLayer();
+    mask_is_luminance_ = false;
 }
 
 void SrHarmonyCanvas::SetAntiAlias(bool anti_alias) { anti_alias_ = anti_alias; }

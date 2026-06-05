@@ -20,6 +20,49 @@ namespace serval {
 namespace svg {
 namespace android {
 
+namespace {
+
+constexpr jint kAndroidFilterBlur = 0;
+constexpr jint kAndroidFilterOffset = 1;
+constexpr jint kAndroidFilterColorMatrix = 2;
+constexpr jint kAndroidFilterLuminanceToAlpha = 3;
+
+void EncodeFilterModel(const canvas::SrFilterModel& filter,
+                       std::vector<jint>* operations,
+                       std::vector<jfloat>* values) {
+  operations->clear();
+  values->clear();
+  for (const auto& primitive : filter.primitives) {
+    switch (primitive.type) {
+      case canvas::SrFilterPrimitiveType::kGaussianBlur:
+        operations->push_back(kAndroidFilterBlur);
+        values->push_back(primitive.std_deviation_x);
+        values->push_back(primitive.std_deviation_y);
+        break;
+      case canvas::SrFilterPrimitiveType::kOffset:
+        operations->push_back(kAndroidFilterOffset);
+        values->push_back(primitive.dx);
+        values->push_back(primitive.dy);
+        break;
+      case canvas::SrFilterPrimitiveType::kColorMatrix:
+        if (primitive.color_matrix_type == "luminanceToAlpha") {
+          operations->push_back(kAndroidFilterLuminanceToAlpha);
+        } else {
+          operations->push_back(kAndroidFilterColorMatrix);
+          values->insert(values->end(), primitive.color_matrix_values.begin(),
+                         primitive.color_matrix_values.end());
+        }
+        break;
+      case canvas::SrFilterPrimitiveType::kComposite:
+      case canvas::SrFilterPrimitiveType::kBlend:
+      case canvas::SrFilterPrimitiveType::kFlood:
+        break;
+    }
+  }
+}
+
+}  // namespace
+
 static inline void MultiplyTransformArray(const float (&lhs)[6],
                                           const float (&rhs)[6],
                                           float (&out)[6]) {
@@ -66,9 +109,12 @@ intptr_t SrAndroidCanvas::g_SVGRender_clipPath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_clipRect_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_saveLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_restoreLayer_ = 0;
-intptr_t SrAndroidCanvas::g_SVGRender_setBlendMode_ = 0;
-intptr_t SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_ = 0;
-intptr_t SrAndroidCanvas::g_SVGRender_applyLuminanceToAlpha_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_beginFilterLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_endFilterLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_beginMaskLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_beginMaskContentLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_endMaskContentLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_endMaskLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_calculatePathBoundsArray_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_applyTransform_ = 0;
 
@@ -902,6 +948,11 @@ void SrAndroidCanvas::ClipRect(float left, float top, float right,
   }
 }
 
+bool SrAndroidCanvas::SupportsFilterModel(
+    const canvas::SrFilterModel& filter) const {
+  return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
+}
+
 void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull()) {
@@ -916,7 +967,6 @@ void SrAndroidCanvas::SaveLayer(const SrSVGBox* bounds) {
                                bounds->top, bounds->left + bounds->width,
                                bounds->top + bounds->height);
     } else {
-      // Pass zeros to indicate full-canvas layer
       jni_env_->CallVoidMethod(j_render_, j_save_layer, 0.f, 0.f, 0.f, 0.f);
     }
     transform_stack_.push_back(current_transform_);
@@ -940,59 +990,142 @@ void SrAndroidCanvas::RestoreLayer() {
   }
 }
 
-void SrAndroidCanvas::SetBlendMode(canvas::SrCanvasBlendMode blend_mode) {
+void SrAndroidCanvas::BeginFilterLayer(const SrSVGBox* bounds,
+                                       const canvas::SrFilterModel& filter) {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull()) {
     return;
   }
-  jmethodID j_set_blend_mode = GetMethod(
-      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setBlendMode", "(I)V",
-      &(SrAndroidCanvas::g_SVGRender_setBlendMode_));
-  if (j_set_blend_mode) {
-    // 0 = SrcOver, 1 = DstIn
-    int mode = (blend_mode == canvas::SrCanvasBlendMode::kDstIn) ? 1 : 0;
-    jni_env_->CallVoidMethod(j_render_, j_set_blend_mode, mode);
-    if (blend_mode == canvas::SrCanvasBlendMode::kDstIn &&
-        !dst_in_layer_active_) {
-      transform_stack_.push_back(current_transform_);
-      dst_in_layer_active_ = true;
-    } else if (blend_mode != canvas::SrCanvasBlendMode::kDstIn &&
-               dst_in_layer_active_) {
-      if (!transform_stack_.empty()) {
-        current_transform_ = transform_stack_.back();
-        transform_stack_.pop_back();
-      }
-      dst_in_layer_active_ = false;
+  jmethodID j_begin_filter_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "beginFilterLayer",
+      "(FFFF[I[F)V", &(SrAndroidCanvas::g_SVGRender_beginFilterLayer_));
+  if (!j_begin_filter_layer) {
+    return;
+  }
+
+  std::vector<jint> operations;
+  std::vector<jfloat> values;
+  EncodeFilterModel(filter, &operations, &values);
+  const jsize operation_count = static_cast<jsize>(operations.size());
+  const jsize value_count = static_cast<jsize>(values.size());
+  JavaLocalRef<jintArray> j_operations_ref(
+      jni_env_, jni_env_->NewIntArray(operation_count));
+  JavaLocalRef<jfloatArray> j_values_ref(jni_env_,
+                                         jni_env_->NewFloatArray(value_count));
+  if (j_operations_ref.IsNull() || j_values_ref.IsNull()) {
+    return;
+  }
+  if (!operations.empty()) {
+    jni_env_->SetIntArrayRegion(j_operations_ref.Get(), 0, operation_count,
+                                operations.data());
+  }
+  if (!values.empty()) {
+    jni_env_->SetFloatArrayRegion(j_values_ref.Get(), 0, value_count,
+                                  values.data());
+  }
+
+  float left = 0.f;
+  float top = 0.f;
+  float right = 0.f;
+  float bottom = 0.f;
+  if (bounds) {
+    left = bounds->left;
+    top = bounds->top;
+    right = bounds->left + bounds->width;
+    bottom = bounds->top + bounds->height;
+  }
+  jni_env_->CallVoidMethod(j_render_, j_begin_filter_layer, left, top, right,
+                           bottom, j_operations_ref.Get(), j_values_ref.Get());
+  transform_stack_.push_back(current_transform_);
+}
+
+void SrAndroidCanvas::EndFilterLayer() {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_end_filter_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "endFilterLayer",
+      "()V", &(SrAndroidCanvas::g_SVGRender_endFilterLayer_));
+  if (j_end_filter_layer) {
+    jni_env_->CallVoidMethod(j_render_, j_end_filter_layer);
+    if (!transform_stack_.empty()) {
+      current_transform_ = transform_stack_.back();
+      transform_stack_.pop_back();
     }
   }
 }
 
-void SrAndroidCanvas::SetMaskIsLuminance(bool is_luminance) {
-  mask_is_luminance_ = is_luminance;
+void SrAndroidCanvas::BeginMaskLayer(const SrSVGBox* bounds,
+                                     bool is_luminance) {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull()) {
     return;
   }
-  jmethodID j_set_mask_is_luminance = GetMethod(
-      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "setMaskIsLuminance",
-      "(Z)V", &(SrAndroidCanvas::g_SVGRender_setMaskIsLuminance_));
-  if (j_set_mask_is_luminance) {
-    jni_env_->CallVoidMethod(j_render_, j_set_mask_is_luminance,
-                             static_cast<jboolean>(is_luminance));
+  jmethodID j_begin_mask_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "beginMaskLayer",
+      "(FFFFZ)V", &(SrAndroidCanvas::g_SVGRender_beginMaskLayer_));
+  if (j_begin_mask_layer) {
+    if (bounds) {
+      jni_env_->CallVoidMethod(j_render_, j_begin_mask_layer, bounds->left,
+                               bounds->top, bounds->left + bounds->width,
+                               bounds->top + bounds->height,
+                               static_cast<jboolean>(is_luminance));
+    } else {
+      jni_env_->CallVoidMethod(j_render_, j_begin_mask_layer, 0.f, 0.f, 0.f,
+                               0.f, static_cast<jboolean>(is_luminance));
+    }
+    transform_stack_.push_back(current_transform_);
   }
 }
 
-void SrAndroidCanvas::ApplyLuminanceToAlpha() {
-  if (!mask_is_luminance_)
+void SrAndroidCanvas::BeginMaskContentLayer() {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
     return;
+  }
+  jmethodID j_begin_mask_content_layer =
+      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
+                "beginMaskContentLayer", "()V",
+                &(SrAndroidCanvas::g_SVGRender_beginMaskContentLayer_));
+  if (j_begin_mask_content_layer && !mask_content_layer_active_) {
+    jni_env_->CallVoidMethod(j_render_, j_begin_mask_content_layer);
+    transform_stack_.push_back(current_transform_);
+    mask_content_layer_active_ = true;
+  }
+}
+
+void SrAndroidCanvas::EndMaskContentLayer() {
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull())
     return;
-  jmethodID j_apply_luma =
-      GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD,
-                "applyLuminanceToAlpha", "()V");
-  if (j_apply_luma) {
-    jni_env_->CallVoidMethod(j_render_, j_apply_luma);
+  jmethodID j_end_mask_content_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "endMaskContentLayer",
+      "()V", &(SrAndroidCanvas::g_SVGRender_endMaskContentLayer_));
+  if (j_end_mask_content_layer && mask_content_layer_active_) {
+    jni_env_->CallVoidMethod(j_render_, j_end_mask_content_layer);
+    if (!transform_stack_.empty()) {
+      current_transform_ = transform_stack_.back();
+      transform_stack_.pop_back();
+    }
+    mask_content_layer_active_ = false;
+  }
+}
+
+void SrAndroidCanvas::EndMaskLayer() {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_end_mask_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "endMaskLayer", "()V",
+      &(SrAndroidCanvas::g_SVGRender_endMaskLayer_));
+  if (j_end_mask_layer) {
+    jni_env_->CallVoidMethod(j_render_, j_end_mask_layer);
+    if (!transform_stack_.empty()) {
+      current_transform_ = transform_stack_.back();
+      transform_stack_.pop_back();
+    }
   }
 }
 

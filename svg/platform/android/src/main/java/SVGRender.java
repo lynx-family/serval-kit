@@ -46,6 +46,7 @@ import com.lynx.serval.svg.model.PaintRef;
 import com.lynx.serval.svg.model.RadialGradientModel;
 import com.lynx.serval.svg.model.StopModel;
 import com.lynx.serval.svg.model.StrokePaintModel;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,10 +54,33 @@ import java.util.List;
 
 public class SVGRender {
   private static final String TAG = "SVGRender";
+  private static final int FILTER_OP_BLUR = 0;
+  private static final int FILTER_OP_OFFSET = 1;
+  private static final int FILTER_OP_COLOR_MATRIX = 2;
+  private static final int FILTER_OP_LUMINANCE_TO_ALPHA = 3;
   private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
       0f, 0f, 0f, 0f, 0f, 0f,      0f,      0f,      0f, 0f,
       0f, 0f, 0f, 0f, 0f, 0.2126f, 0.7152f, 0.0722f, 0f, 0f,
   };
+
+  private static final class FilterLayer {
+    final Canvas parentCanvas;
+    final Canvas layerCanvas;
+    final Bitmap bitmap;
+    final Matrix parentMatrix;
+    final int[] operations;
+    final float[] values;
+
+    FilterLayer(Canvas parentCanvas, Canvas layerCanvas, Bitmap bitmap,
+                Matrix parentMatrix, int[] operations, float[] values) {
+      this.parentCanvas = parentCanvas;
+      this.layerCanvas = layerCanvas;
+      this.bitmap = bitmap;
+      this.parentMatrix = parentMatrix;
+      this.operations = operations == null ? new int[0] : operations.clone();
+      this.values = values == null ? new float[0] : values.clone();
+    }
+  }
 
   public interface BitmapRequestCallBack {
     public void onSuccess(Bitmap bitmap);
@@ -81,6 +105,9 @@ public class SVGRender {
   private SVGRenderEngine mSVGRenderEngineNG;
   private ResourceManager mResourceProvider;
   private String mColorString = null;
+  private int mCanvasWidth = 0;
+  private int mCanvasHeight = 0;
+  private final ArrayDeque<FilterLayer> mFilterLayers = new ArrayDeque<>();
 
   public static final class SVGDiagnostic {
     public final int code;
@@ -144,6 +171,11 @@ public class SVGRender {
   public SVGRenderResult renderPictureWithResult(String content,
                                                  Rect viewPort) {
     Picture picture = new Picture();
+    mCanvasWidth = viewPort.width();
+    mCanvasHeight = viewPort.height();
+    mFilterLayers.clear();
+    mDstInLayerActive = false;
+    mMaskIsLuminance = false;
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
     SVGDiagnostic[] diagnostics = null;
@@ -315,35 +347,66 @@ public class SVGRender {
     }
   }
 
-  private boolean mDstInLayerActive = false;
-  private boolean mMaskIsLuminance = false;
+  public void beginMaskLayer(float left, float top, float right, float bottom,
+                             boolean isLuminance) {
+    mMaskIsLuminance = isLuminance;
+    saveLayer(left, top, right, bottom);
+  }
 
-  public void setBlendMode(int mode) {
-    // mode: 0 = SrcOver (normal), 1 = DstIn
+  public void endMaskLayer() {
     if (mPictureCanvas != null) {
-      if (mode == 1 && !mDstInLayerActive) {
-        // Record the full mask into a dedicated layer first, then apply DST_IN
-        // once when that layer is restored back to the content layer. For
-        // luminance masks, the restore paint converts the fully composed mask
-        // image into alpha so black cutouts can punch through earlier white
-        // backdrop content.
-        Paint xferPaint = createMaskCompositePaint(mMaskIsLuminance);
-        mPictureCanvas.saveLayer(null, xferPaint);
-        mDstInLayerActive = true;
-      } else if (mode == 0 && mDstInLayerActive) {
-        mPictureCanvas.restore();
-        mDstInLayerActive = false;
+      if (mDstInLayerActive) {
+        endMaskContentLayer();
       }
+      restoreLayer();
+      mMaskIsLuminance = false;
     }
   }
 
-  public void setMaskIsLuminance(boolean isLuminance) {
-    mMaskIsLuminance = isLuminance;
+  public void beginFilterLayer(float left, float top, float right, float bottom,
+                               int[] operations, float[] values) {
+    if (mPictureCanvas == null || mCanvasWidth <= 0 || mCanvasHeight <= 0) {
+      return;
+    }
+    Bitmap bitmap = Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
+                                        Bitmap.Config.ARGB_8888);
+    Canvas layerCanvas = new Canvas(bitmap);
+    Matrix parentMatrix = mPictureCanvas.getMatrix();
+    layerCanvas.setMatrix(parentMatrix);
+    mFilterLayers.push(new FilterLayer(mPictureCanvas, layerCanvas, bitmap,
+                                       new Matrix(parentMatrix), operations,
+                                       values));
+    mPictureCanvas = layerCanvas;
   }
 
-  public void applyLuminanceToAlpha() {
-    // Android applies luminance-to-alpha in the mask layer restore paint, so
-    // the post-process hook does not need extra work.
+  public void endFilterLayer() {
+    if (mPictureCanvas != null && !mFilterLayers.isEmpty() &&
+        mPictureCanvas == mFilterLayers.peek().layerCanvas) {
+      restoreFilterLayer();
+    }
+  }
+
+  private boolean mDstInLayerActive = false;
+  private boolean mMaskIsLuminance = false;
+
+  public void beginMaskContentLayer() {
+    if (mPictureCanvas != null && !mDstInLayerActive) {
+      // Record the full mask into a dedicated layer first, then apply DST_IN
+      // once when that layer is restored back to the content layer. For
+      // luminance masks, the restore paint converts the fully composed mask
+      // image into alpha so black cutouts can punch through earlier white
+      // backdrop content.
+      Paint xferPaint = createMaskCompositePaint(mMaskIsLuminance);
+      mPictureCanvas.saveLayer(null, xferPaint);
+      mDstInLayerActive = true;
+    }
+  }
+
+  public void endMaskContentLayer() {
+    if (mPictureCanvas != null && mDstInLayerActive) {
+      mPictureCanvas.restore();
+      mDstInLayerActive = false;
+    }
   }
 
   private void drawPathWithFillModel(@NonNull Canvas canvas, @NonNull Path path,
@@ -775,6 +838,191 @@ public class SVGRender {
           new ColorMatrix(LUMINANCE_TO_ALPHA_MATRIX)));
     }
     return compositePaint;
+  }
+
+  private void restoreFilterLayer() {
+    FilterLayer layer = mFilterLayers.pop();
+    Bitmap filtered = applyFilterBitmap(layer.bitmap, layer.operations,
+                                        layer.values, layer.parentMatrix);
+    mPictureCanvas = layer.parentCanvas;
+    mPictureCanvas.save();
+    mPictureCanvas.setMatrix(new Matrix());
+    Paint bitmapPaint =
+        new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    mPictureCanvas.drawBitmap(filtered, 0, 0, bitmapPaint);
+    mPictureCanvas.restore();
+  }
+
+  private Bitmap applyFilterBitmap(Bitmap source, int[] operations,
+                                   float[] values, Matrix matrix) {
+    Bitmap current = source;
+    int valueIndex = 0;
+    for (int operation : operations) {
+      switch (operation) {
+        case FILTER_OP_BLUR: {
+          if (valueIndex + 1 >= values.length) {
+            return current;
+          }
+          float sigmaX = mapVectorLength(matrix, values[valueIndex++], 0f);
+          float sigmaY = mapVectorLength(matrix, 0f, values[valueIndex++]);
+          current = blurBitmap(current, sigmaX, sigmaY);
+          break;
+        }
+        case FILTER_OP_OFFSET: {
+          if (valueIndex + 1 >= values.length) {
+            return current;
+          }
+          float[] vector =
+              new float[] {values[valueIndex++], values[valueIndex++]};
+          matrix.mapVectors(vector);
+          current = offsetBitmap(current, vector[0], vector[1]);
+          break;
+        }
+        case FILTER_OP_COLOR_MATRIX: {
+          if (valueIndex + 19 >= values.length) {
+            return current;
+          }
+          float[] colorMatrix = new float[20];
+          System.arraycopy(values, valueIndex, colorMatrix, 0, 20);
+          valueIndex += 20;
+          current = applyColorMatrix(current, colorMatrix, true);
+          break;
+        }
+        case FILTER_OP_LUMINANCE_TO_ALPHA:
+          current = applyColorMatrix(current, LUMINANCE_TO_ALPHA_MATRIX, false);
+          break;
+        default:
+          return current;
+      }
+    }
+    return current;
+  }
+
+  private float mapVectorLength(Matrix matrix, float x, float y) {
+    float[] vector = new float[] {x, y};
+    matrix.mapVectors(vector);
+    return (float)Math.hypot(vector[0], vector[1]);
+  }
+
+  private Bitmap offsetBitmap(Bitmap source, float dx, float dy) {
+    if (dx == 0f && dy == 0f) {
+      return source;
+    }
+    Bitmap result = Bitmap.createBitmap(source.getWidth(), source.getHeight(),
+                                        Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(result);
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    canvas.drawBitmap(source, dx, dy, paint);
+    return result;
+  }
+
+  private Bitmap applyColorMatrix(Bitmap source, float[] matrix,
+                                  boolean convertSvgBias) {
+    float[] androidMatrix = matrix.clone();
+    if (convertSvgBias) {
+      androidMatrix[4] *= 255f;
+      androidMatrix[9] *= 255f;
+      androidMatrix[14] *= 255f;
+      androidMatrix[19] *= 255f;
+    }
+    Bitmap result = Bitmap.createBitmap(source.getWidth(), source.getHeight(),
+                                        Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(result);
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    paint.setColorFilter(
+        new ColorMatrixColorFilter(new ColorMatrix(androidMatrix)));
+    canvas.drawBitmap(source, 0, 0, paint);
+    return result;
+  }
+
+  private Bitmap blurBitmap(Bitmap source, float sigmaX, float sigmaY) {
+    int radiusX = Math.max(0, (int)Math.ceil(Math.abs(sigmaX) * 3f));
+    int radiusY = Math.max(0, (int)Math.ceil(Math.abs(sigmaY) * 3f));
+    if (radiusX == 0 && radiusY == 0) {
+      return source;
+    }
+
+    int width = source.getWidth();
+    int height = source.getHeight();
+    int[] pixels = new int[width * height];
+    int[] temp = new int[width * height];
+    source.getPixels(pixels, 0, width, 0, 0, width, height);
+    if (radiusX > 0) {
+      boxBlurHorizontal(pixels, temp, width, height, radiusX);
+    } else {
+      System.arraycopy(pixels, 0, temp, 0, pixels.length);
+    }
+    if (radiusY > 0) {
+      boxBlurVertical(temp, pixels, width, height, radiusY);
+    } else {
+      System.arraycopy(temp, 0, pixels, 0, temp.length);
+    }
+
+    Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    result.setPixels(pixels, 0, width, 0, 0, width, height);
+    return result;
+  }
+
+  private void boxBlurHorizontal(int[] src, int[] dst, int width, int height,
+                                 int radius) {
+    int window = radius * 2 + 1;
+    for (int y = 0; y < height; y++) {
+      int row = y * width;
+      long a = 0;
+      long r = 0;
+      long g = 0;
+      long b = 0;
+      for (int i = -radius; i <= radius; i++) {
+        int color = src[row + clamp(i, 0, width - 1)];
+        a += (color >>> 24) & 0xff;
+        r += (color >>> 16) & 0xff;
+        g += (color >>> 8) & 0xff;
+        b += color & 0xff;
+      }
+      for (int x = 0; x < width; x++) {
+        dst[row + x] = ((int)(a / window) << 24) | ((int)(r / window) << 16) |
+                       ((int)(g / window) << 8) | (int)(b / window);
+        int remove = src[row + clamp(x - radius, 0, width - 1)];
+        int add = src[row + clamp(x + radius + 1, 0, width - 1)];
+        a += ((add >>> 24) & 0xff) - ((remove >>> 24) & 0xff);
+        r += ((add >>> 16) & 0xff) - ((remove >>> 16) & 0xff);
+        g += ((add >>> 8) & 0xff) - ((remove >>> 8) & 0xff);
+        b += (add & 0xff) - (remove & 0xff);
+      }
+    }
+  }
+
+  private void boxBlurVertical(int[] src, int[] dst, int width, int height,
+                               int radius) {
+    int window = radius * 2 + 1;
+    for (int x = 0; x < width; x++) {
+      long a = 0;
+      long r = 0;
+      long g = 0;
+      long b = 0;
+      for (int i = -radius; i <= radius; i++) {
+        int color = src[clamp(i, 0, height - 1) * width + x];
+        a += (color >>> 24) & 0xff;
+        r += (color >>> 16) & 0xff;
+        g += (color >>> 8) & 0xff;
+        b += color & 0xff;
+      }
+      for (int y = 0; y < height; y++) {
+        dst[y * width + x] = ((int)(a / window) << 24) |
+                             ((int)(r / window) << 16) |
+                             ((int)(g / window) << 8) | (int)(b / window);
+        int remove = src[clamp(y - radius, 0, height - 1) * width + x];
+        int add = src[clamp(y + radius + 1, 0, height - 1) * width + x];
+        a += ((add >>> 24) & 0xff) - ((remove >>> 24) & 0xff);
+        r += ((add >>> 16) & 0xff) - ((remove >>> 16) & 0xff);
+        g += ((add >>> 8) & 0xff) - ((remove >>> 8) & 0xff);
+        b += (add & 0xff) - (remove & 0xff);
+      }
+    }
+  }
+
+  private int clamp(int value, int min, int max) {
+    return Math.max(min, Math.min(value, max));
   }
 
   private RectF calculatePathBounds(Path path) {

@@ -32,6 +32,7 @@ struct Index {
   private static readonly CATEGORY_CURRENT_COLOR: string = 'CurrentColor';
   private static readonly CATEGORY_ILLEGAL_PARSING: string = 'IllegalParsing';
   private static readonly CATEGORY_MASK: string = 'Mask';
+  private static readonly CATEGORY_FILTER: string = 'Filter';
   private static readonly CATEGORY_PATTERN: string = 'Pattern';
   private static readonly CATEGORY_SVG_ROOT: string = 'SvgRoot';
   private static readonly CATEGORY_USE: string = 'Use';
@@ -53,6 +54,7 @@ struct Index {
     Index.CATEGORY_CURRENT_COLOR,
     Index.CATEGORY_ILLEGAL_PARSING,
     Index.CATEGORY_MASK,
+    Index.CATEGORY_FILTER,
     Index.CATEGORY_PATTERN,
     Index.CATEGORY_SVG_ROOT,
     Index.CATEGORY_USE,
@@ -108,9 +110,20 @@ struct Index {
     'invalid-unclosed-root-tag.svg',
     'invalid-viewBox-garbage-token.svg',
     'invalid-iri-test.svg',
+    'filter-linear-chain.svg',
+    'filter-primitive-units-obb.svg',
+    'filter-region-units.svg',
+    'filter-unsupported-figma-inner-shadow-mask.svg',
+    'filter-unsupported-graph.svg',
+    'mask-alpha-test.svg',
     'mask-alpha-units-test.svg',
     'mask-comprehensive-test.svg',
+    'mask-content-region-combo.svg',
+    'mask-empty-region.svg',
     'mask-luminance-gradient-test.svg',
+    'mask-luminance-test.svg',
+    'mask-luminance-user-clip-gradient.svg',
+    'mask-region-units.svg',
     'paths.svg',
     'polygon-vs-polyline.svg',
     'pattern-basic.svg',
@@ -165,6 +178,9 @@ struct Index {
     }
     if (fileName.startsWith('mask-')) {
       return Index.CATEGORY_MASK;
+    }
+    if (fileName.startsWith('filter-')) {
+      return Index.CATEGORY_FILTER;
     }
     if (fileName.startsWith('pattern-') || fileName === 'stroke-gradient-vs-pattern.svg') {
       return Index.CATEGORY_PATTERN;
