@@ -382,6 +382,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
     if (content.length > 0) {
       SrSVGRenderResult* result = [previewView parseContentWithResult:content];
       if (result.hasError) {
+        const char* errorMessage = result.errorMessage.UTF8String ?: "";
         fprintf(stderr, "SVGDiagnostic file=%s errorMessage=%s\n",
                 fileName.UTF8String ?: "", errorMessage);
       }
