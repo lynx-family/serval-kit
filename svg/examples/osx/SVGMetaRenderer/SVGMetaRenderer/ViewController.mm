@@ -282,7 +282,8 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
                                                 encoding:NSUTF8StringEncoding
                                                    error:&error];
   if (content.length == 0) {
-    NSLog(@"Failed to load external SVG path=%@ error=%@", path, error);
+    fprintf(stderr, "Failed to load external SVG path=%s error=%s\n",
+            path.UTF8String ?: "", errorDescription);
   }
   return content;
 }
