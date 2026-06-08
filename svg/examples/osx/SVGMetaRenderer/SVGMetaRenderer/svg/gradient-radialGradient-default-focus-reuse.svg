@@ -1,0 +1,14 @@
+<svg width="360" height="180" viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="reusedRadial" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.35" stop-color="#93C5FD"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </radialGradient>
+  </defs>
+  <rect width="360" height="180" fill="#F8FAFC"/>
+  <rect x="22" y="50" width="58" height="80" rx="10" fill="url(#reusedRadial)" stroke="#111827" stroke-width="2"/>
+  <rect x="102" y="36" width="72" height="108" rx="10" fill="url(#reusedRadial)" stroke="#111827" stroke-width="2"/>
+  <rect x="196" y="50" width="58" height="80" rx="10" fill="url(#reusedRadial)" stroke="#111827" stroke-width="2"/>
+  <rect x="276" y="36" width="72" height="108" rx="10" fill="url(#reusedRadial)" stroke="#111827" stroke-width="2"/>
+</svg>

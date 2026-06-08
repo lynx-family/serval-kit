@@ -70,6 +70,48 @@
       ]
     },
     {
+      "fileName": "shape-group-opacity-composite.svg",
+      "title": "Group Opacity Composite",
+      "tags": [
+        "svg",
+        "g",
+        "opacity"
+      ],
+      "descriptions": [
+        "group opacity 按整体合成",
+        "重叠区域不重复衰减",
+        "子图元保持完整不透明绘制"
+      ]
+    },
+    {
+      "fileName": "shape-group-fill-opacity-overlap.svg",
+      "title": "Group Fill Opacity Overlap",
+      "tags": [
+        "svg",
+        "g",
+        "fill-opacity"
+      ],
+      "descriptions": [
+        "fill-opacity 继承到 fill paint",
+        "填充重叠区域正常叠加",
+        "不按 group 整体合成"
+      ]
+    },
+    {
+      "fileName": "shape-group-stroke-opacity-overlap.svg",
+      "title": "Group Stroke Opacity Overlap",
+      "tags": [
+        "svg",
+        "g",
+        "stroke-opacity"
+      ],
+      "descriptions": [
+        "stroke-opacity 继承到 stroke paint",
+        "描边交叠区域正常叠加",
+        "不按 group 整体合成"
+      ]
+    },
+    {
       "fileName": "shape-rect-basic.svg",
       "title": "Rect Basic",
       "tags": [

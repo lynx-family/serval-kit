@@ -17,12 +17,17 @@
 #include "element/SrSVGFilterPrimitives.h"
 #include "element/SrSVGMask.h"
 #include "element/SrSVGTypes.h"
+#include "utils/SrFloatComparison.h"
 
 namespace serval {
 namespace svg {
 namespace element {
 
 const float SrSVGNode::s_stroke_miter_limit = 4.f;
+
+float SrSVGNode::ClampOpacity(float opacity) {
+  return ClampUnitFloat(opacity);
+}
 
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {

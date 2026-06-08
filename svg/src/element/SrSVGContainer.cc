@@ -19,6 +19,15 @@ bool SrSVGContainer::ParseAndSetAttribute(const char* name, const char* value) {
 void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
                               SrSVGRenderContext& context) {
   canvas->Transform(transform_);
+  const float group_opacity =
+      opacity_ ? SrSVGNode::ClampOpacity(opacity_.value_or(1.f)) : 1.f;
+  if (opacity_ && group_opacity <= 0.f) {
+    return;
+  }
+  const bool has_opacity_layer = opacity_ && group_opacity < 1.f;
+  if (has_opacity_layer) {
+    canvas->BeginOpacityLayer(nullptr, group_opacity);
+  }
   for (SrSVGNodeBase* child : children_) {
     if (child) {
       auto node = static_cast<SrSVGNode*>(child);
@@ -28,7 +37,6 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
       SrSVGPaint* local_mask = node->inherit_mask_;
       std::optional<SrSVGLength> local_stroke_width =
           node->inherit_stroke_width_;
-      std::optional<float> local_opacity = node->inherit_opacity_;
       std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
       std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
       std::optional<SrSVGColor> local_color = node->inherit_color_;
@@ -105,11 +113,13 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
       node->inherit_clip_path_ = local_clip_path;
       node->inherit_mask_ = local_mask;
       node->inherit_fill_opacity_ = local_fill_opacity;
-      node->inherit_opacity_ = local_opacity;
       node->inherit_stroke_opacity_ = local_stroke_opacity;
       node->inherit_stroke_width_ = local_stroke_width;
       node->inherit_color_ = local_color;
     }
+  }
+  if (has_opacity_layer) {
+    canvas->EndOpacityLayer();
   }
 }
 

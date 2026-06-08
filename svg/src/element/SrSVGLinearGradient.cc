@@ -4,6 +4,8 @@
 
 #include "element/SrSVGLinearGradient.h"
 
+#include <vector>
+
 #include "element/SrSVGStop.h"
 
 namespace serval {
@@ -43,6 +45,8 @@ bool SrSVGLinearGradient::ParseAndSetAttribute(const char* name,
 
 void SrSVGLinearGradient::OnRender(canvas::SrCanvas* canvas,
                                    SrSVGRenderContext& context) {
+  std::vector<SrStop> stops;
+  stops.reserve(children_.size());
   for (SrSVGNodeBase* child : children_) {
     if (child && child->Tag() == SrSVGTag::kStop) {
       SrSVGStop* stopNode = static_cast<SrSVGStop*>(child);
@@ -52,7 +56,7 @@ void SrSVGLinearGradient::OnRender(canvas::SrCanvas* canvas,
                        .unit = SR_SVG_UNITS_NUMBER};
         stop.stopOpacity = {.value = stopNode->opacity(context),
                             .unit = SR_SVG_UNITS_NUMBER};
-        stops_.push_back(stop);
+        stops.push_back(stop);
       }
     }
   }
@@ -65,7 +69,7 @@ void SrSVGLinearGradient::OnRender(canvas::SrCanvas* canvas,
   float y2 = convert_serval_length_to_float(&y2_, &context,
                                             SR_SVG_LENGTH_TYPE_NUMERIC);
   canvas->UpdateLinearGradient(id_.c_str(), gradient_transform_, spread_method_,
-                               x1, x2, y1, y2, stops_, gradient_units_);
+                               x1, x2, y1, y2, stops, gradient_units_);
 }
 
 }  // namespace element

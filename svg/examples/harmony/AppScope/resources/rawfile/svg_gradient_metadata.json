@@ -80,6 +80,35 @@
         "透明过渡连续",
         "背景能透出"
       ]
+    },
+    {
+      "fileName": "gradient-linearGradient-stop-reuse.svg",
+      "title": "LinearGradient Stop Reuse",
+      "tags": [
+        "linearGradient",
+        "stop",
+        "reuse"
+      ],
+      "descriptions": [
+        "同一 linearGradient 多次引用色带一致",
+        "后续图形不累积重复 stop",
+        "四个色块应保持相同渐变"
+      ]
+    },
+    {
+      "fileName": "gradient-radialGradient-default-focus-reuse.svg",
+      "title": "RadialGradient Default Focus Reuse",
+      "tags": [
+        "radialGradient",
+        "fx",
+        "fy",
+        "reuse"
+      ],
+      "descriptions": [
+        "未设置 fx/fy 时默认焦点保持中心",
+        "多次引用不污染焦点状态",
+        "每个色块亮斑应在自身中心"
+      ]
     }
   ]
 }

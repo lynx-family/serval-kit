@@ -266,6 +266,11 @@ class SrCanvas {
     Save();
   }
   virtual void RestoreLayer() { Restore(); }
+  virtual void BeginOpacityLayer(const SrSVGBox* bounds, float opacity) {
+    (void)opacity;
+    SaveLayer(bounds);
+  }
+  virtual void EndOpacityLayer() { RestoreLayer(); }
   virtual bool SupportsFilterModel(const SrFilterModel& filter) const {
     return false;
   }

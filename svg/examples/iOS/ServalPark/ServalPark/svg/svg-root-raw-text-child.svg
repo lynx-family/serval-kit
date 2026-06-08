@@ -1,0 +1,9 @@
+<svg width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+  raw text under svg should be ignored
+  <rect x="8" y="8" width="144" height="104" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <g>
+    raw text under group should be ignored
+    <circle cx="56" cy="60" r="28" fill="#2563EB"/>
+    <rect x="92" y="34" width="36" height="52" rx="8" fill="#22C55E"/>
+  </g>
+</svg>

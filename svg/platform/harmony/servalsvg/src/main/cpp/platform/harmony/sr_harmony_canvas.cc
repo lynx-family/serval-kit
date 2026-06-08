@@ -7,6 +7,7 @@
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGPatternUtils.h"
+#include <algorithm>
 #include <deviceinfo.h>
 #include <dlfcn.h>
 #include <native_drawing/drawing_color_filter.h>
@@ -1003,6 +1004,24 @@ void SrHarmonyCanvas::RestoreLayer() {
         transform_stack_.pop_back();
     }
 }
+
+void SrHarmonyCanvas::BeginOpacityLayer(const SrSVGBox *bounds, float opacity) {
+    OH_Drawing_Rect *rect = nullptr;
+    if (bounds) {
+        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
+                                     bounds->top + bounds->height);
+    }
+    OH_Drawing_Brush *alpha_brush = OH_Drawing_BrushCreate();
+    OH_Drawing_BrushSetAlpha(alpha_brush, ConvertAlpha(opacity));
+    OH_Drawing_CanvasSaveLayer(context_, rect, alpha_brush);
+    transform_stack_.push_back(current_transform_);
+    OH_Drawing_BrushDestroy(alpha_brush);
+    if (rect) {
+        OH_Drawing_RectDestroy(rect);
+    }
+}
+
+void SrHarmonyCanvas::EndOpacityLayer() { RestoreLayer(); }
 
 bool SrHarmonyCanvas::SupportsFilterModel(const canvas::SrFilterModel &filter) const {
     return SupportsHarmonyLinearSourceGraphicFilterModel(filter);

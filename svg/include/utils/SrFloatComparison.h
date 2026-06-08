@@ -40,6 +40,20 @@ inline bool IsZero(const float f) {
   return FloatsEqual(f, 0.0f);
 }
 
+inline float ClampFloat(const float value, const float min, const float max) {
+  if (FloatLess(value, min)) {
+    return min;
+  }
+  if (FloatsLarger(value, max)) {
+    return max;
+  }
+  return value;
+}
+
+inline float ClampUnitFloat(const float value) {
+  return ClampFloat(value, 0.0f, 1.0f);
+}
+
 #undef SERVAL_SVG_FLOAT_EPSILON
 
 }  // namespace svg
