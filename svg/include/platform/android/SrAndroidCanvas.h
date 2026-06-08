@@ -80,6 +80,8 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
+  void BeginOpacityLayer(const SrSVGBox* bounds, float opacity) override;
+  void EndOpacityLayer() override;
   void BeginFilterLayer(const SrSVGBox* bounds,
                         const canvas::SrFilterModel& filter) override;
   void EndFilterLayer() override;
@@ -137,6 +139,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   static intptr_t g_SVGRender_clipRect_;
   static intptr_t g_SVGRender_saveLayer_;
   static intptr_t g_SVGRender_restoreLayer_;
+  static intptr_t g_SVGRender_beginOpacityLayer_;
   static intptr_t g_SVGRender_beginFilterLayer_;
   static intptr_t g_SVGRender_endFilterLayer_;
   static intptr_t g_SVGRender_beginMaskLayer_;

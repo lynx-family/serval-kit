@@ -5,8 +5,6 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGLINEARGRADIENT_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGLINEARGRADIENT_H_
 
-#include <vector>
-
 #include "element/SrSVGContainer.h"
 #include "element/SrSVGNode.h"
 #include "element/SrSVGShape.h"
@@ -34,7 +32,6 @@ class SrSVGLinearGradient : public SrSVGContainer {
   SrSVGLength x2_{1.0};
   SrSVGLength y1_{0};
   SrSVGLength y2_{0};
-  mutable std::vector<SrStop> stops_;
 };
 
 }  // namespace element

@@ -82,29 +82,31 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
   }
 
   if (opacity_) {
-    render_state_.opacity = opacity_.value_or(1.0);
-  } else if (inherit_opacity_) {
-    render_state_.opacity = inherit_opacity_.value_or(1.0);
+    render_state_.opacity = SrSVGNode::ClampOpacity(opacity_.value_or(1.0));
   } else {
     render_state_.opacity = 1.0;
   }
 
   if (fill_opacity_) {
     render_state_.fill_opacity =
-        fill_opacity_.value_or(1.0) * render_state_.opacity;
+        SrSVGNode::ClampOpacity(fill_opacity_.value_or(1.0)) *
+        render_state_.opacity;
   } else if (inherit_fill_opacity_) {
     render_state_.fill_opacity =
-        inherit_fill_opacity_.value_or(1.0) * render_state_.opacity;
+        SrSVGNode::ClampOpacity(inherit_fill_opacity_.value_or(1.0)) *
+        render_state_.opacity;
   } else {
     render_state_.fill_opacity = render_state_.opacity;
   }
 
   if (stroke_opacity_) {
     render_state_.stroke_opacity =
-        stroke_opacity_.value_or(1.0) * render_state_.opacity;
+        SrSVGNode::ClampOpacity(stroke_opacity_.value_or(1.0)) *
+        render_state_.opacity;
   } else if (inherit_stroke_opacity_) {
     render_state_.stroke_opacity =
-        inherit_stroke_opacity_.value_or(1.0) * render_state_.opacity;
+        SrSVGNode::ClampOpacity(inherit_stroke_opacity_.value_or(1.0)) *
+        render_state_.opacity;
   } else {
     render_state_.stroke_opacity = render_state_.opacity;
   }

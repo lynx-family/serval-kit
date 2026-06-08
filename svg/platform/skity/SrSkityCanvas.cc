@@ -547,6 +547,23 @@ void SrSkityCanvas::RestoreLayer() {
   PopTransformState();
 }
 
+void SrSkityCanvas::BeginOpacityLayer(const SrSVGBox* bounds, float opacity) {
+  ::skity::Rect layer_bounds = canvas_->GetLocalClipBounds();
+  if (bounds) {
+    layer_bounds = ::skity::Rect::MakeXYWH(bounds->left, bounds->top,
+                                           bounds->width, bounds->height);
+  }
+  ::skity::Paint paint;
+  paint.SetAlpha(static_cast<uint8_t>(std::clamp(opacity, 0.f, 1.f) * 255.f));
+  canvas_->SaveLayer(layer_bounds, paint);
+  PushTransformState();
+  canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+}
+
+void SrSkityCanvas::EndOpacityLayer() {
+  RestoreLayer();
+}
+
 bool SrSkityCanvas::SupportsFilterModel(
     const canvas::SrFilterModel& filter) const {
   return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
@@ -893,12 +910,6 @@ void SrSkityCanvas::DrawPathWithRenderState(
     if (DrawNonScalingStroke(path, render_state)) {
       return;
     }
-    // TODO(skity): Skity HW stroke geometry appears to clamp tiny local stroke
-    // widths before the pattern content CTM is applied. In
-    // patternContentUnits="objectBoundingBox", a local stroke-width such as
-    // 0.04 can be scaled up and cover the whole tile. Keep the normal Skity
-    // stroke path here and track/fix this in Skity instead of adding a serval
-    // stroke-outline bypass.
     canvas_->DrawPath(path,
                       ConvertToPaint(render_state, path.GetBounds(), true));
   }

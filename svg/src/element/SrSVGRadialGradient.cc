@@ -4,6 +4,8 @@
 
 #include "element/SrSVGRadialGradient.h"
 
+#include <vector>
+
 #include "element/SrSVGStop.h"
 #include "element/SrSVGTypes.h"
 
@@ -47,6 +49,8 @@ bool SrSVGRadialGradient::ParseAndSetAttribute(const char* name,
 
 void SrSVGRadialGradient::OnRender(canvas::SrCanvas* canvas,
                                    SrSVGRenderContext& context) {
+  std::vector<SrStop> stops;
+  stops.reserve(children_.size());
   for (SrSVGNodeBase* child : children_) {
     if (child) {
       if (child->Tag() == SrSVGTag::kStop) {
@@ -57,30 +61,25 @@ void SrSVGRadialGradient::OnRender(canvas::SrCanvas* canvas,
                          .unit = SR_SVG_UNITS_NUMBER};
           stop.stopOpacity = {.value = stop_node->opacity(context),
                               .unit = SR_SVG_UNITS_NUMBER};
-          stops_.push_back(stop);
+          stops.push_back(stop);
         }
       }
     }
   }
-  // If not set fx or fy, use cx or cy as default.
-  if (fx_.unit == SR_SVG_UNITS_UNKNOWN) {
-    fx_ = cx_;
-  }
-  if (fy_.unit == SR_SVG_UNITS_UNKNOWN) {
-    fy_ = cy_;
-  }
+  const SrSVGLength& fx_length = fx_.unit == SR_SVG_UNITS_UNKNOWN ? cx_ : fx_;
+  const SrSVGLength& fy_length = fy_.unit == SR_SVG_UNITS_UNKNOWN ? cy_ : fy_;
   float cx = convert_serval_length_to_float(&cx_, &context,
                                             SR_SVG_LENGTH_TYPE_NUMERIC);
   float cy = convert_serval_length_to_float(&cy_, &context,
                                             SR_SVG_LENGTH_TYPE_NUMERIC);
   float r =
       convert_serval_length_to_float(&r_, &context, SR_SVG_LENGTH_TYPE_NUMERIC);
-  float fx = convert_serval_length_to_float(&fx_, &context,
+  float fx = convert_serval_length_to_float(&fx_length, &context,
                                             SR_SVG_LENGTH_TYPE_NUMERIC);
-  float fy = convert_serval_length_to_float(&fy_, &context,
+  float fy = convert_serval_length_to_float(&fy_length, &context,
                                             SR_SVG_LENGTH_TYPE_NUMERIC);
   canvas->UpdateRadialGradient(id_.c_str(), gradient_transform_, spread_method_,
-                               cx, cy, r, fx, fy, stops_, gradient_units_);
+                               cx, cy, r, fx, fy, stops, gradient_units_);
 }
 
 }  // namespace element

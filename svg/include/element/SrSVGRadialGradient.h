@@ -5,8 +5,6 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGRADIALGRADIENT_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGRADIALGRADIENT_H_
 
-#include <vector>
-
 #include "element/SrSVGContainer.h"
 #include "element/SrSVGNode.h"
 #include "element/SrSVGShape.h"
@@ -33,7 +31,6 @@ class SrSVGRadialGradient : public SrSVGContainer {
   SrSVGLength fx_{0., SR_SVG_UNITS_UNKNOWN};
   SrSVGLength fy_{0., SR_SVG_UNITS_UNKNOWN};
   GradientSpread spread_method_{pad};
-  mutable std::vector<SrStop> stops_;
   SrSVGObjectBoundingBoxUnitType gradient_units_{
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX};
 };

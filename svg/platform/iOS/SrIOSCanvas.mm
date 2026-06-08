@@ -5,6 +5,8 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <CoreImage/CoreImage.h>
 
+#include <algorithm>
+
 #include "element/SrSVGTypes.h"
 #include "platform/iOS/SrIOSCanvas.h"
 #include "platform/iOS/SrIOSColorUtils.h"
@@ -1191,6 +1193,17 @@ void SrIOSCanvas::SaveLayer(const SrSVGBox* bounds) {
 
 void SrIOSCanvas::RestoreLayer() {
   CGContextEndTransparencyLayer(_context);
+}
+
+void SrIOSCanvas::BeginOpacityLayer(const SrSVGBox* bounds, float opacity) {
+  (void)bounds;
+  CGContextSetAlpha(_context,
+                    static_cast<CGFloat>(std::clamp(opacity, 0.f, 1.f)));
+  CGContextBeginTransparencyLayer(_context, NULL);
+}
+
+void SrIOSCanvas::EndOpacityLayer() {
+  RestoreLayer();
 }
 
 bool SrIOSCanvas::SupportsFilterModel(

@@ -331,12 +331,28 @@ public class SVGRender {
 
   public void saveLayer(float left, float top, float right, float bottom) {
     if (mPictureCanvas != null) {
+      saveLayerWithPaint(left, top, right, bottom, null);
+    }
+  }
+
+  public void beginOpacityLayer(float left, float top, float right,
+                                float bottom, float opacity) {
+    if (mPictureCanvas != null) {
+      Paint alphaPaint = new Paint();
+      alphaPaint.setAlpha(clampOpacity(opacity));
+      saveLayerWithPaint(left, top, right, bottom, alphaPaint);
+    }
+  }
+
+  private void saveLayerWithPaint(float left, float top, float right,
+                                  float bottom, Paint paint) {
+    if (mPictureCanvas != null) {
       if (left == 0 && top == 0 && right == 0 && bottom == 0) {
         // Full canvas layer
-        mPictureCanvas.saveLayer(null, null);
+        mPictureCanvas.saveLayer(null, paint);
       } else {
         RectF bounds = new RectF(left, top, right, bottom);
-        mPictureCanvas.saveLayer(bounds, null);
+        mPictureCanvas.saveLayer(bounds, paint);
       }
     }
   }

@@ -109,6 +109,7 @@ intptr_t SrAndroidCanvas::g_SVGRender_clipPath_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_clipRect_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_saveLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_restoreLayer_ = 0;
+intptr_t SrAndroidCanvas::g_SVGRender_beginOpacityLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_beginFilterLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_endFilterLayer_ = 0;
 intptr_t SrAndroidCanvas::g_SVGRender_beginMaskLayer_ = 0;
@@ -988,6 +989,31 @@ void SrAndroidCanvas::RestoreLayer() {
       transform_stack_.pop_back();
     }
   }
+}
+
+void SrAndroidCanvas::BeginOpacityLayer(const SrSVGBox* bounds, float opacity) {
+  JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
+  if (render_clazz_ref.IsNull()) {
+    return;
+  }
+  jmethodID j_begin_opacity_layer = GetMethod(
+      jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "beginOpacityLayer",
+      "(FFFFF)V", &(SrAndroidCanvas::g_SVGRender_beginOpacityLayer_));
+  if (j_begin_opacity_layer) {
+    if (bounds) {
+      jni_env_->CallVoidMethod(j_render_, j_begin_opacity_layer, bounds->left,
+                               bounds->top, bounds->left + bounds->width,
+                               bounds->top + bounds->height, opacity);
+    } else {
+      jni_env_->CallVoidMethod(j_render_, j_begin_opacity_layer, 0.f, 0.f, 0.f,
+                               0.f, opacity);
+    }
+    transform_stack_.push_back(current_transform_);
+  }
+}
+
+void SrAndroidCanvas::EndOpacityLayer() {
+  RestoreLayer();
 }
 
 void SrAndroidCanvas::BeginFilterLayer(const SrSVGBox* bounds,

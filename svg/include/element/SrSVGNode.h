@@ -106,6 +106,7 @@ class SrSVGNode : public SrSVGNodeBase {
                                 int* na);
   static const char* ParseNumber(const char* s, char* it, int size);
   static double Atof(const char* s);
+  static float ClampOpacity(float opacity);
 
  public:
   ~SrSVGNode() override;
@@ -153,7 +154,6 @@ class SrSVGNode : public SrSVGNodeBase {
   SrSVGPaint* inherit_stroke_paint_{nullptr};
   SrSVGPaint* inherit_clip_path_{nullptr};
   SrSVGPaint* inherit_mask_{nullptr};
-  std::optional<float> inherit_opacity_;
   std::optional<float> inherit_fill_opacity_;
   std::optional<float> inherit_stroke_opacity_;
   std::optional<SrSVGLength> inherit_stroke_width_;

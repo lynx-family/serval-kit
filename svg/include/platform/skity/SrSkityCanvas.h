@@ -134,6 +134,8 @@ class SrSkityCanvas : public canvas::SrCanvas {
   bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;
   void SaveLayer(const SrSVGBox* bounds = nullptr) override;
   void RestoreLayer() override;
+  void BeginOpacityLayer(const SrSVGBox* bounds, float opacity) override;
+  void EndOpacityLayer() override;
   void BeginFilterLayer(const SrSVGBox* bounds,
                         const canvas::SrFilterModel& filter) override;
   void EndFilterLayer() override;

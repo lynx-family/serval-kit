@@ -182,9 +182,6 @@ void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  : parent_node->inherit_clip_path_;
   node->inherit_mask_ =
       parent_node->mask_ ? parent_node->mask_ : parent_node->inherit_mask_;
-  node->inherit_opacity_ = parent_node->opacity_
-                               ? parent_node->opacity_
-                               : parent_node->inherit_opacity_;
   node->inherit_fill_opacity_ = parent_node->fill_opacity_
                                     ? parent_node->fill_opacity_
                                     : parent_node->inherit_fill_opacity_;
