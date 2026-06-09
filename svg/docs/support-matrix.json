@@ -410,15 +410,19 @@
         "filter",
         "transform",
         "color",
-        "style"
+        "style",
+        "opacity"
       ],
       "partially_supported_attributes": {},
       "unsupported_attributes": {
         "width": "Width is currently not applied when rendering a referenced node.",
-        "height": "Height is currently not applied when rendering a referenced node.",
-        "opacity": "Opacity is parsed on use but is not forwarded to the referenced node."
+        "height": "Height is currently not applied when rendering a referenced node."
       },
-      "caveats": []
+      "caveats": [
+        "use only supports same-document #id references.",
+        "use references to svg nodes are explicitly unsupported and skipped.",
+        "use opacity is composited through a whole-use offscreen layer; tight layer bounds are a future performance optimization."
+      ]
     },
     "image": {
       "support": "partial",
@@ -434,24 +438,25 @@
         "xlink:href",
         "preserveAspectRatio",
         "transform",
-        "style"
+        "style",
+        "x",
+        "y",
+        "width",
+        "height",
+        "opacity"
       ],
-      "partially_supported_attributes": {
-        "x": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
-        "y": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
-        "width": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
-        "height": "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered."
-      },
+      "partially_supported_attributes": {},
       "unsupported_attributes": {
         "fill": "Image rendering does not use shape fill or stroke painting.",
         "stroke": "Image rendering does not use shape fill or stroke painting.",
-        "opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
         "fill-opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
         "stroke-opacity": "Image rendering does not fully participate in the generic opacity pipeline.",
         "clip-path": "clip-path behavior on image is unreliable in the current renderer."
       },
       "caveats": [
-        "Android, iOS, Harmony, and Skity can render images when the host app provides image loading support."
+        "Android, iOS, Harmony, and Skity can render images when the host app provides image loading support.",
+        "Explicit x/y/width/height support percentages and supported length units.",
+        "width/height must be explicitly provided and resolve to positive values; auto/intrinsic-size inference is explicitly unsupported."
       ]
     },
     "text": {
@@ -665,9 +670,9 @@
     "filter": {
       "support": "partial",
       "platforms": {
-        "android": "unsupported",
-        "ios": "unsupported",
-        "harmony": "unsupported",
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "partial",
         "skity": "partial"
       },
       "supported_attributes": [
@@ -685,16 +690,16 @@
       "unsupported_attributes": {},
       "caveats": [
         "The shared SVG layer resolves the W3C filter region and builds a FilterModel for filter primitives.",
-        "Filter execution only happens when the canvas backend supports the generated FilterModel.",
-        "At present only Skity exposes a runtime filter executor, and it is limited to single-input linear chains."
+        "All current backends execute only supported linear SourceGraphic filter models.",
+        "Arbitrary W3C filter graphs, branching result reuse, and complex input/input2 composition are explicitly unsupported."
       ]
     },
     "feGaussianBlur": {
       "support": "partial",
       "platforms": {
-        "android": "unsupported",
-        "ios": "unsupported",
-        "harmony": "unsupported",
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "partial",
         "skity": "partial"
       },
       "supported_attributes": [
@@ -707,24 +712,24 @@
         "height"
       ],
       "partially_supported_attributes": {
-        "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+        "in": "Filter graph input is resolved in the shared FilterModel, but current backends execute only SourceGraphic-rooted single-input linear chains.",
         "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
-        "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        "x": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "y": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "width": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "height": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region."
       },
       "unsupported_attributes": {},
       "caveats": [
-        "Skity can execute feGaussianBlur in supported single-input linear chains."
+        "Current backends can execute feGaussianBlur in supported single-input linear chains."
       ]
     },
     "feOffset": {
       "support": "partial",
       "platforms": {
-        "android": "unsupported",
-        "ios": "unsupported",
-        "harmony": "unsupported",
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "partial",
         "skity": "partial"
       },
       "supported_attributes": [
@@ -738,24 +743,25 @@
         "height"
       ],
       "partially_supported_attributes": {
-        "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+        "in": "Filter graph input is resolved in the shared FilterModel, but current backends execute only SourceGraphic-rooted single-input linear chains.",
         "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
-        "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        "x": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "y": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "width": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "height": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region."
       },
       "unsupported_attributes": {},
       "caveats": [
-        "Skity can execute feOffset in supported single-input linear chains."
+        "Current backends can execute feOffset in supported single-input linear chains.",
+        "Harmony requires native offset image-filter availability for non-zero feOffset."
       ]
     },
     "feColorMatrix": {
       "support": "partial",
       "platforms": {
-        "android": "unsupported",
-        "ios": "unsupported",
-        "harmony": "unsupported",
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "partial",
         "skity": "partial"
       },
       "supported_attributes": [
@@ -769,17 +775,17 @@
         "height"
       ],
       "partially_supported_attributes": {
-        "type": "Skity executes matrix and luminanceToAlpha color matrices in supported linear chains; other color matrix types are parsed but not executed.",
-        "in": "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+        "type": "Current backends execute matrix and luminanceToAlpha color matrices in supported linear chains; other color matrix types are parsed but not executed.",
+        "in": "Filter graph input is resolved in the shared FilterModel, but current backends execute only SourceGraphic-rooted single-input linear chains.",
         "result": "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
-        "x": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "y": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "width": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
-        "height": "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region."
+        "x": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "y": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "width": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region.",
+        "height": "Primitive subregions are resolved in the shared FilterModel, but current backends execute only primitives whose subregion equals the filter region."
       },
       "unsupported_attributes": {},
       "caveats": [
-        "Skity can execute feColorMatrix in supported single-input linear chains."
+        "Current backends can execute feColorMatrix in supported single-input linear chains."
       ]
     },
     "feComposite": {

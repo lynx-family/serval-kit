@@ -1131,20 +1131,30 @@ void SrIOSCanvas::DrawUse(const char* href, float x, float y, float width,
 
 void SrIOSCanvas::DrawImage(
     const char* url, float x, float y, float width, float height,
-    const SrSVGPreserveAspectRatio& preserve_aspect_radio) {
+    const SrSVGPreserveAspectRatio& preserve_aspect_radio, float opacity) {
   if (url) {
     NSString* href = [NSString stringWithUTF8String:url];
-    UIImage* image;
+    UIImage* image = nil;
     if (!image && image_callback_) {
       image = image_callback_(href);
     }
     if (image) {
+      const float image_width = static_cast<float>(image.size.width);
+      const float image_height = static_cast<float>(image.size.height);
+      if (!FloatsLarger(image_width, 0.f) || !FloatsLarger(image_height, 0.f)) {
+        return;
+      }
+      if (!FloatsLarger(width, 0.f) || !FloatsLarger(height, 0.f)) {
+        return;
+      }
       float form[6];
       SrSVGBox view_port{x, y, width, height};
-      SrSVGBox view_box{0, 0, static_cast<float>(image.size.width),
-                        static_cast<float>(image.size.height)};
+      SrSVGBox view_box{0, 0, image_width, image_height};
       calculate_view_box_transform(&view_port, &view_box, preserve_aspect_radio,
                                    form);
+      CGContextSaveGState(_context);
+      CGContextSetAlpha(_context,
+                        static_cast<CGFloat>(ClampUnitFloat(opacity)));
       CGContextBeginTransparencyLayer(_context, NULL);
       CGAffineTransform box_transform = CGAffineTransformMake(
           form[0], form[1], form[2], form[3], form[4], form[5]);
@@ -1156,6 +1166,7 @@ void SrIOSCanvas::DrawImage(
       CGContextScaleCTM(_context, 1, -1);
       CGContextDrawImage(_context, rect, image.CGImage);
       CGContextEndTransparencyLayer(_context);
+      CGContextRestoreGState(_context);
     }
   }
 }

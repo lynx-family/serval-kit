@@ -383,6 +383,20 @@
       ]
     },
     {
+      "fileName": "shape-image-percent-opacity.svg",
+      "title": "Image Percent And Opacity",
+      "tags": [
+        "image",
+        "percentage",
+        "opacity"
+      ],
+      "descriptions": [
+        "百分比位置按 viewport 换算",
+        "百分比尺寸按 viewport 换算",
+        "image opacity 按整体合成"
+      ]
+    },
+    {
       "fileName": "shape-image-preserveAspectRatio-meet.svg",
       "title": "Image PreserveAspectRatio Meet",
       "tags": [

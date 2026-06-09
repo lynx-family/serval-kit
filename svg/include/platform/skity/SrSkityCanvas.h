@@ -117,9 +117,9 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void DrawUse(const char* href, float x, float y, float width,
                float height) override;
 
-  void DrawImage(
-      const char* url, float x, float y, float width, float height,
-      const SrSVGPreserveAspectRatio& preserve_aspect_radio) override;
+  void DrawImage(const char* url, float x, float y, float width, float height,
+                 const SrSVGPreserveAspectRatio& preserve_aspect_radio,
+                 float opacity = 1.f) override;
 
   void DrawEllipse(const char*, float center_x, float center_y, float radius_x,
                    float radius_y,

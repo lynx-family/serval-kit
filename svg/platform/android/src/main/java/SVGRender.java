@@ -272,7 +272,8 @@ public class SVGRender {
 
   public void drawImage(final String url, final float x, final float y,
                         final float width, final float height, final int alignX,
-                        final int alignY, final int scale) {
+                        final int alignY, final int scale,
+                        final float opacity) {
     if (TextUtils.isEmpty(url) || mResourceProvider == null) {
       return;
     }
@@ -300,6 +301,7 @@ public class SVGRender {
             matrix.setValues(formValue);
             mPictureCanvas.concat(matrix);
             Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+            bitmapPaint.setAlpha(clampOpacity(opacity));
             mPictureCanvas.drawBitmap(bitmap, 0, 0, bitmapPaint);
           }
         }

@@ -280,18 +280,23 @@ void SrHarmonyCanvas::DrawPath(const char *, uint8_t *ops, uint32_t n_ops, float
 void SrHarmonyCanvas::DrawUse(const char *href, float x, float y, float width, float height) {}
 
 void SrHarmonyCanvas::DrawImage(const char *url, float x, float y, float width, float height,
-                                const SrSVGPreserveAspectRatio &preserve_aspect_radio) {
-    if (url == nullptr || image_provider_ == nullptr || width <= 0.f || height <= 0.f) {
+                                const SrSVGPreserveAspectRatio &preserve_aspect_radio, float opacity) {
+    if (url == nullptr || image_provider_ == nullptr) {
         return;
     }
     const auto *image = image_provider_(std::string(url));
     if (image == nullptr || image->draw_pixel_map == nullptr || image->width == 0 || image->height == 0) {
         return;
     }
+    const float image_width = static_cast<float>(image->width);
+    const float image_height = static_cast<float>(image->height);
+    if (!FloatsLarger(width, 0.f) || !FloatsLarger(height, 0.f)) {
+        return;
+    }
 
     float form[6];
     SrSVGBox view_port{x, y, width, height};
-    SrSVGBox view_box{0.f, 0.f, static_cast<float>(image->width), static_cast<float>(image->height)};
+    SrSVGBox view_box{0.f, 0.f, image_width, image_height};
     calculate_view_box_transform(&view_port, &view_box, preserve_aspect_radio, form);
 
     auto *src_rect =
@@ -313,10 +318,18 @@ void SrHarmonyCanvas::DrawImage(const char *url, float x, float y, float width, 
     }
     OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
 
-    OH_Drawing_CanvasSave(context_);
+    if (FloatLess(opacity, 1.f)) {
+        BeginOpacityLayer(nullptr, opacity);
+    } else {
+        OH_Drawing_CanvasSave(context_);
+    }
     OH_Drawing_CanvasConcatMatrix(context_, matrix);
     OH_Drawing_CanvasDrawPixelMapRect(context_, image->draw_pixel_map, src_rect, dst_rect, image_sampling_);
-    OH_Drawing_CanvasRestore(context_);
+    if (FloatLess(opacity, 1.f)) {
+        EndOpacityLayer();
+    } else {
+        OH_Drawing_CanvasRestore(context_);
+    }
 
     OH_Drawing_MatrixDestroy(matrix);
     OH_Drawing_RectDestroy(src_rect);

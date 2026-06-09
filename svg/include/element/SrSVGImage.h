@@ -5,6 +5,8 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGIMAGE_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGIMAGE_H_
 
+#include <memory>
+#include <optional>
 #include <string>
 
 #include "element/SrSVGShape.h"
@@ -23,6 +25,9 @@ class SrSVGImage : public SrSVGShape {
 
  public:
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  std::unique_ptr<canvas::Path> AsPath(
+      canvas::PathFactory* path_factory,
+      SrSVGRenderContext* context) const override;
 
  private:
   SrSVGImage()
@@ -30,7 +35,9 @@ class SrSVGImage : public SrSVGShape {
         preserve_aspect_radio_(make_default_preserve_aspect_radio()) {}
 
   std::string href_;
-  SrSVGLength x_{0}, y_{0}, width_{0}, height_{0};
+  SrSVGLength x_{0}, y_{0};
+  std::optional<SrSVGLength> width_;
+  std::optional<SrSVGLength> height_;
   SrSVGPreserveAspectRatio preserve_aspect_radio_;
 };
 

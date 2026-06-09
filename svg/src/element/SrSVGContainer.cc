@@ -26,6 +26,9 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
   }
   const bool has_opacity_layer = opacity_ && group_opacity < 1.f;
   if (has_opacity_layer) {
+    // TODO: Compute tight layer bounds for group opacity. Correctness requires
+    // whole-group composition; passing nullptr keeps the result correct but may
+    // allocate a larger offscreen layer than necessary.
     canvas->BeginOpacityLayer(nullptr, group_opacity);
   }
   for (SrSVGNodeBase* child : children_) {
