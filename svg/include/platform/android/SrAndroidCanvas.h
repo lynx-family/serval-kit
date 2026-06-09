@@ -71,9 +71,9 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   void DrawUse(const char* href, float x, float y, float width,
                float height) override;
 
-  void DrawImage(
-      const char* url, float x, float y, float width, float height,
-      const SrSVGPreserveAspectRatio& preserve_aspect_radio) override;
+  void DrawImage(const char* url, float x, float y, float width, float height,
+                 const SrSVGPreserveAspectRatio& preserve_aspect_radio,
+                 float opacity = 1.f) override;
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
   void ClipRect(float left, float top, float right, float bottom);
   bool SupportsFilters() const override { return true; }

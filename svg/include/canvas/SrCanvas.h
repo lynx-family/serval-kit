@@ -252,9 +252,10 @@ class SrCanvas {
       SrSVGObjectBoundingBoxUnitType bounding_box_type) = 0;
   virtual void DrawUse(const char* href, float x, float y, float width,
                        float height) = 0;
-  virtual void DrawImage(
-      const char* url, float x, float y, float width, float height,
-      const SrSVGPreserveAspectRatio& preserve_aspect_radio) = 0;
+  virtual void DrawImage(const char* url, float x, float y, float width,
+                         float height,
+                         const SrSVGPreserveAspectRatio& preserve_aspect_radio,
+                         float opacity = 1.f) = 0;
   virtual void Translate(float x, float y) = 0;
   virtual void Transform(const float (&form)[6]) = 0;
   virtual void ClipPath(Path*, SrSVGFillRule clip_rule) = 0;

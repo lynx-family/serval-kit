@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGUse.h"
+#include <cstring>
 #include <optional>
 
 #include "canvas/SrCanvas.h"
@@ -48,6 +49,20 @@ void ReportUseCycle(parser::SrSVGTraversalState* state, const std::string& href,
   }
   state->Report(SR_SVG_DIAGNOSTIC_USE_REFERENCE_CYCLE, message, href.c_str(),
                 false);
+}
+
+float ResolveUseLength(const SrSVGLength& length, SrSVGRenderContext* context,
+                       SrSVGLengthType length_type) {
+  if (!context) {
+    return length.value;
+  }
+  return convert_serval_length_to_float(&length, context, length_type);
+}
+
+void BuildUseTransform(float x, float y, const float (&use_transform)[6],
+                       float (&out)[6]) {
+  memcpy(out, use_transform, sizeof(float) * 6);
+  xform_pre_translate(out, x, y);
 }
 
 }  // namespace
@@ -111,6 +126,9 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+  if (!context) {
+    return nullptr;
+  }
   IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
   auto* traversal_state = GetTraversalState(context);
   if (!id_mapper || href_.empty() || !traversal_state) {
@@ -124,9 +142,23 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
 
   auto it = id_mapper->find(href_);
   if (it != id_mapper->end() && it->second) {
-    auto path = it->second->AsPath(path_factory, context);
+    SrSVGNodeBase* referenced_node = it->second;
+    if (referenced_node->Tag() == SrSVGTag::kSvg) {
+      LeaveUseReference(traversal_state, href_);
+      return nullptr;
+    }
+
+    auto path = referenced_node->AsPath(path_factory, context);
     LeaveUseReference(traversal_state, href_);
-    return path;
+    if (!path) {
+      return nullptr;
+    }
+    const float x =
+        ResolveUseLength(x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
+    const float y = ResolveUseLength(y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
+    float use_transform[6];
+    BuildUseTransform(x, y, transform_, use_transform);
+    return path->CreateTransformCopy(use_transform);
   }
   LeaveUseReference(traversal_state, href_);
   return nullptr;
@@ -135,6 +167,9 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
 void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
                               SrSVGRenderContext& context) {
   if (!nodeBase || !nodeBase->IsSVGNode()) {
+    return;
+  }
+  if (nodeBase->Tag() == SrSVGTag::kSvg) {
     return;
   }
   SrSVGNode* node = static_cast<SrSVGNode*>(nodeBase);
@@ -203,10 +238,8 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
   }
 
-  float x = convert_serval_length_to_float(&x_, &context,
-                                           SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float y = convert_serval_length_to_float(&y_, &context,
-                                           SR_SVG_LENGTH_TYPE_VERTICAL);
+  float x = ResolveUseLength(x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
+  float y = ResolveUseLength(y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL);
   canvas->Transform(transform_);
   canvas->Translate(x, y);
 
@@ -233,6 +266,9 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   }
   const bool has_opacity_layer = opacity_ && use_opacity < 1.f;
   if (has_opacity_layer) {
+    // TODO: Compute tight layer bounds for use opacity. Correctness requires
+    // whole-use composition; passing nullptr keeps the result correct but may
+    // allocate a larger offscreen layer than necessary.
     canvas->BeginOpacityLayer(nullptr, use_opacity);
   }
 

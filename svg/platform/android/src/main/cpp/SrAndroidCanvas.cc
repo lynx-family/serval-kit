@@ -774,7 +774,7 @@ void SrAndroidCanvas::Draw(JavaLocalRef<jobject>& path_ref,
 
 void SrAndroidCanvas::DrawImage(
     const char* href, float x, float y, float width, float height,
-    const SrSVGPreserveAspectRatio& preserve_aspect_radio) {
+    const SrSVGPreserveAspectRatio& preserve_aspect_radio, float opacity) {
   LOGD("SrAndroidCanvas::drawImage");
   JavaLocalRef<jclass> render_clazz_ref = GetClass(jni_env_, j_render_);
   if (render_clazz_ref.IsNull()) {
@@ -782,7 +782,7 @@ void SrAndroidCanvas::DrawImage(
   }
   jmethodID j_draw_image =
       GetMethod(jni_env_, render_clazz_ref.Get(), INSTANCE_METHOD, "drawImage",
-                "(Ljava/lang/String;FFFFIII)V",
+                "(Ljava/lang/String;FFFFIIIF)V",
                 &(SrAndroidCanvas::g_SVGRender_draw_image_));
   if (j_draw_image) {
     JavaLocalRef<jstring> j_string_ref(
@@ -790,7 +790,7 @@ void SrAndroidCanvas::DrawImage(
     jni_env_->CallVoidMethod(j_render_, j_draw_image, j_string_ref.Get(), x, y,
                              width, height, preserve_aspect_radio.align_x,
                              preserve_aspect_radio.align_y,
-                             preserve_aspect_radio.scale);
+                             preserve_aspect_radio.scale, opacity);
   }
 }
 

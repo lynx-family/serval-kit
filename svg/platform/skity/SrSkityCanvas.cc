@@ -1037,17 +1037,25 @@ void SrSkityCanvas::DrawUse(const char* href, float x, float y, float width,
 
 void SrSkityCanvas::DrawImage(
     const char* url, float x, float y, float width, float height,
-    const SrSVGPreserveAspectRatio& preserve_aspect_radio) {
+    const SrSVGPreserveAspectRatio& preserve_aspect_radio, float opacity) {
   if (url) {
     std::string href(url);
 
     if (image_callback_) {
       auto image = image_callback_(href);
       if (image) {
+        const float image_width = static_cast<float>(image->Width());
+        const float image_height = static_cast<float>(image->Height());
+        if (!FloatsLarger(image_width, 0.f) ||
+            !FloatsLarger(image_height, 0.f)) {
+          return;
+        }
+        if (!FloatsLarger(width, 0.f) || !FloatsLarger(height, 0.f)) {
+          return;
+        }
         float form[6];
         SrSVGBox view_port{x, y, width, height};
-        SrSVGBox view_box{0, 0, static_cast<float>(image->Width()),
-                          static_cast<float>(image->Height())};
+        SrSVGBox view_box{0, 0, image_width, image_height};
         calculate_view_box_transform(&view_port, &view_box,
                                      preserve_aspect_radio, form);
         canvas_->Save();
@@ -1059,8 +1067,10 @@ void SrSkityCanvas::DrawImage(
         canvas_->Concat(flipY);
         ::skity::SamplingOptions options{};
         options.filter = ::skity::FilterMode::kLinear;
+        ::skity::Paint paint;
+        paint.SetAlpha(static_cast<uint8_t>(ClampUnitFloat(opacity) * 255.f));
         canvas_->DrawImage(image, ::skity::Rect::MakeXYWH(x, y, width, height),
-                           options);
+                           options, &paint);
         canvas_->Restore();
       }
     }
