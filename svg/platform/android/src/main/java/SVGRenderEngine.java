@@ -63,7 +63,11 @@ public class SVGRenderEngine {
     if (mInstance == null) {
       synchronized (SVGRenderEngine.class) {
         if (mInstance == null) {
-          mInstance = new SVGRenderEngine();
+          SVGRenderEngine instance = new SVGRenderEngine();
+          if (!instance.isNativeReady()) {
+            return null;
+          }
+          mInstance = instance;
         }
       }
     }
@@ -71,6 +75,12 @@ public class SVGRenderEngine {
   }
 
   private SVGRenderEngine() { loadNativeLibrary(); }
+
+  public static boolean isNativeLibraryLoaded() {
+    return sIsNativeLibraryLoaded;
+  }
+
+  private boolean isNativeReady() { return sIsNativeLibraryLoaded; }
 
   private void loadNativeLibrary() {
     if (sIsNativeLibraryLoaded) {
