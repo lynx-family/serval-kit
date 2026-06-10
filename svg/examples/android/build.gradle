@@ -10,7 +10,7 @@ buildscript {
         compileSdkVersion = 30
         targetSdkVersion = 29
         ndkVersion = ndk_version
-        abiList=['armeabi-v7a', 'arm64-v8a']
+        abiList=['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
     }
     repositories {
         google()
