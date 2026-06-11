@@ -12,6 +12,7 @@
 @property(nonatomic, strong) id<MTLDevice> device;
 @property(nonatomic, strong) id<MTLCommandQueue> commandQueue;
 @property(nonatomic, copy) NSString* color;
+@property(nonatomic, assign) BOOL useSoftwareCanvas;
 
 - (void)setSVGContent:(NSString*)content;
 - (void)loadSVGFromFile:(NSString*)path;

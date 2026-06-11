@@ -76,6 +76,130 @@ Responsible for UI interaction and SVG file loading:
 - Manage SVGMetalView lifecycle
 - Handle SVG file loading logic
 
+## Rendering With Skity + SVG
+
+The macOS example renders SVG through `SrSkityCanvas`, an adapter that converts
+Serval SVG drawing commands into Skity drawing commands.
+
+Basic rendering flow:
+
+1. Parse SVG text into `serval::svg::parser::SrSVGDOM`.
+2. Get a `skity::Canvas` from a Metal surface, an offscreen GPU render target,
+   or a software bitmap.
+3. Wrap the Skity canvas with `serval::svg::skity::SrSkityCanvas`.
+4. Call `SrSVGDOM::Render()` with the desired viewport.
+5. Flush the Skity canvas and surface when presenting to the screen.
+
+Minimal SVG render call:
+
+```objc
+std::string svg_text([svgString UTF8String]);
+auto svg_dom = serval::svg::parser::SrSVGDOM::make(
+    svg_text.c_str(), svg_text.length(), nullptr);
+
+serval::svg::skity::SrSkityCanvas svg_canvas(
+    skity_canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
+      return nullptr;
+    });
+
+SrSVGBox viewport{0.f, 0.f, width, height};
+svg_dom->Render(&svg_canvas, viewport);
+```
+
+`SrSkityCanvas` receives SVG operations such as path drawing, clipping, layers,
+gradients, filters, and images, then issues the corresponding Skity calls on
+the wrapped `skity::Canvas`.
+
+### Hardware Rendering
+
+Hardware rendering uses Skity's Metal GPU backend. In the direct onscreen path,
+lock the layer-backed `skity::GPUSurface`, render the SVG into its canvas, and
+flush:
+
+```objc
+auto* canvas = gpu_surface->LockCanvas();
+canvas->DrawColor(skity::Color_WHITE);
+
+serval::svg::skity::SrSkityCanvas svg_canvas(canvas, image_callback);
+svg_dom->Render(&svg_canvas, SrSVGBox{0.f, 0.f, width, height});
+
+canvas->Flush();
+gpu_surface->Flush();
+```
+
+The current `SVGMetalView` uses an offscreen hardware path first, then draws
+the snapshot image onto the layer-backed canvas:
+
+```objc
+skity::GPURenderTargetDescriptor desc;
+desc.width = width;
+desc.height = height;
+desc.sample_count = 4;
+
+auto render_target = gpu_context->CreateRenderTarget(desc);
+auto* offscreen_canvas = render_target->GetCanvas();
+
+serval::svg::skity::SrSkityCanvas svg_canvas(offscreen_canvas, image_callback);
+svg_dom->Render(&svg_canvas, SrSVGBox{0.f, 0.f, width, height});
+
+std::shared_ptr<skity::Image> image =
+    gpu_context->MakeSnapshot(std::move(render_target));
+```
+
+Present the image on the visible Metal surface:
+
+```objc
+auto* canvas = gpu_surface->LockCanvas();
+skity::SamplingOptions options;
+options.filter = skity::FilterMode::kLinear;
+canvas->DrawImage(image, skity::Rect::MakeXYWH(0.f, 0.f, width, height),
+                  options, nullptr);
+canvas->Flush();
+gpu_surface->Flush();
+```
+
+### Software Rendering
+
+Software rendering first rasterizes into a `skity::Bitmap` using
+`Canvas::MakeSoftwareCanvas`. The result is then uploaded to a GPU texture so
+it can be presented through the same Metal surface.
+
+```objc
+auto bitmap = std::make_unique<skity::Bitmap>(
+    width, height, skity::AlphaType::kPremul_AlphaType);
+auto software_canvas = skity::Canvas::MakeSoftwareCanvas(bitmap.get());
+
+software_canvas->DrawColor(skity::Color_WHITE);
+serval::svg::skity::SrSkityCanvas svg_canvas(software_canvas.get(),
+                                             image_callback);
+svg_dom->Render(&svg_canvas, SrSVGBox{0.f, 0.f, width, height});
+
+auto pixmap = bitmap->GetPixmap();
+auto texture = gpu_context->CreateTexture(
+    skity::Texture::FormatFromColorType(pixmap->GetColorType()),
+    pixmap->Width(), pixmap->Height(), pixmap->GetAlphaType());
+texture->DeferredUploadImage(std::move(pixmap));
+
+std::shared_ptr<skity::Image> image = skity::Image::MakeHWImage(texture);
+```
+
+After that, draw `image` onto the layer-backed canvas exactly like the
+offscreen hardware path.
+
+### Image Loading
+
+`SrSkityCanvas` receives an image callback:
+
+```objc
+[](std::string url) -> std::shared_ptr<skity::Image> {
+  return nullptr;
+}
+```
+
+Return a Skity image from this callback to support SVG `<image>` elements. The
+macOS example currently returns `nullptr`, so external image resources are not
+loaded by default.
+
 ## Compilation and Execution
 
 ### Prerequisites
