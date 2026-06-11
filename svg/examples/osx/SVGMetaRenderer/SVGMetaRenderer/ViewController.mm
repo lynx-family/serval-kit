@@ -9,6 +9,7 @@
 @interface ViewController ()
 
 @property(nonatomic, strong) NSPopUpButton* categoryPopUpButton;
+@property(nonatomic, strong) NSSegmentedControl* renderModeControl;
 @property(nonatomic, strong) NSScrollView* scrollView;
 @property(nonatomic, strong) NSView* documentView;
 @property(nonatomic, strong) NSArray<NSString*>* categories;
@@ -20,6 +21,7 @@
 @property(nonatomic, strong) NSDictionary<NSString*, NSValue*>* rowFrames;
 @property(nonatomic, copy) NSString* pendingScrollTarget;
 @property(nonatomic, assign) CGFloat lastContentWidth;
+@property(nonatomic, assign) BOOL useSoftwareCanvas;
 
 @end
 
@@ -365,6 +367,30 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   self.categoryPopUpButton.layer.masksToBounds = YES;
 }
 
+- (void)applyRenderModeControlStyle {
+  NSColor* borderColor = [NSColor colorWithRed:75.0 / 255.0
+                                         green:82.0 / 255.0
+                                          blue:95.0 / 255.0
+                                         alpha:1.0];
+  NSColor* backgroundColor = [NSColor colorWithRed:226.0 / 255.0
+                                             green:230.0 / 255.0
+                                              blue:238.0 / 255.0
+                                             alpha:1.0];
+  self.renderModeControl.segmentStyle = NSSegmentStyleRounded;
+  self.renderModeControl.font = [NSFont systemFontOfSize:13.0
+                                                  weight:NSFontWeightMedium];
+  [self.renderModeControl setLabel:@"Hardware" forSegment:0];
+  [self.renderModeControl setLabel:@"Software" forSegment:1];
+  [self.renderModeControl setWidth:92.0 forSegment:0];
+  [self.renderModeControl setWidth:112.0 forSegment:1];
+  self.renderModeControl.wantsLayer = YES;
+  self.renderModeControl.layer.backgroundColor = backgroundColor.CGColor;
+  self.renderModeControl.layer.borderColor = borderColor.CGColor;
+  self.renderModeControl.layer.borderWidth = 1.0;
+  self.renderModeControl.layer.cornerRadius = 6.0;
+  self.renderModeControl.layer.masksToBounds = YES;
+}
+
 - (void)scrollToPendingTargetIfNeeded {
   if (self.pendingScrollTarget.length == 0) {
     return;
@@ -555,6 +581,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
         initWithFrame:NSMakeRect(previewX, metadataBottom + 12.0, previewWidth,
                                  previewHeight)];
     previewView.color = hostColor.length > 0 ? hostColor : nil;
+    previewView.useSoftwareCanvas = self.useSoftwareCanvas;
     previewView.wantsLayer = YES;
     previewView.metalLayer.borderWidth = 1.0;
     previewView.metalLayer.borderColor = previewBorderColor.CGColor;
@@ -581,6 +608,16 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   self.categoryPopUpButton.target = self;
   self.categoryPopUpButton.action = @selector(categoryDidChange:);
   [self.view addSubview:self.categoryPopUpButton];
+
+  self.renderModeControl =
+      [[NSSegmentedControl alloc] initWithFrame:NSZeroRect];
+  self.renderModeControl.segmentCount = 2;
+  self.renderModeControl.trackingMode = NSSegmentSwitchTrackingSelectOne;
+  self.renderModeControl.selectedSegment = 0;
+  [self applyRenderModeControlStyle];
+  self.renderModeControl.target = self;
+  self.renderModeControl.action = @selector(renderModeDidChange:);
+  [self.view addSubview:self.renderModeControl];
 
   self.scrollView = [[NSScrollView alloc] initWithFrame:NSZeroRect];
   self.scrollView.hasVerticalScroller = YES;
@@ -624,6 +661,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
       [self buildCategorizedFiles:[self loadBuiltInSVGFiles]];
   self.selectedCategory = kCategoryShape;
   self.lastContentWidth = -1.0;
+  self.useSoftwareCanvas = NO;
 
   [self setupViews];
 
@@ -645,6 +683,9 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   self.categoryPopUpButton.frame =
       NSMakeRect(horizontalInset, viewHeight - topInset - controlHeight, 220.0,
                  controlHeight);
+  self.renderModeControl.frame =
+      NSMakeRect(NSMaxX(self.categoryPopUpButton.frame) + spacing,
+                 viewHeight - topInset - controlHeight, 204.0, controlHeight);
   self.scrollView.frame =
       NSMakeRect(0.0, 0.0, viewWidth,
                  MAX(viewHeight - topInset - controlHeight - spacing, 0.0));
@@ -670,6 +711,27 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   self.selectedCategory = selectedTitle;
   self.pendingScrollTarget = nil;
   [self reloadPreviewRows];
+}
+
+- (void)applyRenderModeToPreviewViewsInView:(NSView*)view {
+  if ([view isKindOfClass:[SVGMetalView class]]) {
+    SVGMetalView* previewView = (SVGMetalView*)view;
+    previewView.useSoftwareCanvas = self.useSoftwareCanvas;
+    [previewView render];
+    return;
+  }
+  for (NSView* subview in view.subviews) {
+    [self applyRenderModeToPreviewViewsInView:subview];
+  }
+}
+
+- (void)renderModeDidChange:(id)sender {
+  BOOL useSoftware = self.renderModeControl.selectedSegment == 1;
+  if (self.useSoftwareCanvas == useSoftware) {
+    return;
+  }
+  self.useSoftwareCanvas = useSoftware;
+  [self applyRenderModeToPreviewViewsInView:self.documentView];
 }
 
 - (void)loadSVGFile:(NSString*)fileName {

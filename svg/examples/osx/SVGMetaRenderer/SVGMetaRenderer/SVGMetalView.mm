@@ -55,7 +55,6 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
   std::unique_ptr<SrSVGDOM> _svgDom;
   std::unique_ptr<skity::GPUContext> _gpuContext;
   std::unique_ptr<skity::GPUSurface> _gpuSurface;
-  skity::Canvas* _canvas;
 }
 
 @end
@@ -178,21 +177,12 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
   [self render];
 }
 
-- (void)render {
-  if (!_gpuSurface) {
-    [self recreateSurface];
-  }
-  if (!_gpuSurface) {
+- (void)drawContentOnCanvas:(skity::Canvas*)canvas
+                      width:(float)width
+                     height:(float)height {
+  if (!canvas) {
     return;
   }
-
-  _canvas = _gpuSurface->LockCanvas();
-  if (!_canvas) {
-    return;
-  }
-
-  _canvas->DrawColor(skity::Color_WHITE);
-
   if (_svgDom) {
     if (self.color.length > 0) {
       uint32_t default_color = 0;
@@ -206,12 +196,12 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
     }
 
     SrSkityCanvas sr_canvas(
-        _canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
+        canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
           return nullptr;
         });
 
-    SrSVGBox view_port{0.f, 0.f, static_cast<float>(NSWidth(self.bounds)),
-                       static_cast<float>(NSHeight(self.bounds))};
+    SrSVGBox view_port{0.f, 0.f, width, height};
+    //canvas->ClipRect(skity::Rect::MakeXYWH(0.f, 0.f, width, height));
     _svgDom->Render(&sr_canvas, view_port);
   } else {
     skity::Paint paint;
@@ -221,12 +211,98 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
     paint.SetTypeface(skity::Typeface::GetDefaultTypeface());
     skity::TextBlobBuilder builder;
     auto blob = builder.BuildTextBlob("No SVG loaded.", paint);
-    _canvas->DrawTextBlob(blob.get(), 24.f, 48.f, paint);
+    canvas->DrawTextBlob(blob.get(), 24.f, 48.f, paint);
+  }
+}
+
+- (std::shared_ptr<skity::Image>)makeGPUImageWithWidth:(float)width
+                                                height:(float)height {
+  if (!_gpuContext) {
+    return nullptr;
   }
 
-  _canvas->Flush();
+  skity::GPURenderTargetDescriptor desc;
+  desc.width = width;
+  desc.height = height;
+  desc.sample_count = 4;
+  auto render_target = _gpuContext->CreateRenderTarget(desc);
+  if (!render_target) {
+    return nullptr;
+  }
+
+  auto* canvas = render_target->GetCanvas();
+  if (!canvas) {
+    return nullptr;
+  }
+  canvas->DrawColor(skity::Color_WHITE);
+  [self drawContentOnCanvas:canvas width:width height:height];
+
+  return _gpuContext->MakeSnapshot(std::move(render_target));
+}
+
+- (std::shared_ptr<skity::Image>)makeSoftwareImageWithWidth:(float)width
+                                                     height:(float)height {
+  if (!_gpuContext) {
+    return nullptr;
+  }
+
+  auto bitmap = std::make_unique<skity::Bitmap>(
+      width, height, skity::AlphaType::kPremul_AlphaType);
+  auto canvas = skity::Canvas::MakeSoftwareCanvas(bitmap.get());
+  if (!canvas) {
+    return nullptr;
+  }
+  canvas->DrawColor(skity::Color_WHITE);
+  [self drawContentOnCanvas:canvas.get() width:width height:height];
+
+  auto pixmap = bitmap->GetPixmap();
+  if (!pixmap) {
+    return nullptr;
+  }
+
+  auto texture = _gpuContext->CreateTexture(
+      skity::Texture::FormatFromColorType(pixmap->GetColorType()),
+      pixmap->Width(), pixmap->Height(), pixmap->GetAlphaType());
+  if (!texture) {
+    return nullptr;
+  }
+  texture->DeferredUploadImage(std::move(pixmap));
+
+  return skity::Image::MakeHWImage(texture);
+}
+
+- (void)render {
+  if (!_gpuSurface) {
+    [self recreateSurface];
+  }
+  if (!_gpuSurface) {
+    return;
+  }
+
+  auto* canvas = _gpuSurface->LockCanvas();
+  if (!canvas) {
+    return;
+  }
+
+  const float width = static_cast<float>(NSWidth(self.bounds));
+  const float height = static_cast<float>(NSHeight(self.bounds));
+  canvas->DrawColor(skity::Color_WHITE);
+
+  std::shared_ptr<skity::Image> image =
+      self.useSoftwareCanvas
+          ? [self makeSoftwareImageWithWidth:width height:height]
+          : [self makeGPUImageWithWidth:width height:height];
+  if (image) {
+    skity::SamplingOptions options{};
+    options.filter = skity::FilterMode::kLinear;
+    canvas->DrawImage(image, skity::Rect::MakeXYWH(0.f, 0.f, width, height),
+                      options, nullptr);
+  } else {
+    [self drawContentOnCanvas:canvas width:width height:height];
+  }
+
+  canvas->Flush();
   _gpuSurface->Flush();
-  _canvas = nullptr;
 }
 
 - (void)viewDidMoveToWindow {
