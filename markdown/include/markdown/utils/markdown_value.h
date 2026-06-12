@@ -26,6 +26,8 @@ using ValueArray = std::vector<std::unique_ptr<Value>>;
 using ValueMap = std::unordered_map<std::string, std::unique_ptr<Value>>;
 class L_EXPORT Value {
  public:
+  virtual ~Value();
+
   ValueType GetType() const { return type_; }
   static std::unique_ptr<Value> MakeNull();
   static std::unique_ptr<Value> MakeInt(int32_t content = 0);

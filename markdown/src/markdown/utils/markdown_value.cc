@@ -25,6 +25,7 @@ using IntValue = ValueTemplate<int32_t, ValueType::kInt>;
 using LongValue = ValueTemplate<int64_t, ValueType::kLong>;
 using DoubleValue = ValueTemplate<double, ValueType::kDouble>;
 using StringValue = ValueTemplate<std::string, ValueType::kString>;
+Value::~Value() = default;
 std::unique_ptr<Value> Value::MakeNull() {
   return std::make_unique<NullValue>();
 }
