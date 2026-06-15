@@ -58,6 +58,7 @@ public class SVGRender {
   private static final int FILTER_OP_OFFSET = 1;
   private static final int FILTER_OP_COLOR_MATRIX = 2;
   private static final int FILTER_OP_LUMINANCE_TO_ALPHA = 3;
+  private static final int DIAGNOSTIC_NATIVE_LIBRARY_LOAD_FAILED = 6;
   private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
       0f, 0f, 0f, 0f, 0f, 0f,      0f,      0f,      0f, 0f,
       0f, 0f, 0f, 0f, 0f, 0.2126f, 0.7152f, 0.0722f, 0f, 0f,
@@ -102,7 +103,7 @@ public class SVGRender {
   private static final int ALIGNMENT_MAX = 3;
   private Canvas mPictureCanvas;
   private HashMap<String, Pair<String, GradientModel>> mGradientModels;
-  private SVGRenderEngine mSVGRenderEngineNG;
+  @Nullable private SVGRenderEngine mSVGRenderEngineNG;
   private ResourceManager mResourceProvider;
   private String mColorString = null;
   private int mCanvasWidth = 0;
@@ -157,6 +158,16 @@ public class SVGRender {
     mColorString = color.trim();
   }
 
+  private static SVGDiagnostic makeNativeLibraryLoadFailedDiagnostic() {
+    String nativeLoadError = SVGRenderEngine.getNativeLibraryLoadError();
+    String message =
+        TextUtils.isEmpty(nativeLoadError)
+            ? "SVG native library is not loaded."
+            : "SVG native library is not loaded: " + nativeLoadError;
+    return new SVGDiagnostic(DIAGNOSTIC_NATIVE_LIBRARY_LOAD_FAILED, message,
+                             "serval_svg", true);
+  }
+
   @Nullable
   public String getColor() {
     return mColorString;
@@ -179,16 +190,24 @@ public class SVGRender {
     mPictureCanvas =
         picture.beginRecording(viewPort.width(), viewPort.height());
     SVGDiagnostic[] diagnostics = null;
+    if (mSVGRenderEngineNG == null) {
+      mSVGRenderEngineNG = SVGRenderEngine.getInstance();
+    }
     if (mSVGRenderEngineNG != null) {
       diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
           this, content, viewPort.left, viewPort.top, viewPort.width(),
           viewPort.height(), getColor());
     }
     picture.endRecording();
-    List<SVGDiagnostic> diagnosticList =
-        diagnostics == null || diagnostics.length == 0
-            ? Collections.<SVGDiagnostic>emptyList()
-            : Collections.unmodifiableList(Arrays.asList(diagnostics));
+    List<SVGDiagnostic> diagnosticList;
+    if (mSVGRenderEngineNG == null) {
+      diagnosticList =
+          Collections.singletonList(makeNativeLibraryLoadFailedDiagnostic());
+    } else if (diagnostics == null || diagnostics.length == 0) {
+      diagnosticList = Collections.<SVGDiagnostic>emptyList();
+    } else {
+      diagnosticList = Collections.unmodifiableList(Arrays.asList(diagnostics));
+    }
     return new SVGRenderResult(picture, diagnosticList);
   }
 
