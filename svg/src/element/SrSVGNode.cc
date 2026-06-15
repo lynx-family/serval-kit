@@ -137,11 +137,10 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
             canvas->Save();
             clip_to_box(filter_model.region);
             filter_clipped = true;
-          } else {
-            filter_output_empty = true;
           }
-        } else {
-          filter_output_empty = true;
+          // Unsupported filter graphs fall back to rendering the source
+          // element without the filter. Only an explicitly empty filter region
+          // should suppress the source output.
         }
       }
     }
