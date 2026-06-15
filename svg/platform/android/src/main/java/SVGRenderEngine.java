@@ -57,8 +57,10 @@ public class SVGRenderEngine {
   private static final int PATH_OP_REVERSE_DIFFERENCE = 4;
   public static final int JNI_OK = 0;
   private static volatile boolean sIsNativeLibraryLoaded = false;
+  @Nullable private static volatile String sNativeLibraryLoadError = null;
   private static SVGRenderEngine mInstance;
 
+  @Nullable
   public static SVGRenderEngine getInstance() {
     if (mInstance == null) {
       synchronized (SVGRenderEngine.class) {
@@ -80,6 +82,11 @@ public class SVGRenderEngine {
     return sIsNativeLibraryLoaded;
   }
 
+  @Nullable
+  static String getNativeLibraryLoadError() {
+    return sNativeLibraryLoadError;
+  }
+
   private boolean isNativeReady() { return sIsNativeLibraryLoaded; }
 
   private void loadNativeLibrary() {
@@ -89,10 +96,12 @@ public class SVGRenderEngine {
     try {
       System.loadLibrary(LIB_SERVAL_SVG);
     } catch (UnsatisfiedLinkError error) {
-      Log.e(TAG, "Loading native library fail: " + error.getMessage());
+      sNativeLibraryLoadError = error.getMessage();
+      Log.e(TAG, "Loading native library fail: " + sNativeLibraryLoadError);
       return;
     }
     Log.i(TAG, "Loading native library successfully");
+    sNativeLibraryLoadError = null;
     sIsNativeLibraryLoaded = true;
   }
 
