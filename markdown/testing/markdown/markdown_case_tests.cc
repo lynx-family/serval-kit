@@ -1,8 +1,12 @@
 // Copyright 2025 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#include <algorithm>
 #include <fstream>
+#include <limits>
+#include <memory>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "markdown/draw/markdown_drawer.h"
@@ -14,6 +18,7 @@
 #include "markdown/view/markdown_view.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+#include "testing/markdown/markdown_case_builder.h"
 #include "testing/markdown/markdown_tests_platform.h"
 #include "testing/markdown/mock_markdown_canvas.h"
 #include "testing/markdown/mock_markdown_frame_driver.h"
@@ -24,55 +29,7 @@ namespace serval::markdown {
 namespace testing {
 namespace fs = std::filesystem;
 const fs::path CASES_PATH = "markdown/testing/markdown/cases";
-using ValuePtr = std::unique_ptr<Value>;
-std::unique_ptr<Value> ConvertJson(const rapidjson::Value& value) {
-  switch (value.GetType()) {
-    case rapidjson::kFalseType:
-      return Value::MakeBool(false);
-    case rapidjson::kTrueType:
-      return Value::MakeBool(true);
-    case rapidjson::kObjectType: {
-      ValueMap map;
-      for (auto& [key, var] : value.GetObject()) {
-        map[key.GetString()] = ConvertJson(var);
-      }
-      return Value::MakeMap(std::move(map));
-    }
-    case rapidjson::kArrayType: {
-      ValueArray array;
-      for (uint32_t i = 0; i < value.Size(); i++) {
-        array.emplace_back(ConvertJson(value[i]));
-      }
-      return Value::MakeArray(std::move(array));
-    }
-    case rapidjson::kStringType:
-      return Value::MakeString(value.GetString());
-    case rapidjson::kNumberType:
-      return Value::MakeDouble(value.GetDouble());
-    default:
-      return Value::MakeNull();
-  }
-}
-std::unique_ptr<Value> ConvertJson(const std::string& json) {
-  rapidjson::Document doc;
-  doc.Parse(json);
-  return ConvertJson(doc);
-}
-
-std::string ReadFileToString(const fs::path& path) {
-  std::ifstream input(path);
-  std::string str((std::istreambuf_iterator<char>(input)),
-                  std::istreambuf_iterator<char>());
-  input.close();
-  return str;
-}
-
-ValuePtr ReadJsonFileToValue(const fs::path& path) {
-  auto str = ReadFileToString(path);
-  rapidjson::Document doc;
-  doc.Parse(str);
-  return ConvertJson(doc);
-}
+using ValuePtr = MarkdownCaseValuePtr;
 
 std::string SerializeJson(const rapidjson::Value& value) {
   rapidjson::StringBuffer s;
@@ -82,23 +39,7 @@ std::string SerializeJson(const rapidjson::Value& value) {
   return s.GetString();
 }
 
-bool ParseRectValue(Value* value, RectF* rect) {
-  if (value == nullptr || rect == nullptr ||
-      value->GetType() != ValueType::kArray) {
-    return false;
-  }
-  const auto& array = value->AsArray();
-  if (array.size() < 4) {
-    return false;
-  }
-  *rect = RectF::MakeLTRB(static_cast<float>(array[0]->GetDouble()),
-                          static_cast<float>(array[1]->GetDouble()),
-                          static_cast<float>(array[2]->GetDouble()),
-                          static_cast<float>(array[3]->GetDouble()));
-  return true;
-}
-
-class MarkdownCaseUnittest {
+class MarkdownCaseUnittest : public MarkdownCaseConfig {
  public:
   MarkdownCaseUnittest() {
     resource_loader_ = std::make_unique<MockMarkdownResourceLoader>();
@@ -112,7 +53,8 @@ class MarkdownCaseUnittest {
     if (!fs::is_regular_file(default_attributes)) {
       return;
     }
-    ApplyAttributes(ReadJsonFileToValue(default_attributes));
+    ApplyAttributes(MarkdownCaseBuilder::ReadJsonFileToValue(
+        default_attributes));
   }
 
   void ParseLayoutAndDraw() const {
@@ -199,150 +141,24 @@ class MarkdownCaseUnittest {
   }
 
   void ApplyAttributes(const ValuePtr& attributes) {
-    if (attributes->GetType() == ValueType::kMap) {
-      auto& map = attributes->AsMap();
-      if (const auto iter = map.find("width"); iter != map.end()) {
-        width_ = iter->second->AsDouble();
-      }
-      if (const auto iter = map.find("height"); iter != map.end()) {
-        height_ = iter->second->AsDouble();
-      }
-      if (const auto iter = map.find("animation-type"); iter != map.end()) {
-        const auto& type = iter->second->AsString();
-        if (type == "typewriter") {
-          animation_type_ = MarkdownAnimationType::kTypewriter;
-        } else if (type == "line-expand") {
-          animation_type_ = MarkdownAnimationType::kLineExpand;
-        } else {
-          animation_type_ = MarkdownAnimationType::kNone;
-        }
-      }
-      if (const auto iter = map.find("use-char-based-drawer");
-          iter != map.end()) {
-        use_char_based_drawer_ = iter->second->AsBool();
-      }
-      if (const auto iter = map.find("generate"); iter != map.end()) {
-        generate_ground_truth_ = iter->second->AsBool();
-      }
-      if (const auto iter = map.find("initial-animation-step");
-          iter != map.end()) {
-        animation_step_ = iter->second->GetInt();
-      }
-      if (const auto iter = map.find("text-maxlines"); iter != map.end()) {
-        max_lines_ = iter->second->GetInt();
-      }
-      if (const auto iter = map.find("content-complete"); iter != map.end()) {
-        content_complete_ = iter->second->AsBool();
-        draw_cursor_if_complete_ = !content_complete_;
-      }
-      if (const auto iter = map.find("style"); iter != map.end()) {
-        MergeMap(style_map_, iter->second->AsMap());
-      }
-      if (const auto iter = map.find("text-mark-attachments");
-          iter != map.end()) {
-        attachments_ = std::move(iter->second);
-      }
-      if (const auto iter = map.find("animation-velocity"); iter != map.end()) {
-        animation_velocity_ = iter->second->GetDouble();
-      }
-      if (const auto iter = map.find("enable-region-view"); iter != map.end()) {
-        region_view_ = iter->second->AsBool();
-      }
-      if (const auto iter = map.find("region-rect");
-          iter != map.end() && iter->second->GetType() == ValueType::kArray) {
-        ParseRectValue(iter->second.get(), &region_rect_);
-      }
-      if (const auto iter = map.find("source-type"); iter != map.end()) {
-        source_type_ = iter->second->AsString() == "plainText"
-                           ? SourceType::kPlainText
-                           : SourceType::kMarkdown;
-      }
-      if (const auto iter = map.find("frame-step-count"); iter != map.end()) {
-        frame_step_count_ = std::max(1, iter->second->GetInt());
-      }
-      if (const auto iter = map.find("frame-step-interval-ms");
-          iter != map.end()) {
-        const auto value = static_cast<int64_t>(iter->second->GetDouble());
-        frame_step_interval_ms_ = std::max<int64_t>(0, value);
-      }
-      if (const auto iter = map.find("frame-visible-rect"); iter != map.end()) {
-        has_frame_visible_rect_ =
-            ParseRectValue(iter->second.get(), &frame_visible_rect_);
-      }
-      if (const auto iter = map.find("frame-visible-rects");
-          iter != map.end() && iter->second->GetType() == ValueType::kArray) {
-        frame_visible_rects_.clear();
-        for (const auto& value : iter->second->AsArray()) {
-          RectF rect;
-          if (ParseRectValue(value.get(), &rect)) {
-            frame_visible_rects_.push_back(rect);
-          }
-        }
-      }
-      if (const auto iter = map.find("frame-steps");
-          iter != map.end() && iter->second->GetType() == ValueType::kArray) {
-        frame_steps_.clear();
-        for (const auto& step_value : iter->second->AsArray()) {
-          if (step_value->GetType() != ValueType::kMap) {
-            continue;
-          }
-          MockMarkdownFrameStep step;
-          const auto& step_map = step_value->AsMap();
-          if (const auto interval_iter = step_map.find("interval-ms");
-              interval_iter != step_map.end()) {
-            step.interval_ms_ =
-                std::max<int64_t>(0, interval_iter->second->GetDouble());
-          }
-          if (const auto interval_iter = step_map.find("interval");
-              interval_iter != step_map.end()) {
-            step.interval_ms_ =
-                std::max<int64_t>(0, interval_iter->second->GetDouble());
-          }
-          RectF rect;
-          if (const auto rect_iter = step_map.find("visible-rect");
-              rect_iter != step_map.end() &&
-              ParseRectValue(rect_iter->second.get(), &rect)) {
-            step.has_visible_rect_ = true;
-            step.visible_rect_ = rect;
-          }
-          frame_steps_.push_back(step);
-        }
-      }
-    }
+    MarkdownCaseBuilder builder(*this);
+    builder.ApplyAttributes(attributes.get());
   }
 
   bool LoadCaseInDirectory(const fs::path& path) {
-    const auto attributes_path = path / "attributes.json";
-    const auto markdown_path = path / "markdown.md";
-    if (!fs::is_regular_file(markdown_path)) {
-      return false;
-    }
-    if (auto markdown = ReadFileToString(markdown_path); !markdown.empty()) {
-      markdown_ = markdown;
-    }
-    if (fs::is_regular_file(attributes_path)) {
-      const auto attributes = ReadJsonFileToValue(attributes_path);
-      ApplyAttributes(attributes);
-    }
-    return true;
+    MarkdownCaseBuilder builder(*this);
+    return builder.LoadCaseInDirectory(path);
   }
 
   std::vector<MockMarkdownFrameStep> BuildFrameSteps() const {
-    if (!frame_steps_.empty()) {
-      return frame_steps_;
-    }
+    const auto case_steps = MarkdownCaseBuilder::BuildFrameSteps(*this);
     std::vector<MockMarkdownFrameStep> steps;
-    steps.reserve(frame_step_count_);
-    for (int32_t i = 0; i < frame_step_count_; i++) {
+    steps.reserve(case_steps.size());
+    for (const auto& case_step : case_steps) {
       MockMarkdownFrameStep step;
-      step.interval_ms_ = frame_step_interval_ms_;
-      if (i < static_cast<int32_t>(frame_visible_rects_.size())) {
-        step.has_visible_rect_ = true;
-        step.visible_rect_ = frame_visible_rects_[i];
-      } else if (has_frame_visible_rect_) {
-        step.has_visible_rect_ = true;
-        step.visible_rect_ = frame_visible_rect_;
-      }
+      step.interval_ms_ = case_step.interval_ms_;
+      step.has_visible_rect_ = case_step.has_visible_rect_;
+      step.visible_rect_ = case_step.visible_rect_;
       steps.push_back(step);
     }
     return steps;
@@ -396,14 +212,15 @@ class MarkdownCaseUnittest {
       return;
     }
     const auto frames = RunViewCase();
-    const auto result = ConvertJson(frames);
+    const auto result = MarkdownCaseBuilder::ConvertJson(frames);
     if (generate_ground_truth_) {
       std::ofstream output(ground_truth_path);
       output << SerializeJson(frames);
       output.flush();
       output.close();
     } else if (fs::is_regular_file(ground_truth_path)) {
-      const auto ground_truth = ReadJsonFileToValue(ground_truth_path);
+      const auto ground_truth =
+          MarkdownCaseBuilder::ReadJsonFileToValue(ground_truth_path);
       ExpectValue(result, ground_truth);
     } else {
       return;
@@ -411,19 +228,8 @@ class MarkdownCaseUnittest {
     printf("end case:%s\n", case_name.c_str());
   }
 
-  static void MergeMap(ValueMap& dst, ValueMap& src) {
-    for (auto& [key, value] : src) {
-      auto dst_v = dst.find(key);
-      if (dst_v == dst.end() || dst_v->second->GetType() != ValueType::kMap) {
-        dst[key] = std::move(value);
-      } else {
-        MergeMap(dst_v->second->AsMap(), value->AsMap());
-      }
-    }
-  }
-
   void ExpectCanvas(const ValuePtr& ground_truth) const {
-    const auto result = ConvertJson(canvas_->GetJson());
+    const auto result = MarkdownCaseBuilder::ConvertJson(canvas_->GetJson());
     ExpectValue(result, ground_truth);
   }
 
@@ -481,31 +287,6 @@ class MarkdownCaseUnittest {
   std::unique_ptr<MockMarkdownResourceLoader> resource_loader_;
   std::unique_ptr<MarkdownDocument> document_;
   std::unique_ptr<MockMarkdownCanvas> canvas_;
-  std::string markdown_;
-  ValueMap style_map_;
-
-  float width_ = 0;
-  float height_ = 0;
-  int32_t max_lines_ = -1;
-  MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
-  bool use_char_based_drawer_ = false;
-  bool draw_cursor_if_complete_ = false;
-  bool content_complete_ = true;
-  int32_t animation_step_ = 0;
-  double animation_velocity_ = 0;
-  std::unique_ptr<Value> attachments_ = nullptr;
-  bool region_view_ = false;
-  RectF region_rect_;
-  SourceType source_type_ = SourceType::kMarkdown;
-
-  int32_t frame_step_count_ = 1;
-  int64_t frame_step_interval_ms_ = 16;
-  bool has_frame_visible_rect_ = false;
-  RectF frame_visible_rect_;
-  std::vector<RectF> frame_visible_rects_;
-  std::vector<MockMarkdownFrameStep> frame_steps_;
-
-  bool generate_ground_truth_ = false;
 };
 TEST(MarkdownCaseUnittest, Cases) {
   for (const auto& test_case : fs::directory_iterator(CASES_PATH)) {
@@ -809,8 +590,9 @@ TEST(MarkdownCaseUnittest, SetArrayPropAddsMarkAttachments) {
   unittest.resource_loader_->SetMainView(nullptr);
 
   ASSERT_EQ(frames.Size(), 1u);
-  const auto actual_ops = ConvertJson(frames[0]["ops"]);
-  const auto expected_ops = ConvertJson(expected.canvas_->GetJson());
+  const auto actual_ops = MarkdownCaseBuilder::ConvertJson(frames[0]["ops"]);
+  const auto expected_ops =
+      MarkdownCaseBuilder::ConvertJson(expected.canvas_->GetJson());
   MarkdownCaseUnittest::ExpectValue(actual_ops, expected_ops);
 }
 
