@@ -7,11 +7,17 @@
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGAnimation.h"
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGFilter.h"
 #include "element/SrSVGFilterPrimitives.h"
@@ -28,7 +34,135 @@ const float SrSVGNode::s_stroke_miter_limit = 4.f;
 float SrSVGNode::ClampOpacity(float opacity) {
   return ClampUnitFloat(opacity);
 }
+bool SrPreparePattern(canvas::SrCanvas* canvas, SrSVGNodeBase* node,
+                      SrSVGRenderContext& context);
 
+namespace {
+
+SrSVGLength MakePercentage(float value) {
+  return SrSVGLength{value, SR_SVG_UNITS_PERCENTAGE};
+}
+
+std::string Trim(const std::string& value) {
+  const auto start = std::find_if_not(value.begin(), value.end(), [](char c) {
+    return std::isspace(static_cast<unsigned char>(c));
+  });
+  const auto end = std::find_if_not(value.rbegin(), value.rend(), [](char c) {
+                     return std::isspace(static_cast<unsigned char>(c));
+                   }).base();
+  if (start >= end) {
+    return "";
+  }
+  return std::string(start, end);
+}
+
+std::vector<std::string> SplitCssTokens(const std::string& value) {
+  std::vector<std::string> tokens;
+  std::stringstream stream(value);
+  std::string token;
+  while (stream >> token) {
+    tokens.push_back(token);
+  }
+  return tokens;
+}
+
+bool IsHorizontalOriginKeyword(const std::string& token) {
+  return token == "left" || token == "right";
+}
+
+bool IsVerticalOriginKeyword(const std::string& token) {
+  return token == "top" || token == "bottom";
+}
+
+SrSVGLength OriginKeywordToLength(const std::string& token) {
+  if (token == "right" || token == "bottom") {
+    return MakePercentage(100.f);
+  }
+  if (token == "center") {
+    return MakePercentage(50.f);
+  }
+  return MakePercentage(0.f);
+}
+
+SrSVGLength OriginTokenToLength(const std::string& token) {
+  if (token == "left" || token == "right" || token == "top" ||
+      token == "bottom" || token == "center") {
+    return OriginKeywordToLength(token);
+  }
+  return make_serval_length(token.c_str());
+}
+
+float ResolveOriginLength(const SrSVGLength& length,
+                          const SrSVGRenderContext& context,
+                          const SrSVGBox& reference_box,
+                          SrSVGLengthType length_type) {
+  if (length.unit == SR_SVG_UNITS_PERCENTAGE) {
+    const float size = length_type == SR_SVG_LENGTH_TYPE_VERTICAL
+                           ? reference_box.height
+                           : reference_box.width;
+    return length.value / 100.f * size;
+  }
+  SrSVGRenderContext mutable_context = context;
+  return convert_serval_length_to_float(&length, &mutable_context, length_type);
+}
+
+void PrepareIRIResource(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                        SrSVGPaint* paint) {
+  if (!canvas || !paint || paint->type != SERVAL_PAINT_IRI ||
+      !paint->content.iri || strlen(paint->content.iri) == 0) {
+    return;
+  }
+  std::string id{paint->content.iri + 1};
+  IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+  if (!nodes) {
+    return;
+  }
+  auto it = nodes->find(id);
+  if (it != nodes->end() && it->second) {
+    SrPreparePattern(canvas, it->second, context);
+  }
+}
+
+bool ParseNumberWithSuffix(const std::string& value, double* number,
+                           std::string* suffix) {
+  if (!number || !suffix) {
+    return false;
+  }
+  char* end = nullptr;
+  const double parsed = std::strtod(value.c_str(), &end);
+  if (end == value.c_str()) {
+    return false;
+  }
+  *number = parsed;
+  *suffix = end ? end : "";
+  return true;
+}
+
+std::string AddAnimatedScalarValue(const std::string& base,
+                                   const std::string& addition) {
+  double base_number = 0.0;
+  double addition_number = 0.0;
+  std::string base_suffix;
+  std::string addition_suffix;
+  if (!ParseNumberWithSuffix(base, &base_number, &base_suffix) ||
+      !ParseNumberWithSuffix(addition, &addition_number, &addition_suffix) ||
+      base_suffix != addition_suffix) {
+    return "";
+  }
+  std::ostringstream stream;
+  stream << base_number + addition_number << base_suffix;
+  return stream.str();
+}
+
+bool HasZeroDefaultAnimatedAttribute(const std::string& name) {
+  return name == "x" || name == "y" || name == "x1" || name == "y1" ||
+         name == "x2" || name == "y2" || name == "cx" || name == "cy" ||
+         name == "r" || name == "rx" || name == "ry" || name == "width" ||
+         name == "height" || name == "dx" || name == "dy" ||
+         name == "stdDeviation" || name == "offset";
+}
+
+}  // namespace
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
   canvas->Save();
@@ -51,23 +185,6 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
       SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
       bool has_bounds = false;
       if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
-        // Apply transform to path for correct bounds calculation
-        bool has_transform = false;
-        for (int i = 0; i < 6; ++i) {
-          // Indices 0 and 3 are scale factors (diagonal), should be 1.0
-          if (i == 0 || i == 3) {
-            if (fabs(svg_node->transform_[i] - 1.0f) > 1e-5f)
-              has_transform = true;
-          } else {
-            if (fabs(svg_node->transform_[i]) > 1e-5f)
-              has_transform = true;
-          }
-        }
-
-        if (has_transform) {
-          path = path->CreateTransformCopy(svg_node->transform_);
-        }
-
         bounds = path->GetBounds();
         has_bounds = bounds.width > 0.f && bounds.height > 0.f;
 
@@ -233,6 +350,10 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
 bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "id") == 0) {
     id_ = value;
+  } else if (strcmp(name, "onclick") == 0 || strcmp(name, "onClick") == 0 ||
+             strcmp(name, "data-click") == 0 ||
+             strcmp(name, "data-action") == 0) {
+    click_event_ = value;
   } else if (strcmp(name, "fill") == 0) {
     release_serval_paint(fill_);
     fill_ = make_serval_paint(value);
@@ -271,12 +392,170 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     filter_ = make_serval_paint(value);
   } else if (strcmp(name, "transform") == 0) {
     ParseTransform(value, transform_);
+  } else if (strcmp(name, "transform-origin") == 0) {
+    ParseTransformOrigin(value);
+  } else if (strcmp(name, "transform-box") == 0) {
+    ParseTransformBox(value);
   } else if (strcmp(name, "color") == 0) {
     color_ = make_serval_color(value);
   } else if (strcmp(name, "style") == 0) {
     ParseStyle(value);
   }
   return false;
+}
+
+void SrSVGNode::StoreAttribute(const char* name, const char* value) {
+  if (name && value) {
+    base_attributes_[name] = value;
+  }
+}
+
+void SrSVGNode::AddAnimation(SrSVGAnimation* animation) {
+  if (animation && std::find(animations_.begin(), animations_.end(),
+                             animation) == animations_.end()) {
+    animations_.push_back(animation);
+  }
+}
+
+void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
+  std::unordered_map<std::string, std::string> presentation_values;
+  for (auto* animation : animations_) {
+    if (!animation) {
+      continue;
+    }
+    const std::string target_attribute = animation->TargetAttributeName();
+    if (target_attribute.empty()) {
+      continue;
+    }
+    auto presentation_it = presentation_values.find(target_attribute);
+    if (presentation_it == presentation_values.end()) {
+      auto base_it = base_attributes_.find(target_attribute);
+      presentation_it =
+          presentation_values
+              .emplace(target_attribute,
+                       base_it == base_attributes_.end() ? "" : base_it->second)
+              .first;
+    }
+
+    SrSVGAnimation::Effect effect;
+    if (!animation->Evaluate(seconds, id_mapper, presentation_it->second,
+                             &effect) ||
+        effect.attribute.empty()) {
+      continue;
+    }
+    if (presentation_values.find(effect.attribute) ==
+        presentation_values.end()) {
+      auto base_it = base_attributes_.find(effect.attribute);
+      presentation_values.emplace(
+          effect.attribute,
+          base_it == base_attributes_.end() ? "" : base_it->second);
+    }
+    if (animated_attributes_.find(effect.attribute) ==
+        animated_attributes_.end()) {
+      auto base_it = base_attributes_.find(effect.attribute);
+      animated_attributes_[effect.attribute] =
+          base_it == base_attributes_.end()
+              ? std::optional<std::string>{}
+              : std::optional<std::string>{base_it->second};
+    }
+    std::string value = effect.value;
+    if (effect.transform && effect.additive) {
+      auto& presentation = presentation_values[effect.attribute];
+      if (!presentation.empty()) {
+        value = presentation + " " + value;
+      }
+    } else if (effect.additive) {
+      auto& presentation = presentation_values[effect.attribute];
+      if (!presentation.empty()) {
+        const std::string added =
+            AddAnimatedScalarValue(presentation, effect.value);
+        if (!added.empty()) {
+          value = added;
+        }
+      }
+    }
+    presentation_values[effect.attribute] = value;
+    if (effect.path_data && effect.attribute == "d" &&
+        SetAnimatedPathData(effect.path_data)) {
+      continue;
+    }
+    ParseAndSetAttribute(effect.attribute.c_str(), value.c_str());
+  }
+}
+
+void SrSVGNode::RestoreAnimatedAttributes() {
+  for (const auto& entry : animated_attributes_) {
+    RestoreAnimatedAttribute(entry.first, entry.second);
+  }
+  animated_attributes_.clear();
+}
+
+void SrSVGNode::RestoreAnimatedAttribute(
+    const std::string& name, const std::optional<std::string>& base_value) {
+  if (base_value.has_value()) {
+    ParseAndSetAttribute(name.c_str(), base_value->c_str());
+    return;
+  }
+  ClearAnimatedAttribute(name);
+}
+
+void SrSVGNode::ClearAnimatedAttribute(const std::string& name) {
+  if (name == "fill") {
+    release_serval_paint(fill_);
+    fill_ = nullptr;
+  } else if (name == "stroke") {
+    release_serval_paint(stroke_);
+    stroke_ = nullptr;
+  } else if (name == "opacity") {
+    opacity_.reset();
+  } else if (name == "fill-opacity") {
+    fill_opacity_.reset();
+  } else if (name == "stroke-opacity") {
+    stroke_opacity_.reset();
+  } else if (name == "stroke-width") {
+    stroke_width_.reset();
+  } else if (name == "stroke-dasharray") {
+    stroke_dash_array_.clear();
+  } else if (name == "stroke-dashoffset") {
+    stroke_dash_offset_ = 0.f;
+  } else if (name == "stroke-linecap") {
+    stroke_cap_ = SR_SVG_STROKE_CAP_BUTT;
+  } else if (name == "stroke-linejoin") {
+    stroke_join_ = SR_SVG_STROKE_JOIN_MITER;
+  } else if (name == "stroke-miterlimit") {
+    stoke_miter_limit_ = s_stroke_miter_limit;
+  } else if (name == "vector-effect") {
+    vector_effect_ = SR_SVG_VECTOR_EFFECT_NONE;
+  } else if (name == "clip-path") {
+    release_serval_paint(clip_path_);
+    clip_path_ = nullptr;
+  } else if (name == "mask") {
+    release_serval_paint(mask_);
+    mask_ = nullptr;
+  } else if (name == "filter") {
+    release_serval_paint(filter_);
+    filter_ = nullptr;
+  } else if (name == "transform") {
+    xform_identity(transform_);
+  } else if (name == "transform-origin") {
+    has_transform_origin_ = false;
+    transform_origin_x_length_ = SrSVGLength{0.f, SR_SVG_UNITS_NUMBER};
+    transform_origin_y_length_ = SrSVGLength{0.f, SR_SVG_UNITS_NUMBER};
+    transform_origin_x_ = 0.f;
+    transform_origin_y_ = 0.f;
+  } else if (name == "transform-box") {
+    transform_box_ = SrSVGTransformBox::kViewBox;
+  } else if (name == "color") {
+    color_.reset();
+  } else if (name == "d") {
+    ParseAndSetAttribute(name.c_str(), "");
+  } else if (name == "points") {
+    ParseAndSetAttribute(name.c_str(), "");
+  } else if (name == "viewBox") {
+    ParseAndSetAttribute(name.c_str(), "0 0 0 0");
+  } else if (HasZeroDefaultAnimatedAttribute(name)) {
+    ParseAndSetAttribute(name.c_str(), "0");
+  }
 }
 
 SrSVGNode::~SrSVGNode() {
@@ -337,38 +616,9 @@ bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
     }
   }
 
-  if (fill_ && fill_->type == SERVAL_PAINT_IRI && fill_->content.iri &&
-      strlen(fill_->content.iri) > 0) {
-    std::string id{fill_->content.iri + 1};
-    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    if (nodes) {
-      // Use find() to safely look up ID, avoid inserting invalid elements
-      auto it = nodes->find(id);
-      if (it != nodes->end()) {
-        SrSVGNodeBase* fill_content = it->second;
-        if (fill_content) {
-          SrPreparePattern(canvas, fill_content, context);
-        }
-      }
-    }
-  }
-
-  if (stroke_ && stroke_->type == SERVAL_PAINT_IRI && stroke_->content.iri &&
-      strlen(stroke_->content.iri) > 0) {
-    const char* iri_str = stroke_->content.iri;
-    std::string id(iri_str + 1);
-    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-    if (nodes) {
-      // Use find() to safely look up ID, avoid inserting invalid elements
-      auto it = nodes->find(id);
-      if (it != nodes->end()) {
-        SrSVGNodeBase* stroke_content = it->second;
-        if (stroke_content) {
-          SrPreparePattern(canvas, stroke_content, context);
-        }
-      }
-    }
-  }
+  PrepareIRIResource(canvas, context, fill_ ? fill_ : inherit_fill_paint_);
+  PrepareIRIResource(canvas, context,
+                     stroke_ ? stroke_ : inherit_stroke_paint_);
   return false;
 }
 
@@ -526,6 +776,137 @@ void SrSVGNode::ParseStrokeDashArray(const char* value) {
       stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
     }
   }
+}
+
+void SrSVGNode::ParseTransformOrigin(const char* value) {
+  if (!value) {
+    return;
+  }
+  const auto tokens = SplitCssTokens(Trim(value));
+  if (tokens.empty()) {
+    return;
+  }
+
+  SrSVGLength x = MakePercentage(50.f);
+  SrSVGLength y = MakePercentage(50.f);
+  if (tokens.size() == 1) {
+    const std::string& token = tokens[0];
+    if (IsVerticalOriginKeyword(token)) {
+      y = OriginKeywordToLength(token);
+    } else if (token == "center") {
+      x = MakePercentage(50.f);
+      y = MakePercentage(50.f);
+    } else {
+      x = OriginTokenToLength(token);
+    }
+  } else {
+    const std::string& first = tokens[0];
+    const std::string& second = tokens[1];
+    if (IsHorizontalOriginKeyword(first)) {
+      x = OriginKeywordToLength(first);
+      y = OriginTokenToLength(second);
+    } else if (IsVerticalOriginKeyword(first)) {
+      x = OriginTokenToLength(second);
+      y = OriginKeywordToLength(first);
+    } else if (IsHorizontalOriginKeyword(second)) {
+      x = OriginKeywordToLength(second);
+      y = OriginTokenToLength(first);
+    } else if (IsVerticalOriginKeyword(second)) {
+      x = OriginTokenToLength(first);
+      y = OriginKeywordToLength(second);
+    } else {
+      x = OriginTokenToLength(first);
+      y = OriginTokenToLength(second);
+    }
+  }
+  transform_origin_x_length_ = x;
+  transform_origin_y_length_ = y;
+  transform_origin_x_ = x.value;
+  transform_origin_y_ = y.value;
+  has_transform_origin_ = true;
+}
+
+void SrSVGNode::ParseTransformBox(const char* value) {
+  if (!value) {
+    return;
+  }
+  const std::string token = Trim(value);
+  if (token == "fill-box" || token == "content-box") {
+    transform_box_ = SrSVGTransformBox::kFillBox;
+  } else if (token == "stroke-box" || token == "border-box") {
+    transform_box_ = SrSVGTransformBox::kStrokeBox;
+  } else if (token == "view-box") {
+    transform_box_ = SrSVGTransformBox::kViewBox;
+  }
+}
+
+bool SrSVGNode::ResolveTransformOrigin(
+    float* x, float* y, const SrSVGRenderContext& context,
+    canvas::PathFactory* path_factory) const {
+  if (!has_transform_origin_ || !x || !y) {
+    return false;
+  }
+
+  SrSVGBox reference_box = context.view_box;
+  if (reference_box.width == 0.f || reference_box.height == 0.f) {
+    reference_box = context.view_port;
+  }
+
+  if (path_factory && transform_box_ != SrSVGTransformBox::kViewBox) {
+    SrSVGRenderContext mutable_context = context;
+    auto path = AsPath(path_factory, &mutable_context, false);
+    if (path) {
+      if (transform_box_ == SrSVGTransformBox::kStrokeBox) {
+        float stroke_width = 0.f;
+        if (stroke_width_) {
+          stroke_width = convert_serval_length_to_float(
+              &(*stroke_width_), &mutable_context, SR_SVG_LENGTH_TYPE_OTHER);
+        } else if (inherit_stroke_width_) {
+          stroke_width = convert_serval_length_to_float(
+              &(*inherit_stroke_width_), &mutable_context,
+              SR_SVG_LENGTH_TYPE_OTHER);
+        }
+        if (stroke_width > 0.f) {
+          auto stroke_path = path_factory->CreateStrokePath(
+              path.get(), stroke_width, stroke_cap_, stroke_join_,
+              stoke_miter_limit_);
+          if (stroke_path) {
+            path = std::move(stroke_path);
+          }
+        }
+      }
+      const SrSVGBox bounds = path->GetBounds();
+      if (bounds.width > 0.f || bounds.height > 0.f) {
+        reference_box = bounds;
+      }
+    }
+  }
+
+  *x = reference_box.left + ResolveOriginLength(transform_origin_x_length_,
+                                                context, reference_box,
+                                                SR_SVG_LENGTH_TYPE_HORIZONTAL);
+  *y = reference_box.top + ResolveOriginLength(transform_origin_y_length_,
+                                               context, reference_box,
+                                               SR_SVG_LENGTH_TYPE_VERTICAL);
+  return true;
+}
+
+void SrSVGNode::ResolvedTransform(float (&xform)[6],
+                                  const SrSVGRenderContext& context,
+                                  canvas::PathFactory* path_factory) const {
+  std::memcpy(xform, transform_, sizeof(float) * 6);
+  float origin_x = 0.f;
+  float origin_y = 0.f;
+  if (!ResolveTransformOrigin(&origin_x, &origin_y, context, path_factory)) {
+    return;
+  }
+
+  float centered[6];
+  xform_identity(centered);
+  xform_pre_translate(centered, origin_x, origin_y);
+  xform_multiply(centered, xform);
+  xform_pre_translate(centered, -origin_x, -origin_y);
+  std::memcpy(xform, centered, sizeof(float) * 6);
 }
 
 static int IsSpace(char c) {

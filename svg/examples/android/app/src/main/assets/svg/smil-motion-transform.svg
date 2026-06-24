@@ -1,0 +1,26 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+  <path id="smilMotionTrack" d="M 28 118 C 78 28 138 156 194 70 C 228 24 274 102 292 46"
+        fill="none" stroke="#365a76" stroke-width="2"/>
+  <path d="M 40 146 L 136 146" fill="none" stroke="#365a76"
+        stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <circle r="8" fill="#80ffdb">
+    <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto"
+                   keyPoints="0;0.35;1" keyTimes="0;0.55;1">
+      <mpath href="#smilMotionTrack"/>
+    </animateMotion>
+  </circle>
+
+  <circle r="6" fill="#4cc9f0">
+    <animateMotion from="40 146" by="96 0" dur="1.4s"
+                   repeatCount="indefinite" rotate="30"/>
+  </circle>
+
+  <rect x="234" y="118" width="34" height="34" rx="5" fill="#f15bb5"
+        opacity="0.85">
+    <animateTransform attributeName="transform" type="rotate"
+                      values="0 251 135;180 251 135;360 251 135"
+                      dur="2.4s" repeatCount="indefinite"/>
+  </rect>
+</svg>

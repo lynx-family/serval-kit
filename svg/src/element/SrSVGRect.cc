@@ -72,20 +72,12 @@ void SrSVGRect::onDraw(canvas::SrCanvas* const canvas,
 
   NormalizeCornerRadii(rx, ry, wf, hf);
 
-  // TODO: separate the draw function to fill() and stroke; And separate the
-  // commands in base class since it's a common logic for all shapes.
-  uint8_t type = 0;
-  if (fill_ && fill_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagFill;
-  }
-  if (stroke_ && stroke_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagStroke;
-  }
   canvas->DrawRect(id_.c_str(), xf, yf, rx, ry, wf, hf, render_state_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGRect::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   float xf = convert_serval_length_to_float(&x_, context,
                                             SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float yf =
@@ -100,8 +92,10 @@ std::unique_ptr<canvas::Path> SrSVGRect::AsPath(
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
   NormalizeCornerRadii(rx, ry, wf, hf);
   auto path = path_factory->CreateRect(xf, yf, rx, ry, wf, hf);
-  if (path) {
-    path->Transform(transform_);
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
   return path;
 }

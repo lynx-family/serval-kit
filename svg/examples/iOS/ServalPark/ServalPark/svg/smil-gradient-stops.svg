@@ -1,0 +1,40 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="colorStop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4cc9f0">
+        <animateColor attributeName="stop-color"
+                      values="#4cc9f0;#f15bb5;#4cc9f0" dur="2s"
+                      repeatCount="indefinite"/>
+      </stop>
+      <stop offset="1" stop-color="#fee440"/>
+    </linearGradient>
+
+    <linearGradient id="offsetStop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fee440"/>
+      <stop offset="0.25" stop-color="#fee440">
+        <animate attributeName="offset" values="0.25;0.85;0.25" dur="2s"
+                 repeatCount="indefinite"/>
+      </stop>
+      <stop offset="0.25" stop-color="#071423">
+        <animate attributeName="offset" values="0.25;0.85;0.25" dur="2s"
+                 repeatCount="indefinite"/>
+      </stop>
+      <stop offset="1" stop-color="#071423"/>
+    </linearGradient>
+
+    <linearGradient id="opacityStop" x1="0" y1="0" x2="1" y2="0">
+      <stop id="fadeStop" offset="0" stop-color="#ffffff"
+            stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="180" fill="#071423"/>
+
+  <rect x="24" y="22" width="128" height="38" rx="4" fill="url(#colorStop)"/>
+  <rect x="176" y="72" width="120" height="38" rx="4" fill="url(#offsetStop)"/>
+  <rect x="24" y="122" width="128" height="38" rx="4" fill="url(#opacityStop)"/>
+
+  <animate href="#fadeStop" attributeName="stop-opacity"
+           values="0.15;1;0.15" dur="2s" repeatCount="indefinite"/>
+</svg>

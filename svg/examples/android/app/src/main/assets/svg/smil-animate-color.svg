@@ -1,0 +1,40 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="animateColorGradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="red">
+        <animate attributeName="stop-color" values="red;blue;red" dur="2s"
+                 repeatCount="indefinite"/>
+      </stop>
+      <stop offset="1" stop-color="white"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="180" fill="#071423"/>
+
+  <rect x="24" y="24" width="72" height="44" rx="4"
+        fill="rgb(76, 201, 240)">
+    <animate attributeName="fill"
+             values="rgb(76, 201, 240);magenta;rgb(76, 201, 240)"
+             dur="2s" repeatCount="indefinite"/>
+  </rect>
+
+  <rect x="124" y="24" width="72" height="44" rx="4" fill="none"
+        stroke="rgba(255, 255, 255, 0.15)" stroke-width="12">
+    <animate attributeName="stroke"
+             values="rgba(255, 255, 255, 0.15);lime;rgba(255, 255, 255, 0.15)"
+             dur="2s" repeatCount="indefinite"/>
+  </rect>
+
+  <circle cx="260" cy="46" r="24" fill="transparent">
+    <animate attributeName="fill" values="transparent;yellow;transparent"
+             dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <rect x="24" y="108" width="196" height="42" rx="4"
+        fill="url(#animateColorGradient)"/>
+
+  <rect x="244" y="108" width="52" height="42" rx="4" fill="red">
+    <animateColor attributeName="fill" values="red;blue;red" dur="2s"
+                  repeatCount="indefinite"/>
+  </rect>
+</svg>

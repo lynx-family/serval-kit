@@ -109,6 +109,47 @@ public class SVGRenderEngine {
       SVGRender svgRender, String content, float left, float top, float width,
       float height, @Nullable String color);
 
+  native SVGRender.SVGDiagnostic[] renderAtTimeWithDiagnostics(
+      SVGRender svgRender, String content, float left, float top, float width,
+      float height, @Nullable String color, double seconds);
+
+  native long createSession(String content);
+
+  native void destroySession(long handle);
+
+  native boolean sessionHasAnimations(long handle);
+
+  native double sessionAnimationTimelineEndSeconds(long handle);
+
+  native void sessionStartAnimation(long handle);
+
+  native void sessionStartAnimationAtFrameTimeNanos(long handle,
+                                                    long frameTimeNanos);
+
+  native void sessionStopAnimation(long handle);
+
+  native void sessionResetAnimationClock(long handle);
+
+  native boolean sessionIsAnimationRunning(long handle);
+
+  native boolean sessionNeedsAnimationFrame(long handle);
+
+  native boolean sessionOnFrameTimeNanos(long handle, long frameTimeNanos);
+
+  native double sessionCurrentAnimationSeconds(long handle);
+
+  native SVGRender.SVGDiagnostic[] renderSessionAtTimeWithDiagnostics(
+      SVGRender svgRender, long handle, float left, float top, float width,
+      float height, @Nullable String color, double seconds);
+
+  native void renderSessionAtTime(SVGRender svgRender, long handle, float left,
+                                  float top, float width, float height,
+                                  @Nullable String color, double seconds);
+
+  native void renderSessionCurrentFrame(SVGRender svgRender, long handle,
+                                        float left, float top, float width,
+                                        float height, @Nullable String color);
+
   native float[] calculateViewBoxTransform(float vpLeft, float vpTop,
                                            float vpWidth, float vpHeight,
                                            float vbLeft, float vbTop,

@@ -3,11 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 package com.lynx.serval.svg.example;
 
-import android.graphics.Picture;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,7 +20,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.lynx.serval.svg.SVGDrawable;
-import com.lynx.serval.svg.SVGRender;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,11 +64,12 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_GRADIENT = "Gradient";
   private static final String CATEGORY_SHAPE = "Shape";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
+  private static final String CATEGORY_SMIL_ANIMATION = "SMILAnimation";
   private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
-  private static final String DIAGNOSTIC_TAG = "SVGDiagnostic";
   private static final String[] PREVIEW_METADATA_FILES = {
       "svg_root_metadata.json", "svg_shape_metadata.json",
-      "svg_use_metadata.json", "svg_gradient_metadata.json"};
+      "svg_use_metadata.json", "svg_gradient_metadata.json",
+      "svg_smil_animation_metadata.json"};
   private static final int PREVIEW_WIDTH_DP = 260;
   private static final int PREVIEW_HEIGHT_DP = 195;
   private Spinner categorySpinner;
@@ -82,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
       new LinkedHashMap<>();
   private final Map<String, SvgPreviewMetadata> previewMetadataByFile =
       new HashMap<>();
+  private final List<SVGDrawable> previewDrawables = new ArrayList<>();
 
   private void loadPreviewMetadata() {
     previewMetadataByFile.clear();
@@ -188,10 +186,10 @@ public class MainActivity extends AppCompatActivity {
             }
           });
 
-      String initialCategory = CATEGORY_SHAPE;
+      String initialCategory = CATEGORY_SMIL_ANIMATION;
       int categoryIndex = Math.max(categories.indexOf(initialCategory), 0);
       categorySpinner.setSelection(categoryIndex);
-      renderCategory(initialCategory);
+      renderCategory(categories.get(categoryIndex));
 
     } catch (IOException e) {
       e.printStackTrace();
@@ -209,7 +207,8 @@ public class MainActivity extends AppCompatActivity {
              CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
              CATEGORY_MASK, CATEGORY_FILTER, CATEGORY_ILLEGAL_PARSING,
              CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
-             CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_OTHERS}) {
+             CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_SMIL_ANIMATION,
+             CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -257,10 +256,14 @@ public class MainActivity extends AppCompatActivity {
     if (fileName.startsWith("vector-effect-")) {
       return CATEGORY_VECTOR_EFFECT;
     }
+    if (fileName.startsWith("smil_") || fileName.startsWith("smil-")) {
+      return CATEGORY_SMIL_ANIMATION;
+    }
     return CATEGORY_OTHERS;
   }
 
   private void renderCategory(String category) {
+    closePreviewDrawables();
     previewListContainer.removeAllViews();
     List<String> files = categorizedFiles.get(category);
     if (files == null || files.isEmpty()) {
@@ -357,24 +360,27 @@ public class MainActivity extends AppCompatActivity {
   private void renderSvg(String fileName, String svgContent,
                          ImageView targetView, int targetWidth,
                          int targetHeight) {
-    SVGRender render = new SVGRender();
     boolean shouldSetHostColor = HOST_COLOR_COMPARE_FILE.equals(fileName) ||
                                  HOST_COLOR_OVERRIDE_FILE.equals(fileName);
-    render.setColor(shouldSetHostColor ? HOST_DEFAULT_COLOR : null);
-    int safeWidth = Math.max(targetWidth, 1);
-    int safeHeight = Math.max(targetHeight, 1);
-    Rect renderRect = new Rect(0, 0, safeWidth, safeHeight);
-    SVGRender.SVGRenderResult result =
-        render.renderPictureWithResult(svgContent, renderRect);
-    Picture picture = result.picture;
-    if (result.hasError) {
-      Log.i(DIAGNOSTIC_TAG,
-            "file=" + fileName + " errorMessage=" + result.errorMessage +
-                " diagnosticCount=" + result.diagnostics.size());
-    }
-
-    SVGDrawable drawable = new SVGDrawable(picture);
+    targetView.setMinimumWidth(Math.max(targetWidth, 1));
+    targetView.setMinimumHeight(Math.max(targetHeight, 1));
+    SVGDrawable drawable = new SVGDrawable(
+        svgContent, shouldSetHostColor ? HOST_DEFAULT_COLOR : null);
+    previewDrawables.add(drawable);
     targetView.setImageDrawable(drawable);
     targetView.invalidate();
+  }
+
+  private void closePreviewDrawables() {
+    for (SVGDrawable drawable : previewDrawables) {
+      drawable.close();
+    }
+    previewDrawables.clear();
+  }
+
+  @Override
+  protected void onDestroy() {
+    closePreviewDrawables();
+    super.onDestroy();
   }
 }

@@ -22,7 +22,7 @@ void SrSVGLine::onDraw(canvas::SrCanvas* canvas,
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
   float y2 = convert_serval_length_to_float(&y2_, &context,
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
-  if (stroke_ && stroke_->type != SERVAL_PAINT_NONE) {
+  if (HasEffectiveStroke()) {
     canvas->DrawLine(id_.c_str(), x1, y1, x2, y2, render_state_);
   }
 }
@@ -45,7 +45,8 @@ bool SrSVGLine::ParseAndSetAttribute(const char* name, const char* value) {
 }
 
 std::unique_ptr<canvas::Path> SrSVGLine::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   float x1 = convert_serval_length_to_float(&x1_, context,
                                             SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float x2 = convert_serval_length_to_float(&x2_, context,
@@ -55,8 +56,10 @@ std::unique_ptr<canvas::Path> SrSVGLine::AsPath(
   float y2 = convert_serval_length_to_float(&y2_, context,
                                             SR_SVG_LENGTH_TYPE_VERTICAL);
   auto path = path_factory->CreateLine(x1, y1, x2, y2);
-  if (path) {
-    path->Transform(transform_);
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
   return path;
 };

@@ -1,0 +1,8 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <animate attributeName="viewBox"
+           values="0 0 320 180; 80 0 320 180; 0 0 320 180"
+           dur="2s" repeatCount="indefinite"/>
+
+  <rect x="-120" y="0" width="560" height="180" fill="#071423"/>
+  <rect x="300" y="30" width="30" height="50" fill="#f15bb5"/>
+</svg>

@@ -7,6 +7,7 @@
 
 #include "parser/SrSVGDOM.h"
 #include "platform/harmony/sr_harmony_canvas.h"
+#include "renderer/SrSVGAnimationState.h"
 
 #include <cstdint>
 #include <memory>
@@ -44,6 +45,15 @@ public:
     static napi_value Init(napi_env env, napi_value exports);
 
     void Render(OH_Drawing_Canvas *canvas);
+    void RenderAtTime(OH_Drawing_Canvas *canvas, double seconds);
+    bool HasAnimations() const;
+    double AnimationTimelineEndSeconds() const;
+    void StartAnimation();
+    void StopAnimation();
+    void ResetAnimationClock();
+    bool NeedsAnimationFrame() const;
+    bool OnFrameTimeNanos(int64_t frame_time_nanos);
+    double CurrentAnimationSeconds() const;
 
     SvgRenderResult Update(const std::string &content, float left, float top, float width, float height,
                            bool anti_alias, bool has_color, std::string color);
@@ -59,6 +69,14 @@ private:
     static napi_value Update(napi_env env, napi_callback_info info);
     static napi_value Constructor(napi_env env, napi_callback_info info);
     static napi_value Render(napi_env env, napi_callback_info info);
+    static napi_value HasAnimations(napi_env env, napi_callback_info info);
+    static napi_value AnimationTimelineEndSeconds(napi_env env, napi_callback_info info);
+    static napi_value StartAnimation(napi_env env, napi_callback_info info);
+    static napi_value StopAnimation(napi_env env, napi_callback_info info);
+    static napi_value ResetAnimationClock(napi_env env, napi_callback_info info);
+    static napi_value NeedsAnimationFrame(napi_env env, napi_callback_info info);
+    static napi_value OnFrameTimeNanos(napi_env env, napi_callback_info info);
+    static napi_value CurrentAnimationSeconds(napi_env env, napi_callback_info info);
     static napi_value Dispose(napi_env env, napi_callback_info info);
     static napi_value SetImageFetcher(napi_env env, napi_callback_info info);
     static napi_value SetInvalidateCallback(napi_env env, napi_callback_info info);
@@ -96,6 +114,7 @@ private:
     SvgRenderResult last_result_{};
     std::unique_ptr<SrHarmonyCanvas> sr_canvas_{nullptr};
     std::unique_ptr<parser::SrSVGDOM> svg_dom_{nullptr};
+    renderer::SrSVGAnimationState animation_state_{};
     std::unordered_map<std::string, CachedImage> image_cache_{};
 };
 }  // namespace harmony

@@ -65,6 +65,17 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
   svgDom->ResetDefaultColor();
 }
 
+@interface SrSVG ()
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(NSString*)color
+                         renderAtTime:(BOOL)renderAtTime
+                              seconds:(NSTimeInterval)seconds
+                          andCallback:(SrSvgImageCallback)imageCb
+                               result:(SrSVGRenderResult* _Nullable* _Nullable)
+                                          result;
+@end
+
 @implementation SrSVG {
   NSData* _svgDoc;
   std::unique_ptr<SrSVGDOM> _svgDom;
@@ -114,6 +125,39 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
                           andCallback:(SrSvgImageCallback)imageCb
                                result:(SrSVGRenderResult* _Nullable* _Nullable)
                                           result {
+  return [self getSrSvgDrawImageWithData:data
+                                 andSize:size
+                                andColor:color
+                            renderAtTime:NO
+                                 seconds:0
+                             andCallback:imageCb
+                                  result:result];
+}
+
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(NSString*)color
+                               atTime:(NSTimeInterval)seconds
+                          andCallback:(SrSvgImageCallback)imageCb
+                               result:(SrSVGRenderResult* _Nullable* _Nullable)
+                                          result {
+  return [self getSrSvgDrawImageWithData:data
+                                 andSize:size
+                                andColor:color
+                            renderAtTime:YES
+                                 seconds:seconds
+                             andCallback:imageCb
+                                  result:result];
+}
+
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(NSString*)color
+                         renderAtTime:(BOOL)renderAtTime
+                              seconds:(NSTimeInterval)seconds
+                          andCallback:(SrSvgImageCallback)imageCb
+                               result:(SrSVGRenderResult* _Nullable* _Nullable)
+                                          result {
   NSString* dataString = [[NSString alloc] initWithData:data
                                                encoding:NSUTF8StringEncoding];
   if (dataString == nil) {
@@ -139,7 +183,11 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
     SrIOSCanvas canvas(cgContext, imageCb);
     SrSVGBox viewPort{0.f, 0.f, static_cast<float>(size.width),
                       static_cast<float>(size.height)};
-    _svgDom.get()->Render(&canvas, viewPort);
+    if (renderAtTime) {
+      _svgDom.get()->RenderAtTime(&canvas, viewPort, seconds);
+    } else {
+      _svgDom.get()->Render(&canvas, viewPort);
+    }
   }
   CGImageRef cgImage = CGBitmapContextCreateImage(cgContext);
   UIImage* renderImage = [[UIImage alloc] initWithCGImage:cgImage];
@@ -150,6 +198,10 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
     *result = SrSVGMakeRenderResult(diagnostics);
   }
   return renderImage;
+}
+
+- (BOOL)hasAnimations {
+  return _svgDom && _svgDom->HasAnimations();
 }
 
 @end

@@ -1,0 +1,22 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+
+  <path fill="#80ffdb" stroke="#ffffff" stroke-width="2"
+        d="M 48 136 L 96 136 L 72 96 Z">
+    <animate attributeName="d"
+             values="M 48 136 L 96 136 L 72 96 Z;
+                     M 48 136 L 152 136 L 152 64 Z;
+                     M 48 136 L 96 136 L 72 96 Z"
+             dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <path fill="none" stroke="#f15bb5" stroke-width="6"
+        stroke-linecap="round"
+        d="M 190 128 C 208 84 244 84 262 128">
+    <animate attributeName="d"
+             values="M 190 128 C 208 84 244 84 262 128;
+                     M 190 128 C 208 44 244 44 262 128;
+                     M 190 128 C 208 84 244 84 262 128"
+             dur="2s" repeatCount="indefinite"/>
+  </path>
+</svg>

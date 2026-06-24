@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PARSER_SRSVGDOM_H_
 #define SVG_INCLUDE_PARSER_SRSVGDOM_H_
 
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <optional>
@@ -47,6 +48,11 @@ class SrSVGDOM {
   void ResetDefaultColor();
   void Render(canvas::SrCanvas* canvas) const;
   void Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const;
+  void RenderAtTime(canvas::SrCanvas* canvas, double seconds) const;
+  void RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                    double seconds) const;
+  bool HasAnimations() const;
+  double AnimationTimelineEndSeconds() const;
   const std::vector<SrSVGDiagnostic>& diagnostics() const {
     return diagnostics_;
   }
@@ -54,8 +60,12 @@ class SrSVGDOM {
   void SetBuildDiagnostics(std::vector<SrSVGDiagnostic> diagnostics);
   void ReplaceRuntimeDiagnostics(
       std::vector<SrSVGDiagnostic> diagnostics) const;
+  void BindTargetAnimations();
 
  private:
+  const std::vector<element::SrSVGNodeBase*>& AnimatedNodes() const;
+  void InvalidateAnimationCache() const;
+
   element::SrSVGSVG* root_;
   element::IDMapper* id_mapper_;
   std::list<element::SrSVGNodeBase*> nodes_;
@@ -63,6 +73,8 @@ class SrSVGDOM {
   std::shared_ptr<SrDOM> xml_dom_;
   mutable std::vector<SrSVGDiagnostic> diagnostics_;
   mutable size_t static_diagnostic_count_{0};
+  mutable bool animated_nodes_valid_{false};
+  mutable std::vector<element::SrSVGNodeBase*> animated_nodes_;
 };
 
 }  // namespace parser

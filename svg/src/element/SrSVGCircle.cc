@@ -33,18 +33,12 @@ void SrSVGCircle::onDraw(canvas::SrCanvas* canvas,
                                                   SR_SVG_LENGTH_TYPE_VERTICAL);
   float radius =
       convert_serval_length_to_float(&r_, &context, SR_SVG_LENGTH_TYPE_OTHER);
-  uint8_t type = 0;
-  if (this->stroke_ && this->stroke_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagStroke;
-  }
-  if (this->fill_ && this->fill_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagFill;
-  }
   canvas->DrawCircle(id_.c_str(), center_x, center_y, radius, render_state_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGCircle::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   float center_x = convert_serval_length_to_float(
       &cx_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float center_y = convert_serval_length_to_float(&cy_, context,
@@ -52,8 +46,10 @@ std::unique_ptr<canvas::Path> SrSVGCircle::AsPath(
   float radius =
       convert_serval_length_to_float(&r_, context, SR_SVG_LENGTH_TYPE_OTHER);
   auto path = path_factory->CreateCircle(center_x, center_y, radius);
-  if (path) {
-    path->Transform(transform_);
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
   return path;
 }

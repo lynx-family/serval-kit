@@ -10,6 +10,7 @@ import static com.lynx.serval.svg.model.PaintRef.PAINT_IRI;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.DashPathEffect;
@@ -26,6 +27,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Trace;
 import android.text.BoringLayout;
 import android.text.Layout;
 import android.text.SpannableString;
@@ -59,6 +61,7 @@ public class SVGRender {
   private static final int FILTER_OP_COLOR_MATRIX = 2;
   private static final int FILTER_OP_LUMINANCE_TO_ALPHA = 3;
   private static final int DIAGNOSTIC_NATIVE_LIBRARY_LOAD_FAILED = 6;
+  private static final int MAX_FILTER_BITMAP_POOL_SIZE = 2;
   private static final float[] LUMINANCE_TO_ALPHA_MATRIX = new float[] {
       0f, 0f, 0f, 0f, 0f, 0f,      0f,      0f,      0f, 0f,
       0f, 0f, 0f, 0f, 0f, 0.2126f, 0.7152f, 0.0722f, 0f, 0f,
@@ -109,6 +112,22 @@ public class SVGRender {
   private int mCanvasWidth = 0;
   private int mCanvasHeight = 0;
   private final ArrayDeque<FilterLayer> mFilterLayers = new ArrayDeque<>();
+  private final ArrayDeque<Bitmap> mFilterBitmapPool = new ArrayDeque<>();
+  private int mFilterBitmapPoolWidth = -1;
+  private int mFilterBitmapPoolHeight = -1;
+  private boolean mReusableFilterBitmaps;
+
+  private static void beginTraceSection(String name) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      Trace.beginSection(name);
+    }
+  }
+
+  private static void endTraceSection() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+      Trace.endSection();
+    }
+  }
 
   public static final class SVGDiagnostic {
     public final int code;
@@ -138,6 +157,217 @@ public class SVGRender {
       this.hasError = !diagnostics.isEmpty();
       this.errorMessage =
           diagnostics.isEmpty() ? null : diagnostics.get(0).message;
+    }
+  }
+
+  public static final class SVGSession implements AutoCloseable {
+    private final SVGRender mRender;
+    private long mNativeHandle;
+
+    SVGSession(@NonNull SVGRender render, long nativeHandle) {
+      mRender = render;
+      mNativeHandle = nativeHandle;
+    }
+
+    public boolean isValid() { return mNativeHandle != 0; }
+
+    public boolean hasAnimations() {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null &&
+          mRender.mSVGRenderEngineNG.sessionHasAnimations(mNativeHandle);
+    }
+
+    public double animationTimelineEndSeconds() {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null
+          ? mRender.mSVGRenderEngineNG.sessionAnimationTimelineEndSeconds(
+                mNativeHandle)
+          : 0.0;
+    }
+
+    public void startAnimation() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.sessionStartAnimation(mNativeHandle);
+      }
+    }
+
+    public void startAnimationAtFrameTimeNanos(long frameTimeNanos) {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.sessionStartAnimationAtFrameTimeNanos(
+            mNativeHandle, frameTimeNanos);
+      }
+    }
+
+    public void stopAnimation() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.sessionStopAnimation(mNativeHandle);
+      }
+    }
+
+    public void resetAnimationClock() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.sessionResetAnimationClock(mNativeHandle);
+      }
+    }
+
+    public boolean isAnimationRunning() {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null &&
+          mRender.mSVGRenderEngineNG.sessionIsAnimationRunning(mNativeHandle);
+    }
+
+    public boolean needsAnimationFrame() {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null &&
+          mRender.mSVGRenderEngineNG.sessionNeedsAnimationFrame(mNativeHandle);
+    }
+
+    public boolean onFrameTimeNanos(long frameTimeNanos) {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null &&
+          mRender.mSVGRenderEngineNG.sessionOnFrameTimeNanos(mNativeHandle,
+                                                             frameTimeNanos);
+    }
+
+    public double currentAnimationSeconds() {
+      return mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null
+          ? mRender.mSVGRenderEngineNG.sessionCurrentAnimationSeconds(
+                mNativeHandle)
+          : 0.0;
+    }
+
+    public SVGRenderResult renderPictureAtTimeWithResult(Rect viewPort,
+                                                         double seconds) {
+      beginTraceSection("SVG.session.renderFrame");
+      Canvas previousCanvas = mRender.mPictureCanvas;
+      try {
+        Picture picture = new Picture();
+        mRender.preparePictureRender(viewPort);
+        boolean recording = false;
+        beginTraceSection("SVG.picture.beginRecording");
+        try {
+          mRender.mPictureCanvas =
+              picture.beginRecording(viewPort.width(), viewPort.height());
+          recording = true;
+        } finally {
+          endTraceSection();
+        }
+        try {
+          SVGDiagnostic[] diagnostics = null;
+          if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+            beginTraceSection("SVG.native.renderSessionAtTime");
+            try {
+              diagnostics =
+                  mRender.mSVGRenderEngineNG.renderSessionAtTimeWithDiagnostics(
+                      mRender, mNativeHandle, viewPort.left, viewPort.top,
+                      viewPort.width(), viewPort.height(), mRender.getColor(),
+                      seconds);
+            } finally {
+              endTraceSection();
+            }
+          }
+          return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+        } finally {
+          if (recording) {
+            beginTraceSection("SVG.picture.endRecording");
+            try {
+              picture.endRecording();
+            } finally {
+              endTraceSection();
+            }
+          }
+        }
+      } finally {
+        mRender.finishPictureRender(previousCanvas);
+        endTraceSection();
+      }
+    }
+
+    public void renderCurrentFrameToCanvas(@NonNull Canvas canvas,
+                                           Rect viewPort) {
+      beginTraceSection("SVG.session.renderCanvasCurrentFrame");
+      Canvas previousCanvas = mRender.mPictureCanvas;
+      int saveCount = canvas.save();
+      try {
+        mRender.preparePictureRender(viewPort);
+        mRender.mReusableFilterBitmaps = true;
+        mRender.mPictureCanvas = canvas;
+        if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+          beginTraceSection("SVG.native.renderSessionCurrentFrame");
+          try {
+            mRender.mSVGRenderEngineNG.renderSessionCurrentFrame(
+                mRender, mNativeHandle, viewPort.left, viewPort.top,
+                viewPort.width(), viewPort.height(), mRender.getColor());
+          } finally {
+            endTraceSection();
+          }
+        }
+      } finally {
+        canvas.restoreToCount(saveCount);
+        mRender.finishPictureRender(previousCanvas);
+        endTraceSection();
+      }
+    }
+
+    public void renderToCanvasAtTime(@NonNull Canvas canvas, Rect viewPort,
+                                     double seconds) {
+      beginTraceSection("SVG.session.renderCanvasFrame");
+      Canvas previousCanvas = mRender.mPictureCanvas;
+      int saveCount = canvas.save();
+      try {
+        mRender.preparePictureRender(viewPort);
+        mRender.mReusableFilterBitmaps = true;
+        mRender.mPictureCanvas = canvas;
+        if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+          beginTraceSection("SVG.native.renderSessionAtTimeFast");
+          try {
+            mRender.mSVGRenderEngineNG.renderSessionAtTime(
+                mRender, mNativeHandle, viewPort.left, viewPort.top,
+                viewPort.width(), viewPort.height(), mRender.getColor(),
+                seconds);
+          } finally {
+            endTraceSection();
+          }
+        }
+      } finally {
+        canvas.restoreToCount(saveCount);
+        mRender.finishPictureRender(previousCanvas);
+        endTraceSection();
+      }
+    }
+
+    @NonNull
+    public List<SVGDiagnostic> renderToCanvasAtTimeWithDiagnostics(
+        @NonNull Canvas canvas, Rect viewPort, double seconds) {
+      beginTraceSection("SVG.session.renderCanvasFrame");
+      Canvas previousCanvas = mRender.mPictureCanvas;
+      int saveCount = canvas.save();
+      try {
+        SVGDiagnostic[] diagnostics = null;
+        mRender.preparePictureRender(viewPort);
+        mRender.mReusableFilterBitmaps = true;
+        mRender.mPictureCanvas = canvas;
+        if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+          beginTraceSection("SVG.native.renderSessionAtTime");
+          try {
+            diagnostics =
+                mRender.mSVGRenderEngineNG.renderSessionAtTimeWithDiagnostics(
+                    mRender, mNativeHandle, viewPort.left, viewPort.top,
+                    viewPort.width(), viewPort.height(), mRender.getColor(),
+                    seconds);
+          } finally {
+            endTraceSection();
+          }
+        }
+        return toDiagnosticList(diagnostics);
+      } finally {
+        canvas.restoreToCount(saveCount);
+        mRender.finishPictureRender(previousCanvas);
+        endTraceSection();
+      }
+    }
+
+    @Override
+    public void close() {
+      if (mNativeHandle != 0 && mRender.mSVGRenderEngineNG != null) {
+        mRender.mSVGRenderEngineNG.destroySession(mNativeHandle);
+      }
+      mNativeHandle = 0;
     }
   }
 
@@ -181,34 +411,144 @@ public class SVGRender {
 
   public SVGRenderResult renderPictureWithResult(String content,
                                                  Rect viewPort) {
-    Picture picture = new Picture();
+    beginTraceSection("SVG.renderPicture");
+    Canvas previousCanvas = mPictureCanvas;
+    try {
+      Picture picture = new Picture();
+      preparePictureRender(viewPort);
+      beginTraceSection("SVG.picture.beginRecording");
+      try {
+        mPictureCanvas =
+            picture.beginRecording(viewPort.width(), viewPort.height());
+      } finally {
+        endTraceSection();
+      }
+      SVGDiagnostic[] diagnostics = null;
+      if (mSVGRenderEngineNG == null) {
+        mSVGRenderEngineNG = SVGRenderEngine.getInstance();
+      }
+      if (mSVGRenderEngineNG != null) {
+        beginTraceSection("SVG.native.render");
+        try {
+          diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
+              this, content, viewPort.left, viewPort.top, viewPort.width(),
+              viewPort.height(), getColor());
+        } finally {
+          endTraceSection();
+        }
+      }
+      beginTraceSection("SVG.picture.endRecording");
+      try {
+        picture.endRecording();
+      } finally {
+        endTraceSection();
+      }
+      List<SVGDiagnostic> diagnosticList;
+      if (mSVGRenderEngineNG == null) {
+        diagnosticList =
+            Collections.singletonList(makeNativeLibraryLoadFailedDiagnostic());
+      } else if (diagnostics == null || diagnostics.length == 0) {
+        diagnosticList = Collections.emptyList();
+      } else {
+        diagnosticList =
+            Collections.unmodifiableList(Arrays.asList(diagnostics));
+      }
+      return new SVGRenderResult(picture, diagnosticList);
+    } finally {
+      finishPictureRender(previousCanvas);
+      endTraceSection();
+    }
+  }
+
+  public SVGRenderResult renderPictureAtTimeWithResult(String content,
+                                                       Rect viewPort,
+                                                       double seconds) {
+    beginTraceSection("SVG.renderAtTime");
+    Canvas previousCanvas = mPictureCanvas;
+    try {
+      Picture picture = new Picture();
+      preparePictureRender(viewPort);
+      beginTraceSection("SVG.picture.beginRecording");
+      try {
+        mPictureCanvas =
+            picture.beginRecording(viewPort.width(), viewPort.height());
+      } finally {
+        endTraceSection();
+      }
+      SVGDiagnostic[] diagnostics = null;
+      if (mSVGRenderEngineNG == null) {
+        mSVGRenderEngineNG = SVGRenderEngine.getInstance();
+      }
+      if (mSVGRenderEngineNG != null) {
+        beginTraceSection("SVG.native.renderAtTime");
+        try {
+          diagnostics = mSVGRenderEngineNG.renderAtTimeWithDiagnostics(
+              this, content, viewPort.left, viewPort.top, viewPort.width(),
+              viewPort.height(), getColor(), seconds);
+        } finally {
+          endTraceSection();
+        }
+      }
+      beginTraceSection("SVG.picture.endRecording");
+      try {
+        picture.endRecording();
+      } finally {
+        endTraceSection();
+      }
+      return new SVGRenderResult(picture, toDiagnosticList(diagnostics));
+    } finally {
+      finishPictureRender(previousCanvas);
+      endTraceSection();
+    }
+  }
+
+  private void preparePictureRender(Rect viewPort) {
     mCanvasWidth = viewPort.width();
     mCanvasHeight = viewPort.height();
-    mFilterLayers.clear();
+    while (!mFilterLayers.isEmpty()) {
+      recycleTransientFilterBitmap(mFilterLayers.pop().bitmap);
+    }
     mDstInLayerActive = false;
     mMaskIsLuminance = false;
-    mPictureCanvas =
-        picture.beginRecording(viewPort.width(), viewPort.height());
-    SVGDiagnostic[] diagnostics = null;
+    mReusableFilterBitmaps = false;
+    if (mFilterBitmapPoolWidth != mCanvasWidth ||
+        mFilterBitmapPoolHeight != mCanvasHeight) {
+      clearFilterBitmapPool();
+      mFilterBitmapPoolWidth = mCanvasWidth;
+      mFilterBitmapPoolHeight = mCanvasHeight;
+    }
+  }
+
+  private void finishPictureRender(@Nullable Canvas previousCanvas) {
+    while (!mFilterLayers.isEmpty()) {
+      Bitmap bitmap = mFilterLayers.pop().bitmap;
+      if (mReusableFilterBitmaps) {
+        releaseFilterBitmap(bitmap);
+      } else {
+        recycleTransientFilterBitmap(bitmap);
+      }
+    }
+    mPictureCanvas = previousCanvas;
+    mDstInLayerActive = false;
+    mMaskIsLuminance = false;
+    mReusableFilterBitmaps = false;
+  }
+
+  public SVGSession createSession(String content) {
     if (mSVGRenderEngineNG == null) {
       mSVGRenderEngineNG = SVGRenderEngine.getInstance();
     }
-    if (mSVGRenderEngineNG != null) {
-      diagnostics = mSVGRenderEngineNG.renderWithDiagnostics(
-          this, content, viewPort.left, viewPort.top, viewPort.width(),
-          viewPort.height(), getColor());
-    }
-    picture.endRecording();
-    List<SVGDiagnostic> diagnosticList;
-    if (mSVGRenderEngineNG == null) {
-      diagnosticList =
-          Collections.singletonList(makeNativeLibraryLoadFailedDiagnostic());
-    } else if (diagnostics == null || diagnostics.length == 0) {
-      diagnosticList = Collections.<SVGDiagnostic>emptyList();
-    } else {
-      diagnosticList = Collections.unmodifiableList(Arrays.asList(diagnostics));
-    }
-    return new SVGRenderResult(picture, diagnosticList);
+    long handle = mSVGRenderEngineNG == null
+                      ? 0
+                      : mSVGRenderEngineNG.createSession(content);
+    return new SVGSession(this, handle);
+  }
+
+  private static List<SVGDiagnostic> toDiagnosticList(
+      SVGDiagnostic[] diagnostics) {
+    return diagnostics == null || diagnostics.length == 0
+        ? Collections.emptyList()
+        : Collections.unmodifiableList(Arrays.asList(diagnostics));
   }
 
   public void setViewBox(float x, float y, float width, float height) {}
@@ -405,8 +745,10 @@ public class SVGRender {
     if (mPictureCanvas == null || mCanvasWidth <= 0 || mCanvasHeight <= 0) {
       return;
     }
-    Bitmap bitmap = Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
-                                        Bitmap.Config.ARGB_8888);
+    Bitmap bitmap = mReusableFilterBitmaps
+                        ? acquireFilterBitmap()
+                        : Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
+                                              Bitmap.Config.ARGB_8888);
     Canvas layerCanvas = new Canvas(bitmap);
     Matrix parentMatrix = mPictureCanvas.getMatrix();
     layerCanvas.setMatrix(parentMatrix);
@@ -888,6 +1230,19 @@ public class SVGRender {
         new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     mPictureCanvas.drawBitmap(filtered, 0, 0, bitmapPaint);
     mPictureCanvas.restore();
+    if (mReusableFilterBitmaps) {
+      boolean canRecycleDrawnBitmap = !mPictureCanvas.isHardwareAccelerated();
+      if (filtered != layer.bitmap) {
+        if (canRecycleDrawnBitmap) {
+          recycleTransientFilterBitmap(filtered);
+        }
+        releaseFilterBitmap(layer.bitmap);
+      } else if (canRecycleDrawnBitmap) {
+        releaseFilterBitmap(layer.bitmap);
+      }
+    } else if (filtered != layer.bitmap) {
+      recycleTransientFilterBitmap(layer.bitmap);
+    }
   }
 
   private Bitmap applyFilterBitmap(Bitmap source, int[] operations,
@@ -902,7 +1257,9 @@ public class SVGRender {
           }
           float sigmaX = mapVectorLength(matrix, values[valueIndex++], 0f);
           float sigmaY = mapVectorLength(matrix, 0f, values[valueIndex++]);
-          current = blurBitmap(current, sigmaX, sigmaY);
+          Bitmap next = blurBitmap(current, sigmaX, sigmaY);
+          recycleIntermediateFilterBitmap(current, source, next);
+          current = next;
           break;
         }
         case FILTER_OP_OFFSET: {
@@ -912,7 +1269,9 @@ public class SVGRender {
           float[] vector =
               new float[] {values[valueIndex++], values[valueIndex++]};
           matrix.mapVectors(vector);
-          current = offsetBitmap(current, vector[0], vector[1]);
+          Bitmap next = offsetBitmap(current, vector[0], vector[1]);
+          recycleIntermediateFilterBitmap(current, source, next);
+          current = next;
           break;
         }
         case FILTER_OP_COLOR_MATRIX: {
@@ -922,17 +1281,70 @@ public class SVGRender {
           float[] colorMatrix = new float[20];
           System.arraycopy(values, valueIndex, colorMatrix, 0, 20);
           valueIndex += 20;
-          current = applyColorMatrix(current, colorMatrix, true);
+          Bitmap next = applyColorMatrix(current, colorMatrix, true);
+          recycleIntermediateFilterBitmap(current, source, next);
+          current = next;
           break;
         }
-        case FILTER_OP_LUMINANCE_TO_ALPHA:
-          current = applyColorMatrix(current, LUMINANCE_TO_ALPHA_MATRIX, false);
+        case FILTER_OP_LUMINANCE_TO_ALPHA: {
+          Bitmap next =
+              applyColorMatrix(current, LUMINANCE_TO_ALPHA_MATRIX, false);
+          recycleIntermediateFilterBitmap(current, source, next);
+          current = next;
           break;
+        }
         default:
           return current;
       }
     }
     return current;
+  }
+
+  private Bitmap acquireFilterBitmap() {
+    Bitmap bitmap;
+    while ((bitmap = mFilterBitmapPool.pollFirst()) != null) {
+      if (!bitmap.isRecycled() && bitmap.getWidth() == mCanvasWidth &&
+          bitmap.getHeight() == mCanvasHeight) {
+        bitmap.eraseColor(Color.TRANSPARENT);
+        return bitmap;
+      }
+      recycleTransientFilterBitmap(bitmap);
+    }
+    return Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
+                               Bitmap.Config.ARGB_8888);
+  }
+
+  private void releaseFilterBitmap(Bitmap bitmap) {
+    if (bitmap == null || bitmap.isRecycled()) {
+      return;
+    }
+    if (bitmap.getWidth() == mFilterBitmapPoolWidth &&
+        bitmap.getHeight() == mFilterBitmapPoolHeight &&
+        mFilterBitmapPool.size() < MAX_FILTER_BITMAP_POOL_SIZE) {
+      bitmap.eraseColor(Color.TRANSPARENT);
+      mFilterBitmapPool.push(bitmap);
+      return;
+    }
+    recycleTransientFilterBitmap(bitmap);
+  }
+
+  private void clearFilterBitmapPool() {
+    while (!mFilterBitmapPool.isEmpty()) {
+      recycleTransientFilterBitmap(mFilterBitmapPool.pop());
+    }
+  }
+
+  private void recycleIntermediateFilterBitmap(Bitmap current, Bitmap source,
+                                               Bitmap next) {
+    if (current != source && current != next) {
+      recycleTransientFilterBitmap(current);
+    }
+  }
+
+  private void recycleTransientFilterBitmap(Bitmap bitmap) {
+    if (bitmap != null && !bitmap.isRecycled()) {
+      bitmap.recycle();
+    }
   }
 
   private float mapVectorLength(Matrix matrix, float x, float y) {

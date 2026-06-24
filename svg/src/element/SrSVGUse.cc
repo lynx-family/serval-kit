@@ -92,6 +92,16 @@ bool SrSVGUse::ParseAndSetAttribute(const char* name, const char* value) {
   } else if (strcmp(name, "height") == 0) {
     height_ = make_serval_length(value);
     return true;
+  } else if (strcmp(name, "stroke-linecap") == 0) {
+    has_stroke_cap_ = true;
+  } else if (strcmp(name, "stroke-linejoin") == 0) {
+    has_stroke_join_ = true;
+  } else if (strcmp(name, "stroke-miterlimit") == 0) {
+    has_stroke_miter_limit_ = true;
+  } else if (strcmp(name, "stroke-dashoffset") == 0) {
+    has_stroke_dash_offset_ = true;
+  } else if (strcmp(name, "stroke-dasharray") == 0) {
+    has_stroke_dash_array_ = true;
   }
   return SrSVGNode::ParseAndSetAttribute(name, value);
 }
@@ -102,6 +112,7 @@ void SrSVGUse::AppendChild(SrSVGNodeBase*) {
 
 bool SrSVGUse::OnPrepareToRender(canvas::SrCanvas* canvas,
                                  SrSVGRenderContext& context) const {
+  SrSVGNode::OnPrepareToRender(canvas, context);
   return true;
 }
 
@@ -125,7 +136,8 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
 }
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   if (!context) {
     return nullptr;
   }
@@ -157,7 +169,11 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
         ResolveUseLength(x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
     const float y = ResolveUseLength(y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
     float use_transform[6];
-    BuildUseTransform(x, y, transform_, use_transform);
+    if (include_transform) {
+      BuildUseTransform(x, y, transform_, use_transform);
+    } else {
+      xform_set_translation(use_transform, x, y);
+    }
     return path->CreateTransformCopy(use_transform);
   }
   LeaveUseReference(traversal_state, href_);
@@ -181,6 +197,11 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
   std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
   std::optional<SrSVGColor> local_color = node->inherit_color_;
+  SrSVGStrokeCap local_stroke_cap = node->stroke_cap_;
+  SrSVGStrokeJoin local_stroke_join = node->stroke_join_;
+  float local_stroke_miter_limit = node->stoke_miter_limit_;
+  float local_stroke_dash_offset = node->stroke_dash_offset_;
+  std::vector<float> local_stroke_dash_array = node->stroke_dash_array_;
 
   if (node->fill_) {
     node->inherit_fill_paint_ = node->fill_;
@@ -240,7 +261,9 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
 
   float x = ResolveUseLength(x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float y = ResolveUseLength(y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  canvas->Transform(transform_);
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
   canvas->Translate(x, y);
 
   if (node->color_) {
@@ -272,6 +295,22 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     canvas->BeginOpacityLayer(nullptr, use_opacity);
   }
 
+  if (has_stroke_cap_) {
+    node->stroke_cap_ = stroke_cap_;
+  }
+  if (has_stroke_join_) {
+    node->stroke_join_ = stroke_join_;
+  }
+  if (has_stroke_miter_limit_) {
+    node->stoke_miter_limit_ = stoke_miter_limit_;
+  }
+  if (has_stroke_dash_offset_) {
+    node->stroke_dash_offset_ = stroke_dash_offset_;
+  }
+  if (has_stroke_dash_array_) {
+    node->stroke_dash_array_ = stroke_dash_array_;
+  }
+
   // render the real node
   node->Render(canvas, context);
 
@@ -287,6 +326,11 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   node->inherit_clip_path_ = local_clip_path;
   node->inherit_mask_ = local_mask;
   node->inherit_color_ = local_color;
+  node->stroke_cap_ = local_stroke_cap;
+  node->stroke_join_ = local_stroke_join;
+  node->stoke_miter_limit_ = local_stroke_miter_limit;
+  node->stroke_dash_offset_ = local_stroke_dash_offset;
+  node->stroke_dash_array_ = local_stroke_dash_array;
 }
 
 bool SrSVGUse::HasChildren() const {

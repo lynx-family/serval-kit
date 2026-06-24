@@ -1,0 +1,19 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+
+  <polygon fill="#80ffdb" stroke="#ffffff" stroke-width="2"
+           points="40,130 90,130 65,90">
+    <animate attributeName="points"
+             values="40,130 90,130 65,90;
+                     40,130 150,130 150,60;
+                     40,130 90,130 65,90"
+             dur="2s" repeatCount="indefinite"/>
+  </polygon>
+
+  <line x1="190" y1="70" x2="300" y2="70" stroke="#fee440"
+        stroke-width="10" stroke-linecap="butt" stroke-dasharray="8 18">
+    <animate attributeName="stroke-dasharray"
+             values="8 18; 28 6; 8 18"
+             dur="2s" repeatCount="indefinite"/>
+  </line>
+</svg>
