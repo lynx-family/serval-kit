@@ -30,6 +30,7 @@ SRSVGNamedColor sr_svg__colors[] = {
     {"grey", NSVG_RGB(128, 128, 128)},
     {"gray", NSVG_RGB(128, 128, 128)},
     {"white", NSVG_RGB(255, 255, 255)},
+    {"transparent", NSVG_RGBA(0, 0, 0, 0)},
     {"aliceblue", NSVG_RGB(240, 248, 255)},
     {"antiquewhite", NSVG_RGB(250, 235, 215)},
     {"aqua", NSVG_RGB(0, 255, 255)},
@@ -219,15 +220,28 @@ GradientSpread make_serval_spread_method(const char* value) {
 
 #define SERVAL_SVG_VIEW_BOX_DELIMITERS " ,;\t\n"
 SrSVGBox make_serval_view_box(const char* value) {
-  char* token;
-  char* saved;
-  int i = 0;
   float result[4] = {0};
-  token = strtok_r((char*)value, SERVAL_SVG_VIEW_BOX_DELIMITERS, &saved);
-  char* end;
-  while (token != NULL && i < 4) {
-    result[i] = (float)strtof(token, &end);
-    token = strtok_r(NULL, SERVAL_SVG_VIEW_BOX_DELIMITERS, &saved);
+  if (!value) {
+    return (SrSVGBox){.left = result[0],
+                      .top = result[1],
+                      .width = result[2],
+                      .height = result[3]};
+  }
+  const char* cursor = value;
+  int i = 0;
+  while (*cursor && i < 4) {
+    while (*cursor && strchr(SERVAL_SVG_VIEW_BOX_DELIMITERS, *cursor)) {
+      ++cursor;
+    }
+    if (!*cursor) {
+      break;
+    }
+    char* end;
+    result[i] = (float)strtof(cursor, &end);
+    if (end == cursor) {
+      break;
+    }
+    cursor = end;
     ++i;
   }
   return (SrSVGBox){.left = result[0],
@@ -932,6 +946,9 @@ SrPolygon* make_serval_polygon(const char* value,
 }
 
 void release_serval_path(SrPathData* path) {
+  if (!path) {
+    return;
+  }
   if (path->args) {
     free(path->args);
     path->args = NULL;

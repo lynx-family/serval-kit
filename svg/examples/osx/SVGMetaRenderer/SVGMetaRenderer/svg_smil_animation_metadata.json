@@ -1,0 +1,212 @@
+{
+  "cases": [
+    {
+      "fileName": "smil_animation.svg",
+      "title": "SMIL Animation",
+      "tags": [
+        "animate",
+        "animateMotion",
+        "animateTransform",
+        "set"
+      ],
+      "descriptions": [
+        "SMIL 基础动画元素生效",
+        "mpath 优先于 path",
+        "paced 模式按距离插值并忽略 keyTimes",
+        "restart/end/syncbase 时间模型生效"
+      ]
+    },
+    {
+      "fileName": "smil-basic-attributes.svg",
+      "title": "SMIL Basic Attributes",
+      "tags": [
+        "animate",
+        "animateColor",
+        "set"
+      ],
+      "descriptions": [
+        "属性动画覆盖 x、opacity、r、stroke-width",
+        "animateColor 覆盖 fill 颜色插值",
+        "set 覆盖 begin/dur 内的离散赋值"
+      ]
+    },
+    {
+      "fileName": "smil-animate-color.svg",
+      "title": "SMIL Animate Color",
+      "tags": [
+        "animate",
+        "animateColor",
+        "color",
+        "rgba",
+        "transparent"
+      ],
+      "descriptions": [
+        "通用 animate 覆盖 fill、stroke 和 stop-color 颜色插值",
+        "animateColor 覆盖 legacy 颜色动画兼容",
+        "颜色插值覆盖 rgb()、rgba()、命名色和 transparent",
+        "rgba 输出保留 alpha 并交给正常 paint 解析链路"
+      ]
+    },
+    {
+      "fileName": "smil-attribute-matrix.svg",
+      "title": "SMIL Attribute Matrix",
+      "tags": [
+        "attribute-matrix",
+        "animate",
+        "animateColor",
+        "animateMotion",
+        "animateTransform"
+      ],
+      "descriptions": [
+        "几何属性覆盖 x、r、x2",
+        "绘制属性覆盖 fill、stroke-width 和继承 stroke",
+        "transform 与 motion 在同一 Android 渲染链路采样"
+      ]
+    },
+    {
+      "fileName": "smil-gradient-stops.svg",
+      "title": "SMIL Gradient Stops",
+      "tags": [
+        "animate",
+        "animateColor",
+        "gradient",
+        "stop"
+      ],
+      "descriptions": [
+        "stop-color 覆盖渐变色标颜色插值",
+        "offset 覆盖色标位置动画",
+        "href 目标动画覆盖 stop-opacity"
+      ]
+    },
+    {
+      "fileName": "smil-gradient-geometry.svg",
+      "title": "SMIL Gradient Geometry",
+      "tags": [
+        "animate",
+        "animateTransform",
+        "gradient",
+        "gradientTransform"
+      ],
+      "descriptions": [
+        "linearGradient 几何属性 x2 动画生效",
+        "radialGradient 半径 r 动画生效",
+        "animateTransform 覆盖 gradientTransform"
+      ]
+    },
+    {
+      "fileName": "smil-keytimes-calc.svg",
+      "title": "SMIL KeyTimes CalcMode",
+      "tags": [
+        "keyTimes",
+        "keySplines",
+        "calcMode"
+      ],
+      "descriptions": [
+        "linear/spline/discrete 三种分段插值对比",
+        "paced 模式按数值距离重建 keyTimes",
+        "keySplines 覆盖 cubic-bezier 缓动"
+      ]
+    },
+    {
+      "fileName": "smil-path-morph.svg",
+      "title": "SMIL Path Morph",
+      "tags": [
+        "animate",
+        "d",
+        "path",
+        "morph"
+      ],
+      "descriptions": [
+        "兼容 path d 命令序列按参数插值",
+        "覆盖闭合填充 path 和 cubic bezier stroke path",
+        "不兼容 path 会降级为离散切换"
+      ]
+    },
+    {
+      "fileName": "smil-structured-attributes.svg",
+      "title": "SMIL Structured Attributes",
+      "tags": [
+        "animate",
+        "points",
+        "stroke-dasharray"
+      ],
+      "descriptions": [
+        "polygon points 按兼容数字列表插值",
+        "stroke-dasharray 按 dash/gap 数字列表插值",
+        "不兼容数字列表会降级为离散切换"
+      ]
+    },
+    {
+      "fileName": "smil-viewbox.svg",
+      "title": "SMIL ViewBox",
+      "tags": [
+        "animate",
+        "viewBox",
+        "viewport"
+      ],
+      "descriptions": [
+        "root viewBox 按四元数字列表插值",
+        "覆盖动画 viewBox 驱动的坐标系变化",
+        "验证 viewBox 解析不修改输入字符串"
+      ]
+    },
+    {
+      "fileName": "smil-restore-cleanup.svg",
+      "title": "SMIL Restore Cleanup",
+      "tags": [
+        "set",
+        "restore",
+        "presentation-state"
+      ],
+      "descriptions": [
+        "同一个 Android SVGSession 连续渲染 active/inactive 帧",
+        "动画结束后清理原本不存在的 opacity、stroke-width、fill-opacity",
+        "防止上一帧 animated presentation 状态污染后续帧",
+        "额外提供持续循环的 stroke-width line 便于肉眼观察"
+      ]
+    },
+    {
+      "fileName": "smil-motion-transform.svg",
+      "title": "SMIL Motion Transform",
+      "tags": [
+        "animateMotion",
+        "mpath",
+        "animateTransform"
+      ],
+      "descriptions": [
+        "animateMotion 覆盖 mpath 路径采样",
+        "from/by motion 覆盖直线位移动画",
+        "animateTransform 覆盖 rotate 多值插值"
+      ]
+    },
+    {
+      "fileName": "smil-repeat-accumulate.svg",
+      "title": "SMIL Repeat Accumulate",
+      "tags": [
+        "repeatCount",
+        "repeatDur",
+        "accumulate"
+      ],
+      "descriptions": [
+        "repeatCount 和 fill=freeze 覆盖结束态保持",
+        "accumulate=sum 覆盖跨迭代累加",
+        "repeatDur/min/max 覆盖活动时长裁剪"
+      ]
+    },
+    {
+      "fileName": "smil-timing-restart.svg",
+      "title": "SMIL Timing Restart",
+      "tags": [
+        "begin",
+        "end",
+        "restart",
+        "syncbase"
+      ],
+      "descriptions": [
+        "begin 列表覆盖多 interval 选择",
+        "restart 覆盖 always/whenNotActive/never",
+        "syncbase 覆盖 id.begin/id.end 加 offset"
+      ]
+    }
+  ]
+}

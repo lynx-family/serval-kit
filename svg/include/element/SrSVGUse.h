@@ -24,8 +24,8 @@ class SrSVGUse : public SrSVGNode {
   bool HasChildren() const override;
   void AppendChild(SrSVGNodeBase*) override;
   std::unique_ptr<canvas::Path> AsPath(
-      canvas::PathFactory* path_factory,
-      SrSVGRenderContext* context) const override;
+      canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+      bool include_transform = true) const override;
 
   const std::string& href() const { return href_; }
   const SrSVGLength& x() const { return x_; }
@@ -41,6 +41,11 @@ class SrSVGUse : public SrSVGNode {
   SrSVGUse() : SrSVGNode(SrSVGTag::kUse) {}
   std::string href_;
   SrSVGLength x_{0}, y_{0}, width_{0}, height_{0};
+  bool has_stroke_cap_{false};
+  bool has_stroke_join_{false};
+  bool has_stroke_miter_limit_{false};
+  bool has_stroke_dash_offset_{false};
+  bool has_stroke_dash_array_{false};
 };
 
 }  // namespace element

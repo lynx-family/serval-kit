@@ -4,60 +4,60 @@
 
 #import "SVGMetalView.h"
 
+#import <CoreVideo/CoreVideo.h>
 #import <Foundation/Foundation.h>
+#import <QuartzCore/QuartzCore.h>
+#include <atomic>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "parser/SrSVGDOM.h"
 #include "platform/skity/SrSkityCanvas.h"
+#include "renderer/SrSVGAnimatedRenderer.h"
 
 #include <skity/gpu/gpu_context_mtl.h>
 #include <skity/gpu/gpu_surface.hpp>
 #include <skity/skity.hpp>
 
 using serval::svg::parser::SrSVGDiagnostic;
-using serval::svg::parser::SrSVGDOM;
+using serval::svg::renderer::SrSVGAnimatedRenderer;
 using serval::svg::skity::SrSkityCanvas;
 
-static bool SrSVGParseDefaultColorString(NSString* color_string,
-                                         uint32_t* out_color) {
-  if (color_string.length != 7 || ![color_string hasPrefix:@"#"] ||
-      out_color == nullptr) {
-    return false;
-  }
-  unsigned int color_value = 0;
-  NSScanner* scanner =
-      [NSScanner scannerWithString:[color_string substringFromIndex:1]];
-  if (![scanner scanHexInt:&color_value]) {
-    return false;
-  }
-  uint32_t rgb = (uint32_t)color_value;
-  *out_color = ((rgb & 0x00FF0000) | (rgb & 0x0000FF00) | (rgb & 0x000000FF) |
-                0xFF000000);
-  return true;
-}
-
-static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
-                                   NSString* svg_doc,
-                                   std::vector<SrSVGDiagnostic>* diagnostics) {
-  if (svg_doc.length == 0) {
-    svg_dom.reset();
-    return false;
-  }
-  std::string svg_cpp_string([svg_doc UTF8String]);
-  svg_dom = SrSVGDOM::make(svg_cpp_string.c_str(), svg_cpp_string.length(),
-                           diagnostics);
-  return svg_dom != nullptr;
-}
-
 @interface SVGMetalView () {
-  std::unique_ptr<SrSVGDOM> _svgDom;
+  SrSVGAnimatedRenderer _svgRenderer;
   std::unique_ptr<skity::GPUContext> _gpuContext;
   std::unique_ptr<skity::GPUSurface> _gpuSurface;
+  CVDisplayLinkRef _animationDisplayLink;
+  std::atomic_bool _displayLinkRenderPending;
 }
 
+- (void)scheduleDisplayLinkRenderAtTime:(CFTimeInterval)frameTime;
+
 @end
+
+static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
+                                            const CVTimeStamp* now,
+                                            const CVTimeStamp* outputTime,
+                                            CVOptionFlags flagsIn,
+                                            CVOptionFlags* flagsOut,
+                                            void* displayLinkContext) {
+  (void)displayLink;
+  (void)now;
+  (void)flagsIn;
+  (void)flagsOut;
+  auto* view = (__bridge SVGMetalView*)displayLinkContext;
+  if (view == nil) {
+    return kCVReturnSuccess;
+  }
+  CFTimeInterval frameTime = CACurrentMediaTime();
+  if (outputTime != nullptr && outputTime->hostTime > 0) {
+    frameTime = static_cast<CFTimeInterval>(outputTime->hostTime) /
+                static_cast<CFTimeInterval>(CVGetHostClockFrequency());
+  }
+  [view scheduleDisplayLinkRenderAtTime:frameTime];
+  return kCVReturnSuccess;
+}
 
 @implementation SVGMetalView
 
@@ -83,6 +83,7 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
 
 - (void)commonInit {
   self.wantsLayer = YES;
+  _displayLinkRenderPending.store(false);
   CAMetalLayer* metalLayer = [CAMetalLayer layer];
   metalLayer.device = MTLCreateSystemDefaultDevice();
   metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
@@ -138,14 +139,17 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
 - (void)setSVGContent:(NSString*)content {
   std::vector<SrSVGDiagnostic> diagnostics;
   if (![content isKindOfClass:[NSString class]] || content.length == 0) {
-    _svgDom.reset();
+    _svgRenderer.SetDOM(nullptr);
   } else {
-    SrSVGParseSVGStringDoc(_svgDom, content, &diagnostics);
+    std::string svg_cpp_string([content UTF8String]);
+    _svgRenderer.SetContent(svg_cpp_string.c_str(), svg_cpp_string.length(),
+                            &diagnostics);
   }
   if (!diagnostics.empty()) {
     NSLog(@"SVGDiagnostic errorMessage=%s",
           diagnostics.front().message.c_str());
   }
+  [self updateAnimationTimer];
   [self render];
 }
 
@@ -183,16 +187,13 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
   if (!canvas) {
     return;
   }
-  if (_svgDom) {
+  if (_svgRenderer.HasContent()) {
+    std::optional<uint32_t> default_color;
     if (self.color.length > 0) {
-      uint32_t default_color = 0;
-      if (parse_svg_color(self.color.UTF8String, &default_color)) {
-        _svgDom->SetDefaultColor(default_color);
-      } else {
-        _svgDom->ResetDefaultColor();
+      uint32_t parsed_color = 0;
+      if (parse_svg_color(self.color.UTF8String, &parsed_color)) {
+        default_color = parsed_color;
       }
-    } else {
-      _svgDom->ResetDefaultColor();
     }
 
     SrSkityCanvas sr_canvas(
@@ -202,7 +203,7 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
 
     SrSVGBox view_port{0.f, 0.f, width, height};
     //canvas->ClipRect(skity::Rect::MakeXYWH(0.f, 0.f, width, height));
-    _svgDom->Render(&sr_canvas, view_port);
+    _svgRenderer.Render(&sr_canvas, view_port, default_color);
   } else {
     skity::Paint paint;
     paint.SetTextSize(20.f);
@@ -308,6 +309,7 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
 - (void)viewDidMoveToWindow {
   [super viewDidMoveToWindow];
   [self recreateSurface];
+  [self updateAnimationTimer];
   [self render];
 }
 
@@ -321,6 +323,76 @@ static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svg_dom,
   [super setFrameSize:newSize];
   [self recreateSurface];
   [self render];
+}
+
+- (void)dealloc {
+  [self stopAnimationTimer];
+}
+
+- (void)scheduleDisplayLinkRenderAtTime:(CFTimeInterval)frameTime {
+  bool expected = false;
+  if (!_displayLinkRenderPending.compare_exchange_strong(expected, true)) {
+    return;
+  }
+  __weak SVGMetalView* weakSelf = self;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    SVGMetalView* strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return;
+    }
+    strongSelf->_displayLinkRenderPending.store(false);
+    const bool needsNextFrame =
+        strongSelf->_svgRenderer.OnFrameTimeSeconds(frameTime);
+    [strongSelf render];
+    if (!needsNextFrame) {
+      [strongSelf stopAnimationTimer];
+    }
+  });
+}
+
+- (void)updateAnimationTimer {
+  BOOL shouldAnimate = _svgRenderer.HasAnimations() && self.window != nil;
+  if (shouldAnimate) {
+    [self startAnimationTimer];
+  } else {
+    [self stopAnimationTimer];
+  }
+}
+
+- (void)startAnimationTimer {
+  if (_animationDisplayLink != nullptr) {
+    return;
+  }
+  _svgRenderer.StartAnimationAtTimeSeconds(CACurrentMediaTime());
+  if (!_svgRenderer.NeedsAnimationFrame()) {
+    _svgRenderer.StopAnimation();
+    return;
+  }
+  CVDisplayLinkRef displayLink = nullptr;
+  if (CVDisplayLinkCreateWithActiveCGDisplays(&displayLink) !=
+      kCVReturnSuccess) {
+    _svgRenderer.StopAnimation();
+    return;
+  }
+  CVDisplayLinkSetOutputCallback(displayLink, SVGMetalDisplayLinkCallback,
+                                 (__bridge void*)self);
+  if (CVDisplayLinkStart(displayLink) != kCVReturnSuccess) {
+    CVDisplayLinkRelease(displayLink);
+    _svgRenderer.StopAnimation();
+    return;
+  }
+  _animationDisplayLink = displayLink;
+}
+
+- (void)stopAnimationTimer {
+  if (_animationDisplayLink == nullptr) {
+    return;
+  }
+  CVDisplayLinkStop(_animationDisplayLink);
+  CVDisplayLinkRelease(_animationDisplayLink);
+  _animationDisplayLink = nullptr;
+  _displayLinkRenderPending.store(false);
+  _svgRenderer.StopAnimation();
 }
 
 @end

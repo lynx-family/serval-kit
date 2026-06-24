@@ -23,7 +23,13 @@ class SrSVGLinearGradient : public SrSVGContainer {
   }
 
  private:
-  SrSVGLinearGradient() : SrSVGContainer(SrSVGTag::kLinearGradient) {}
+  SrSVGLinearGradient() : SrSVGContainer(SrSVGTag::kLinearGradient) {
+    StoreAttribute("x1", "0");
+    StoreAttribute("y1", "0");
+    StoreAttribute("x2", "1");
+    StoreAttribute("y2", "0");
+    StoreAttribute("gradientTransform", "matrix(1 0 0 1 0 0)");
+  }
   float gradient_transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
   SrSVGObjectBoundingBoxUnitType gradient_units_{
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX};

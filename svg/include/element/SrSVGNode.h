@@ -22,7 +22,16 @@ class SrCanvas;
 
 namespace element {
 
+class SrSVGAnimation;
+class SrSVGNodeBase;
+
+using IDMapper = std::unordered_map<std::string, SrSVGNodeBase*>;
+
 enum class SrSVGTag {
+  kAnimate,
+  kAnimateColor,
+  kAnimateMotion,
+  kAnimateTransform,
   kCircle,
   kClipPath,
   kDefs,
@@ -39,6 +48,7 @@ enum class SrSVGTag {
   kLine,
   kLinearGradient,
   kMask,
+  kMPath,
   kPath,
   kPattern,
   kPolygon,
@@ -47,6 +57,7 @@ enum class SrSVGTag {
   kRect,
   kStop,
   kSvg,
+  kSet,
   kText,
   kTextLiteral,
   kTSpan,
@@ -58,16 +69,28 @@ class SrSVGNodeBase {
   virtual ~SrSVGNodeBase() = default;
   void Render(canvas::SrCanvas* canvas, SrSVGRenderContext& context);
   virtual bool ParseAndSetAttribute(const char* name, const char* value) = 0;
+  virtual bool SetAnimatedPathData(const SrPathData* path_data) {
+    return false;
+  }
   void SetDiagnosticSink(const SrSVGDiagnosticSink* diagnostic_sink) {
     diagnostic_sink_ = diagnostic_sink;
   }
   virtual void AppendChild(SrSVGNodeBase*) {}
   virtual std::unique_ptr<canvas::Path> AsPath(
-      canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+      canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+      bool include_transform = true) const {
     return nullptr;
   }
   virtual bool IsSVGNode() const { return false; }
   SrSVGTag Tag() const { return tag_; }
+  const std::string& Id() const { return id_; }
+  bool HasClickEvent() const { return !click_event_.empty(); }
+  const std::string& ClickEvent() const { return click_event_; }
+  virtual void StoreAttribute(const char* name, const char* value) {}
+  virtual void AddAnimation(SrSVGAnimation*) {}
+  virtual bool HasAnimations() const { return false; }
+  virtual void ApplyAnimations(double, const IDMapper*) {}
+  virtual void RestoreAnimatedAttributes() {}
 
  protected:
   explicit SrSVGNodeBase(SrSVGTag tag) : tag_(tag) {}
@@ -88,9 +111,16 @@ class SrSVGNodeBase {
 
  protected:
   std::string id_;
+  std::string click_event_;
 
  private:
   SrSVGTag tag_;
+};
+
+enum class SrSVGTransformBox {
+  kViewBox,
+  kFillBox,
+  kStrokeBox,
 };
 
 class SrSVGNode : public SrSVGNodeBase {
@@ -112,6 +142,19 @@ class SrSVGNode : public SrSVGNodeBase {
   ~SrSVGNode() override;
 
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  void StoreAttribute(const char* name, const char* value) override;
+  void AddAnimation(SrSVGAnimation* animation) override;
+  bool HasAnimations() const override { return !animations_.empty(); }
+  void ApplyAnimations(double seconds, const IDMapper* id_mapper) override;
+  void RestoreAnimatedAttributes() override;
+  bool HasTransformOrigin() const { return has_transform_origin_; }
+  float TransformOriginX() const { return transform_origin_x_; }
+  float TransformOriginY() const { return transform_origin_y_; }
+  bool ResolveTransformOrigin(float* x, float* y,
+                              const SrSVGRenderContext& context,
+                              canvas::PathFactory* path_factory) const;
+  void ResolvedTransform(float (&xform)[6], const SrSVGRenderContext& context,
+                         canvas::PathFactory* path_factory) const;
 
   bool IsSVGNode() const override { return true; }
 
@@ -123,6 +166,11 @@ class SrSVGNode : public SrSVGNodeBase {
 
  private:
   void ParseStrokeDashArray(const char* value);
+  void ParseTransformOrigin(const char* value);
+  void ParseTransformBox(const char* value);
+  void RestoreAnimatedAttribute(const std::string& name,
+                                const std::optional<std::string>& base_value);
+  void ClearAnimatedAttribute(const std::string& name);
 
  public:
   static const float s_stroke_miter_limit;
@@ -148,6 +196,12 @@ class SrSVGNode : public SrSVGNodeBase {
   std::vector<float> stroke_dash_array_{};
 
   SrSVGVectorEffect vector_effect_{SR_SVG_VECTOR_EFFECT_NONE};
+  bool has_transform_origin_{false};
+  SrSVGLength transform_origin_x_length_{0.f, SR_SVG_UNITS_NUMBER};
+  SrSVGLength transform_origin_y_length_{0.f, SR_SVG_UNITS_NUMBER};
+  float transform_origin_x_{0.f};
+  float transform_origin_y_{0.f};
+  SrSVGTransformBox transform_box_{SrSVGTransformBox::kViewBox};
 
   //inherit
   SrSVGPaint* inherit_fill_paint_{nullptr};
@@ -158,9 +212,13 @@ class SrSVGNode : public SrSVGNodeBase {
   std::optional<float> inherit_stroke_opacity_;
   std::optional<SrSVGLength> inherit_stroke_width_;
   float transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
-};
 
-using IDMapper = std::unordered_map<std::string, SrSVGNodeBase*>;
+ private:
+  std::unordered_map<std::string, std::string> base_attributes_;
+  std::unordered_map<std::string, std::optional<std::string>>
+      animated_attributes_;
+  std::vector<SrSVGAnimation*> animations_;
+};
 
 }  // namespace element
 }  // namespace serval::svg

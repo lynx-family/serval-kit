@@ -1,0 +1,42 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+
+  <rect x="24" y="18" width="32" height="24" rx="4" fill="#4cc9f0">
+    <animate attributeName="x" values="24;104;24" dur="2s"
+             repeatCount="indefinite"/>
+  </rect>
+
+  <circle cx="174" cy="30" r="7" fill="#ff9f1c">
+    <animate attributeName="r" values="7;18;7" dur="2s"
+             repeatCount="indefinite"/>
+  </circle>
+
+  <rect x="226" y="18" width="34" height="24" rx="4" fill="#ff9f1c">
+    <animateColor attributeName="fill" values="#ff9f1c;#f15bb5;#ff9f1c"
+                  dur="2s" repeatCount="indefinite"/>
+  </rect>
+
+  <g stroke="#72efdd" stroke-width="6" stroke-linecap="round">
+    <line x1="24" y1="72" x2="80" y2="72">
+      <animate attributeName="x2" values="80;150;80" dur="2s"
+               repeatCount="indefinite"/>
+    </line>
+  </g>
+
+  <line x1="226" y1="72" x2="286" y2="72" stroke="#fee440"
+        stroke-width="1" stroke-linecap="round">
+    <animate attributeName="stroke-width" values="1;12;1" dur="2s"
+             repeatCount="indefinite"/>
+  </line>
+
+  <rect x="34" y="118" width="28" height="20" rx="4" fill="#f15bb5">
+    <animateTransform attributeName="transform" type="translate"
+                      values="0 0;80 0;0 0" dur="2s"
+                      repeatCount="indefinite"/>
+  </rect>
+
+  <circle r="7" fill="#80ffdb">
+    <animateMotion values="190 128;286 128;190 128" dur="2s"
+                   repeatCount="indefinite"/>
+  </circle>
+</svg>

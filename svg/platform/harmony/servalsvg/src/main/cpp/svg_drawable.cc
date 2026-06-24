@@ -96,6 +96,15 @@ napi_value SvgDrawable::Init(napi_env env, napi_value exports) {
     constexpr napi_property_descriptor properties[] = {
         {"update", nullptr, Update, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"render", nullptr, Render, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"hasAnimations", nullptr, HasAnimations, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"animationTimelineEndSeconds", nullptr, AnimationTimelineEndSeconds, nullptr, nullptr, nullptr, napi_default,
+         nullptr},
+        {"startAnimation", nullptr, StartAnimation, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"stopAnimation", nullptr, StopAnimation, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"resetAnimationClock", nullptr, ResetAnimationClock, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"needsAnimationFrame", nullptr, NeedsAnimationFrame, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"onFrameTimeNanos", nullptr, OnFrameTimeNanos, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"currentAnimationSeconds", nullptr, CurrentAnimationSeconds, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"dispose", nullptr, Dispose, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"setImageFetcher", nullptr, SetImageFetcher, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"setInvalidateCallback", nullptr, SetInvalidateCallback, nullptr, nullptr, nullptr, napi_default, nullptr},
@@ -109,15 +118,124 @@ napi_value SvgDrawable::Init(napi_env env, napi_value exports) {
 napi_value SvgDrawable::Render(napi_env env, napi_callback_info info) {
     napi_value result;
     napi_value js_this;
-    napi_value argv[1];
-    size_t argc = 1;
+    napi_value argv[2];
+    size_t argc = 2;
     napi_get_cb_info(env, info, &argc, argv, &js_this, nullptr);
     OH_Drawing_Canvas *canvas;
     napi_unwrap(env, argv[0], reinterpret_cast<void **>(&canvas));
     SvgDrawable *drawable;
     napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
-    drawable->Render(canvas);
+    double seconds{0};
+    if (argc > 1) {
+        napi_get_value_double(env, argv[1], &seconds);
+        drawable->RenderAtTime(canvas, seconds);
+    } else {
+        drawable->Render(canvas);
+    }
     napi_get_undefined(env, &result);
+    return result;
+}
+
+napi_value SvgDrawable::HasAnimations(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    napi_value result;
+    napi_get_boolean(env, drawable != nullptr && drawable->HasAnimations(), &result);
+    return result;
+}
+
+napi_value SvgDrawable::AnimationTimelineEndSeconds(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    napi_value result;
+    napi_create_double(env, drawable != nullptr ? drawable->AnimationTimelineEndSeconds() : 0.0, &result);
+    return result;
+}
+
+napi_value SvgDrawable::StartAnimation(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    if (drawable != nullptr) {
+        drawable->StartAnimation();
+    }
+    napi_value result;
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+napi_value SvgDrawable::StopAnimation(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    if (drawable != nullptr) {
+        drawable->StopAnimation();
+    }
+    napi_value result;
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+napi_value SvgDrawable::ResetAnimationClock(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    if (drawable != nullptr) {
+        drawable->ResetAnimationClock();
+    }
+    napi_value result;
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+napi_value SvgDrawable::NeedsAnimationFrame(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    napi_value result;
+    napi_get_boolean(env, drawable != nullptr && drawable->NeedsAnimationFrame(), &result);
+    return result;
+}
+
+napi_value SvgDrawable::OnFrameTimeNanos(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    napi_value argv[1];
+    size_t argc = 1;
+    napi_get_cb_info(env, info, &argc, argv, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    double frame_time_nanos = 0.0;
+    if (argc > 0) {
+        napi_get_value_double(env, argv[0], &frame_time_nanos);
+    }
+    napi_value result;
+    napi_get_boolean(env, drawable != nullptr && drawable->OnFrameTimeNanos(static_cast<int64_t>(frame_time_nanos)),
+                     &result);
+    return result;
+}
+
+napi_value SvgDrawable::CurrentAnimationSeconds(napi_env env, napi_callback_info info) {
+    napi_value js_this;
+    size_t argc = 0;
+    napi_get_cb_info(env, info, &argc, nullptr, &js_this, nullptr);
+    SvgDrawable *drawable;
+    napi_unwrap(env, js_this, reinterpret_cast<void **>(&drawable));
+    napi_value result;
+    napi_create_double(env, drawable != nullptr ? drawable->CurrentAnimationSeconds() : 0.0, &result);
     return result;
 }
 
@@ -344,6 +462,8 @@ void SvgDrawable::ReleaseResources() {
     DeleteReference(invalidate_ref_);
     sr_canvas_.reset();
     svg_dom_.reset();
+    animation_state_.SetHasAnimations(false);
+    animation_state_.SetAnimationTimelineEndSeconds(0.0);
 }
 
 void SvgDrawable::ClearImageCache() {
@@ -506,7 +626,9 @@ void SvgDrawable::NotifyInvalidate() {
     napi_call_function(env_, global, callback, 0, nullptr, &result);
 }
 
-void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
+void SvgDrawable::Render(OH_Drawing_Canvas *canvas) { RenderAtTime(canvas, animation_state_.CurrentSeconds()); }
+
+void SvgDrawable::RenderAtTime(OH_Drawing_Canvas *canvas, double seconds) {
     if (svg_dom_) {
         if (!sr_canvas_) {
             sr_canvas_ = std::make_unique<SrHarmonyCanvas>(canvas);
@@ -529,10 +651,32 @@ void SvgDrawable::Render(OH_Drawing_Canvas *canvas) {
             svg_dom_->ResetDefaultColor();
         }
         SrSVGBox box{left_, top_, width_, height_};
-        svg_dom_->Render(sr_canvas_.get(), box);
+        if (svg_dom_->HasAnimations()) {
+            svg_dom_->RenderAtTime(sr_canvas_.get(), box, seconds);
+        } else {
+            svg_dom_->Render(sr_canvas_.get(), box);
+        }
         last_result_ = MakeRenderResult(svg_dom_->diagnostics());
     }
 }
+
+bool SvgDrawable::HasAnimations() const { return animation_state_.HasAnimations(); }
+
+double SvgDrawable::AnimationTimelineEndSeconds() const { return animation_state_.AnimationTimelineEndSeconds(); }
+
+void SvgDrawable::StartAnimation() { animation_state_.Start(); }
+
+void SvgDrawable::StopAnimation() { animation_state_.Stop(); }
+
+void SvgDrawable::ResetAnimationClock() { animation_state_.ResetClock(); }
+
+bool SvgDrawable::NeedsAnimationFrame() const { return animation_state_.NeedsAnimationFrame(); }
+
+bool SvgDrawable::OnFrameTimeNanos(int64_t frame_time_nanos) {
+    return animation_state_.OnFrameTimeNanos(frame_time_nanos);
+}
+
+double SvgDrawable::CurrentAnimationSeconds() const { return animation_state_.CurrentSeconds(); }
 
 SvgRenderResult harmony::SvgDrawable::Update(const std::string &content, float left, float top, float width,
                                              float height, bool anti_alias, bool has_color, std::string color) {
@@ -546,6 +690,8 @@ SvgRenderResult harmony::SvgDrawable::Update(const std::string &content, float l
     anti_alias_ = anti_alias;
     has_color_ = has_color;
     color_ = std::move(color);
+    animation_state_.SetHasAnimations(svg_dom_ && svg_dom_->HasAnimations());
+    animation_state_.SetAnimationTimelineEndSeconds(svg_dom_ ? svg_dom_->AnimationTimelineEndSeconds() : 0.0);
     last_result_ = MakeRenderResult(diagnostics);
     return last_result_;
 }

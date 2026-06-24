@@ -13,17 +13,6 @@ namespace element {
 
 void SrSVGPolygon::onDraw(canvas::SrCanvas* canvas,
                           SrSVGRenderContext& context) const {
-  uint8_t type = 0;
-  if (stroke_ && stroke_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagStroke;
-  }
-  if (fill_ && fill_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagFill;
-    if (fill_rule_ == SR_SVG_EO_FILL) {
-      type |= kRenderTypeFillRule;
-    }
-  }
-
   if (polygon_ && polygon_->n_points != 0) {
     canvas->DrawPolygon(id_.c_str(), polygon_->points, polygon_->n_points,
                         render_state_);
@@ -31,19 +20,24 @@ void SrSVGPolygon::onDraw(canvas::SrCanvas* canvas,
 }
 bool SrSVGPolygon::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "points") == 0) {
-    polygon_ = make_serval_polygon(value, diagnostic_sink_);
+    release_serval_polygon_path(polygon_);
+    polygon_ = value && value[0] ? make_serval_polygon(value, diagnostic_sink_)
+                                 : nullptr;
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);
 }
 
 std::unique_ptr<canvas::Path> SrSVGPolygon::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   if (polygon_ && polygon_->n_points != 0) {
     auto path =
         path_factory->CreatePolygon(polygon_->points, polygon_->n_points);
-    if (path) {
-      path->Transform(transform_);
+    if (include_transform && path) {
+      float xform[6];
+      ResolvedTransform(xform, *context, path_factory);
+      path->Transform(xform);
     }
     return path;
   }

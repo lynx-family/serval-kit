@@ -39,6 +39,7 @@ struct Index {
   private static readonly CATEGORY_GRADIENT: string = 'Gradient';
   private static readonly CATEGORY_SHAPE: string = 'Shape';
   private static readonly CATEGORY_VECTOR_EFFECT: string = 'VectorEffect';
+  private static readonly CATEGORY_SMIL_ANIMATION: string = 'SMILAnimation';
   private static readonly HOST_COLOR_COMPARE_FILE: string = 'currentcolor-host-default-compare.svg';
   private static readonly HOST_COLOR_OVERRIDE_FILE: string = 'currentcolor-content-color-override.svg';
   private static readonly HOST_DEFAULT_COLOR: string = '#4F6BFF';
@@ -46,7 +47,8 @@ struct Index {
     'svg_root_metadata.json',
     'svg_shape_metadata.json',
     'svg_use_metadata.json',
-    'svg_gradient_metadata.json'
+    'svg_gradient_metadata.json',
+    'svg_smil_animation_metadata.json'
   ];
   private readonly categories: string[] = [
     Index.CATEGORY_SHAPE,
@@ -60,6 +62,7 @@ struct Index {
     Index.CATEGORY_USE,
     Index.CATEGORY_GRADIENT,
     Index.CATEGORY_VECTOR_EFFECT,
+    Index.CATEGORY_SMIL_ANIMATION,
     Index.CATEGORY_OTHERS
   ];
   @State selectedCategory: string = Index.CATEGORY_SHAPE;
@@ -152,6 +155,7 @@ struct Index {
     'svg-root-no-width-height.svg',
     'text.svg',
     'transforms.svg',
+    'smil_animation.svg',
     'vector-effect-dash.svg',
     'vector-effect-gradient-line.svg',
     'vector-effect-gradient-stroke.svg',
@@ -199,6 +203,9 @@ struct Index {
     }
     if (fileName.startsWith('vector-effect-')) {
       return Index.CATEGORY_VECTOR_EFFECT;
+    }
+    if (fileName.startsWith('smil_') || fileName.startsWith('smil-')) {
+      return Index.CATEGORY_SMIL_ANIMATION;
     }
     return Index.CATEGORY_OTHERS;
   }

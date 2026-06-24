@@ -1,0 +1,84 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#06101f"/>
+
+  <path id="motionPath" d="M 30 120 C 80 30 150 160 210 70 C 240 30 270 130 300 60"
+        fill="none" stroke="#365a76" stroke-width="2"/>
+  <path id="mpathOverride" d="M 190 28 L 302 28"
+        fill="none" stroke="#72efdd" stroke-width="1.5"/>
+  <path d="M 190 58 L 302 58" fill="none" stroke="#365a76"
+        stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <rect id="hrefTarget" x="24" y="24" width="28" height="28" rx="4" fill="#4cc9f0">
+    <animateColor attributeName="fill" values="#4cc9f0;#72efdd;#4cc9f0"
+                  dur="2.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.25;1;0.25" keyTimes="0;0.4;1"
+             calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"
+             dur="2.4s" repeatCount="indefinite"/>
+  </rect>
+
+  <animate id="hrefMove" href="#hrefTarget" attributeName="x" values="24;92;24"
+           keyTimes="0;0.5;1" calcMode="linear" dur="4s"
+           repeatCount="1" fill="freeze"/>
+
+  <circle cx="40" cy="150" r="5" fill="#ffffff">
+    <animate attributeName="cx" by="32" dur="1s" repeatCount="3"
+             accumulate="sum" fill="freeze"/>
+  </circle>
+
+  <circle cx="132" cy="150" r="5" fill="#72efdd" opacity="0.25">
+    <animate attributeName="opacity" to="1" begin="hrefMove.end+0.2s"
+             dur="0.8s" fill="freeze" min="0.4s" max="1s"/>
+  </circle>
+
+  <circle r="7" fill="#80ffdb">
+    <animateMotion dur="5s" repeatCount="indefinite" rotate="auto"
+                   keyPoints="0;0.3;1" keyTimes="0;0.65;1">
+      <mpath href="#motionPath"/>
+    </animateMotion>
+    <set attributeName="opacity" to="0.9" begin="0s" dur="3s"/>
+  </circle>
+
+  <circle r="5" fill="#4cc9f0">
+    <animateMotion from="250 36" by="44 0" dur="2s" repeatCount="indefinite"
+                   rotate="30"/>
+  </circle>
+
+  <circle r="4" fill="#ffd166">
+    <animateMotion path="M 190 58 L 302 58" dur="2s"
+                   repeatCount="indefinite">
+      <mpath href="#mpathOverride"/>
+    </animateMotion>
+  </circle>
+
+  <circle cy="92" r="4" fill="#f72585">
+    <animate attributeName="cx" values="190;220;302" keyTimes="0;0.9;1"
+             calcMode="paced" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <rect x="240" y="120" width="24" height="24" fill="none"
+        stroke="#72efdd" stroke-width="2" transform-origin="252 132">
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0" to="360" dur="3s"
+                      repeatCount="indefinite"/>
+  </rect>
+
+  <circle cx="22" cy="170" r="4" fill="#ff9f1c">
+    <animate attributeName="cx" values="22;68" begin="0s;1s"
+             dur="1.6s" restart="always" repeatCount="1" fill="freeze"/>
+  </circle>
+  <circle cx="92" cy="170" r="4" fill="#b8f2e6">
+    <animate attributeName="cx" values="92;138" begin="0s;0.6s;2s"
+             dur="1.4s" restart="whenNotActive" repeatCount="1"
+             fill="freeze"/>
+  </circle>
+  <circle cx="162" cy="170" r="4" fill="#f15bb5">
+    <animate attributeName="cx" values="162;208" begin="0s;1s"
+             dur="1.2s" restart="never" repeatCount="1" fill="freeze"/>
+  </circle>
+  <circle cx="252" cy="170" r="4" fill="#fee440" opacity="0.2">
+    <animate attributeName="opacity" values="0.2;1"
+             begin="hrefMove.end;hrefMove.end+1s"
+             end="hrefMove.end+0.8s;hrefMove.end+2s"
+             dur="3s" fill="freeze"/>
+  </circle>
+</svg>

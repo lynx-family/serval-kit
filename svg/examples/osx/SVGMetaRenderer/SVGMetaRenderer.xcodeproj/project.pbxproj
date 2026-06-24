@@ -20,6 +20,9 @@
 		SVGMETA131 /* svg_root_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA25 /* svg_root_metadata.json */; };
 		SVGMETA132 /* svg_shape_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA26 /* svg_shape_metadata.json */; };
 		SVGMETA133 /* svg_use_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA27 /* svg_use_metadata.json */; };
+		SVGMETA134 /* svg_smil_animation_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA28 /* svg_smil_animation_metadata.json */; };
+		SVGMETA135 /* SrSVGAnimation.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA231 /* SrSVGAnimation.cc */; };
+		SVGMETA140 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA20 /* CoreVideo.framework */; };
 		SVGMETA06 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA21 /* Metal.framework */; };
 		SVGMETA07 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA22 /* QuartzCore.framework */; };
 		SVGMETA08 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA23 /* Cocoa.framework */; };
@@ -75,6 +78,8 @@
 		SVGMETA25 /* svg_root_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_root_metadata.json; sourceTree = "<group>"; };
 		SVGMETA26 /* svg_shape_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_shape_metadata.json; sourceTree = "<group>"; };
 		SVGMETA27 /* svg_use_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_use_metadata.json; sourceTree = "<group>"; };
+		SVGMETA28 /* svg_smil_animation_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_smil_animation_metadata.json; sourceTree = "<group>"; };
+		SVGMETA231 /* SrSVGAnimation.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGAnimation.cc; path = ../../../../src/element/SrSVGAnimation.cc; sourceTree = "<group>"; };
 		SVGMETA200 /* SrSkityCanvas.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSkityCanvas.cc; path = ../../../../platform/skity/SrSkityCanvas.cc; sourceTree = "<group>"; };
 		SVGMETA201 /* SrSkityParagraph.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSkityParagraph.cc; path = ../../../../platform/skity/SrSkityParagraph.cc; sourceTree = "<group>"; };
 		SVGMETA202 /* SrSVGCircle.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGCircle.cc; path = ../../../../src/element/SrSVGCircle.cc; sourceTree = "<group>"; };
@@ -85,6 +90,7 @@
 		SVGMETA207 /* SrSVGFilter.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGFilter.cc; path = ../../../../src/element/SrSVGFilter.cc; sourceTree = "<group>"; };
 		SVGMETA208 /* SrSVGFilterPrimitives.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGFilterPrimitives.cc; path = ../../../../src/element/SrSVGFilterPrimitives.cc; sourceTree = "<group>"; };
 		SVGMETA209 /* SrSVGImage.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGImage.cc; path = ../../../../src/element/SrSVGImage.cc; sourceTree = "<group>"; };
+		SVGMETA20 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		SVGMETA21 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		SVGMETA210 /* SrSVGLine.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGLine.cc; path = ../../../../src/element/SrSVGLine.cc; sourceTree = "<group>"; };
 		SVGMETA211 /* SrSVGLinearGradient.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGLinearGradient.cc; path = ../../../../src/element/SrSVGLinearGradient.cc; sourceTree = "<group>"; };
@@ -117,6 +123,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B946B1F2FCD86B800D56B4C /* skity.xcframework in Frameworks */,
+				SVGMETA140 /* CoreVideo.framework in Frameworks */,
 				SVGMETA06 /* Metal.framework in Frameworks */,
 				SVGMETA07 /* QuartzCore.framework in Frameworks */,
 				SVGMETA08 /* Cocoa.framework in Frameworks */,
@@ -160,6 +167,7 @@
 			children = (
 				2B946B202FCD876800D56B4C /* SrSVGPattern.cc */,
 				2B946B212FCD876800D56B4C /* SrSVGPatternResolver.cc */,
+				SVGMETA231 /* SrSVGAnimation.cc */,
 				SVGMETA202 /* SrSVGCircle.cc */,
 				SVGMETA203 /* SrSVGClipPath.cc */,
 				SVGMETA204 /* SrSVGContainer.cc */,
@@ -224,6 +232,7 @@
 				SVGMETA25 /* svg_root_metadata.json */,
 				SVGMETA26 /* svg_shape_metadata.json */,
 				SVGMETA27 /* svg_use_metadata.json */,
+				SVGMETA28 /* svg_smil_animation_metadata.json */,
 				SVGMETA19 /* Info.plist */,
 				SVGMETA240 /* ServalSVG */,
 			);
@@ -242,6 +251,7 @@
 			isa = PBXGroup;
 			children = (
 				2B946B1E2FCD86B800D56B4C /* skity.xcframework */,
+				SVGMETA20 /* CoreVideo.framework */,
 				SVGMETA21 /* Metal.framework */,
 				SVGMETA22 /* QuartzCore.framework */,
 				SVGMETA23 /* Cocoa.framework */,
@@ -310,6 +320,7 @@
 				SVGMETA131 /* svg_root_metadata.json in Resources */,
 				SVGMETA132 /* svg_shape_metadata.json in Resources */,
 				SVGMETA133 /* svg_use_metadata.json in Resources */,
+				SVGMETA134 /* svg_smil_animation_metadata.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,6 +363,7 @@
 				SVGMETA122 /* SrSVGText.cc in Sources */,
 				SVGMETA123 /* SrSVGTypes.c in Sources */,
 				SVGMETA124 /* SrSVGUse.cc in Sources */,
+				SVGMETA135 /* SrSVGAnimation.cc in Sources */,
 				SVGMETA125 /* SrDOM.cc in Sources */,
 				SVGMETA126 /* SrDOMParser.cc in Sources */,
 				SVGMETA127 /* SrSVGDOM.cc in Sources */,

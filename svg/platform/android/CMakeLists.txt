@@ -89,6 +89,7 @@ add_library(
 
         # element
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGCircle.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGAnimation.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGContainer.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGEllipse.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGLine.h
@@ -118,6 +119,7 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGText.h
         # source files
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGStop.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGAnimation.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGCircle.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGContainer.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGEllipse.cc
