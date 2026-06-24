@@ -71,7 +71,9 @@ void SrSVGImage::onDraw(canvas::SrCanvas* canvas,
 }
 
 std::unique_ptr<canvas::Path> SrSVGImage::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
+  (void)include_transform;
   const float x =
       ResolveImageLength(x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   const float y = ResolveImageLength(y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);

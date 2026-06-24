@@ -9,7 +9,15 @@ export interface SvgRenderResult {
 export class SvgDrawable {
   constructor();
 
-  render(canvas: DrawContext): void;
+  render(canvas: DrawContext, seconds?: number): void;
+  hasAnimations(): boolean;
+  animationTimelineEndSeconds(): number;
+  startAnimation(): void;
+  stopAnimation(): void;
+  resetAnimationClock(): void;
+  needsAnimationFrame(): boolean;
+  onFrameTimeNanos(frameTimeNanos: number): boolean;
+  currentAnimationSeconds(): number;
   dispose(): void;
   setImageFetcher(
     fetcher?: (url: string) => Promise<image.PixelMap | undefined>

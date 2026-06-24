@@ -1,0 +1,35 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+  <g stroke="#2d4561" stroke-width="1">
+    <line x1="32" y1="42" x2="164" y2="42"/>
+    <line x1="32" y1="88" x2="164" y2="88"/>
+    <line x1="188" y1="42" x2="292" y2="42"/>
+    <line x1="188" y1="112" x2="292" y2="112"/>
+  </g>
+
+  <circle cx="36" cy="42" r="7" fill="#fee440">
+    <animate attributeName="cx" by="30" dur="0.8s" repeatCount="4"
+             accumulate="sum" fill="freeze"/>
+  </circle>
+
+  <rect x="64" y="70" width="28" height="24" rx="4" fill="#4cc9f0">
+    <animateTransform attributeName="transform" type="translate" by="0 18"
+                      dur="0.7s" repeatCount="3" accumulate="sum"
+                      additive="sum" fill="freeze"/>
+  </rect>
+
+  <circle cx="190" cy="42" r="7" fill="#72efdd">
+    <animate attributeName="cx" values="190;286;190" dur="2s"
+             repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="240" cy="112" r="15" fill="#f15bb5" opacity="0.2">
+    <animate attributeName="opacity" values="0.2;1" dur="0.4s"
+             repeatCount="1" min="1.2s" max="1.4s" fill="freeze"/>
+  </circle>
+
+  <circle cx="190" cy="150" r="5" fill="#b8f2e6">
+    <animate attributeName="cx" values="190;286" dur="0.8s"
+             repeatCount="indefinite" repeatDur="2.4s" fill="freeze"/>
+  </circle>
+</svg>

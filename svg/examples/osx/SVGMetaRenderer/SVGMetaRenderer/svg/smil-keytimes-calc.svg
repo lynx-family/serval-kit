@@ -1,0 +1,30 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+  <g stroke="#2d4561" stroke-width="1">
+    <line x1="28" y1="36" x2="292" y2="36"/>
+    <line x1="28" y1="74" x2="292" y2="74"/>
+    <line x1="28" y1="112" x2="292" y2="112"/>
+    <line x1="28" y1="150" x2="292" y2="150"/>
+  </g>
+
+  <circle cx="34" cy="36" r="7" fill="#4cc9f0">
+    <animate attributeName="cx" values="34;160;286" keyTimes="0;0.5;1"
+             calcMode="linear" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="34" cy="74" r="7" fill="#fee440">
+    <animate attributeName="cx" values="34;160;286" keyTimes="0;0.5;1"
+             keySplines="0.42 0 1 1;0 0 0.58 1" calcMode="spline"
+             dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="34" cy="112" r="7" fill="#f15bb5">
+    <animate attributeName="cx" values="34;160;286" keyTimes="0;0.5;1"
+             calcMode="discrete" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="34" cy="150" r="7" fill="#72efdd">
+    <animate attributeName="cx" values="34;64;286" keyTimes="0;0.9;1"
+             calcMode="paced" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+</svg>

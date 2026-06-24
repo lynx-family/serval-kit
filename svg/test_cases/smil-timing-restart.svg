@@ -1,0 +1,40 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+  <g stroke="#2d4561" stroke-width="1">
+    <line x1="24" y1="34" x2="144" y2="34"/>
+    <line x1="24" y1="72" x2="144" y2="72"/>
+    <line x1="24" y1="110" x2="144" y2="110"/>
+    <line x1="176" y1="70" x2="292" y2="70"/>
+    <line x1="176" y1="128" x2="292" y2="128"/>
+  </g>
+
+  <circle id="driverDot" cx="178" cy="70" r="7" fill="#4cc9f0"/>
+  <animate id="timingDriver" href="#driverDot" attributeName="cx"
+           values="178;286;178" keyTimes="0;0.5;1" dur="2s"
+           repeatCount="indefinite"/>
+
+  <circle cx="28" cy="34" r="6" fill="#ff9f1c">
+    <animate attributeName="cx" values="28;140"
+             begin="0s;0.7s;1.4s;3s;3.7s;4.4s;6s;6.7s;7.4s"
+             dur="1.1s" restart="always" repeatCount="1" fill="freeze"/>
+  </circle>
+
+  <circle cx="28" cy="72" r="6" fill="#b8f2e6">
+    <animate attributeName="cx" values="28;140"
+             begin="0s;0.7s;1.4s;2.6s;3s;3.7s;4.4s;5.6s;6s;6.7s;7.4s;8.6s"
+             dur="1.1s" restart="whenNotActive" repeatCount="1" fill="freeze"/>
+  </circle>
+
+  <circle cx="28" cy="110" r="6" fill="#f15bb5">
+    <animate attributeName="cx" values="28;140" begin="0s;0.7s;1.4s"
+             dur="1.1s" restart="never" repeatCount="1" fill="freeze"/>
+  </circle>
+
+  <circle cx="176" cy="128" r="10" fill="#fee440" opacity="0.2">
+    <animate id="syncGate" attributeName="r" values="10;10" dur="2s"
+             repeatCount="1" fill="freeze"/>
+    <animate attributeName="opacity" values="0.2;1"
+             begin="syncGate.end+0.2s" end="syncGate.end+0.9s"
+             dur="2s" fill="freeze"/>
+  </circle>
+</svg>

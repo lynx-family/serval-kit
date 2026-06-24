@@ -44,10 +44,11 @@ static NSString* const kCategoryUse = @"Use";
 static NSString* const kCategoryGradient = @"Gradient";
 static NSString* const kCategoryShape = @"Shape";
 static NSString* const kCategoryVectorEffect = @"VectorEffect";
+static NSString* const kCategorySmilAnimation = @"SMILAnimation";
 static NSArray<NSString*>* kPreviewMetadataFiles() {
   return @[
     @"svg_root_metadata", @"svg_shape_metadata", @"svg_use_metadata",
-    @"svg_gradient_metadata"
+    @"svg_gradient_metadata", @"svg_smil_animation_metadata"
   ];
 }
 
@@ -56,7 +57,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
     kCategoryShape, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
     kCategoryFilter, kCategoryIllegalParsing, kCategoryPattern,
     kCategorySvgRoot, kCategoryUse, kCategoryGradient, kCategoryVectorEffect,
-    kCategoryOthers
+    kCategorySmilAnimation, kCategoryOthers
   ];
 }
 
@@ -163,6 +164,9 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
   }
   if ([fileName hasPrefix:@"vector-effect-"]) {
     return kCategoryVectorEffect;
+  }
+  if ([fileName hasPrefix:@"smil_"] || [fileName hasPrefix:@"smil-"]) {
+    return kCategorySmilAnimation;
   }
   return kCategoryOthers;
 }

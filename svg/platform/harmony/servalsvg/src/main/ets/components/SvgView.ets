@@ -1,4 +1,4 @@
-import { display, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
+import { display, FrameCallback, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
 import { image } from '@kit.ImageKit';
 import svg from 'libservalsvg.so';
 import { SvgData, SvgRenderResult } from './SvgTypes';
@@ -58,9 +58,14 @@ export struct SvgView {
 export class SvgRenderNode extends FrameNode {
   native: svg.SvgDrawable;
   data?: SvgData;
+  private uiContext: UIContext;
+  private animationFramePending: boolean = false;
+  private animationFrameToken: number = 0;
+  private animationFrameCallback?: SvgAnimationFrameCallback;
 
   constructor(uiContext: UIContext, native: svg.SvgDrawable) {
     super(uiContext);
+    this.uiContext = uiContext;
     this.native = native;
   }
 
@@ -93,6 +98,7 @@ export class SvgRenderNode extends FrameNode {
   }
 
   disposeNative(): void {
+    this.stopAnimationTimer();
     this.native.dispose();
     this.data = undefined;
   }
@@ -105,10 +111,85 @@ export class SvgRenderNode extends FrameNode {
       const result: svg.SvgRenderResult =
         this.native.update(data.width, data.height, data.x, data.y,
           data.density, data.content, data.antiAlias, parentColor);
+      this.stopAnimationTimer();
+      this.resetAnimationClock();
+      this.updateAnimationTimer();
       this.invalidate();
       return new SvgRenderResult(result.hasError, result.errorMessage);
     }
+    this.stopAnimationTimer();
     return new SvgRenderResult();
+  }
+
+  onAnimationFrame(token: number, callback: SvgAnimationFrameCallback, frameTimeInNano: number): void {
+    if (token !== this.animationFrameToken || callback !== this.animationFrameCallback ||
+      !this.native.hasAnimations()) {
+      return;
+    }
+    this.animationFramePending = false;
+    this.animationFrameCallback = undefined;
+    const shouldContinue: boolean = this.native.onFrameTimeNanos(frameTimeInNano);
+    this.invalidate();
+    if (shouldContinue) {
+      this.startAnimationTimer();
+    } else {
+      this.native.stopAnimation();
+    }
+  }
+
+  private resetAnimationClock(): void {
+    this.native.resetAnimationClock();
+  }
+
+  private updateAnimationTimer(): void {
+    if (this.native.hasAnimations()) {
+      this.startAnimationTimer();
+    } else {
+      this.stopAnimationTimer();
+    }
+  }
+
+  private startAnimationTimer(): void {
+    if (this.animationFramePending) {
+      return;
+    }
+    this.native.startAnimation();
+    if (!this.native.needsAnimationFrame()) {
+      return;
+    }
+    const token = this.animationFrameToken;
+    this.animationFramePending = true;
+    this.animationFrameCallback = new SvgAnimationFrameCallback(this, token);
+    this.uiContext.postFrameCallback(this.animationFrameCallback);
+  }
+
+  private stopAnimationTimer(): void {
+    this.animationFrameToken++;
+    this.animationFramePending = false;
+    this.animationFrameCallback?.detach();
+    this.animationFrameCallback = undefined;
+    this.native.stopAnimation();
+  }
+}
+
+class SvgAnimationFrameCallback extends FrameCallback {
+  private node?: SvgRenderNode;
+  private token: number;
+
+  constructor(node: SvgRenderNode, token: number) {
+    super();
+    this.node = node;
+    this.token = token;
+  }
+
+  onFrame(frameTimeInNano: number): void {
+    this.node?.onAnimationFrame(this.token, this, frameTimeInNano);
+  }
+
+  onIdle(_timeLeftInNano: number): void {}
+
+  detach(): void {
+    this.node = undefined;
   }
 }
 

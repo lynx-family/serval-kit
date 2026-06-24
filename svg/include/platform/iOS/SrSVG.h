@@ -28,6 +28,15 @@ typedef UIImage* _Nullable (^SrSvgImageCallback)(NSString* _Nullable href);
                           andCallback:(SrSvgImageCallback)imageCb
                                result:(SrSVGRenderResult* _Nullable* _Nullable)
                                           result;
+// Renders an animated SVG at a deterministic SMIL timestamp.
+- (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
+                              andSize:(CGSize)size
+                             andColor:(nullable NSString*)color
+                               atTime:(NSTimeInterval)seconds
+                          andCallback:(SrSvgImageCallback)imageCb
+                               result:(SrSVGRenderResult* _Nullable* _Nullable)
+                                          result;
+- (BOOL)hasAnimations;
 
 @end
 

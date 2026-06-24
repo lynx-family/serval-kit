@@ -22,12 +22,14 @@ class SrSVGPath : public SrSVGShape {
  protected:
  public:
   bool ParseAndSetAttribute(const char* name, const char* value) override;
+  bool SetAnimatedPathData(const SrPathData* path_data) override;
+  const SrPathData* path_data() const { return path_; }
   ~SrSVGPath() override;
 
  protected:
   std::unique_ptr<canvas::Path> AsPath(
-      canvas::PathFactory* path_factory,
-      SrSVGRenderContext* context) const override;
+      canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+      bool include_transform = true) const override;
   void onDraw(canvas::SrCanvas* canvas,
               SrSVGRenderContext& context) const override;
 

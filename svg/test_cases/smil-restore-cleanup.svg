@@ -1,0 +1,22 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+
+  <circle cx="64" cy="54" r="22" fill="#ffffff">
+    <set attributeName="opacity" to="0.25" begin="0s" dur="1s"/>
+  </circle>
+
+  <line x1="120" y1="54" x2="200" y2="54" stroke="#fee440"
+        stroke-linecap="round">
+    <set attributeName="stroke-width" to="12" begin="0s" dur="1s"/>
+  </line>
+
+  <rect x="238" y="34" width="38" height="38" rx="4" fill="#4cc9f0">
+    <set attributeName="fill-opacity" to="0.2" begin="0s" dur="1s"/>
+  </rect>
+
+  <line x1="120" y1="132" x2="200" y2="132" stroke="#80ffdb"
+        stroke-width="1" stroke-linecap="round">
+    <animate attributeName="stroke-width" values="1;12;1" dur="2s"
+             repeatCount="indefinite"/>
+  </line>
+</svg>

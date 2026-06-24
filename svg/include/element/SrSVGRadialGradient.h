@@ -23,7 +23,12 @@ class SrSVGRadialGradient : public SrSVGContainer {
   }
 
  private:
-  SrSVGRadialGradient() : SrSVGContainer(SrSVGTag::kRadialGradient) {}
+  SrSVGRadialGradient() : SrSVGContainer(SrSVGTag::kRadialGradient) {
+    StoreAttribute("cx", "0.5");
+    StoreAttribute("cy", "0.5");
+    StoreAttribute("r", "0.5");
+    StoreAttribute("gradientTransform", "matrix(1 0 0 1 0 0)");
+  }
   float gradient_transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
   SrSVGLength r_{0.5, SR_SVG_UNITS_NUMBER};
   SrSVGLength cx_{0.5, SR_SVG_UNITS_NUMBER};

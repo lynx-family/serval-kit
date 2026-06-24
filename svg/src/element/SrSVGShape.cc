@@ -14,10 +14,6 @@ namespace serval {
 namespace svg {
 namespace element {
 
-const uint8_t SrSVGShape::kRenderTypeFlagStroke = 1;
-const uint8_t SrSVGShape::kRenderTypeFlagFill = 1 << 1;
-const uint8_t SrSVGShape::kRenderTypeFillRule = 1 << 2;
-
 static inline uint32_t ResolveEffectiveColor(
     const SrSVGNode& node, const SrSVGRenderContext& context) {
   if (node.color_) {
@@ -125,7 +121,9 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
 
   render_state_.stroke_state = &stroke_state;
 
-  canvas->Transform(transform_);
+  float xform[6];
+  ResolvedTransform(xform, context, canvas->PathFactory());
+  canvas->Transform(xform);
   this->onDraw(canvas, context);
 }
 
@@ -140,7 +138,8 @@ bool SrSVGShape::ParseAndSetAttribute(const char* name, const char* value) {
 }
 
 std::unique_ptr<canvas::Path> SrSVGShape::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   // TODO(renzhongyue): to be implemented in basic shapes.
   return path_factory->CreateMutable();
 }

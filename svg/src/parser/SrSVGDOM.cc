@@ -4,10 +4,15 @@
 
 #include "parser/SrSVGDOM.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <iterator>
+#include <limits>
 #include <string>
+#include <vector>
 
+#include "element/SrSVGAnimation.h"
 #include "element/SrSVGCircle.h"
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGDefs.h"
@@ -75,6 +80,74 @@ SrSVGDiagnosticSink MakeDiagnosticSink(SrSVGTraversalState* state) {
   return sink;
 }
 
+void ApplyAnimations(const std::vector<element::SrSVGNodeBase*>& nodes,
+                     const element::IDMapper* id_mapper, double seconds) {
+  for (auto* node : nodes) {
+    if (node) {
+      node->ApplyAnimations(seconds, id_mapper);
+    }
+  }
+}
+
+void RestoreAnimations(const std::vector<element::SrSVGNodeBase*>& nodes) {
+  for (auto* node : nodes) {
+    if (node) {
+      node->RestoreAnimatedAttributes();
+    }
+  }
+}
+
+bool IsAnimationTag(element::SrSVGTag tag) {
+  return tag == element::SrSVGTag::kAnimate ||
+         tag == element::SrSVGTag::kAnimateColor ||
+         tag == element::SrSVGTag::kAnimateMotion ||
+         tag == element::SrSVGTag::kAnimateTransform ||
+         tag == element::SrSVGTag::kSet;
+}
+
+std::string NormalizeHref(const std::string& href) {
+  if (!href.empty() && href[0] == '#') {
+    return href.substr(1);
+  }
+  return href;
+}
+
+void BindAnimation(element::SrSVGNodeBase* parent,
+                   element::SrSVGAnimation* animation,
+                   element::IDMapper* id_mapper) {
+  if (!animation) {
+    return;
+  }
+  const std::string& target_href = animation->TargetHref();
+  if (!target_href.empty()) {
+    if (!id_mapper) {
+      return;
+    }
+    auto it = id_mapper->find(NormalizeHref(target_href));
+    if (it != id_mapper->end() && it->second) {
+      it->second->AddAnimation(animation);
+    }
+    return;
+  }
+  if (parent) {
+    parent->AddAnimation(animation);
+  }
+}
+
+void BindTargetAnimationsInNodes(
+    const std::list<element::SrSVGNodeBase*>& nodes,
+    element::IDMapper* id_mapper) {
+  for (auto* node : nodes) {
+    if (!node || !IsAnimationTag(node->Tag())) {
+      continue;
+    }
+    auto* animation = static_cast<element::SrSVGAnimation*>(node);
+    if (!animation->TargetHref().empty()) {
+      BindAnimation(nullptr, animation, id_mapper);
+    }
+  }
+}
+
 }  // namespace
 
 static bool gEnableDumpDom = false;
@@ -103,6 +176,12 @@ static void DumpDomTree(const SrDOM& dom, const SrDOM::Node* node, int depth) {
 static bool IsNonRenderingTag(element::SrSVGTag tag) {
   switch (tag) {
     case element::SrSVGTag::kDefs:
+    case element::SrSVGTag::kAnimate:
+    case element::SrSVGTag::kAnimateColor:
+    case element::SrSVGTag::kAnimateMotion:
+    case element::SrSVGTag::kAnimateTransform:
+    case element::SrSVGTag::kMPath:
+    case element::SrSVGTag::kSet:
     case element::SrSVGTag::kStop:
     case element::SrSVGTag::kLinearGradient:
     case element::SrSVGTag::kRadialGradient:
@@ -131,6 +210,13 @@ static bool ShouldAppendChild(const element::SrSVGNodeBase* parent,
                               const element::SrSVGNodeBase* child) {
   if (!parent || !child) {
     return false;
+  }
+  if (IsAnimationTag(child->Tag())) {
+    return false;
+  }
+  if (parent->Tag() == element::SrSVGTag::kAnimateMotion &&
+      child->Tag() == element::SrSVGTag::kMPath) {
+    return true;
   }
   if (!IsNonRenderingTag(child->Tag())) {
     return true;
@@ -161,6 +247,7 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
   const char *name, *value;
   SrDOM::AttrIter attr_iter(xmlNode);
   while ((name = attr_iter.Next(&value))) {
+    svgNode->StoreAttribute(name, value);
     if (!std::strcmp(name, "id")) {
       std::string key{value};
       (*id_mapper)[key] = svgNode;
@@ -218,7 +305,19 @@ element::SrSVGNodeBase* construct_svg_node(
   }
 
   element::SrSVGNodeBase* node = nullptr;
-  if (strcmp(el, "svg") == 0) {
+  if (strcmp(el, "animate") == 0) {
+    node = element::SrSVGAnimation::MakeAnimate();
+  } else if (strcmp(el, "animateColor") == 0) {
+    node = element::SrSVGAnimation::MakeAnimateColor();
+  } else if (strcmp(el, "animateTransform") == 0) {
+    node = element::SrSVGAnimation::MakeAnimateTransform();
+  } else if (strcmp(el, "animateMotion") == 0) {
+    node = element::SrSVGAnimation::MakeAnimateMotion();
+  } else if (strcmp(el, "set") == 0) {
+    node = element::SrSVGAnimation::MakeSet();
+  } else if (strcmp(el, "mpath") == 0) {
+    node = element::SrSVGAnimation::MakeMPath();
+  } else if (strcmp(el, "svg") == 0) {
     node = element::SrSVGSVG::Make();
   } else if (strcmp(el, "rect") == 0) {
     node = element::SrSVGRect::Make();
@@ -290,6 +389,10 @@ element::SrSVGNodeBase* construct_svg_node(
        child = dom.GetNextSibling(child)) {
     element::SrSVGNodeBase* childNode = construct_svg_node(
         dom, node, child, id_mapper, holder, diagnostic_sink);
+    if (childNode && IsAnimationTag(childNode->Tag())) {
+      BindAnimation(node, static_cast<element::SrSVGAnimation*>(childNode),
+                    id_mapper);
+    }
     if (ShouldAppendChild(node, childNode)) {
       node->AppendChild(childNode);
     }
@@ -339,6 +442,7 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
     auto svg_dom = std::make_unique<SrSVGDOM>(
         static_cast<element::SrSVGSVG*>(root), id_mapper.release(),
         std::move(holder), xml_dom);
+    svg_dom->BindTargetAnimations();
     svg_dom->SetBuildDiagnostics(std::move(build_state.diagnostics));
     if (diagnostics) {
       *diagnostics = svg_dom->diagnostics();
@@ -406,6 +510,41 @@ void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
   }
 }
 
+void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, double seconds) const {
+  const auto& animated_nodes = AnimatedNodes();
+  ApplyAnimations(animated_nodes, id_mapper_, seconds);
+  Render(canvas);
+  RestoreAnimations(animated_nodes);
+}
+
+void SrSVGDOM::RenderAtTime(canvas::SrCanvas* canvas, SrSVGBox view_port,
+                            double seconds) const {
+  const auto& animated_nodes = AnimatedNodes();
+  ApplyAnimations(animated_nodes, id_mapper_, seconds);
+  Render(canvas, view_port);
+  RestoreAnimations(animated_nodes);
+}
+
+bool SrSVGDOM::HasAnimations() const {
+  return !AnimatedNodes().empty();
+}
+
+double SrSVGDOM::AnimationTimelineEndSeconds() const {
+  double timeline_end = 0.0;
+  for (auto* node : nodes_) {
+    if (!node || !IsAnimationTag(node->Tag())) {
+      continue;
+    }
+    const auto* animation = static_cast<const element::SrSVGAnimation*>(node);
+    const double animation_end = animation->LastChangeSeconds(id_mapper_);
+    if (std::isinf(animation_end)) {
+      return std::numeric_limits<double>::infinity();
+    }
+    timeline_end = std::max(timeline_end, animation_end);
+  }
+  return timeline_end;
+}
+
 const SrSVGDiagnostic* SrSVGDOM::last_diagnostic() const {
   return diagnostics_.empty() ? nullptr : &diagnostics_.back();
 }
@@ -421,6 +560,29 @@ void SrSVGDOM::ReplaceRuntimeDiagnostics(
   diagnostics_.insert(diagnostics_.end(),
                       std::make_move_iterator(diagnostics.begin()),
                       std::make_move_iterator(diagnostics.end()));
+}
+
+void SrSVGDOM::BindTargetAnimations() {
+  BindTargetAnimationsInNodes(nodes_, id_mapper_);
+  InvalidateAnimationCache();
+}
+
+const std::vector<element::SrSVGNodeBase*>& SrSVGDOM::AnimatedNodes() const {
+  if (!animated_nodes_valid_) {
+    animated_nodes_.clear();
+    for (auto* node : nodes_) {
+      if (node && node->HasAnimations()) {
+        animated_nodes_.push_back(node);
+      }
+    }
+    animated_nodes_valid_ = true;
+  }
+  return animated_nodes_;
+}
+
+void SrSVGDOM::InvalidateAnimationCache() const {
+  animated_nodes_.clear();
+  animated_nodes_valid_ = false;
 }
 
 // Id mapper should only ref to an svg node, but should never copy or delete

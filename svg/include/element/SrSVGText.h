@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGTEXT_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGTEXT_H_
 #include <list>
+#include <string>
 
 #include "canvas/SrParagraph.h"
 #include "element/SrSVGNode.h"
@@ -23,7 +24,10 @@ class SrSVGBaseText : public SrSVGNode {
 class SrSVGRawText final : public SrSVGBaseText {
  public:
   static SrSVGRawText* Make() { return new SrSVGRawText(); }
-  void SetText(const char* text) { text_ = text; }
+  void SetText(const char* text) {
+    text_storage_ = text ? text : "";
+    text_ = text_storage_.c_str();
+  }
   void AppendToParagraph(canvas::ParagraphFactory* paragraph,
                          SrSVGRenderContext& context) const override;
 
@@ -31,6 +35,7 @@ class SrSVGRawText final : public SrSVGBaseText {
   SrSVGRawText() : SrSVGBaseText(SrSVGTag::kTextLiteral) {}
 
  private:
+  std::string text_storage_;
   const char* text_ = nullptr;
 };
 

@@ -20,6 +20,7 @@
 		7F84C4B32E0C1001000C0DE1 /* svg_shape_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B22E0C1001000C0DE1 /* svg_shape_metadata.json */; };
 		7F84C4B52E0C1001000C0DE1 /* svg_use_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B42E0C1001000C0DE1 /* svg_use_metadata.json */; };
 		7F84C4B72E0C1001000C0DE1 /* svg_gradient_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B62E0C1001000C0DE1 /* svg_gradient_metadata.json */; };
+		7F84C4B92E0C1001000C0DE1 /* svg_smil_animation_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B82E0C1001000C0DE1 /* svg_smil_animation_metadata.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		7F84C4B22E0C1001000C0DE1 /* svg_shape_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_shape_metadata.json; sourceTree = "<group>"; };
 		7F84C4B42E0C1001000C0DE1 /* svg_use_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_use_metadata.json; sourceTree = "<group>"; };
 		7F84C4B62E0C1001000C0DE1 /* svg_gradient_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_gradient_metadata.json; sourceTree = "<group>"; };
+		7F84C4B82E0C1001000C0DE1 /* svg_smil_animation_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_smil_animation_metadata.json; sourceTree = "<group>"; };
 		A9292406E0026CF9B8363858 /* Pods-ServalPark.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalPark.debug.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.debug.xcconfig"; sourceTree = "<group>"; };
 		C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ServalPark.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D486801AC58F2DE31E995495 /* Pods-ServalPark.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = Text.xcconfig; name = "Pods-ServalPark.release.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.release.xcconfig"; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 				7F84C4B22E0C1001000C0DE1 /* svg_shape_metadata.json */,
 				7F84C4B42E0C1001000C0DE1 /* svg_use_metadata.json */,
 				7F84C4B62E0C1001000C0DE1 /* svg_gradient_metadata.json */,
+				7F84C4B82E0C1001000C0DE1 /* svg_smil_animation_metadata.json */,
 				2B50A9352A3AE771006CAE6B /* Info.plist */,
 				2B50A9362A3AE771006CAE6B /* main.m */,
 			);
@@ -181,6 +184,7 @@
 				7F84C4B32E0C1001000C0DE1 /* svg_shape_metadata.json in Resources */,
 				7F84C4B52E0C1001000C0DE1 /* svg_use_metadata.json in Resources */,
 				7F84C4B72E0C1001000C0DE1 /* svg_gradient_metadata.json in Resources */,
+				7F84C4B92E0C1001000C0DE1 /* svg_smil_animation_metadata.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,11 +366,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 5H25FAL796;
+				DEVELOPMENT_TEAM = 7559CC869A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ServalPark/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -382,7 +384,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lynx.servalkit.svg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Cosign iOS with * (ZPIEF3GKX9)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -395,11 +396,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 5H25FAL796;
+				DEVELOPMENT_TEAM = 7559CC869A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ServalPark/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -415,7 +414,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lynx.servalkit.svg;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Cosign iOS with * (ZPIEF3GKX9)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

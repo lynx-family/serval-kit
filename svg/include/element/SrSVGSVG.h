@@ -5,6 +5,8 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGSVG_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGSVG_H_
 
+#include <vector>
+
 #include "SrSVGContainer.h"
 #include "SrSVGNode.h"
 #include "SrSVGTypes.h"
@@ -21,6 +23,14 @@ class SrSVGSVG : public SrSVGContainer {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   static SrSVGSVG* Make() { return new SrSVGSVG(SrSVGTag::kSvg); }
   inline SrSVGBox viewBox() { return this->view_box_; }
+  inline SrSVGPreserveAspectRatio preserveAspectRatio() const {
+    return preserve_aspect_radio_;
+  }
+  bool RenderChildAt(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                     size_t index) override;
+  bool RenderChildPathAt(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
+                         const std::vector<size_t>& path,
+                         size_t depth = 0) override;
 
  protected:
   bool OnPrepareToRender(canvas::SrCanvas* canvas,

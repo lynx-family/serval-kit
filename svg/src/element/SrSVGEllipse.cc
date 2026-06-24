@@ -20,19 +20,13 @@ void SrSVGEllipse::onDraw(canvas::SrCanvas* canvas,
       &rx_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float radius_y = convert_serval_length_to_float(&ry_, &context,
                                                   SR_SVG_LENGTH_TYPE_VERTICAL);
-  uint8_t type = 0;
-  if (this->stroke_ && this->stroke_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagStroke;
-  }
-  if (this->fill_ && this->fill_->type != SERVAL_PAINT_NONE) {
-    type |= kRenderTypeFlagFill;
-  }
   canvas->DrawEllipse(id_.c_str(), center_x, center_y, radius_x, radius_y,
                       render_state_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGEllipse::AsPath(
-    canvas::PathFactory* path_factory, SrSVGRenderContext* context) const {
+    canvas::PathFactory* path_factory, SrSVGRenderContext* context,
+    bool include_transform) const {
   float center_x = convert_serval_length_to_float(
       &cx_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
   float center_y = convert_serval_length_to_float(&cy_, context,
@@ -43,8 +37,10 @@ std::unique_ptr<canvas::Path> SrSVGEllipse::AsPath(
                                                   SR_SVG_LENGTH_TYPE_VERTICAL);
   auto path =
       path_factory->CreateEllipse(center_x, center_y, radius_x, radius_y);
-  if (path) {
-    path->Transform(transform_);
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
   return path;
 };

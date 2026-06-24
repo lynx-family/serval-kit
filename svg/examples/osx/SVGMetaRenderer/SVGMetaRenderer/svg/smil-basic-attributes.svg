@@ -1,0 +1,31 @@
+<svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="180" fill="#071423"/>
+  <g stroke="#28425f" stroke-width="1">
+    <line x1="24" y1="48" x2="144" y2="48"/>
+    <line x1="24" y1="92" x2="144" y2="92"/>
+    <line x1="186" y1="92" x2="260" y2="92"/>
+    <line x1="210" y1="138" x2="276" y2="138"/>
+  </g>
+
+  <rect x="26" y="34" width="30" height="28" rx="5" fill="#4cc9f0" opacity="0.35">
+    <animate attributeName="x" from="26" to="112" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.35;1;0.35" keyTimes="0;0.5;1"
+             dur="2s" repeatCount="indefinite"/>
+  </rect>
+
+  <circle cx="70" cy="92" r="9" fill="#ff9f1c">
+    <animate attributeName="r" values="9;19;9" dur="1.6s" repeatCount="indefinite"/>
+    <animateColor attributeName="fill" values="#ff9f1c;#f15bb5;#ff9f1c"
+                  dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="222" cy="92" r="16" fill="#72efdd" opacity="0.15">
+    <set attributeName="opacity" to="1" begin="0.8s" dur="1s"/>
+  </circle>
+
+  <rect x="224" y="124" width="34" height="28" rx="4" fill="none"
+        stroke="#b8f2e6" stroke-width="1">
+    <animate attributeName="stroke-width" values="1;5;1" dur="1.8s"
+             repeatCount="indefinite"/>
+  </rect>
+</svg>
