@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
 #include <atomic>
+#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string>
@@ -146,8 +147,8 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
                             &diagnostics);
   }
   if (!diagnostics.empty()) {
-    NSLog(@"SVGDiagnostic errorMessage=%s",
-          diagnostics.front().message.c_str());
+    std::fprintf(stderr, "SVGDiagnostic errorMessage=%s\n",
+                 diagnostics.front().message.c_str());
   }
   [self updateAnimationTimer];
   [self render];
@@ -159,7 +160,11 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                                 encoding:NSUTF8StringEncoding
                                                    error:&error];
   if (content.length == 0) {
-    NSLog(@"Failed to load SVG file at %@ error=%@", path, error);
+    const char* path_string = [path UTF8String];
+    const char* error_string = [[error localizedDescription] UTF8String];
+    std::fprintf(stderr, "Failed to load SVG file at %s error=%s\n",
+                 path_string ? path_string : "",
+                 error_string ? error_string : "");
     [self setSVGContent:nil];
     return;
   }
