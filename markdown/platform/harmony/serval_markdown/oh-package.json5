@@ -7,6 +7,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "libserval_markdown.so": "file:./src/main/cpp/types/libserval_markdown",
-    "@lynx/lynxtextra": "0.1.2"
+    "@lynx/lynxtextra": "0.1.6"
   }
 }
