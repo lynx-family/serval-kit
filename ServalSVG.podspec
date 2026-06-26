@@ -26,6 +26,7 @@ Pod::Spec.new do |s|
 
   s.source_files = "svg/include/element/**/*.h",
                    "svg/include/parser/**/*.h",
+                   "svg/include/renderer/**/*.h",
                    "svg/include/canvas/**/*.h",
                    "svg/include/platform/iOS/**/*.h",
                    "svg/include/utils/**/*.h",
