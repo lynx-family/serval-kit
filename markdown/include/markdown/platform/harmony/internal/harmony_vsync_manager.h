@@ -15,6 +15,10 @@ class HarmonyVSyncManager {
  public:
   static void AddVSyncCallback(HarmonyVSyncCallback* callback);
   static void RemoveVSyncCallback(HarmonyVSyncCallback* callback);
+
+  // Requests a single VSync frame. In the future this can be used by animation
+  // logic to pull the next frame only when it knows more frames are needed.
+  static void RequestNextFrame();
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_INTERNAL_HARMONY_VSYNC_MANAGER_H_

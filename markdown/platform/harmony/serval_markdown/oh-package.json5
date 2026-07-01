@@ -1,6 +1,6 @@
 {
   "name": "@lynx/serval_markdown",
-  "version": "1.0.0",
+  "version": "0.1.2",
   "description": "Serval Markdown is a high-performance Markdown rendering library.",
   "main": "Index.ets",
   "author": "lynx",

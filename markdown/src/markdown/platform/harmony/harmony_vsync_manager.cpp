@@ -55,6 +55,12 @@ class HarmonyVSyncManagerImpl {
       for (auto* callback : callbacks_) {
         callback->OnVSync(time_stamp);
       }
+
+      // Keep requesting frames while there are attached callbacks. Exposure and
+      // renderer on-screen checks run inside OnVSync and are throttled inside
+      // MarkdownView so they don't become a CPU burden. The long-term design can
+      // move to a pull model where animation logic explicitly calls
+      // HarmonyVSyncManager::RequestNextFrame() only when it needs another frame.
       if (!callbacks_.empty()) {
         RequestNextFrame();
       }
@@ -70,5 +76,8 @@ void HarmonyVSyncManager::AddVSyncCallback(HarmonyVSyncCallback* callback) {
 }
 void HarmonyVSyncManager::RemoveVSyncCallback(HarmonyVSyncCallback* callback) {
   HarmonyVSyncManagerImpl::Instance().RemoveVSyncCallback(callback);
+}
+void HarmonyVSyncManager::RequestNextFrame() {
+  HarmonyVSyncManagerImpl::Instance().RequestNextFrame();
 }
 }  // namespace serval::markdown

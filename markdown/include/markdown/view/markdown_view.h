@@ -217,6 +217,13 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   bool typewriter_height_transition_prefetch_{true};
   bool draw_start_sent_{false};
   bool draw_end_sent_{false};
+
+  // Exposure checks are expensive (image/link look-ups by view rect). We do
+  // not need to run them on every VSync frame; skipping most frames keeps CPU
+  // usage low when the view is idle or only animating. The counter is reset
+  // whenever the view rect potentially changes significantly.
+  static constexpr int32_t kExposureSkipInterval = 5;
+  int32_t exposure_skip_counter_{0};
 };
 
 }  // namespace serval::markdown

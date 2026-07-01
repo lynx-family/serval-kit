@@ -5,9 +5,11 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "arkui/native_gesture.h"
 #include "markdown/platform/harmony/harmony_resource_loader.h"
@@ -36,6 +38,10 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   }
   void MarkDirty() const { GetMarkdownView()->MarkDirty(); }
   void SetConfig(const ValueMap& config);
+  using RequestMeasureCallback = std::function<void()>;
+  void SetRequestMeasureCallback(RequestMeasureCallback callback) {
+    request_measure_callback_ = std::move(callback);
+  }
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());
   }
@@ -81,6 +87,8 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
     return this;
   }
 
+  void RequestMeasure() override;
+
  protected:
   RectF CalculateViewRectInScreen();
   std::shared_ptr<MarkdownPlatformView> InsertEtsView(ArkUI_NodeHandle handle);
@@ -109,6 +117,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   ArkUI_GestureRecognizer* tap_{nullptr};
   ArkUI_GestureRecognizer* pan_{nullptr};
   bool pan_tracking_{false};
+  RequestMeasureCallback request_measure_callback_;
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
