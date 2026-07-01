@@ -185,6 +185,14 @@ void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   GetMarkdownView()->OnRendererFrame(time_stamp / 1000 / 1000);
 }
 
+void NativeServalMarkdownView::RequestMeasure() {
+  if (request_measure_callback_) {
+    request_measure_callback_();
+  } else {
+    HarmonyView::RequestMeasure();
+  }
+}
+
 std::string GetStringValue(const ValueMap& config, const std::string& key,
                            const std::string& default_value = "") {
   if (auto iter = config.find(key);

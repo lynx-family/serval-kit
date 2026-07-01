@@ -322,6 +322,9 @@ void MarkdownView::ConsumeRendererBundleIfNeeded() {
     renderer_.SetDocument(bundle->document_);
     renderer_data_.document_ = bundle->document_;
     gesture_.SetDocument(bundle->document_);
+    // New document: run exposure check on the next renderer frame instead of
+    // waiting for the skip interval.
+    exposure_skip_counter_ = 0;
     UpdateExposure();
   }
   renderer_.SetMarkdownAnimationType(bundle->animation_type_);
@@ -350,6 +353,13 @@ void MarkdownView::UpdateExposure() {
     return;
   }
   if (renderer_data_.document_ == nullptr) {
+    return;
+  }
+  // Exposure checks are O(document) look-ups and should not run on every VSync
+  // frame. We throttle them to once every kExposureSkipInterval frames. The
+  // counter is reset when the document changes so that new content gets checked
+  // immediately.
+  if (exposure_skip_counter_++ % kExposureSkipInterval != 0) {
     return;
   }
   auto rect_in_screen = handle_->GetViewRectInScreen();
