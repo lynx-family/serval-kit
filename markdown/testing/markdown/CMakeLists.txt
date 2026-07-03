@@ -21,4 +21,8 @@ add_subdirectory(mock_textra)
 add_subdirectory(../../third_party/googletest googletest)
 add_executable(markdown_tests ${MARKDOWN_TESTS_SOURCES})
 
+target_compile_options(markdown_tests PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
+)
+
 target_link_libraries(markdown_tests PUBLIC markdown mock_textra gtest_main lynx_base)

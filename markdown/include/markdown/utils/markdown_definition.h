@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_UTILS_MARKDOWN_DEFINITION_H_
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <string>
 
 namespace serval::markdown {
@@ -154,12 +155,36 @@ struct Paddings {
   float right_{0};
   float bottom_{0};
 };
-
 struct Margins {
   float left_{0};
   float top_{0};
   float right_{0};
   float bottom_{0};
+};
+enum class MarkdownBorderType;
+struct BorderSide {
+  MarkdownBorderType type_;
+  int32_t color_;
+  float width_;
+  union {
+    float radius_left_;
+    float radius_top_;
+  };
+  union {
+    float radius_right_;
+    float radius_bottom_;
+  };
+};
+struct Borders {
+  BorderSide left_;
+  BorderSide top_;
+  BorderSide right_;
+  BorderSide bottom_;
+};
+class MarkdownBackgroundDrawable;
+struct Background {
+  int32_t background_color_;
+  std::shared_ptr<MarkdownBackgroundDrawable> background_drawable_;
 };
 
 struct MarkdownHtmlAttribute {
