@@ -1,9 +1,13 @@
 import { display, FrameCallback, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
 import { image } from '@kit.ImageKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import svg from 'libservalsvg.so';
 import { SvgData, SvgRenderResult } from './SvgTypes';
 
 export type SvgImageFetcher = (url: string) => Promise<image.PixelMap | undefined>;
+
+const SVG_LOG_DOMAIN = 0xFFF0;
+const SVG_LOG_TAG = 'SrSVG';
 
 @Component
 export struct SvgView {
@@ -236,7 +240,14 @@ export class SvgRenderNodeController extends NodeController {
 
   makeNode(uiContext: UIContext): FrameNode | null {
     if (this.rootNode === null) {
-      this.rootNode = new SvgRenderNode(uiContext, new svg.SvgDrawable());
+      let native: svg.SvgDrawable;
+      try {
+        native = new svg.SvgDrawable();
+      } catch (error) {
+        hilog.error(SVG_LOG_DOMAIN, SVG_LOG_TAG, 'failed to create SvgDrawable: %{public}s', `${error}`);
+        return null;
+      }
+      this.rootNode = new SvgRenderNode(uiContext, native);
       this.rootNode.setImageFetcher(this.imageFetcher);
       this.rootNode.setInvalidateCallback(() => {
         this.rootNode?.invalidate();
