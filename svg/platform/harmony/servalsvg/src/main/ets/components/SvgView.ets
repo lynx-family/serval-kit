@@ -1,6 +1,6 @@
 import { display, FrameCallback, FrameNode, LayoutConstraint, NodeController } from '@kit.ArkUI';
 import { image } from '@kit.ImageKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import hilog from '@ohos.hilog';
 import svg from 'libservalsvg.so';
 import { SvgData, SvgRenderResult } from './SvgTypes';
 
