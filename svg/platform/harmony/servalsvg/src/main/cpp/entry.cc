@@ -3,13 +3,10 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "svg_drawable.h"
-#include <mutex>
 #include <node_api.h>
 
 EXTERN_C_START static napi_value Init(napi_env env, napi_value exports) {
-    static std::once_flag once_flag;
-    std::call_once(once_flag, [&env, &exports]() { serval::svg::harmony::SvgDrawable::Init(env, exports); });
-    return exports;
+    return serval::svg::harmony::SvgDrawable::Init(env, exports);
 }
 
 EXTERN_C_END
