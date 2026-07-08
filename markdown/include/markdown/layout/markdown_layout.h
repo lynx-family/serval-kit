@@ -35,11 +35,11 @@ class L_EXPORT MarkdownLayout {
       const MarkdownElement& paragraph, int max_lines, float max_width,
       float max_height, float region_left, float region_top, bool last);
   void ForceAppendEllipsis(MarkdownPageRegion* region);
-  static std::unique_ptr<MarkdownTableRegion> LayoutTable(
+  std::unique_ptr<MarkdownTableRegion> LayoutTable(
       MarkdownContext* context, MarkdownTable* table, float width, float height,
       float min_width, int max_lines, MarkdownTextOverflow overflow,
       bool* full_filled);
-  static std::unique_ptr<tttext::LayoutRegion> LayoutParagraph(
+  std::unique_ptr<tttext::LayoutRegion> LayoutParagraph(
       MarkdownContext* context, tttext::Paragraph* paragraph, float width,
       tttext::LayoutMode width_mode, float height, int max_lines,
       MarkdownTextOverflow overflow, bool* full_filled, bool last);
@@ -53,6 +53,7 @@ class L_EXPORT MarkdownLayout {
   MarkdownDocument* document_{nullptr};
   MarkdownContext* context_{nullptr};
   std::shared_ptr<MarkdownPage> page_{nullptr};
+  tttext::TTTextContext text_context_{};
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_LAYOUT_MARKDOWN_LAYOUT_H_

@@ -458,8 +458,8 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
   if (text_layout == nullptr) {
     return nullptr;
   }
-  tttext::TTTextContext tt_context;
-  tt_context.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
+  text_context_.Reset();
+  text_context_.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
   auto region = std::make_unique<tttext::LayoutRegion>(
       width, height, width_mode, tttext::LayoutMode::kAtMost);
   uint32_t current_para_max_lines =
@@ -469,7 +469,7 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
     paragraph->GetParagraphStyle().SetMaxLines(max_lines);
   }
   tttext::LayoutResult result =
-      text_layout->LayoutEx(paragraph, region.get(), tt_context);
+      text_layout->LayoutEx(paragraph, region.get(), text_context_);
   paragraph->GetParagraphStyle().SetMaxLines(current_para_max_lines);
   bool para_full_layout = true;
   if (result == tttext::LayoutResult::kBreakPage &&
@@ -490,7 +490,7 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
     if (!last && region->GetLineCount() > 0 && para_full_layout) {
       auto* line = region->GetLine(region->GetLineCount() - 1);
       line->StripByEllipsis(nullptr);
-      region->UpdateLayoutedSize(line, tt_context);
+      region->UpdateLayoutedSize(line, text_context_);
     }
   }
   if (region->GetLineCount() == 0 ||
@@ -508,9 +508,10 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
 std::pair<float, float> MarkdownLayout::MeasureParagraph(
     MarkdownContext* context, tttext::Paragraph* paragraph_ptr, float width,
     float height, int max_lines) {
-  auto region = LayoutParagraph(context, paragraph_ptr, width,
-                                tttext::LayoutMode::kAtMost, height, max_lines,
-                                MarkdownTextOverflow::kClip, nullptr, false);
+  MarkdownLayout layout(nullptr);
+  auto region = layout.LayoutParagraph(
+      context, paragraph_ptr, width, tttext::LayoutMode::kAtMost, height,
+      max_lines, MarkdownTextOverflow::kClip, nullptr, false);
   return {MarkdownPlatform::GetMdLayoutRegionWidth(region.get()),
           MarkdownPlatform::GetMdLayoutRegionHeight(region.get())};
 }
@@ -526,8 +527,8 @@ void MarkdownLayout::ForceAppendEllipsis(MarkdownPageRegion* region) {
         auto* last_line = para_region->region_->GetLine(
             para_region->region_->GetLineCount() - 1);
         last_line->StripByEllipsis(nullptr);
-        para_region->region_->UpdateLayoutedSize(last_line,
-                                                 tttext::TTTextContext());
+        text_context_.Reset();
+        para_region->region_->UpdateLayoutedSize(last_line, text_context_);
         auto width_delta = MarkdownPlatform::GetMdLayoutRegionWidth(
                                para_region->region_.get()) -
                            width_before;
