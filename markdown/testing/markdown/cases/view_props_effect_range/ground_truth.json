@@ -1,0 +1,181 @@
+[
+  {
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 12.0,
+            "top": 68.0,
+            "right": 284.0,
+            "bottom": 164.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "Alpha beta gamma",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 87.19999694824219
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "delta should rece",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 111.19999694824219
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "ive a foreground",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 135.1999969482422
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "markdown effect.",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 159.1999969482422
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "…",
+          "font": "",
+          "origin": {
+            "x": 268.0,
+            "y": 159.1999969482422
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 12.0,
+            "top": 8.0,
+            "right": 284.0,
+            "bottom": 56.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "XX# Ranged Headin",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 27.200000762939453
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "g",
+          "font": "",
+          "origin": {
+            "x": 12.0,
+            "y": 51.20000076293945
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 16.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
+    ]
+  }
+]

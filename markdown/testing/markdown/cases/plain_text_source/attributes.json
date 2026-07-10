@@ -1,7 +1,5 @@
 {
   "width": 320,
   "height": 200,
-  "source-type": "plainText",
-  "frame-step-count": 2,
-  "frame-step-interval-ms": 33
+  "source-type": "plainText"
 }

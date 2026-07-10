@@ -1,96 +1,123 @@
 [
   {
-    "step": 0,
-    "timestamp": 16,
-    "interval": 16,
-    "visible_rect": {
-      "left": 0.0,
-      "top": 0.0,
-      "right": 300.0,
-      "bottom": 220.0
-    },
-    "need_draw": true,
-    "draw_view_count": 3,
-    "ops": [
-      {
-        "op": "clip",
-        "rect": {
-          "left": 0.0,
-          "top": 76.0,
-          "right": 300.0,
-          "bottom": 94.69999694824219
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
         }
-      },
-      {
-        "op": "glyphs",
-        "text": "�",
-        "font": "",
-        "origin": {
-          "x": 141.0,
-          "y": 93.0
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "name": "region view"
         },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 4278190080,
-          "stroke_color": 0,
-          "text_size": 17.0,
-          "bold": false,
-          "italic": false
-        }
-      },
-      {
-        "op": "glyphs",
-        "text": "B",
-        "font": "",
-        "origin": {
-          "x": 158.0,
-          "y": 93.0
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 66.0,
+            "right": 300.0,
+            "bottom": 84.69999694824219
+          }
         },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 4278190080,
-          "stroke_color": 0,
-          "text_size": 17.0,
-          "bold": false,
-          "italic": false
-        }
-      },
-      {
-        "op": "clip",
-        "rect": {
-          "left": 0.0,
-          "top": 0.0,
-          "right": 300.0,
-          "bottom": 54.0
-        }
-      },
-      {
-        "op": "image",
-        "src": "test.jpeg",
-        "rect": {
-          "left": 130.0,
-          "top": 0.0,
-          "right": 170.0,
-          "bottom": 24.0
-        }
-      },
-      {
-        "op": "glyphs",
-        "text": "caption text",
-        "font": "",
-        "origin": {
-          "x": 90.0,
-          "y": 43.5
+        {
+          "op": "glyphs",
+          "text": "�",
+          "font": "",
+          "origin": {
+            "x": 141.0,
+            "y": 83.0
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
         },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 4286611584,
-          "stroke_color": 0,
-          "text_size": 10.0,
-          "bold": false,
-          "italic": false
+        {
+          "op": "glyphs",
+          "text": "B",
+          "font": "",
+          "origin": {
+            "x": 158.0,
+            "y": 83.0
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
         }
-      }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 300.0,
+            "bottom": 54.0
+          }
+        },
+        {
+          "op": "image",
+          "src": "test.jpeg",
+          "rect": {
+            "left": 130.0,
+            "top": 0.0,
+            "right": 170.0,
+            "bottom": 24.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "caption text",
+          "font": "",
+          "origin": {
+            "x": 48.0,
+            "y": 46.650001525878906
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
     ]
   }
 ]

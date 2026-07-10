@@ -1,0 +1,21 @@
+{
+  "width": 420,
+  "height": 640,
+  "style": {
+    ".demo-box": {
+      "marginTop": 6,
+      "marginBottom": 8,
+      "paddingLeft": 5,
+      "paddingRight": 5,
+      "backgroundImage": "linear-gradient(0deg, #e8f7ff 0%, rgba(232,247,255,0) 85%)"
+    },
+    ".demo-warn": {
+      "color": "b42318",
+      "fontWeight": "bold",
+      "textDecorationLine": "underline"
+    },
+    "typewriterCursor": {
+      "customCursor": "cursor-dot"
+    }
+  }
+}

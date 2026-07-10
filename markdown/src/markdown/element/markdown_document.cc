@@ -654,24 +654,30 @@ Range MarkdownDocument::GetShowedRegions(float top, float bottom) {
 Range MarkdownDocument::GetShowedExtraContents(float top, float bottom) {
   auto page = GetPage();
   if (page == nullptr) {
-    return {0, 0};
+    return {-1, -1};
   }
-  auto count = page->GetExtraBorderCount();
-  int start = 0;
+  const auto count = static_cast<int32_t>(page->GetExtraBorderCount());
+  int start = -1;
   int end = count - 1;
-  for (auto i = 0u; i < count; i++) {
+  for (int32_t i = 0; i < count; i++) {
     auto rect = page->GetExtraBorder(i)->rect_;
     if (rect.GetBottom() > top) {
       start = i;
       break;
     }
   }
-  for (uint32_t i = start; i < count; i++) {
+  if (start < 0) {
+    return {-1, -1};
+  }
+  for (int32_t i = start; i < count; i++) {
     auto rect = page->GetExtraBorder(i)->rect_;
     if (rect.GetTop() > bottom) {
       end = i - 1;
       break;
     }
+  }
+  if (start > end) {
+    return {-1, -1};
   }
   return {start, end};
 }

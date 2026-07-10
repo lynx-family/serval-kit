@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_PLATFORM_VIEW_H_
-#define MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_PLATFORM_VIEW_H_
+#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_PLATFORM_VIEW_H_
+#define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_PLATFORM_VIEW_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +12,10 @@
 #include <utility>
 #include <vector>
 
+#include "markdown/element/markdown_context.h"
 #include "markdown/view/markdown_platform_view.h"
+#include "markdown/view/markdown_view.h"
+#include "markdown/view/markdown_view_gesture.h"
 
 namespace serval::markdown {
 class MarkdownView;
@@ -21,8 +24,11 @@ class MarkdownView;
 namespace serval::markdown::testing {
 
 class MockMarkdownPlatformView : public MarkdownPlatformView {
+  friend class MockMarkdownMainView;
+
  public:
-  explicit MockMarkdownPlatformView() = default;
+  explicit MockMarkdownPlatformView(MarkdownContext* context,
+                                    MockMarkdownPlatformView* parent);
   ~MockMarkdownPlatformView() override = default;
 
   void RequestMeasure() override;
@@ -31,10 +37,6 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
 
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  virtual void DrawFromFrameDriver(tttext::ICanvasHelper* canvas, float x,
-                                   float y) {
-    Draw(canvas, x, y);
-  }
 
   PointF GetAlignedPosition() override;
   SizeF GetMeasuredSize() override;
@@ -44,47 +46,36 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
   void SetVisibility(bool visible) override;
 
   bool IsVisible() const { return visible_; }
-  int32_t GetRequestMeasureCount() const { return request_measure_count_; }
-  int32_t GetRequestAlignCount() const { return request_align_count_; }
-  int32_t GetRequestDrawCount() const { return request_draw_count_; }
-  int32_t GetDrawCount() const { return draw_count_; }
+
   bool HasDirty() const {
     return needs_measure_ || needs_align_ || needs_draw_;
-  }
-  bool TakeNeedsMeasure() { return std::exchange(needs_measure_, false); }
-  bool TakeNeedsAlign() { return std::exchange(needs_align_, false); }
-  bool TakeNeedsDraw() { return std::exchange(needs_draw_, false); }
-
-  void ResetRequestCount() {
-    request_measure_count_ = 0;
-    request_align_count_ = 0;
-    request_draw_count_ = 0;
-  }
-  void ResetDrawCount() {
-    request_draw_count_ = 0;
-    draw_count_ = 0;
   }
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
- protected:
+ public:
+  MockMarkdownPlatformView* parent_{nullptr};
   SizeF measured_size_{};
   PointF align_position_{};
   bool visible_{true};
-  int32_t request_measure_count_{0};
-  int32_t request_align_count_{0};
-  int32_t request_draw_count_{0};
-  int32_t draw_count_{0};
+
   bool needs_measure_{false};
   bool needs_align_{false};
   bool needs_draw_{false};
+
+  int32_t view_id_{};
+  std::string view_name_{};
+
+  MarkdownContext* context_;
 };
 
 class MockMarkdownCustomView : public MockMarkdownPlatformView,
                                public MarkdownCustomViewHandle {
  public:
-  explicit MockMarkdownCustomView() = default;
+  explicit MockMarkdownCustomView(MarkdownContext* context,
+                                  MockMarkdownPlatformView* parent)
+      : MockMarkdownPlatformView(context, parent) {}
   ~MockMarkdownCustomView() override = default;
 
   void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) override;
@@ -100,14 +91,17 @@ class MockMarkdownCustomView : public MockMarkdownPlatformView,
 
 class MockInlineView : public MockMarkdownPlatformView {
  public:
-  MockInlineView(const char* id_selector, float max_width, float max_height)
-      : id_(id_selector), width_(max_width * 0.2f), height_(30) {
+  MockInlineView(MarkdownContext* context, MockMarkdownPlatformView* parent,
+                 const char* id_selector, float max_width, float max_height)
+      : MockMarkdownPlatformView(context, parent),
+        id_(id_selector),
+        width_(max_width * 0.2f),
+        height_(30) {
     (void)max_height;
   }
   ~MockInlineView() override = default;
 
-  void DrawFromFrameDriver(tttext::ICanvasHelper* canvas, float x,
-                           float y) override;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
   std::string id_;
   float width_;
@@ -121,8 +115,10 @@ class MockInlineView : public MockMarkdownPlatformView {
 
 class MockMarkdownMainView : public MockMarkdownCustomView,
                              public MarkdownViewContainerHandle {
+  friend class MarkdownFrameDriver;
+
  public:
-  MockMarkdownMainView();
+  MockMarkdownMainView(std::shared_ptr<MarkdownContext> context);
   ~MockMarkdownMainView() override = default;
 
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
@@ -141,29 +137,52 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
   MarkdownViewContainerHandle* GetViewContainerHandle() override {
     return this;
   }
-  MarkdownView* GetMarkdownView();
-  void OnVSync(int64_t timestamp);
+  MarkdownView* GetMarkdownView() const;
+  void OnVSync(int64_t timestamp) const;
 
-  void SetViewRectInScreen(RectF rect) { cached_view_rect_in_screen_ = rect; }
+  bool OnLongPress(PointF position, GestureEventType event) const {
+    return GetMarkdownView()->OnLongPress(position, event);
+  }
+  bool OnTap(PointF position, GestureEventType event) const {
+    return GetMarkdownView()->OnTap(position, event);
+  }
+  bool ShouldBeginPan(PointF position, PointF motion) const {
+    return GetMarkdownView()->ShouldBeginPan(position, motion);
+  }
+  bool OnPan(PointF position, PointF motion, GestureEventType event) const {
+    return GetMarkdownView()->OnPan(position, motion, event);
+  }
+
+  void SetViewRectInScreen(RectF rect) {
+    cached_view_rect_in_screen_ = rect;
+    RequestDraw();
+  }
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
+
+ public:
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
   size_t GetSubviewCount() const { return subviews_.size(); }
   MockMarkdownPlatformView* FindSubviewByTop(float top) const;
   std::vector<MockMarkdownPlatformView*> GetSubviews() const;
-  void ResetDrawCount() const;
   bool ContainsSubview(MarkdownPlatformView* subview) const;
 
- private:
   static RectF MakeDefaultViewRectInScreen() {
     const float max = MeasureSpec::LAYOUT_MAX_SIZE;
     return RectF::MakeLTRB(0, 0, max, max);
   }
   std::shared_ptr<MockMarkdownCustomView> CreateSubview(bool insert_front);
 
- private:
   std::vector<std::shared_ptr<MockMarkdownPlatformView>> subviews_;
   RectF cached_view_rect_in_screen_{MakeDefaultViewRectInScreen()};
+
+  std::shared_ptr<MarkdownContext> main_context_;
+  MeasureSpec last_spec_;
+  int32_t last_view_id_ = 1;
 };
 
 }  // namespace serval::markdown::testing
 
-#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_PLATFORM_VIEW_H_
+#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_PLATFORM_VIEW_H_

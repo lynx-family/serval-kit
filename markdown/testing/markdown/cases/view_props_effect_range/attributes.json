@@ -1,0 +1,19 @@
+{
+  "width": 300,
+  "height": 190,
+  "content-range": [2, 160],
+  "paddings": [12, 8, 12, 8],
+  "allow-break-around-punctuation": true,
+  "markdown-effect": {
+    "rangeStart": 17,
+    "rangeEnd": 39,
+    "color": "#ff0000"
+  },
+  "enable-text-selection": true,
+  "style": {
+    "normalText": {
+      "fontSize": 16,
+      "lineHeight": 24
+    }
+  }
+}

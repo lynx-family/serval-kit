@@ -347,14 +347,14 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
   const auto border_count = static_cast<int32_t>(page->GetExtraBorderCount());
   const auto visible_borders =
       document_->GetShowedExtraContents(visible_top, visible_bottom);
-  int32_t visible_border_start =
-      std::max(0, std::min(visible_borders.start_, border_count - 1));
-  int32_t visible_border_end =
-      std::max(0, std::min(visible_borders.end_, border_count - 1));
-  if (border_count <= 0 || visible_border_start > visible_border_end) {
-    visible_border_start = 1;
-    visible_border_end = 0;
-  } else {
+  const bool has_visible_borders =
+      border_count > 0 && visible_borders.start_ >= 0 &&
+      visible_borders.start_ <= visible_borders.end_;
+  int32_t visible_border_start = 1;
+  int32_t visible_border_end = 0;
+  if (has_visible_borders) {
+    visible_border_start = std::min(visible_borders.start_, border_count - 1);
+    visible_border_end = std::min(visible_borders.end_, border_count - 1);
     for (int32_t i = visible_border_start; i <= visible_border_end; ++i) {
       auto iter = border_views_.find(i);
       bool created = false;

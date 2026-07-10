@@ -82,6 +82,25 @@ void serval::markdown::MarkdownRefDelegate::Draw(tttext::ICanvasHelper* canvas,
   canvas->Restore();
 }
 
+MarkdownTextDelegate::MarkdownTextDelegate(
+    MarkdownContext* context, std::unique_ptr<tttext::Paragraph> text,
+    float width, float height)
+    : context_(context),
+      text_(std::move(text)),
+      width_(width),
+      height_(height) {
+  MarkdownStyleInitializer::ResetBlockStyle(&block_style_);
+}
+
+MarkdownTextDelegate::MarkdownTextDelegate(
+    MarkdownContext* context, std::unique_ptr<tttext::Paragraph> text,
+    MarkdownBlockStylePart block, float width, float height)
+    : context_(context),
+      text_(std::move(text)),
+      width_(width),
+      height_(height),
+      block_style_(block) {}
+
 void MarkdownTextDelegate::Layout() {
   if (layout_) {
     return;
@@ -99,16 +118,22 @@ void MarkdownTextDelegate::Layout() {
   context.SetLastLineCanOverflow(false);
   layout->LayoutEx(text_.get(), page_.get(), context);
   context.Reset();
-  auto text_width = MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
-  auto text_height = MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
-  const float text_base_line = page_->GetLine(0)->GetLineBaseLine();
   const float left = block_style_.margin_left_;
   const float top = block_style_.margin_top_;
   const float right = block_style_.margin_right_;
   const float bottom = block_style_.margin_bottom_;
-  advance_ = text_width + left + right;
-  ascent_ = -(text_base_line + top);
-  descent_ = (text_height - text_base_line) + bottom;
+  if (page_->GetLineCount() == 0) {
+    advance_ = left + right;
+    ascent_ = -top;
+    descent_ = bottom;
+  } else {
+    auto text_width = MarkdownPlatform::GetMdLayoutRegionWidth(page_.get());
+    auto text_height = MarkdownPlatform::GetMdLayoutRegionHeight(page_.get());
+    const float text_base_line = page_->GetLine(0)->GetLineBaseLine();
+    advance_ = text_width + left + right;
+    ascent_ = -(text_base_line + top);
+    descent_ = (text_height - text_base_line) + bottom;
+  }
   measure_result_ = {
       .width_ = advance_,
       .height_ = descent_ - ascent_,

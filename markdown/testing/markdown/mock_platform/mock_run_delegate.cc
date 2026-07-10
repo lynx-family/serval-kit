@@ -1,10 +1,10 @@
 // Copyright 2025 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#include "testing/markdown/mock_run_delegate.h"
+#include "mock_run_delegate.h"
 
 #include "markdown/draw/markdown_path.h"
-#include "testing/markdown/mock_markdown_canvas.h"
+#include "testing/markdown/mock_platform/mock_markdown_canvas.h"
 namespace serval::markdown::testing {
 void MockImage::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
   if (radius_ > 0) {

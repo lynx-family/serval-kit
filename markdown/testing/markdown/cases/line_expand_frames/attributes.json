@@ -1,0 +1,11 @@
+{
+  "width": 280,
+  "height": 140,
+  "animation-type": "line-expand",
+  "initial-animation-step": 0,
+  "content-complete": false,
+  "animation-velocity": 40,
+  "typewriter-dynamic-height": true,
+  "typewriter-height-transition-duration": 1,
+  "typewriter-height-transition-prefetch": false
+}

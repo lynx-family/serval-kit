@@ -124,21 +124,10 @@ class MarkdownTextDelegate : public MarkdownDrawable {
  public:
   MarkdownTextDelegate(MarkdownContext* context,
                        std::unique_ptr<tttext::Paragraph> text, float width,
-                       float height)
-      : context_(context),
-        text_(std::move(text)),
-        width_(width),
-        height_(height) {
-    MarkdownStyleInitializer::ResetBlockStyle(&block_style_);
-  }
+                       float height);
   MarkdownTextDelegate(MarkdownContext* context,
                        std::unique_ptr<tttext::Paragraph> text,
-                       MarkdownBlockStylePart block, float width, float height)
-      : context_(context),
-        text_(std::move(text)),
-        width_(width),
-        height_(height),
-        block_style_(block) {}
+                       MarkdownBlockStylePart block, float width, float height);
 
   void Layout() override;
 

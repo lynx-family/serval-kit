@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_CANVAS_H_
-#define MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_CANVAS_H_
+#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_CANVAS_H_
+#define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_CANVAS_H_
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,9 +19,8 @@ class MockMarkdownResourceLoader;
 class MockMarkdownCanvas final : public tttext::ICanvasHelper,
                                  public MarkdownCanvasExtend {
  public:
-  explicit MockMarkdownCanvas(MockMarkdownResourceLoader* resource_loader,
-                              MarkdownDocument* document)
-      : resource_loader_(resource_loader), document_(document) {
+  explicit MockMarkdownCanvas(MockMarkdownResourceLoader* resource_loader)
+      : resource_loader_(resource_loader) {
     result_.SetArray();
   }
   ~MockMarkdownCanvas() override = default;
@@ -92,6 +91,9 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
   const rapidjson::Document& GetJson() const { return result_; }
   void ResetResult() { result_.SetArray(); }
 
+  void BeginViewDraw(int32_t id, const char* name);
+  void EndViewDraw();
+
  private:
   rapidjson::Value MakeRect(float left, float top, float right, float bottom);
   rapidjson::Value MakePoint(float x, float y);
@@ -106,11 +108,11 @@ class MockMarkdownCanvas final : public tttext::ICanvasHelper,
   };
 
   MockMarkdownResourceLoader* resource_loader_;
-  MarkdownDocument* document_;
   Context context_;
   std::vector<Context> context_stack_;
 
   rapidjson::Document result_;
+  rapidjson::Value current_;
 };
 }  // namespace serval::markdown::testing
-#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_CANVAS_H_
+#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_CANVAS_H_
