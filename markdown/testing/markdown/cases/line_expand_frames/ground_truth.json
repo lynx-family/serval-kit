@@ -1,0 +1,342 @@
+[
+  {
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "action",
+    "timestamp": 100,
+    "step_time": 100,
+    "action_count": 0
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 255.0,
+            "bottom": 120.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "line expand",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 22.649999618530273
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "…",
+          "font": "",
+          "origin": {
+            "x": 187.0,
+            "y": 22.649999618530273
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 25.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "type": "action",
+    "timestamp": 200,
+    "step_time": 200,
+    "action_count": 0
+  },
+  {
+    "type": "render",
+    "timestamp": 300,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 255.0,
+            "bottom": 120.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "line expand",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 22.649999618530273
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "first line",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 52.650001525878906
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "second line",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 82.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "animates after",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 112.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "…",
+          "font": "",
+          "origin": {
+            "x": 238.0,
+            "y": 112.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "…",
+          "font": "",
+          "origin": {
+            "x": 255.0,
+            "y": 112.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 25.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 400,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 500,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 600,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 700,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 800,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 900,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 1000,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 1100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 1200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 1300,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  }
+]

@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_TESTING_MARKDOWN_MARKDOWN_TESTS_PLATFORM_H_
-#define MARKDOWN_TESTING_MARKDOWN_MARKDOWN_TESTS_PLATFORM_H_
+#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MARKDOWN_TESTS_PLATFORM_H_
+#define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MARKDOWN_TESTS_PLATFORM_H_
 
 #include <memory>
 
@@ -16,4 +16,4 @@ std::shared_ptr<MarkdownContext> CreateTestMarkdownSharedContext();
 
 }  // namespace serval::markdown::testing
 
-#endif  // MARKDOWN_TESTING_MARKDOWN_MARKDOWN_TESTS_PLATFORM_H_
+#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MARKDOWN_TESTS_PLATFORM_H_

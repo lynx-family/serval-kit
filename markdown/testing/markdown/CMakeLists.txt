@@ -3,6 +3,12 @@ project(markdown_tests)
 file(GLOB MARKDOWN_TESTS_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/*.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/mock_platform/*.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/mock_platform/*.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/frame_driven_tests/*.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/frame_driven_tests/*.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/single_point_tests/*.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/single_point_tests/*.h
 )
 set(ROOT_DIR ../..)
 include_directories(${ROOT_DIR}/third_party/lynx-textra/public)

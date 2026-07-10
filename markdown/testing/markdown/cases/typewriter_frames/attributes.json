@@ -4,7 +4,5 @@
   "animation-type": "typewriter",
   "initial-animation-step": 0,
   "content-complete": false,
-  "animation-velocity": 40,
-  "frame-step-count": 3,
-  "frame-step-interval-ms": 100
+  "animation-velocity": 40
 }

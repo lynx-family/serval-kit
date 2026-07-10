@@ -4,8 +4,8 @@
 
 #include "gtest/gtest.h"
 
+#include "../mock_platform/markdown_tests_platform.h"
 #include "markdown/view/markdown_view_measurer.h"
-#include "testing/markdown/markdown_tests_platform.h"
 
 namespace serval::markdown {
 

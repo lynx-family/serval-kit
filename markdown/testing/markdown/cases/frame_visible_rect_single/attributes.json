@@ -1,7 +1,5 @@
 {
   "width": 220,
   "height": 60,
-  "frame-step-count": 0,
-  "frame-step-interval-ms": -5,
-  "frame-visible-rect": [0, 10, 220, 50]
+  "region-rect": [0, 10, 220, 50]
 }

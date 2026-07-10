@@ -2,10 +2,10 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "testing/markdown/markdown_tests_platform.h"
+#include "testing/markdown/mock_platform/markdown_tests_platform.h"
 
-#include "testing/markdown/mock_markdown_canvas.h"
-#include "testing/markdown/mock_markdown_shaper.h"
+#include "testing/markdown/mock_platform/mock_markdown_canvas.h"
+#include "testing/markdown/mock_platform/mock_markdown_shaper.h"
 
 namespace serval::markdown {
 namespace {

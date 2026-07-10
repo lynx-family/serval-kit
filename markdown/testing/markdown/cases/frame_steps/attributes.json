@@ -1,17 +1,5 @@
 {
   "width": 260,
   "height": 120,
-  "frame-steps": [
-    {
-      "interval-ms": -10,
-      "visible-rect": [0, 0, 260, 44]
-    },
-    {
-      "interval": 25
-    },
-    {
-      "interval-ms": 40,
-      "visible-rect": [0, 44, 260, 120]
-    }
-  ]
+  "region-rect": [0, 0, 260, 44]
 }

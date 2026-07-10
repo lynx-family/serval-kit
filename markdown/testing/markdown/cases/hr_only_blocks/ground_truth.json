@@ -1,73 +1,100 @@
 [
   {
-    "step": 0,
-    "timestamp": 16,
-    "interval": 16,
-    "visible_rect": {
-      "left": 0.0,
-      "top": 0.0,
-      "right": 220.0,
-      "bottom": 160.0
-    },
-    "need_draw": true,
-    "draw_view_count": 3,
-    "ops": [
-      {
-        "op": "clip",
-        "rect": {
-          "left": 0.0,
-          "top": 26.0,
-          "right": 220.0,
-          "bottom": 27.0
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
         }
-      },
-      {
-        "op": "line",
-        "p1": {
-          "x": 0.5,
-          "y": 26.5
-        },
-        "p2": {
-          "x": 219.5,
-          "y": 26.5
-        },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 0,
-          "stroke_color": 4278190080,
-          "text_size": 14.0,
-          "bold": false,
-          "italic": false
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
         }
-      },
-      {
-        "op": "clip",
-        "rect": {
-          "left": 0.0,
-          "top": 13.0,
-          "right": 220.0,
-          "bottom": 14.0
-        }
-      },
-      {
-        "op": "line",
-        "p1": {
-          "x": 0.5,
-          "y": 13.5
+      ],
+      [
+        {
+          "id": 5,
+          "name": "region view"
         },
-        "p2": {
-          "x": 219.5,
-          "y": 13.5
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 26.0,
+            "right": 220.0,
+            "bottom": 27.0
+          }
         },
-        "painter": {
-          "stroke_width": 1.0,
-          "fill_color": 0,
-          "stroke_color": 4278190080,
-          "text_size": 14.0,
-          "bold": false,
-          "italic": false
+        {
+          "op": "line",
+          "p1": {
+            "x": 0.5,
+            "y": 26.5
+          },
+          "p2": {
+            "x": 219.5,
+            "y": 26.5
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 0,
+            "stroke_color": 4278190080,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
         }
-      }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 13.0,
+            "right": 220.0,
+            "bottom": 14.0
+          }
+        },
+        {
+          "op": "line",
+          "p1": {
+            "x": 0.5,
+            "y": 13.5
+          },
+          "p2": {
+            "x": 219.5,
+            "y": 13.5
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 0,
+            "stroke_color": 4278190080,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
     ]
   }
 ]

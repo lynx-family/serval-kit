@@ -1,11 +1,5 @@
 {
   "width": 280,
   "height": 80,
-  "frame-step-count": 3,
-  "frame-step-interval-ms": 20,
-  "frame-visible-rects": [
-    [0, 0, 280, 40],
-    [0, 40, 280, 120],
-    [0, 0, 280, 120]
-  ]
+  "region-rect": [0, 0, 280, 40]
 }

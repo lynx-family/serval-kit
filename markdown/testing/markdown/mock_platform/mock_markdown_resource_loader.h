@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_RESOURCE_LOADER_H_
-#define MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_RESOURCE_LOADER_H_
+#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_RESOURCE_LOADER_H_
+#define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_RESOURCE_LOADER_H_
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -12,8 +12,8 @@
 #include "base/include/string/string_utils.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_gradient.h"
-#include "testing/markdown/mock_markdown_platform_view.h"
-#include "testing/markdown/mock_run_delegate.h"
+#include "testing/markdown/mock_platform/mock_markdown_platform_view.h"
+#include "testing/markdown/mock_platform/mock_run_delegate.h"
 namespace serval::markdown {
 namespace testing {
 
@@ -40,7 +40,7 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
           main_view_->CreateInlineSubView(id_selector, max_width, max_height);
       return std::static_pointer_cast<MarkdownDrawable>(view);
     }
-    return std::make_shared<MockInlineView>(id_selector, max_width, max_height);
+    return nullptr;
   }
   std::shared_ptr<MarkdownDrawable> LoadReplacementView(
       void* ud, int32_t id, float max_width, float max_height) override {
@@ -67,4 +67,4 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
 };
 }  // namespace testing
 }  // namespace serval::markdown
-#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_RESOURCE_LOADER_H_
+#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_RESOURCE_LOADER_H_

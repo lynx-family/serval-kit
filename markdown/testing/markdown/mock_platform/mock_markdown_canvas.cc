@@ -1,7 +1,7 @@
 // Copyright 2025 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#include "testing/markdown/mock_markdown_canvas.h"
+#include "mock_markdown_canvas.h"
 #include <utility>
 #include "base/include/string/string_utils.h"
 #include "markdown/draw/markdown_path.h"
@@ -9,7 +9,7 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "testing/markdown/mock_markdown_resource_loader.h"
+#include "testing/markdown/mock_platform/mock_markdown_resource_loader.h"
 namespace serval::markdown::testing {
 
 rapidjson::Value MockMarkdownCanvas::MakeRect(float left, float top,
@@ -112,8 +112,15 @@ std::string MockMarkdownCanvas::GetResult() const {
 std::unique_ptr<tttext::Painter> MockMarkdownCanvas::CreatePainter() {
   return std::make_unique<tttext::Painter>();
 }
-void MockMarkdownCanvas::StartPaint() {}
-void MockMarkdownCanvas::EndPaint() {}
+void MockMarkdownCanvas::StartPaint() {
+  result_.SetArray();
+  current_.SetArray();
+}
+void MockMarkdownCanvas::EndPaint() {
+  if (!current_.Empty()) {
+    result_.PushBack(current_, result_.GetAllocator());
+  }
+}
 void MockMarkdownCanvas::Save() {
   context_stack_.emplace_back(context_);
 }
@@ -134,7 +141,7 @@ void MockMarkdownCanvas::ClipRect(float left, float top, float right,
   op.AddMember("op", "clip", result_.GetAllocator());
   op.AddMember("rect", MakeRect(left, top, right, bottom),
                result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::Clear() {}
 void MockMarkdownCanvas::ClearRect(float left, float top, float right,
@@ -150,7 +157,7 @@ void MockMarkdownCanvas::DrawLine(float x1, float y1, float x2, float y2,
   op.AddMember("p1", MakePoint(x1, y1), result_.GetAllocator());
   op.AddMember("p2", MakePoint(x2, y2), result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawRect(float left, float top, float right,
                                   float bottom, tttext::Painter* painter) {
@@ -160,7 +167,7 @@ void MockMarkdownCanvas::DrawRect(float left, float top, float right,
   op.AddMember("rect", MakeRect(left, top, right, bottom),
                result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawOval(float left, float top, float right,
                                   float bottom, tttext::Painter* painter) {}
@@ -172,7 +179,7 @@ void MockMarkdownCanvas::DrawCircle(float x, float y, float radius,
   op.AddMember("center", MakePoint(x, y), result_.GetAllocator());
   op.AddMember("radius", radius, result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawArc(float left, float top, float right,
                                  float bottom, float startAngle,
@@ -201,7 +208,7 @@ void MockMarkdownCanvas::DrawGlyphs(const tttext::ITypefaceHelper* font,
   op.AddMember("font", MakeFont(font->GetUniqueId()), result_.GetAllocator());
   op.AddMember("origin", MakePoint(origin_x, origin_y), result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawRunDelegate(const tttext::RunDelegate* delegate,
                                          float left, float top, float right,
@@ -218,7 +225,7 @@ void MockMarkdownCanvas::DrawImage(const char* src, float left, float top,
   op.AddMember("src", std::string(src), result_.GetAllocator());
   op.AddMember("rect", MakeRect(left, top, right, bottom),
                result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawView(const char* src, float left, float top,
                                   float right, float bottom) {
@@ -228,7 +235,7 @@ void MockMarkdownCanvas::DrawView(const char* src, float left, float top,
   op.AddMember("id", std::string(src), result_.GetAllocator());
   op.AddMember("rect", MakeRect(left, top, right, bottom),
                result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 void MockMarkdownCanvas::DrawImageRect(
     const char* src, float src_left, float src_top, float src_right,
@@ -243,7 +250,7 @@ void MockMarkdownCanvas::DrawRoundRect(float left, float top, float right,
   op.AddMember("radius", radius, result_.GetAllocator());
   op.AddMember("rect", MakeRect(left, top, right, bottom),
                result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 
 void MockMarkdownCanvas::ClipPath(MarkdownPath* path) {
@@ -251,7 +258,7 @@ void MockMarkdownCanvas::ClipPath(MarkdownPath* path) {
   op.SetObject();
   op.AddMember("op", "clip path", result_.GetAllocator());
   op.AddMember("path", MakePath(path), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 
 void MockMarkdownCanvas::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
@@ -266,7 +273,7 @@ void MockMarkdownCanvas::DrawDelegateOnPath(tttext::RunDelegate* run_delegate,
     op.AddMember("op", "gradient", result_.GetAllocator());
     op.AddMember("gradient", std::string(gradient->gradient_),
                  result_.GetAllocator());
-    result_.PushBack(op, result_.GetAllocator());
+    current_.PushBack(op, result_.GetAllocator());
   } else {
     run_delegate->Draw(this, 0, 0);
   }
@@ -279,7 +286,7 @@ void MockMarkdownCanvas::DrawMarkdownPath(MarkdownPath* path,
   op.AddMember("op", "draw path", result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
   op.AddMember("path", MakePath(path), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 
 void MockMarkdownCanvas::DrawLinearGradientOnRect(
@@ -293,7 +300,7 @@ void MockMarkdownCanvas::DrawLinearGradientOnRect(
                         rect.GetBottom()),
                result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 
 void MockMarkdownCanvas::DrawLinearGradientOnPath(
@@ -309,7 +316,7 @@ void MockMarkdownCanvas::DrawLinearGradientOnPath(
                         bounds.GetBottom()),
                result_.GetAllocator());
   op.AddMember("painter", MakePainter(painter), result_.GetAllocator());
-  result_.PushBack(op, result_.GetAllocator());
+  current_.PushBack(op, result_.GetAllocator());
 }
 
 rapidjson::Value MockMarkdownCanvas::MakePath(MarkdownPath* path) {
@@ -390,5 +397,24 @@ rapidjson::Value MockMarkdownCanvas::MakePath(MarkdownPath* path) {
     p.PushBack(o, result_.GetAllocator());
   }
   return p;
+}
+void MockMarkdownCanvas::BeginViewDraw(int32_t id, const char* name) {
+  if (!current_.Empty()) {
+    result_.PushBack(current_, result_.GetAllocator());
+  }
+  current_.SetArray();
+  rapidjson::Value begin;
+  begin.SetObject();
+  begin.AddMember("id", id, result_.GetAllocator());
+  rapidjson::Value nv;
+  nv.SetString(name, result_.GetAllocator());
+  begin.AddMember("name", nv, result_.GetAllocator());
+  current_.PushBack(begin, result_.GetAllocator());
+}
+void MockMarkdownCanvas::EndViewDraw() {
+  if (!current_.Empty()) {
+    result_.PushBack(current_, result_.GetAllocator());
+  }
+  current_.SetArray();
 }
 }  // namespace serval::markdown::testing

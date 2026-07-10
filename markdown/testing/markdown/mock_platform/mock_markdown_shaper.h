@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_SHAPER_H_
-#define MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_SHAPER_H_
+#ifndef MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_SHAPER_H_
+#define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_SHAPER_H_
 #include <memory>
 #include "src/textlayout/tt_shaper.h"
 namespace serval::markdown {
@@ -62,7 +62,7 @@ class MockMarkdownShapingResultReader
   TypefaceRef ReadFontId(uint32_t idx) const override {
     return MockMarkdownTypefaceHelper::GetInstance();
   }
-  float font_size_;
+  float font_size_{};
   std::u32string text_;
 };
 class MockMarkdownShaper : public tttext::TTShaper {
@@ -79,4 +79,4 @@ class MockMarkdownShaper : public tttext::TTShaper {
 };
 }  // namespace testing
 }  // namespace serval::markdown
-#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_MARKDOWN_SHAPER_H_
+#endif  // MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_SHAPER_H_

@@ -10,10 +10,10 @@
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_selection_view.h"
-#include "testing/markdown/markdown_tests_platform.h"
-#include "testing/markdown/mock_markdown_canvas.h"
-#include "testing/markdown/mock_markdown_platform_view.h"
-#include "testing/markdown/mock_markdown_resource_loader.h"
+#include "testing/markdown/mock_platform/markdown_tests_platform.h"
+#include "testing/markdown/mock_platform/mock_markdown_canvas.h"
+#include "testing/markdown/mock_platform/mock_markdown_platform_view.h"
+#include "testing/markdown/mock_platform/mock_markdown_resource_loader.h"
 namespace serval::markdown::testing {
 
 namespace {
@@ -240,12 +240,15 @@ TEST(MarkdownGradientTest, DrawLinearGradientUsesDrawBounds) {
                    .height_ = 100,
                    .height_mode_ = tttext::LayoutMode::kDefinite});
 
-  MockMarkdownCanvas canvas(nullptr, nullptr);
+  MockMarkdownCanvas canvas(nullptr);
+  canvas.StartPaint();
   linear->DrawOnRect(&canvas, RectF::MakeLTWH(10, 20, 100, 100));
+  canvas.EndPaint();
   const auto& ops = canvas.GetJson();
   ASSERT_EQ(ops.Size(), 1u);
-  ASSERT_TRUE(ops[0].HasMember("gradient"));
-  const auto& gradient = ops[0]["gradient"];
+  ASSERT_EQ(ops[0].Size(), 1u);
+  ASSERT_TRUE(ops[0][0].HasMember("gradient"));
+  const auto& gradient = ops[0][0]["gradient"];
   EXPECT_NEAR(gradient["start"]["x"].GetFloat(), 10, 0.001);
   EXPECT_NEAR(gradient["start"]["y"].GetFloat(), 120, 0.001);
   EXPECT_NEAR(gradient["end"]["x"].GetFloat(), 110, 0.001);
@@ -261,18 +264,21 @@ TEST(MarkdownSelectionViewTest, HandleDrawsOnlyKnob) {
                                        0xff0000ff);
   right_handle.SetTextHeight(20);
 
-  MockMarkdownCanvas canvas(nullptr, nullptr);
+  MockMarkdownCanvas canvas(nullptr);
+  canvas.StartPaint();
   left_handle.Draw(&canvas, 0, 0);
+  canvas.EndPaint();
 
   const auto& ops = canvas.GetJson();
   ASSERT_EQ(ops.Size(), 1u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "circle");
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "circle");
 
-  canvas.ResetResult();
+  canvas.StartPaint();
   right_handle.Draw(&canvas, 0, 0);
+  canvas.EndPaint();
 
   ASSERT_EQ(ops.Size(), 1u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "circle");
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "circle");
 }
 
 TEST(MarkdownSelectionViewTest, HighlightDrawsHandleLinesDisabled) {
@@ -284,13 +290,14 @@ TEST(MarkdownSelectionViewTest, HighlightDrawsHandleLinesDisabled) {
   highlight.SetRects(
       {RectF::MakeLTRB(10, 20, 40, 50), RectF::MakeLTRB(50, 20, 80, 50)});
 
-  MockMarkdownCanvas canvas(nullptr, nullptr);
+  MockMarkdownCanvas canvas(nullptr);
+  canvas.StartPaint();
   highlight.Draw(&canvas, 0, 0);
-
+  canvas.EndPaint();
   const auto& ops = canvas.GetJson();
-  ASSERT_EQ(ops.Size(), 2u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "rect");
-  EXPECT_STREQ(ops[1]["op"].GetString(), "rect");
+  ASSERT_EQ(ops[0].Size(), 2u);
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[0][1]["op"].GetString(), "rect");
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetLeft(), 10);
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetTop(), 20);
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetRight(), 80);
@@ -306,21 +313,23 @@ TEST(MarkdownSelectionViewTest, HighlightDrawsHandleLinesWhenEnabled) {
   highlight.SetRects(
       {RectF::MakeLTRB(10, 20, 40, 50), RectF::MakeLTRB(50, 20, 80, 50)});
 
-  MockMarkdownCanvas canvas(nullptr, nullptr);
+  MockMarkdownCanvas canvas(nullptr);
+  canvas.StartPaint();
   highlight.Draw(&canvas, 0, 0);
+  canvas.EndPaint();
 
   const auto& ops = canvas.GetJson();
-  ASSERT_EQ(ops.Size(), 4u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "rect");
-  EXPECT_STREQ(ops[1]["op"].GetString(), "rect");
-  EXPECT_STREQ(ops[2]["op"].GetString(), "line");
-  EXPECT_STREQ(ops[3]["op"].GetString(), "line");
-  EXPECT_FLOAT_EQ(ops[2]["painter"]["stroke_width"].GetFloat(), 2);
-  EXPECT_EQ(ops[2]["painter"]["stroke_color"].GetUint(), 0xff0000ffu);
-  EXPECT_FLOAT_EQ(ops[2]["p1"]["x"].GetFloat(), 1);
-  EXPECT_FLOAT_EQ(ops[2]["p2"]["x"].GetFloat(), 1);
-  EXPECT_FLOAT_EQ(ops[3]["p1"]["x"].GetFloat(), 71);
-  EXPECT_FLOAT_EQ(ops[3]["p2"]["x"].GetFloat(), 71);
+  ASSERT_EQ(ops[0].Size(), 4u);
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[0][1]["op"].GetString(), "rect");
+  EXPECT_STREQ(ops[0][2]["op"].GetString(), "line");
+  EXPECT_STREQ(ops[0][3]["op"].GetString(), "line");
+  EXPECT_FLOAT_EQ(ops[0][2]["painter"]["stroke_width"].GetFloat(), 2);
+  EXPECT_EQ(ops[0][2]["painter"]["stroke_color"].GetUint(), 0xff0000ffu);
+  EXPECT_FLOAT_EQ(ops[0][2]["p1"]["x"].GetFloat(), 1);
+  EXPECT_FLOAT_EQ(ops[0][2]["p2"]["x"].GetFloat(), 1);
+  EXPECT_FLOAT_EQ(ops[0][3]["p1"]["x"].GetFloat(), 71);
+  EXPECT_FLOAT_EQ(ops[0][3]["p2"]["x"].GetFloat(), 71);
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetLeft(), 9);
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetTop(), 19);
   EXPECT_FLOAT_EQ(highlight.GetBoundingBox().GetRight(), 81);
@@ -338,40 +347,43 @@ TEST(MarkdownSelectionViewTest, WaterDropHandleDrawsPath) {
   left_handle.SetMarkdownContext(context.get());
   right_handle.SetMarkdownContext(context.get());
 
-  MockMarkdownCanvas canvas(nullptr, nullptr);
+  MockMarkdownCanvas canvas(nullptr);
+  canvas.StartPaint();
   left_handle.Draw(&canvas, 0, 0);
+  canvas.EndPaint();
 
   const auto& ops = canvas.GetJson();
   ASSERT_EQ(ops.Size(), 1u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "draw path");
-  ASSERT_TRUE(ops[0].HasMember("path"));
-  ASSERT_EQ(ops[0]["path"].Size(), 4u);
-  EXPECT_STREQ(ops[0]["path"][0]["type"].GetString(), "move");
-  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["x"].GetFloat(), 10);
-  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["y"].GetFloat(), 0);
-  EXPECT_STREQ(ops[0]["path"][2]["type"].GetString(), "arc");
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["x"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["y"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["radius"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["start"].GetFloat(), -90);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["end"].GetFloat(), -360);
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "draw path");
+  ASSERT_TRUE(ops[0][0].HasMember("path"));
+  ASSERT_EQ(ops[0][0]["path"].Size(), 4u);
+  EXPECT_STREQ(ops[0][0]["path"][0]["type"].GetString(), "move");
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][0]["point"]["x"].GetFloat(), 10);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][0]["point"]["y"].GetFloat(), 0);
+  EXPECT_STREQ(ops[0][0]["path"][2]["type"].GetString(), "arc");
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["center"]["x"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["center"]["y"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["radius"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["start"].GetFloat(), -90);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["end"].GetFloat(), -360);
 
-  canvas.ResetResult();
+  canvas.StartPaint();
   right_handle.Draw(&canvas, 0, 0);
+  canvas.EndPaint();
 
   ASSERT_EQ(ops.Size(), 1u);
-  EXPECT_STREQ(ops[0]["op"].GetString(), "draw path");
-  ASSERT_TRUE(ops[0].HasMember("path"));
-  ASSERT_EQ(ops[0]["path"].Size(), 4u);
-  EXPECT_STREQ(ops[0]["path"][0]["type"].GetString(), "move");
-  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["x"].GetFloat(), 0);
-  EXPECT_FLOAT_EQ(ops[0]["path"][0]["point"]["y"].GetFloat(), 0);
-  EXPECT_STREQ(ops[0]["path"][2]["type"].GetString(), "arc");
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["x"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["center"]["y"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["radius"].GetFloat(), 5);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["start"].GetFloat(), -90);
-  EXPECT_FLOAT_EQ(ops[0]["path"][2]["end"].GetFloat(), 180);
+  EXPECT_STREQ(ops[0][0]["op"].GetString(), "draw path");
+  ASSERT_TRUE(ops[0][0].HasMember("path"));
+  ASSERT_EQ(ops[0][0]["path"].Size(), 4u);
+  EXPECT_STREQ(ops[0][0]["path"][0]["type"].GetString(), "move");
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][0]["point"]["x"].GetFloat(), 0);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][0]["point"]["y"].GetFloat(), 0);
+  EXPECT_STREQ(ops[0][0]["path"][2]["type"].GetString(), "arc");
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["center"]["x"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["center"]["y"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["radius"].GetFloat(), 5);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["start"].GetFloat(), -90);
+  EXPECT_FLOAT_EQ(ops[0][0]["path"][2]["end"].GetFloat(), 180);
 }
 
 TEST(MarkdownSelectionViewTest, HandleSizeExcludesLineAndPositionFollowsShape) {
@@ -390,7 +402,7 @@ TEST(MarkdownSelectionViewTest, HandleSizeExcludesLineAndPositionFollowsShape) {
   left_waterdrop.SetTextHeight(20);
   right_waterdrop.SetTextHeight(20);
 
-  MockMarkdownPlatformView view;
+  MockMarkdownPlatformView view(nullptr, nullptr);
 
   left_circle.UpdateViewRect({40, 50}, &view);
   EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 10);
