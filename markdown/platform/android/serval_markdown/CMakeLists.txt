@@ -25,6 +25,7 @@ add_library(
     serval_markdown
     SHARED
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/android_serval_markdown_view.cc
+    ${SOURCE_ROOT_PATH}/src/markdown/platform/android/buffer_output_stream.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_class_cache.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_buffer_reader.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_native.cc

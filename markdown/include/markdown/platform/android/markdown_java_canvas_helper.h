@@ -67,7 +67,7 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
   }
 
  private:
-  BufferOutputStream* stream_;
+  ::BufferOutputStream* stream_;
 };
 
 }  // namespace serval::markdown

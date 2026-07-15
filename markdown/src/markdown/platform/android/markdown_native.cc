@@ -6,15 +6,20 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "base/include/platform/android/jni_convert_helper.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/platform/android/android_serval_markdown_view.h"
+#include "markdown/platform/android/buffer_output_stream.h"
 #include "markdown/platform/android/markdown_buffer_reader.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
+#include "markdown/platform/android/markdown_platform_android.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_view_gesture.h"
+#include "markdown/view/markdown_view_measurer.h"
 using serval::markdown::AndroidServalMarkdownView;
 using serval::markdown::BufferInputStream;
 using serval::markdown::MarkdownBufferReader;
@@ -22,6 +27,7 @@ using serval::markdown::MarkdownClassCache;
 using serval::markdown::MarkdownDrawable;
 using serval::markdown::MarkdownJavaCanvasHelper;
 using serval::markdown::MarkdownJNIUtils;
+using serval::markdown::MarkdownViewMeasurer;
 using serval::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_CustomDrawable_measure(JNIEnv* env, jclass clazz,
@@ -82,6 +88,58 @@ jobjectArray CreateJavaStringArray(JNIEnv* env,
     env->DeleteLocalRef(string_class);
   }
   return result;
+}
+
+jbyteArray CreateMeasureResultBuffer(JNIEnv* env, serval::markdown::SizeF size,
+                                     const std::vector<std::string>& lines) {
+  serval::markdown::BufferOutputStream writer;
+  writer.WriteFloat(size.width_);
+  writer.WriteFloat(size.height_);
+  writer.WriteInt32(static_cast<int32_t>(lines.size()));
+  for (const auto& line : lines) {
+    writer.WriteStdString(line);
+  }
+  return MarkdownJNIUtils::CreateByteArray(
+      env, reinterpret_cast<const jbyte*>(writer.GetBuffer()),
+      static_cast<jsize>(writer.GetSize()));
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeMeasure(
+    JNIEnv* env, jclass clazz, jstring markdown, jbyteArray style,
+    jfloat max_width, jint max_lines, jfloat density) {
+  serval::markdown::MarkdownScreenMetrics::SetDensity(density);
+  auto context = std::make_shared<serval::markdown::MarkdownContext>(
+      serval::markdown::CreateAndroidMarkdownPlatform());
+  MarkdownViewMeasurer measurer(std::move(context));
+  if (style != nullptr) {
+    const auto length = env->GetArrayLength(style);
+    auto* array = env->GetByteArrayElements(style, nullptr);
+    BufferInputStream stream(reinterpret_cast<uint8_t*>(array), length);
+    MarkdownBufferReader reader(stream);
+    auto value = reader.ReadValue();
+    env->ReleaseByteArrayElements(style, array, JNI_ABORT);
+    if (value != nullptr &&
+        value->GetType() == serval::markdown::ValueType::kMap) {
+      measurer.SetStyle(value->AsMap());
+    }
+  }
+  if (markdown != nullptr) {
+    const auto length = env->GetStringUTFLength(markdown);
+    const auto* chars = env->GetStringUTFChars(markdown, nullptr);
+    measurer.SetContent({chars, static_cast<size_t>(length)});
+    env->ReleaseStringUTFChars(markdown, chars);
+  }
+  measurer.SetTextMaxLines(max_lines);
+  MeasureSpec spec{
+      .width_ = max_width,
+      .width_mode_ = tttext::LayoutMode::kAtMost,
+      .height_ = MeasureSpec::LAYOUT_MAX_SIZE,
+      .height_mode_ = tttext::LayoutMode::kIndefinite,
+  };
+  const auto size = measurer.Measure(spec);
+  const auto lines = measurer.GetDocument()->GetLineTexts();
+  return CreateMeasureResultBuffer(env, size, lines);
 }
 
 enum class MarkdownIndexType : jint {
