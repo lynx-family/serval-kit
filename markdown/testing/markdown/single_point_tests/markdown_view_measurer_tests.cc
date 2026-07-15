@@ -44,4 +44,51 @@ TEST(MarkdownViewMeasurerTest, ContentRangeAffectsHeight) {
   EXPECT_LE(partial.height_, full.height_);
 }
 
+TEST(MarkdownViewMeasurerTest, ReportsLineEndIndicesAndContents) {
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
+  measurer.SetContent("**hello**\n\nworld");
+  MeasureSpec spec;
+  spec.width_ = 200;
+  spec.width_mode_ = tttext::LayoutMode::kAtMost;
+  spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
+  spec.height_mode_ = tttext::LayoutMode::kIndefinite;
+
+  measurer.Measure(spec);
+  auto document = measurer.GetDocument();
+  auto line_ends = document->GetLineEndCharIndices();
+  auto line_texts = document->GetLineTexts();
+
+  ASSERT_EQ(line_ends.size(), 2u);
+  ASSERT_EQ(line_texts.size(), 2u);
+  EXPECT_EQ(line_texts[0], "hello");
+  EXPECT_EQ(line_texts[1], "world");
+  EXPECT_NE(document->GetContentByCharPos(0, line_ends[0]).find("hello"),
+            std::string::npos);
+  EXPECT_NE(
+      document->GetContentByCharPos(line_ends[0], line_ends[1]).find("world"),
+      std::string::npos);
+}
+
+TEST(MarkdownViewMeasurerTest, LineEndIndicesRespectMaxLines) {
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
+  measurer.SetContent("first\n\nsecond");
+  measurer.SetTextMaxLines(1);
+  MeasureSpec spec;
+  spec.width_ = 200;
+  spec.width_mode_ = tttext::LayoutMode::kAtMost;
+  spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
+  spec.height_mode_ = tttext::LayoutMode::kIndefinite;
+
+  measurer.Measure(spec);
+  auto document = measurer.GetDocument();
+  auto line_ends = document->GetLineEndCharIndices();
+  auto line_texts = document->GetLineTexts();
+
+  ASSERT_EQ(line_ends.size(), 1u);
+  ASSERT_EQ(line_texts.size(), 1u);
+  EXPECT_EQ(line_texts[0], "first");
+  EXPECT_NE(document->GetContentByCharPos(0, line_ends[0]).find("first"),
+            std::string::npos);
+}
+
 }  // namespace serval::markdown

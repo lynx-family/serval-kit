@@ -8,6 +8,23 @@
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/parser/embed/markdown_parser_embed.h"
 #include "markdown/utils/markdown_string_utils.h"
+
+namespace {
+
+void TrimLineBreaks(std::string* text) {
+  const auto first_content = text->find_first_not_of("\r\n");
+  if (first_content == std::string::npos) {
+    text->clear();
+    return;
+  }
+  text->erase(0, first_content);
+  while (!text->empty() && (text->back() == '\n' || text->back() == '\r')) {
+    text->pop_back();
+  }
+}
+
+}  // namespace
+
 namespace serval::markdown {
 const MarkdownLink* MarkdownDocument::GetLinkByTouchPosition(PointF point) {
   if (links_.empty()) {
@@ -195,6 +212,25 @@ std::vector<int32_t> MarkdownDocument::GetLineEndCharIndices() {
     return {};
   }
   return MarkdownSelection::GetLineEndCharIndices(page.get());
+}
+
+std::vector<std::string> MarkdownDocument::GetLineTexts() {
+  const auto page = GetPage();
+  if (page == nullptr) {
+    return {};
+  }
+  const auto line_ends = MarkdownSelection::GetLineEndCharIndices(page.get());
+  std::vector<std::string> lines;
+  lines.reserve(line_ends.size());
+  int32_t line_start = 0;
+  for (const auto line_end : line_ends) {
+    auto text = MarkdownSelection::GetContentByCharPos(
+        page.get(), line_start, line_end, &shape_run_alt_strings_);
+    TrimLineBreaks(&text);
+    lines.emplace_back(std::move(text));
+    line_start = line_end;
+  }
+  return lines;
 }
 
 int32_t MarkdownDocument::GetCharIndexByLineIndex(int32_t line_index) {

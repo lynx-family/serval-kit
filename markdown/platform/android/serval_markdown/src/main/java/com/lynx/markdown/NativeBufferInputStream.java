@@ -19,12 +19,12 @@ public class NativeBufferInputStream extends DataInputStream {
 
   public String readCString() throws IOException {
     int tag_l = readInt();
+    if (tag_l < 0)
+      throw new IOException("Invalid string length");
     if (tag_l == 0)
       return "";
     byte[] tag_b = new byte[tag_l];
-    if (read(tag_b, 0, tag_l) != -1) {
-      return new String(tag_b, StandardCharsets.UTF_8);
-    }
-    return "";
+    readFully(tag_b);
+    return new String(tag_b, StandardCharsets.UTF_8);
   }
 }
