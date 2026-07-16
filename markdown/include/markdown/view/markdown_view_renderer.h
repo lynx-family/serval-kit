@@ -39,8 +39,10 @@ class MarkdownViewRenderer {
   std::shared_ptr<MarkdownPlatformView> CreateRegionView(bool scroll_x);
   void RecycleRegionView(RegionViewEntry& entry);
   bool NeedUseRegionView() const;
+  bool NeedUseContentRegionView() const;
   bool NeedUpdateVisibleRegionViews(const RectF& view_rect) const;
   void RemoveAllRegionViews();
+  void RemoveAllContentRegionViews();
   void UpdateRegionViewsByViewRect();
   void UpdateRegionViewsByAnimationStep(int32_t previous_step);
   void UpdateTypewriterCursorBounds();

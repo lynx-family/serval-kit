@@ -162,10 +162,14 @@ void MarkdownViewRenderer::SetMarkdownAnimationType(
   if (animation_type_ == type) {
     return;
   }
+  const bool used_content_region_views_before = NeedUseContentRegionView();
   animation_type_ = type;
   UpdateTypewriterCursorBounds();
   region_views_dirty_ = true;
   full_redraw_required_ = true;
+  if (used_content_region_views_before && !NeedUseContentRegionView()) {
+    RemoveAllContentRegionViews();
+  }
 }
 
 void MarkdownViewRenderer::SetMarkdownAnimationStep(int32_t step) {
@@ -247,6 +251,9 @@ void MarkdownViewRenderer::ClearRegionViewPool() {
 bool MarkdownViewRenderer::NeedUseRegionView() const {
   return handle_ != nullptr;
 }
+bool MarkdownViewRenderer::NeedUseContentRegionView() const {
+  return handle_ != nullptr && animation_type_ != MarkdownAnimationType::kNone;
+}
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {
   if (region_views_dirty_ || !has_last_view_rect_) {
@@ -272,6 +279,16 @@ void MarkdownViewRenderer::RemoveAllRegionViews() {
   ClearRegionViewPool();
 }
 
+void MarkdownViewRenderer::RemoveAllContentRegionViews() {
+  if (handle_ != nullptr) {
+    for (const auto& pair : region_views_) {
+      handle_->RemoveSubView(pair.second.view_.get());
+    }
+  }
+  region_views_.clear();
+  ClearRegionViewPool();
+}
+
 void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
   if (document_ == nullptr || handle_ == nullptr) {
     return;
@@ -284,64 +301,68 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
   const float visible_top = view_rect.GetTop() - kViewVisibilityTolerant;
   const float visible_bottom = view_rect.GetBottom() + kViewVisibilityTolerant;
 
-  const auto region_count = static_cast<int32_t>(page->GetRegionCount());
-  const auto visible_regions =
-      document_->GetShowedRegions(visible_top, visible_bottom);
-  int32_t visible_region_start =
-      std::max(0, std::min(visible_regions.start_, region_count - 1));
-  int32_t visible_region_end =
-      std::max(0, std::min(visible_regions.end_, region_count - 1));
-  if (region_count <= 0 || visible_region_start > visible_region_end) {
-    visible_region_start = 1;
-    visible_region_end = 0;
-  } else {
-    for (int32_t i = visible_region_start; i <= visible_region_end; ++i) {
-      auto* region = page->GetRegion(static_cast<uint32_t>(i));
-      if (region == nullptr) {
-        continue;
-      }
-      const bool scroll_x = region->scroll_x_;
-      auto iter = region_views_.find(i);
-      bool created = false;
-      if (iter != region_views_.end() && iter->second.scroll_x_ != scroll_x) {
-        RecycleRegionView(iter->second);
-        region_views_.erase(iter);
-        iter = region_views_.end();
-      }
-      if (iter == region_views_.end()) {
-        const auto view = CreateRegionView(scroll_x);
-        if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
-          view->SetVisibility(true);
-          auto drawable = std::make_shared<MarkdownRegionDrawable>(
-              document_, static_cast<uint32_t>(i), &animation_type_,
-              &animation_step_);
-          drawable->SetContentComplete(content_complete_);
-          view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
-          iter =
-              region_views_.emplace(i, RegionViewEntry{view, scroll_x}).first;
-          created = true;
-        }
-      }
-      if (iter != region_views_.end()) {
-        UpdateSubViewRect(iter->second.view_.get(),
-                          page->GetRegionRect(static_cast<uint32_t>(i)));
-        if (created) {
-          iter->second.view_->RequestDraw();
-        }
-      }
-    }
-  }
-
-  for (auto iter = region_views_.begin(); iter != region_views_.end();) {
-    const bool keep = iter->first >= visible_region_start &&
-                      iter->first <= visible_region_end &&
-                      iter->first < region_count;
-    if (!keep) {
-      RecycleRegionView(iter->second);
-      iter = region_views_.erase(iter);
+  if (NeedUseContentRegionView()) {
+    const auto region_count = static_cast<int32_t>(page->GetRegionCount());
+    const auto visible_regions =
+        document_->GetShowedRegions(visible_top, visible_bottom);
+    int32_t visible_region_start =
+        std::max(0, std::min(visible_regions.start_, region_count - 1));
+    int32_t visible_region_end =
+        std::max(0, std::min(visible_regions.end_, region_count - 1));
+    if (region_count <= 0 || visible_region_start > visible_region_end) {
+      visible_region_start = 1;
+      visible_region_end = 0;
     } else {
-      ++iter;
+      for (int32_t i = visible_region_start; i <= visible_region_end; ++i) {
+        auto* region = page->GetRegion(static_cast<uint32_t>(i));
+        if (region == nullptr) {
+          continue;
+        }
+        const bool scroll_x = region->scroll_x_;
+        auto iter = region_views_.find(i);
+        bool created = false;
+        if (iter != region_views_.end() && iter->second.scroll_x_ != scroll_x) {
+          RecycleRegionView(iter->second);
+          region_views_.erase(iter);
+          iter = region_views_.end();
+        }
+        if (iter == region_views_.end()) {
+          const auto view = CreateRegionView(scroll_x);
+          if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
+            view->SetVisibility(true);
+            auto drawable = std::make_shared<MarkdownRegionDrawable>(
+                document_, static_cast<uint32_t>(i), &animation_type_,
+                &animation_step_);
+            drawable->SetContentComplete(content_complete_);
+            view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+            iter =
+                region_views_.emplace(i, RegionViewEntry{view, scroll_x}).first;
+            created = true;
+          }
+        }
+        if (iter != region_views_.end()) {
+          UpdateSubViewRect(iter->second.view_.get(),
+                            page->GetRegionRect(static_cast<uint32_t>(i)));
+          if (created) {
+            iter->second.view_->RequestDraw();
+          }
+        }
+      }
     }
+
+    for (auto iter = region_views_.begin(); iter != region_views_.end();) {
+      const bool keep = iter->first >= visible_region_start &&
+                        iter->first <= visible_region_end &&
+                        iter->first < region_count;
+      if (!keep) {
+        RecycleRegionView(iter->second);
+        iter = region_views_.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
+  } else {
+    RemoveAllContentRegionViews();
   }
 
   const auto border_count = static_cast<int32_t>(page->GetExtraBorderCount());
@@ -394,11 +415,11 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
 }
 
 void MarkdownViewRenderer::UpdateRegionViewsByViewRect() {
-  if (!NeedUseRegionView()) {
-    return;
-  }
   if (document_ == nullptr || document_->GetPage() == nullptr) {
     RemoveAllRegionViews();
+    return;
+  }
+  if (handle_ == nullptr) {
     return;
   }
   const auto view_rect = handle_->GetViewRectInScreen();
@@ -485,7 +506,7 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
   if (document_ == nullptr) {
     return;
   }
-  if (NeedUseRegionView()) {
+  if (NeedUseContentRegionView()) {
     return;
   }
   if (animation_type_ == MarkdownAnimationType::kNone) {

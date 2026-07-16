@@ -188,7 +188,15 @@ void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
 void NativeServalMarkdownView::RequestMeasure() {
   if (request_measure_callback_) {
     request_measure_callback_();
-  } else {
+  }
+  // For animations with dynamic height (e.g. typewriter), the Lynx shadow-node
+  // measure returns the full content height and does not drive the custom
+  // view's internal OnMeasure. Without an explicit ArkUI measure request,
+  // max_animation_step_ is never updated and the animation stays at step 0.
+  // Static content (kNone) does not need this extra ArkUI measure pass.
+  const auto* view = GetMarkdownView();
+  if (view != nullptr &&
+      view->GetAnimationType() != MarkdownAnimationType::kNone) {
     HarmonyView::RequestMeasure();
   }
 }

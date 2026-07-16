@@ -57,6 +57,9 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
 
   void SetAnimationStep(int32_t animation_step);
   int32_t GetAnimationStep() const { return animator_.GetAnimationStep(); }
+  MarkdownAnimationType GetAnimationType() const {
+    return animator_.GetAnimationType();
+  }
   void SetAnimationType(MarkdownAnimationType type);
   void SetAnimationVelocity(float velocity);
   void SetInitialAnimationStep(int32_t step);

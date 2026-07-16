@@ -104,4 +104,47 @@ TEST(MarkdownViewRendererTest, RemovesBorderViewAfterViewportJump) {
   EXPECT_FALSE(main_view.ContainsSubview(border_view));
 }
 
+TEST(MarkdownViewRendererTest,
+     SwitchesFromTypewriterToNoneRemovesContentRegions) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  ASSERT_NE(document, nullptr);
+  auto page = document->GetPage();
+  ASSERT_NE(page, nullptr);
+  ASSERT_EQ(page->GetExtraBorderCount(), 1u);
+  const auto border_rect = page->GetExtraBorder(0)->rect_;
+
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+
+  // Use a large viewport that covers both the border and the content regions.
+  main_view.SetViewRectInScreen(
+      RectF::MakeLTRB(0, 0, 240, border_rect.GetBottom() + 100));
+
+  // With a region-based animation, both content region views and the border
+  // view should be created.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  renderer.OnNextFrame();
+  const auto animated_subview_count = main_view.GetSubviewCount();
+  EXPECT_GT(animated_subview_count, 1u);
+  auto* border_view = FindSubviewForRect(&main_view, border_rect);
+  ASSERT_NE(border_view, nullptr);
+
+  // Switching to kNone should drop the content region views but keep the
+  // border view alive.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kNone);
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 1u);
+  EXPECT_TRUE(main_view.ContainsSubview(border_view));
+
+  // Switching back to a region-based animation should recreate the content
+  // region views while reusing the existing border view.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), animated_subview_count);
+  EXPECT_TRUE(main_view.ContainsSubview(border_view));
+}
+
 }  // namespace serval::markdown::testing
