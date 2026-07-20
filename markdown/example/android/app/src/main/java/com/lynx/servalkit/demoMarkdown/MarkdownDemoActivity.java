@@ -3,23 +3,20 @@
 // LICENSE file in the root directory of this source tree.
 package com.lynx.servalkit.demoMarkdown;
 
-import static com.lynx.servalkit.demoMarkdown.CustomDemoView.mCustomCursorId;
-
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.lynx.markdown.Constants;
-import com.lynx.markdown.IResourceLoader;
 import com.lynx.markdown.Markdown;
+import com.lynx.markdown.MarkdownMeasurer;
 import com.lynx.markdown.ServalMarkdownView;
 import com.lynx.servalkit.R;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MarkdownDemoActivity extends AppCompatActivity {
@@ -254,5 +251,10 @@ public class MarkdownDemoActivity extends AppCompatActivity {
                                generateAttachment());
     mMarkdownView.setBooleanProp(Constants.MARKDOWN_PROPS_ENABLE_TEXT_SELECTION,
                                  true);
+
+    MarkdownMeasurer.MeasureResult result = MarkdownMeasurer.measure(
+        "一段文本，里边有一个![图片](url width=100 height=10)。", null, 450,
+        -1);
+    List<String> lines = result.getLines();
   }
 }
