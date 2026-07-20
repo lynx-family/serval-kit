@@ -255,7 +255,12 @@ void MarkdownViewRenderer::ClearRegionViewPool() {
   scroll_x_region_view_pool_.clear();
 }
 bool MarkdownViewRenderer::NeedUseContentRegionView() const {
-  return handle_ != nullptr && animation_type_ != MarkdownAnimationType::kNone;
+  // Region subviews are only used for line-expand. For static content and
+  // typewriter they are torn down and recreated on every content/animation
+  // update, which shows up as visible flicker, so the main view draws the
+  // page directly instead.
+  return handle_ != nullptr &&
+         animation_type_ == MarkdownAnimationType::kLineExpand;
 }
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {

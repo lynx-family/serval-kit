@@ -88,8 +88,8 @@ TEST(MarkdownViewRendererTest, RemovesBorderViewAfterViewportJump) {
   renderer.SetViewContainerHandle(&main_view);
   renderer.SetDocument(document);
   // Border views are only used together with content region views, i.e. with
-  // a region-based animation type.
-  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  // the region-based line-expand animation type.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kLineExpand);
 
   main_view.SetViewRectInScreen(RectF::MakeLTRB(
       0, border_rect.GetTop() - 100, 240, border_rect.GetTop() - 10));
@@ -109,7 +109,7 @@ TEST(MarkdownViewRendererTest, RemovesBorderViewAfterViewportJump) {
 }
 
 TEST(MarkdownViewRendererTest,
-     SwitchesFromTypewriterToNoneRemovesAllRegionViews) {
+     SwitchesFromLineExpandToNoneRemovesAllRegionViews) {
   auto context = CreateTestMarkdownSharedContext();
   auto document = CreateDocumentWithQuoteBorder(context);
   ASSERT_NE(document, nullptr);
@@ -127,9 +127,9 @@ TEST(MarkdownViewRendererTest,
   main_view.SetViewRectInScreen(
       RectF::MakeLTRB(0, 0, 240, border_rect.GetBottom() + 100));
 
-  // With a region-based animation, both content region views and the border
-  // view should be created.
-  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  // With line-expand, both content region views and the border view should be
+  // created.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kLineExpand);
   renderer.OnNextFrame();
   const auto animated_subview_count = main_view.GetSubviewCount();
   EXPECT_GT(animated_subview_count, 1u);
@@ -143,12 +143,37 @@ TEST(MarkdownViewRendererTest,
   EXPECT_EQ(main_view.GetSubviewCount(), 0u);
   EXPECT_EQ(FindSubviewForRect(&main_view, border_rect), nullptr);
 
-  // Switching back to a region-based animation should recreate the content
-  // region views and the border view.
-  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  // Switching back to line-expand should recreate the content region views
+  // and the border view.
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kLineExpand);
   renderer.OnNextFrame();
   EXPECT_EQ(main_view.GetSubviewCount(), animated_subview_count);
   EXPECT_NE(FindSubviewForRect(&main_view, border_rect), nullptr);
+}
+
+TEST(MarkdownViewRendererTest, TypewriterDrawsOnMainViewWithoutRegionViews) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  ASSERT_NE(document, nullptr);
+  auto page = document->GetPage();
+  ASSERT_NE(page, nullptr);
+  ASSERT_EQ(page->GetExtraBorderCount(), 1u);
+  const auto border_rect = page->GetExtraBorder(0)->rect_;
+
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+
+  // Typewriter draws the whole page on the main view as well: region
+  // subviews would be torn down and recreated on every animation step, which
+  // shows up as visible flicker.
+  main_view.SetViewRectInScreen(
+      RectF::MakeLTRB(0, 0, 240, border_rect.GetBottom() + 100));
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+  EXPECT_EQ(FindSubviewForRect(&main_view, border_rect), nullptr);
 }
 
 TEST(MarkdownViewRendererTest, NoneAnimationScrollXPanInvalidatesMainView) {

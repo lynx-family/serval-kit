@@ -41,6 +41,9 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   using RequestMeasureCallback = std::function<void()>;
   void SetRequestMeasureCallback(RequestMeasureCallback callback) {
     request_measure_callback_ = std::move(callback);
+    // With a Lynx element driving measure/layout through the callback, the
+    // host layout owns this node's size (see HarmonyCustomView::OnMeasure).
+    SetHostOwnedMeasureSize(request_measure_callback_ != nullptr);
   }
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());

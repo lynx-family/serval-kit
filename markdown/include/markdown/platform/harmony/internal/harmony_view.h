@@ -174,9 +174,18 @@ class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
 
   MarkdownCustomViewHandle* GetCustomViewHandle() final { return this; }
 
+  // When enabled (the host layout, e.g. a Lynx element, owns this node's
+  // size), OnMeasure reasserts the current size instead of re-measuring the
+  // drawable, which could otherwise resize the node with a stale
+  // animation-state size during typewriter / height-transition updates.
+  void SetHostOwnedMeasureSize(bool owned) { host_owned_measure_size_ = owned; }
+
   void OnMeasure(ArkUI_LayoutConstraint* constraint) final;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   void OnDraw(ArkUI_DrawContext* context) final;
+
+ private:
+  bool host_owned_measure_size_{false};
 };
 
 }  // namespace serval::markdown
