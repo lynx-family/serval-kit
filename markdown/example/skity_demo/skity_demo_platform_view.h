@@ -67,6 +67,7 @@ class SkityDemoMainView final : public SkityDemoPlatformView,
   void RemoveAllSubViews() override;
   RectF GetViewRectInScreen() override;
   MarkdownViewContainerHandle* GetViewContainerHandle() override;
+  void RequestContainerDraw() override { RequestDraw(); }
 
   void SetMarkdownContext(MarkdownContext* context);
   void SetViewRectInScreen(RectF rect);

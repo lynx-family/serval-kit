@@ -40,6 +40,8 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
     return static_cast<MarkdownViewContainerHandle*>(this);
   }
 
+  void RequestContainerDraw() override { RequestDraw(); }
+
  private:
   RectF CalculateViewRectInScreen();
 

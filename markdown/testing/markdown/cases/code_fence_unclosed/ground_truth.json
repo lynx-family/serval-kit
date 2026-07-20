@@ -13,30 +13,12 @@
         {
           "id": 0,
           "name": "main"
-        }
-      ]
-    ]
-  },
-  {
-    "type": "render",
-    "timestamp": 200,
-    "result": [
-      [
-        {
-          "id": 0,
-          "name": "main"
-        }
-      ],
-      [
-        {
-          "id": 4,
-          "name": "region view"
         },
         {
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 12.0,
+            "top": 0.0,
             "right": 320.0,
             "bottom": 126.0
           }

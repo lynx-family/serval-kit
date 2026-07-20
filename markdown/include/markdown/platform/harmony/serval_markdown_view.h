@@ -87,6 +87,8 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
     return this;
   }
 
+  void RequestContainerDraw() override { RequestDraw(); }
+
   void RequestMeasure() override;
 
  protected:

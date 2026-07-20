@@ -32,6 +32,10 @@ class MarkdownViewContainerHandle {
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
   virtual RectF GetViewRectInScreen() = 0;
+  // Requests a redraw of the container (main) view itself. Content that is
+  // drawn directly by the main view instead of region subviews (e.g. static
+  // pages with animation-type none) must be invalidated through this.
+  virtual void RequestContainerDraw() {}
 };
 
 class MarkdownCustomViewHandle {

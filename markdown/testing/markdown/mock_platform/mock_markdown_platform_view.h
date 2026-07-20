@@ -134,6 +134,7 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
   void RemoveAllSubViews() override;
 
   RectF GetViewRectInScreen() override { return cached_view_rect_in_screen_; }
+  void RequestContainerDraw() override { RequestDraw(); }
   MarkdownViewContainerHandle* GetViewContainerHandle() override {
     return this;
   }

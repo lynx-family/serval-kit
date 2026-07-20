@@ -13,115 +13,82 @@
         {
           "id": 0,
           "name": "main"
-        }
-      ]
-    ]
-  },
-  {
-    "type": "render",
-    "timestamp": 200,
-    "result": [
-      [
-        {
-          "id": 0,
-          "name": "main"
-        }
-      ],
-      [
-        {
-          "id": 6,
-          "name": "region view"
         },
         {
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 546.0,
-            "right": 357.0,
+            "top": 0.0,
+            "right": 391.0000305175781,
             "bottom": 636.0
           }
         },
         {
           "op": "glyphs",
-          "text": "HTML paragraph with a",
+          "text": "Markdown",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 568.6500244140625
+            "y": 52.095001220703125
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 17.0,
-            "bold": false,
-            "italic": false
-          }
-        },
-        {
-          "op": "glyphs",
-          "text": "styled span",
-          "font": "",
-          "origin": {
-            "x": 0.0,
-            "y": 598.6500244140625
-          },
-          "painter": {
-            "stroke_width": 1.0,
-            "fill_color": 4289995544,
-            "stroke_color": 0,
-            "text_size": 17.0,
+            "text_size": 39.099998474121094,
             "bold": true,
             "italic": false
           }
         },
         {
           "op": "glyphs",
-          "text": "and an inline break.",
+          "text": "Feature",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 628.6500244140625
+            "y": 121.09500122070313
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 17.0,
-            "bold": false,
+            "text_size": 39.099998474121094,
+            "bold": true,
             "italic": false
           }
         },
         {
           "op": "glyphs",
-          "text": "…",
+          "text": "Walkthroug",
           "font": "",
           "origin": {
-            "x": 340.0,
-            "y": 628.6500244140625
+            "x": 0.0,
+            "y": 190.09500122070313
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 17.0,
-            "bold": false,
+            "text_size": 39.099998474121094,
+            "bold": true,
             "italic": false
           }
-        }
-      ],
-      [
-        {
-          "id": 5,
-          "name": "region view"
         },
         {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 288.0,
-            "right": 383.7983703613281,
-            "bottom": 528.0
+          "op": "glyphs",
+          "text": "h",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 259.0950012207031
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 39.099998474121094,
+            "bold": true,
+            "italic": false
           }
         },
         {
@@ -837,87 +804,72 @@
             "bold": false,
             "italic": false
           }
-        }
-      ],
-      [
-        {
-          "id": 4,
-          "name": "region view"
-        },
-        {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 0.0,
-            "right": 391.0000305175781,
-            "bottom": 276.0
-          }
         },
         {
           "op": "glyphs",
-          "text": "Markdown",
+          "text": "HTML paragraph with a",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 52.095001220703125
+            "y": 568.6500244140625
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 39.099998474121094,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "styled span",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 598.6500244140625
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4289995544,
+            "stroke_color": 0,
+            "text_size": 17.0,
             "bold": true,
             "italic": false
           }
         },
         {
           "op": "glyphs",
-          "text": "Feature",
+          "text": "and an inline break.",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 121.09500122070313
+            "y": 628.6500244140625
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 39.099998474121094,
-            "bold": true,
+            "text_size": 17.0,
+            "bold": false,
             "italic": false
           }
         },
         {
           "op": "glyphs",
-          "text": "Walkthroug",
+          "text": "…",
           "font": "",
           "origin": {
-            "x": 0.0,
-            "y": 190.09500122070313
+            "x": 340.0,
+            "y": 628.6500244140625
           },
           "painter": {
             "stroke_width": 1.0,
             "fill_color": 4278190080,
             "stroke_color": 0,
-            "text_size": 39.099998474121094,
-            "bold": true,
-            "italic": false
-          }
-        },
-        {
-          "op": "glyphs",
-          "text": "h",
-          "font": "",
-          "origin": {
-            "x": 0.0,
-            "y": 259.0950012207031
-          },
-          "painter": {
-            "stroke_width": 1.0,
-            "fill_color": 4278190080,
-            "stroke_color": 0,
-            "text_size": 39.099998474121094,
-            "bold": true,
+            "text_size": 17.0,
+            "bold": false,
             "italic": false
           }
         }
