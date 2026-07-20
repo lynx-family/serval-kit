@@ -115,7 +115,7 @@ void MarkdownTextDelegate::Layout() {
       tttext::LayoutMode::kAtMost, tttext::LayoutMode::kAtMost);
   tttext::TTTextContext context;
   context.SetHarmonyShaperForceLowAPI(true);
-  context.SetLastLineCanOverflow(false);
+  context.SetLastLineCanOverflow(true);
   layout->LayoutEx(text_.get(), page_.get(), context);
   context.Reset();
   const float left = block_style_.margin_left_;
@@ -139,6 +139,12 @@ void MarkdownTextDelegate::Layout() {
       .height_ = descent_ - ascent_,
       .baseline_ = -ascent_,
   };
+  if (width_ > 0) {
+    measure_result_.width_ = width_;
+  }
+  if (height_ > 0) {
+    measure_result_.height_ = height_;
+  }
   layout_ = true;
 }
 
