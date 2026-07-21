@@ -176,6 +176,35 @@ TEST(MarkdownViewRendererTest, TypewriterDrawsOnMainViewWithoutRegionViews) {
   EXPECT_EQ(FindSubviewForRect(&main_view, border_rect), nullptr);
 }
 
+TEST(MarkdownViewRendererTest, LegacyPolicyKeepsRegionViewsForAllTypes) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  ASSERT_NE(document, nullptr);
+  auto page = document->GetPage();
+  ASSERT_NE(page, nullptr);
+  ASSERT_EQ(page->GetExtraBorderCount(), 1u);
+  const auto border_rect = page->GetExtraBorder(0)->rect_;
+
+  MockMarkdownMainView main_view(context);
+  // Legacy platforms (Android/iOS) keep the pre-existing behavior: content
+  // region views for every animation type, static content included.
+  main_view.region_views_for_all_types_ = true;
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+
+  main_view.SetViewRectInScreen(
+      RectF::MakeLTRB(0, 0, 240, border_rect.GetBottom() + 100));
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kNone);
+  renderer.OnNextFrame();
+  EXPECT_GT(main_view.GetSubviewCount(), 1u);
+  EXPECT_NE(FindSubviewForRect(&main_view, border_rect), nullptr);
+
+  renderer.SetMarkdownAnimationType(MarkdownAnimationType::kTypewriter);
+  renderer.OnNextFrame();
+  EXPECT_GT(main_view.GetSubviewCount(), 1u);
+}
+
 TEST(MarkdownViewRendererTest, NoneAnimationScrollXPanInvalidatesMainView) {
   auto context = CreateTestMarkdownSharedContext();
   MarkdownViewMeasurer measurer(context);

@@ -45,6 +45,19 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
     // host layout owns this node's size (see HarmonyCustomView::OnMeasure).
     SetHostOwnedMeasureSize(request_measure_callback_ != nullptr);
   }
+  bool ShouldUseContentRegionView(MarkdownAnimationType type) const override {
+    // Static and typewriter pages flicker when region subviews are torn down
+    // and recreated on every content/animation update; on Harmony only
+    // line-expand uses them.
+    return type == MarkdownAnimationType::kLineExpand;
+  }
+  // Records that the host layout applied a size (drives the host-owned
+  // reassertion in HarmonyCustomView::OnMeasure), then applies it to the
+  // node.
+  void SetMeasuredSize(int32_t width, int32_t height) {
+    MarkHostAppliedMeasureSize();
+    HarmonyView::SetMeasuredSize(width, height);
+  }
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());
   }

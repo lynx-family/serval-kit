@@ -179,6 +179,10 @@ class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
   // drawable, which could otherwise resize the node with a stale
   // animation-state size during typewriter / height-transition updates.
   void SetHostOwnedMeasureSize(bool owned) { host_owned_measure_size_ = owned; }
+  // Records that the host layout applied a measure size. Host-owned
+  // reassertion only starts after this point; before it, OnMeasure falls
+  // back to measuring the drawable for an initial size.
+  void MarkHostAppliedMeasureSize() { host_applied_measure_size_ = true; }
 
   void OnMeasure(ArkUI_LayoutConstraint* constraint) final;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
@@ -186,6 +190,7 @@ class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
 
  private:
   bool host_owned_measure_size_{false};
+  bool host_applied_measure_size_{false};
 };
 
 }  // namespace serval::markdown
