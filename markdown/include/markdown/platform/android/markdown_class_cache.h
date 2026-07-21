@@ -135,6 +135,7 @@ class AndroidMainView : public AndroidCustomView,
   RectF GetViewRectInScreen() final;
   void UpdateCachedViewRectInScreen();
   MarkdownViewContainerHandle* GetViewContainerHandle() final { return this; }
+  void RequestContainerDraw() final { RequestDraw(); }
 
  protected:
   RectF CalculateViewRectInScreen();

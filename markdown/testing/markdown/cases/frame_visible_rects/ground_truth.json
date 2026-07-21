@@ -13,6 +13,76 @@
         {
           "id": 0,
           "name": "main"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 221.0,
+            "bottom": 62.72726821899414
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "line 1 ",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 30.513635635375977
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "view",
+          "id": "top",
+          "rect": {
+            "left": 119.0,
+            "top": 0.5136356353759766,
+            "right": 175.0,
+            "bottom": 30.513635635375977
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "line 2 plain",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 55.37726974487305
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "…",
+          "font": "",
+          "origin": {
+            "x": 204.0,
+            "y": 55.37726974487305
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
         }
       ]
     ]
@@ -37,12 +107,6 @@
         {
           "id": 0,
           "name": "main"
-        }
-      ],
-      [
-        {
-          "id": 4,
-          "name": "region view"
         },
         {
           "op": "clip",

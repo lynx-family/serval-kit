@@ -187,8 +187,15 @@ void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
 
 void NativeServalMarkdownView::RequestMeasure() {
   if (request_measure_callback_) {
+    // The Lynx shadow-node measure already drives MarkdownView::Measure
+    // (which maintains the typewriter's max_animation_step_) and the
+    // element's UpdateLayout applies the resulting size to this node, so an
+    // extra ArkUI measure pass here would only race the host layout.
     request_measure_callback_();
   } else {
+    // Standalone usage without a Lynx host: the ArkUI measure pass is the
+    // only measure-invalidation path (content updates, dynamic-height
+    // animations).
     HarmonyView::RequestMeasure();
   }
 }

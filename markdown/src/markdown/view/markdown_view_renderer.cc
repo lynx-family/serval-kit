@@ -162,10 +162,14 @@ void MarkdownViewRenderer::SetMarkdownAnimationType(
   if (animation_type_ == type) {
     return;
   }
+  const bool used_content_region_views_before = NeedUseContentRegionView();
   animation_type_ = type;
   UpdateTypewriterCursorBounds();
   region_views_dirty_ = true;
   full_redraw_required_ = true;
+  if (used_content_region_views_before && !NeedUseContentRegionView()) {
+    RemoveAllRegionViews();
+  }
 }
 
 void MarkdownViewRenderer::SetMarkdownAnimationStep(int32_t step) {
@@ -190,8 +194,14 @@ void MarkdownViewRenderer::RequestDrawRegion(uint32_t region_index) {
   const auto iter = region_views_.find(static_cast<int32_t>(region_index));
   if (iter != region_views_.end() && iter->second.view_ != nullptr) {
     iter->second.view_->RequestDraw();
-  } else {
-    full_redraw_required_ = true;
+    return;
+  }
+  full_redraw_required_ = true;
+  if (!NeedUseContentRegionView() && handle_ != nullptr) {
+    // Without content region views the main view draws the whole page, so a
+    // region-level change (e.g. horizontally scrolling a static wide table)
+    // has to invalidate the main view instead.
+    handle_->RequestContainerDraw();
   }
 }
 
@@ -244,8 +254,13 @@ void MarkdownViewRenderer::ClearRegionViewPool() {
   region_view_pool_.clear();
   scroll_x_region_view_pool_.clear();
 }
-bool MarkdownViewRenderer::NeedUseRegionView() const {
-  return handle_ != nullptr;
+bool MarkdownViewRenderer::NeedUseContentRegionView() const {
+  // The container decides per animation type (legacy default: every type).
+  // When content region views are not used, the main view draws the whole
+  // page, quote borders included, so neither region nor border subviews are
+  // needed.
+  return handle_ != nullptr &&
+         handle_->ShouldUseContentRegionView(animation_type_);
 }
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {
@@ -278,6 +293,12 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
   }
   auto page = document_->GetPage();
   if (page == nullptr) {
+    RemoveAllRegionViews();
+    return;
+  }
+  if (!NeedUseContentRegionView()) {
+    // Static content is drawn entirely by the main view, quote borders
+    // included, so neither content region views nor border views are needed.
     RemoveAllRegionViews();
     return;
   }
@@ -394,11 +415,11 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
 }
 
 void MarkdownViewRenderer::UpdateRegionViewsByViewRect() {
-  if (!NeedUseRegionView()) {
-    return;
-  }
   if (document_ == nullptr || document_->GetPage() == nullptr) {
     RemoveAllRegionViews();
+    return;
+  }
+  if (handle_ == nullptr) {
     return;
   }
   const auto view_rect = handle_->GetViewRectInScreen();
@@ -485,7 +506,7 @@ void MarkdownViewRenderer::Draw(tttext::ICanvasHelper* canvas, float left,
   if (document_ == nullptr) {
     return;
   }
-  if (NeedUseRegionView()) {
+  if (NeedUseContentRegionView()) {
     return;
   }
   if (animation_type_ == MarkdownAnimationType::kNone) {

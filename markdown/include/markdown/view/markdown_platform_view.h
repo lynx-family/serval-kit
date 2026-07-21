@@ -14,6 +14,7 @@
 namespace serval::markdown {
 
 class MarkdownPlatformView;
+enum class MarkdownAnimationType;
 enum class SelectionHandleType : uint8_t;
 class MarkdownViewContainerHandle {
  public:
@@ -32,6 +33,17 @@ class MarkdownViewContainerHandle {
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
   virtual RectF GetViewRectInScreen() = 0;
+  // Whether content region subviews should be used for the given animation
+  // type. The default preserves the legacy behavior (region views for every
+  // animation type); containers where region subview churn shows up as
+  // visible flicker can opt out per animation type.
+  virtual bool ShouldUseContentRegionView(MarkdownAnimationType type) const {
+    return true;
+  }
+  // Requests a redraw of the container (main) view itself. Content that is
+  // drawn directly by the main view instead of region subviews (e.g. static
+  // pages with animation-type none) must be invalidated through this.
+  virtual void RequestContainerDraw() {}
 };
 
 class MarkdownCustomViewHandle {

@@ -41,6 +41,22 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   using RequestMeasureCallback = std::function<void()>;
   void SetRequestMeasureCallback(RequestMeasureCallback callback) {
     request_measure_callback_ = std::move(callback);
+    // With a Lynx element driving measure/layout through the callback, the
+    // host layout owns this node's size (see HarmonyCustomView::OnMeasure).
+    SetHostOwnedMeasureSize(request_measure_callback_ != nullptr);
+  }
+  bool ShouldUseContentRegionView(MarkdownAnimationType type) const override {
+    // Static and typewriter pages flicker when region subviews are torn down
+    // and recreated on every content/animation update; on Harmony only
+    // line-expand uses them.
+    return type == MarkdownAnimationType::kLineExpand;
+  }
+  // Records that the host layout applied a size (drives the host-owned
+  // reassertion in HarmonyCustomView::OnMeasure), then applies it to the
+  // node.
+  void SetMeasuredSize(int32_t width, int32_t height) {
+    MarkHostAppliedMeasureSize();
+    HarmonyView::SetMeasuredSize(width, height);
   }
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());
@@ -86,6 +102,8 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   MarkdownViewContainerHandle* GetViewContainerHandle() override {
     return this;
   }
+
+  void RequestContainerDraw() override { RequestDraw(); }
 
   void RequestMeasure() override;
 

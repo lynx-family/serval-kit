@@ -249,6 +249,15 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   if (drawable_ == nullptr) {
     return;
   }
+  if (host_owned_measure_size_ && host_applied_measure_size_) {
+    // Reassert the host-applied size verbatim, even when a dimension is
+    // legitimately zero (e.g. typewriter step 0 with dynamic height), so an
+    // ArkUI measure pass never resizes the node with a stale animation
+    // state.
+    const auto current = GetMeasuredIntSize();
+    SetMeasuredSize(current.width, current.height);
+    return;
+  }
   auto max_width = OH_ArkUI_LayoutConstraint_GetMaxWidth(constraint);
   auto max_height = OH_ArkUI_LayoutConstraint_GetMaxHeight(constraint);
   MeasureSpec spec{.width_ = static_cast<float>(max_width),

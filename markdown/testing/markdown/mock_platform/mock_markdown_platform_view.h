@@ -134,6 +134,15 @@ class MockMarkdownMainView : public MockMarkdownCustomView,
   void RemoveAllSubViews() override;
 
   RectF GetViewRectInScreen() override { return cached_view_rect_in_screen_; }
+  void RequestContainerDraw() override { RequestDraw(); }
+  // Region-view policy switch for tests: false mirrors the Harmony container
+  // (content region views only for line-expand), true mirrors the legacy
+  // platforms (content region views for every animation type).
+  bool region_views_for_all_types_{false};
+  bool ShouldUseContentRegionView(MarkdownAnimationType type) const override {
+    return region_views_for_all_types_ ||
+           type == MarkdownAnimationType::kLineExpand;
+  }
   MarkdownViewContainerHandle* GetViewContainerHandle() override {
     return this;
   }

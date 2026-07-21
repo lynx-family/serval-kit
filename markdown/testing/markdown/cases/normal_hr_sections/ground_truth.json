@@ -13,41 +13,23 @@
         {
           "id": 0,
           "name": "main"
-        }
-      ]
-    ]
-  },
-  {
-    "type": "render",
-    "timestamp": 200,
-    "result": [
-      [
-        {
-          "id": 0,
-          "name": "main"
-        }
-      ],
-      [
-        {
-          "id": 8,
-          "name": "region view"
         },
         {
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 170.0,
-            "right": 170.0,
+            "top": 0.0,
+            "right": 320.0,
             "bottom": 230.0
           }
         },
         {
           "op": "glyphs",
-          "text": "Conclusion",
+          "text": "Introduction",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 192.64999389648438
+            "y": 22.649999618530273
           },
           "painter": {
             "stroke_width": 1.0,
@@ -64,7 +46,7 @@
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 222.64999389648438
+            "y": 52.650001525878906
           },
           "painter": {
             "stroke_width": 1.0,
@@ -74,31 +56,16 @@
             "bold": false,
             "italic": false
           }
-        }
-      ],
-      [
-        {
-          "id": 7,
-          "name": "region view"
-        },
-        {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 157.0,
-            "right": 320.0,
-            "bottom": 158.0
-          }
         },
         {
           "op": "line",
           "p1": {
             "x": 0.5,
-            "y": 157.5
+            "y": 72.5
           },
           "p2": {
             "x": 319.5,
-            "y": 157.5
+            "y": 72.5
           },
           "painter": {
             "stroke_width": 1.0,
@@ -107,21 +74,6 @@
             "text_size": 14.0,
             "bold": false,
             "italic": false
-          }
-        }
-      ],
-      [
-        {
-          "id": 6,
-          "name": "region view"
-        },
-        {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 85.0,
-            "right": 238.0,
-            "bottom": 145.0
           }
         },
         {
@@ -157,31 +109,16 @@
             "bold": false,
             "italic": false
           }
-        }
-      ],
-      [
-        {
-          "id": 5,
-          "name": "region view"
-        },
-        {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 72.0,
-            "right": 320.0,
-            "bottom": 73.0
-          }
         },
         {
           "op": "line",
           "p1": {
             "x": 0.5,
-            "y": 72.5
+            "y": 157.5
           },
           "p2": {
             "x": 319.5,
-            "y": 72.5
+            "y": 157.5
           },
           "painter": {
             "stroke_width": 1.0,
@@ -191,29 +128,14 @@
             "bold": false,
             "italic": false
           }
-        }
-      ],
-      [
-        {
-          "id": 4,
-          "name": "region view"
-        },
-        {
-          "op": "clip",
-          "rect": {
-            "left": 0.0,
-            "top": 0.0,
-            "right": 204.0,
-            "bottom": 60.0
-          }
         },
         {
           "op": "glyphs",
-          "text": "Introduction",
+          "text": "Conclusion",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 22.649999618530273
+            "y": 192.64999389648438
           },
           "painter": {
             "stroke_width": 1.0,
@@ -230,7 +152,7 @@
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 52.650001525878906
+            "y": 222.64999389648438
           },
           "painter": {
             "stroke_width": 1.0,
