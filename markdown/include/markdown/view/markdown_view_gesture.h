@@ -53,6 +53,7 @@ class MarkdownViewGesture {
   const std::vector<RectF>& GetSelectedLineBoundingRect() const;
   PointF GetSelectionHandlePosition() const;
   float GetSelectionHandleRadius() const;
+  PointF GetPanPosition() const { return pan_position_; }
 
   bool OnTap(PointF position, GestureEventType event);
   bool OnLongPress(PointF position, GestureEventType event);
@@ -144,11 +145,12 @@ class MarkdownViewGesture {
   bool is_adjust_start_pos_{false};
   bool is_adjust_end_pos_{false};
   std::vector<RectF> selection_highlight_rects_;
-  PointF handle_pan_before_motion_{0, 0};
+  PointF handle_pan_before_position_{0, 0};
   bool long_press_selection_drag_pending_{false};
   PointF long_press_selection_drag_origin_{};
 
   PanTarget pan_target_{PanTarget::kNone};
+  PointF pan_position_{};
   uint32_t scroll_x_region_index_{0};
   float scroll_x_origin_offset_{0};
   bool scroll_x_scrolling_{false};

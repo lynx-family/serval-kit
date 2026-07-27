@@ -4,7 +4,9 @@
 
 #include "markdown/parser/markdown_parser.h"
 
+#include <algorithm>
 #include <unordered_map>
+#include <utility>
 
 #include "markdown/element/markdown_document.h"
 #include "markdown/element/markdown_element.h"
@@ -93,6 +95,7 @@ struct MarkdownConverterState {
 };
 struct MarkdownConverterContext {
   std::vector<MarkdownConverterState> state_stack_;
+  std::vector<MarkdownDomType> list_type_stack_;
   std::vector<int32_t> list_index_stack_;
   std::vector<float> max_width_stack_;
   int32_t node_id_{0};
@@ -104,6 +107,7 @@ struct MarkdownConverterContext {
   std::vector<MarkdownTextAlign> table_alignment_{};
   int32_t row_index_{0};
   int32_t col_index_{0};
+  bool table_cell_is_header_{false};
 
   uint32_t char_offset_{0};
   uint32_t table_offset_{0};
@@ -183,7 +187,7 @@ class MarkdownConverter {
       MarkdownDomType type);
   const MarkdownScrollStylePart* GetScrollStyleByType(MarkdownDomType type);
   static MarkdownBorder GetBorderTypeByType(MarkdownDomType type);
-  static MarkdownSyntaxType GetSyntaxType(MarkdownDomType type);
+  MarkdownSyntaxType GetSyntaxType(MarkdownDomType type);
   static tttext::ParagraphHorizontalAlignment ConvertHorizontalAlignment(
       MarkdownTextAlign align);
 
@@ -210,14 +214,30 @@ void MarkdownConverter::Convert(MarkdownDocument* document,
 
 std::unique_ptr<MarkdownElement> MarkdownConverter::ReplaceBlockNode(
     MarkdownDomNode* node) {
-  auto id = std::to_string(reinterpret_cast<uint64_t>(node));
+  const auto* placeholder =
+      node->GetType() == MarkdownDomType::kPlaceHolder
+          ? reinterpret_cast<const MarkdownDomPlaceHolder*>(node)
+          : nullptr;
+  void* replacement_data =
+      placeholder == nullptr ? nullptr : placeholder->GetData();
+  if (replacement_data == nullptr) {
+    replacement_data = node;
+  }
+  auto id = std::to_string(context_.node_id_);
   float max_width = context_.max_width_stack_.back();
-  auto delegate = document_->GetResourceLoader()->LoadReplacementView(
-      node, context_.node_id_, max_width, document_->GetMaxHeight());
-  if (delegate != nullptr) {
-    document_->AddInlineView(
-        MarkdownInlineView{id, static_cast<int32_t>(context_.char_offset_),
-                           false, delegate.get()});
+  auto replacement = document_->GetResourceLoader()->LoadReplacementView(
+      replacement_data, context_.node_id_, max_width,
+      document_->GetMaxHeight());
+  auto view = std::move(replacement.view_);
+  if (view != nullptr) {
+    document_->AddInlineView(MarkdownInlineView{
+        id, static_cast<int32_t>(context_.char_offset_), false, view.get()});
+    const float font_size =
+        context_.state_stack_.empty()
+            ? document_->GetStyle().normal_text_.base_.font_size_
+            : context_.GetCurrentState().run_style_.GetTextSize();
+    auto delegate = std::make_shared<MarkdownReplacementViewWrapper>(
+        std::move(view), max_width, document_->GetMaxHeight(), font_size);
     auto element = std::make_unique<MarkdownParagraphElement>();
     auto para = tttext::Paragraph::Create();
     tttext::Style style;
@@ -225,6 +245,8 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ReplaceBlockNode(
     style.SetForegroundColor(tttext::TTColor(1));
     // make view cannot be selected
     para->AddTextRun(&style, "V");
+    document_->SetShapeRunAltString(context_.char_offset_,
+                                    replacement.alt_text_);
     para->AddGhostShapeRun(&style, std::move(delegate));
     para->GetParagraphStyle().SetLineHeightInPxAtLeast(
         para->GetParagraphStyle().GetLineHeightInPx());
@@ -265,15 +287,17 @@ void MarkdownConverter::ConvertBlock(MarkdownDomNode* node) {
     context_.list_index_stack_.back()++;
   } else if (type == MarkdownDomType::kOrderedList ||
              type == MarkdownDomType::kUnorderedList) {
-    auto* list_node = static_cast<MarkdownDomList*>(node);
+    auto* list_node = reinterpret_cast<MarkdownDomList*>(node);
     auto start_index = list_node->GetStart();
     context_.list_level_++;
+    context_.list_type_stack_.emplace_back(type);
     context_.list_index_stack_.emplace_back(start_index);
   }
   ConvertBlockChild(node);
   if (type == MarkdownDomType::kOrderedList ||
       type == MarkdownDomType::kUnorderedList) {
     context_.list_level_--;
+    context_.list_type_stack_.pop_back();
     context_.list_index_stack_.pop_back();
   }
 }
@@ -292,7 +316,7 @@ void MarkdownConverter::ConvertTable(MarkdownDomNode* node) {
     start = start->GetNext();
     row_count++;
   }
-  auto* table_node = static_cast<MarkdownDomTable*>(node);
+  auto* table_node = reinterpret_cast<MarkdownDomTable*>(node);
   context_.table_alignment_ = table_node->GetAligns();
   table->Resize(row_count,
                 static_cast<int32_t>(context_.table_alignment_.size()));
@@ -300,7 +324,7 @@ void MarkdownConverter::ConvertTable(MarkdownDomNode* node) {
   context_.table_offset_ = context_.char_offset_;
   for (auto* child = node->GetFirstChild(); child != nullptr;
        child = child->GetNext()) {
-    ConvertTableRow(static_cast<MarkdownDomNode*>(child));
+    ConvertTableRow(reinterpret_cast<MarkdownDomNode*>(child));
     context_.row_index_++;
   }
   context_.table_alignment_.clear();
@@ -314,16 +338,33 @@ void MarkdownConverter::ConvertTableRow(MarkdownDomNode* node) {
   context_.col_index_ = 0;
   for (auto* child = node->GetFirstChild(); child != nullptr;
        child = child->GetNext()) {
-    ConvertTableCell(static_cast<MarkdownDomNode*>(child));
+    ConvertTableCell(reinterpret_cast<MarkdownDomNode*>(child));
     context_.col_index_++;
   }
   context_.col_index_ = 0;
 }
 
 void MarkdownConverter::ConvertTableCell(MarkdownDomNode* node) {
-  const bool is_header = context_.row_index_ == 0;
+  const auto* table_cell =
+      node->GetType() == MarkdownDomType::kTableCell
+          ? reinterpret_cast<const MarkdownDomTableCell*>(node)
+          : nullptr;
+  if (table_cell == nullptr) {
+    return;
+  }
+  const bool is_header = table_cell->IsHeader();
+  MarkdownTextAlign alignment = MarkdownTextAlign::kLeft;
+  if (context_.col_index_ <
+      static_cast<int32_t>(context_.table_alignment_.size())) {
+    alignment = context_.table_alignment_[context_.col_index_];
+  }
+  if (table_cell != nullptr &&
+      table_cell->GetAlign() != MarkdownTextAlign::kUndefined) {
+    alignment = table_cell->GetAlign();
+  }
   const auto& style = document_->GetStyle();
   const auto type = node->GetType();
+  context_.table_cell_is_header_ = is_header;
   PushInlineState(type);
   auto para = tttext::Paragraph::Create();
   para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
@@ -331,8 +372,7 @@ void MarkdownConverter::ConvertTableCell(MarkdownDomNode* node) {
       context_.row_index_, context_.col_index_,
       MarkdownTableCell{
           .paragraph_ = std::move(para),
-          .alignment_ = ConvertHorizontalAlignment(
-              context_.table_alignment_[context_.col_index_]),
+          .alignment_ = ConvertHorizontalAlignment(alignment),
           .vertical_alignment_ =
               is_header ? style.table_header_.align_.vertical_align_
                         : style.table_cell_.align_.vertical_align_,
@@ -344,6 +384,7 @@ void MarkdownConverter::ConvertTableCell(MarkdownDomNode* node) {
   cell.char_count_ = cell.paragraph_->GetCharCount();
   context_.char_offset_ += cell.char_count_;
   PopState();
+  context_.table_cell_is_header_ = false;
 }
 
 tttext::ParagraphHorizontalAlignment
@@ -368,7 +409,7 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ConvertNode(
   }
   std::unique_ptr<MarkdownElement> element = GenerateElement(type);
   if (type == MarkdownDomType::kHeader) {
-    context_.hn_ = static_cast<MarkdownDomHeader*>(node)->GetHN();
+    context_.hn_ = reinterpret_cast<MarkdownDomHeader*>(node)->GetHN();
   }
   PushState(element.get(), type);
   PushMaxWidth(element.get());
@@ -388,7 +429,7 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ConvertNode(
 void MarkdownConverter::ConvertBlockChild(MarkdownDomNode* node) {
   auto* child = node->GetFirstChild();
   while (child != nullptr) {
-    auto child_element = ConvertNode(static_cast<MarkdownDomNode*>(child));
+    auto child_element = ConvertNode(reinterpret_cast<MarkdownDomNode*>(child));
     if (child_element != nullptr) {
       context_.GetBlock()->AddChild(std::move(child_element));
     }
@@ -399,45 +440,68 @@ void MarkdownConverter::ConvertBlockChild(MarkdownDomNode* node) {
 void MarkdownConverter::ConvertInlineChild(MarkdownDomNode* node) {
   auto* child = node->GetFirstChild();
   while (child != nullptr) {
-    ConvertInlineNode(static_cast<MarkdownDomNode*>(child));
+    ConvertInlineNode(reinterpret_cast<MarkdownDomNode*>(child));
     child = child->GetNext();
   }
 }
 
 void MarkdownConverter::ConvertImage(MarkdownDomNode* node) {
-  auto* image_node = static_cast<MarkdownDomImage*>(node);
+  auto* image_node = reinterpret_cast<MarkdownDomImage*>(node);
   std::string url(image_node->GetUrl());
   auto max_width = context_.max_width_stack_.back();
-  auto image = document_->GetResourceLoader()->LoadImage(
-      url.c_str(), image_node->GetWidth(), image_node->GetHeight(), max_width,
-      document_->GetMaxHeight(), document_->GetStyle().image_.image_.radius_);
+  std::shared_ptr<MarkdownDrawable> image;
+  if (auto* loader = document_->GetResourceLoader();
+      loader != nullptr && !url.empty()) {
+    image = loader->LoadImage(
+        url.c_str(), image_node->GetWidth(), image_node->GetHeight(), max_width,
+        document_->GetMaxHeight(), document_->GetStyle().image_.image_.radius_);
+  }
   if (image != nullptr) {
     auto para = context_.GetParagraph();
-    document_->AddImage(MarkdownImage{
-        url, static_cast<int32_t>(para->GetCharCount() + context_.char_offset_),
-        image.get()});
+    const auto char_offset = context_.char_offset_ + para->GetCharCount();
+    document_->AddImage(
+        MarkdownImage{url, static_cast<int32_t>(char_offset), image.get()});
     para->AddShapeRun(&(context_.GetCurrentState().run_style_),
                       std::move(image), false);
+    document_->SetShapeRunAltString(char_offset, image_node->GetAltText());
     para->GetParagraphStyle().SetLineHeightInPxAtLeast(
         para->GetParagraphStyle().GetLineSpaceAfterPx());
+  } else if (auto alt_text = image_node->GetAltText(); !alt_text.empty()) {
+    context_.GetParagraph()->AddTextRun(
+        &(context_.GetCurrentState().run_style_), alt_text.data(),
+        static_cast<uint32_t>(alt_text.size()));
   }
 }
 
 void MarkdownConverter::ReplaceInlineNode(MarkdownDomNode* node) {
-  auto id = std::to_string(reinterpret_cast<uint64_t>(node));
+  const auto* placeholder =
+      node->GetType() == MarkdownDomType::kPlaceHolder
+          ? reinterpret_cast<const MarkdownDomPlaceHolder*>(node)
+          : nullptr;
+  void* replacement_data =
+      placeholder == nullptr ? nullptr : placeholder->GetData();
+  if (replacement_data == nullptr) {
+    replacement_data = node;
+  }
+  auto id = std::to_string(context_.node_id_);
   float max_width = context_.max_width_stack_.back();
-  auto view = document_->GetResourceLoader()->LoadReplacementView(
-      node, context_.node_id_, max_width, document_->GetMaxHeight());
+  auto replacement = document_->GetResourceLoader()->LoadReplacementView(
+      replacement_data, context_.node_id_, max_width,
+      document_->GetMaxHeight());
+  auto view = std::move(replacement.view_);
   if (view != nullptr) {
     tttext::Style style = context_.GetCurrentState().run_style_;
     auto* current_para = context_.GetParagraph();
-    document_->AddInlineView(
-        MarkdownInlineView{id,
-                           static_cast<int32_t>(context_.char_offset_ +
-                                                current_para->GetCharCount()),
-                           false, view.get()});
+    const auto char_offset =
+        context_.char_offset_ + current_para->GetCharCount();
+    document_->AddInlineView(MarkdownInlineView{
+        id, static_cast<int32_t>(char_offset), false, view.get()});
     style.SetVerticalAlignment(tttext::CharacterVerticalAlignment::kMiddle);
-    current_para->AddShapeRun(&style, std::move(view), false);
+    document_->SetShapeRunAltString(char_offset, replacement.alt_text_);
+    auto delegate = std::make_shared<MarkdownReplacementViewWrapper>(
+        std::move(view), max_width, document_->GetMaxHeight(),
+        style.GetTextSize());
+    current_para->AddShapeRun(&style, std::move(delegate), false);
     current_para->GetParagraphStyle().SetLineHeightInPxAtLeast(
         current_para->GetParagraphStyle().GetLineSpaceAfterPx());
   }
@@ -458,7 +522,7 @@ void MarkdownConverter::ConvertInlineNode(MarkdownDomNode* node) {
   const auto char_start = context_.GetParagraph()->GetCharCount();
   const char* link_url = nullptr;
   if (type == MarkdownDomType::kRawText) {
-    auto* raw_text = static_cast<MarkdownDomRawText*>(node);
+    auto* raw_text = reinterpret_cast<MarkdownDomRawText*>(node);
     if (auto& content = raw_text->GetText(); !content.empty()) {
       context_.GetParagraph()->AddTextRun(
           &(context_.GetCurrentState().run_style_), content.c_str());
@@ -483,7 +547,7 @@ void MarkdownConverter::ConvertInlineNode(MarkdownDomNode* node) {
       style.SetDecorationColor(style.GetForegroundColor());
       style.SetDecorationThicknessMultiplier(1);
     } else if (type == MarkdownDomType::kLink) {
-      link_url = static_cast<MarkdownDomLink*>(node)->GetUrl().c_str();
+      link_url = reinterpret_cast<MarkdownDomLink*>(node)->GetUrl().c_str();
     }
     ConvertInlineChild(node);
   }
@@ -555,7 +619,7 @@ std::vector<std::string_view> Split(std::string_view content, char split) {
 }
 
 void MarkdownConverter::EnterInlineHtml(MarkdownDomNode* node) {
-  auto* html_node = static_cast<MarkdownDomHtmlNode*>(node);
+  auto* html_node = reinterpret_cast<MarkdownDomHtmlNode*>(node);
   auto& tag = html_node->GetTag();
   if (tag != "span") {
     return;
@@ -620,21 +684,19 @@ void MarkdownConverter::PopState() {
 }
 void MarkdownConverter::PushMaxWidth(MarkdownElement* element) {
   auto& block = element->GetBlockStyle();
+  float width = context_.max_width_stack_.back();
+  width -= block.margin_left_ + block.margin_right_ + block.padding_left_ +
+           block.padding_right_;
+  if (block.max_width_ > 0) {
+    width = std::min(width, block.max_width_);
+  }
   if (element->GetType() == MarkdownElementType::kTable) {
     auto& cell_block = document_->GetStyle().table_cell_.block_;
     if (cell_block.max_width_ > 0) {
-      context_.max_width_stack_.emplace_back(cell_block.max_width_);
+      width = std::min(width, cell_block.max_width_);
     }
-    return;
   }
-  if (block.max_width_ > 0) {
-    context_.max_width_stack_.emplace_back(block.max_width_);
-  } else {
-    float width = context_.max_width_stack_.back();
-    width -= block.margin_left_ + block.margin_right_ + block.padding_left_ +
-             block.padding_right_;
-    context_.max_width_stack_.emplace_back(width);
-  }
+  context_.max_width_stack_.emplace_back(width);
 }
 void MarkdownConverter::PopMaxWidth() {
   context_.max_width_stack_.pop_back();
@@ -691,11 +753,11 @@ void MarkdownConverter::UpdateDecorationStyle(uint32_t char_start,
 }
 
 void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
-  auto* parent = static_cast<MarkdownDomNode*>(node->GetParent());
-  if (parent == nullptr) {
+  (void)node;
+  if (context_.list_type_stack_.empty()) {
     return;
   }
-  auto type = parent->GetType();
+  auto type = context_.list_type_stack_.back();
   auto& style = document_->GetStyle();
   if (type == MarkdownDomType::kOrderedList) {
     MarkdownNumberType number_type =
@@ -752,17 +814,41 @@ const MarkdownDecorationStylePart* MarkdownConverter::GetDecorationStyle(
 const MarkdownBaseStylePart* MarkdownConverter::GetBaseStyleByType(
     MarkdownDomType type) {
   auto& style = document_->GetStyle();
-  if (type == MarkdownDomType::kSource || type == MarkdownDomType::kUndefined) {
+  if (type == MarkdownDomType::kSource ||
+      (type == MarkdownDomType::kUndefined &&
+       context_.state_stack_.size() == 1)) {
+    return &style.normal_text_.base_;
+  }
+  if (type == MarkdownDomType::kParagraph) {
+    for (const auto& state : context_.state_stack_) {
+      if (state.node_type_ == MarkdownDomType::kQuote) {
+        return &style.quote_.base_;
+      }
+    }
+    if (!context_.list_type_stack_.empty()) {
+      if (context_.list_type_stack_.back() == MarkdownDomType::kOrderedList) {
+        return &style.ordered_list_.base_;
+      }
+      if (context_.list_type_stack_.back() == MarkdownDomType::kUnorderedList) {
+        return &style.unordered_list_.base_;
+      }
+    }
+    return &style.normal_text_.base_;
+  }
+  if (type == MarkdownDomType::kSplit) {
     return &style.normal_text_.base_;
   }
   if (type == MarkdownDomType::kQuote) {
     return &style.quote_.base_;
   }
-  if (type == MarkdownDomType::kOrderedList) {
-    return &(style.ordered_list_.base_);
-  }
-  if (type == MarkdownDomType::kUnorderedList) {
-    return &(style.unordered_list_.base_);
+  if (type == MarkdownDomType::kListItem &&
+      !context_.list_type_stack_.empty()) {
+    if (context_.list_type_stack_.back() == MarkdownDomType::kOrderedList) {
+      return &(style.ordered_list_.base_);
+    }
+    if (context_.list_type_stack_.back() == MarkdownDomType::kUnorderedList) {
+      return &(style.unordered_list_.base_);
+    }
   }
   if (type == MarkdownDomType::kCodeBlock) {
     return &(style.code_block_.base_);
@@ -777,7 +863,7 @@ const MarkdownBaseStylePart* MarkdownConverter::GetBaseStyleByType(
     return &(style.link_.base_);
   }
   if (type == MarkdownDomType::kTableCell) {
-    if (context_.row_index_ == 0) {
+    if (context_.table_cell_is_header_) {
       return &(style.table_header_.base_);
     } else {
       return &(style.table_cell_.base_);
@@ -794,11 +880,14 @@ const MarkdownBlockStylePart* MarkdownConverter::GetBlockStyleByType(
   if (type == MarkdownDomType::kQuote) {
     return &style.quote_.block_;
   }
-  if (type == MarkdownDomType::kOrderedList) {
-    return &(style.ordered_list_.block_);
-  }
-  if (type == MarkdownDomType::kUnorderedList) {
-    return &(style.unordered_list_.block_);
+  if (type == MarkdownDomType::kListItem &&
+      !context_.list_type_stack_.empty()) {
+    if (context_.list_type_stack_.back() == MarkdownDomType::kOrderedList) {
+      return &(style.ordered_list_.block_);
+    }
+    if (context_.list_type_stack_.back() == MarkdownDomType::kUnorderedList) {
+      return &(style.unordered_list_.block_);
+    }
   }
   if (type == MarkdownDomType::kCodeBlock) {
     return &(style.code_block_.block_);
@@ -883,10 +972,17 @@ MarkdownSyntaxType MarkdownConverter::GetSyntaxType(MarkdownDomType type) {
     case MarkdownDomType::kParagraph:
     case MarkdownDomType::kHeader:
       return MarkdownSyntaxType::kParagraph;
-    case MarkdownDomType::kOrderedList:
-      return MarkdownSyntaxType::kOrderedList;
-    case MarkdownDomType::kUnorderedList:
-      return MarkdownSyntaxType::kUnorderedList;
+    case MarkdownDomType::kListItem:
+      if (!context_.list_type_stack_.empty()) {
+        if (context_.list_type_stack_.back() == MarkdownDomType::kOrderedList) {
+          return MarkdownSyntaxType::kOrderedList;
+        }
+        if (context_.list_type_stack_.back() ==
+            MarkdownDomType::kUnorderedList) {
+          return MarkdownSyntaxType::kUnorderedList;
+        }
+      }
+      return MarkdownSyntaxType::kUndefined;
     case MarkdownDomType::kCodeBlock:
       return MarkdownSyntaxType::kCodeBlock;
     case MarkdownDomType::kQuote:
@@ -956,6 +1052,9 @@ void MarkdownConverter::MakeElementPlain(
       uint32_t para_end = target->GetParagraphs().size();
       target->AddQuoteRange(Range{static_cast<int32_t>(para_start),
                                   static_cast<int32_t>(para_end)});
+      if (para_start < para_end) {
+        target->GetParagraphs().back()->SetSpaceAfter(0);
+      }
     }
   }
 }

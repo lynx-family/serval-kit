@@ -233,6 +233,7 @@ class L_EXPORT MarkdownDocument {
   std::vector<ScrollState> inherited_scroll_state_;
 
   friend class MarkdownLayout;
+  friend class MarkdownConverter;
   friend class MarkdownParserEmbed;
 };
 

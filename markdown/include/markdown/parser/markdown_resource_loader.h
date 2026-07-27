@@ -6,12 +6,18 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_RESOURCE_LOADER_H_
 
 #include <memory>
+#include <string>
 
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
 class MarkdownPlatformView;
+struct MarkdownReplacementView {
+  std::shared_ptr<MarkdownDrawable> view_;
+  // Text emitted when this replacement view is selected or copied.
+  std::string alt_text_;
+};
 class MarkdownResourceLoader {
  public:
   virtual ~MarkdownResourceLoader() = default;
@@ -21,8 +27,9 @@ class MarkdownResourceLoader {
   virtual std::shared_ptr<MarkdownDrawable> LoadInlineView(
       const char* id_selector, float max_width, float max_height) = 0;
   virtual void* LoadFont(const char* family, MarkdownFontWeight weight) = 0;
-  virtual std::shared_ptr<MarkdownDrawable> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) = 0;
+  virtual MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
+                                                      float max_width,
+                                                      float max_height) = 0;
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_RESOURCE_LOADER_H_

@@ -170,13 +170,13 @@ void* SkityDemoResourceLoader::LoadFont(const char* family,
       family == nullptr || family[0] == '\0' ? "sans-serif" : family);
 }
 
-std::shared_ptr<MarkdownDrawable> SkityDemoResourceLoader::LoadReplacementView(
+MarkdownReplacementView SkityDemoResourceLoader::LoadReplacementView(
     void* ud, int32_t id, float max_width, float max_height) {
   (void)ud;
   (void)id;
   (void)max_width;
   (void)max_height;
-  return nullptr;
+  return {};
 }
 
 }  // namespace serval::markdown::example

@@ -240,11 +240,9 @@ void* AndroidServalMarkdownView::LoadFont(
   return reinterpret_cast<void*>(static_cast<uintptr_t>(idx));
 }
 
-std::shared_ptr<serval::markdown::MarkdownDrawable>
-AndroidServalMarkdownView::LoadReplacementView(void* ud, int32_t id,
-                                               float max_width,
-                                               float max_height) {
-  return nullptr;
+MarkdownReplacementView AndroidServalMarkdownView::LoadReplacementView(
+    void* ud, int32_t id, float max_width, float max_height) {
+  return {};
 }
 
 void AndroidServalMarkdownView::OnParseEnd() {

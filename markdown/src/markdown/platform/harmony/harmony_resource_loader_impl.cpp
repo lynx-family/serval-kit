@@ -37,17 +37,20 @@ ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadImageView(
   }
   return nullptr;
 }
-ArkUI_NodeHandle HarmonyResourceLoaderImpl::LoadReplacementView(
+HarmonyReplacementView HarmonyResourceLoaderImpl::LoadReplacementView(
     void* ud, int id, float max_width, float max_height) {
   if (replacement_view_loader_.IsNull()) {
-    return nullptr;
+    return {};
   }
   auto value = HarmonyValues::CallFunction(
       env_, nullptr, replacement_view_loader_.GetValue(), ud);
   if (value == nullptr) {
-    return nullptr;
+    return {};
   }
-  return HarmonyValues::ConvertValue<ArkUI_NodeHandle>(env_, value);
+  HarmonyReplacementView result;
+  result.view_ = HarmonyValues::ConvertValue<ArkUI_NodeHandle>(env_, value);
+  result.alt_text_ = "v";
+  return result;
 }
 
 void HarmonyResourceLoaderImpl::SetFontLoader(napi_value loader) {

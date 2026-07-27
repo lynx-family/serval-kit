@@ -104,4 +104,26 @@ TEST(MarkdownViewRendererTest, RemovesBorderViewAfterViewportJump) {
   EXPECT_FALSE(main_view.ContainsSubview(border_view));
 }
 
+TEST(MarkdownViewRendererTest, EnableRegionViewControlsSubviewRendering) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  ASSERT_NE(document, nullptr);
+
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+  renderer.OnNextFrame();
+  EXPECT_GT(main_view.GetSubviewCount(), 0u);
+
+  renderer.SetEnableRegionView(false);
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+
+  renderer.SetEnableRegionView(true);
+  renderer.OnNextFrame();
+  EXPECT_GT(main_view.GetSubviewCount(), 0u);
+}
+
 }  // namespace serval::markdown::testing

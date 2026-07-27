@@ -216,6 +216,10 @@ void HarmonyView::SetVisibility(bool visible) {
   SetVisibility(visible ? ARKUI_VISIBILITY_VISIBLE : ARKUI_VISIBILITY_HIDDEN);
 }
 
+void HarmonyView::SetZIndex(int index) {
+  SetIntAttribute(NODE_Z_INDEX, index);
+}
+
 EtsViewHolder::EtsViewHolder(ArkUI_NodeHandle child) : child_(child) {
   api_->addChild(handle_, child_);
   RequestCustomLayout();
@@ -255,14 +259,17 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
                    .width_mode_ = tttext::LayoutMode::kAtMost,
                    .height_ = static_cast<float>(max_height)};
   auto size = drawable_->Measure(spec);
-  if (size.width_ > 1e5f || size.height_ > 1e5f) {
+  if (size.width_ > 1e5f || size.height_ > 1e5f || size.width_ == 0 ||
+      size.height_ == 0) {
     OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
-                 "custom view measure too large, width:%f, height:%f",
-                 size.width_, size.height_);
+                 "custom view measure error, size:(%{public}f, %{public}f), "
+                 "constraint:(%{public}f,%{public}f)",
+                 size.width_, size.height_, max_width, max_height);
   }
-  SetMeasuredSize(
-      static_cast<int32_t>(std::ceil(std::min(1e5f, size.width_))),
-      static_cast<int32_t>(std::ceil(std::min(1e5f, size.height_))));
+  SetMeasuredSize(static_cast<int32_t>(
+                      std::max(1.f, std::ceil(std::min(1e5f, size.width_)))),
+                  static_cast<int32_t>(
+                      std::max(1.f, std::ceil(std::min(1e5f, size.height_)))));
 }
 void HarmonyCustomView::OnLayout(int32_t offset_x, int32_t offset_y) {
   SetLayoutPosition(offset_x, offset_y);

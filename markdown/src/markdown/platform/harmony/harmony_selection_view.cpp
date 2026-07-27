@@ -22,11 +22,12 @@ NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
                                                        float size,
                                                        uint32_t color) {
   const auto view = CreateCustomSubView();
-  auto selection_handle =
-      std::make_shared<MarkdownSelectionHandle>(size, type, color);
+  auto selection_handle = std::make_shared<MarkdownSelectionHandle>(
+      size, type, color, SelectionHandleShape::kWaterDrop);
   view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
   auto harmony_view = static_cast<HarmonyView*>(view.get());
   harmony_view->SetClipByParent(false);
+  harmony_view->SetZIndex(9999);
   return view;
 }
 }  // namespace serval::markdown

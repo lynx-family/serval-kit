@@ -10,9 +10,13 @@
 
 namespace serval::markdown {
 
+class MarkdownContext;
+
 class MarkdownColor {
  public:
   static bool Parse(std::string_view value, uint32_t* color);
+  static bool Parse(std::string_view value, uint32_t* color,
+                    const MarkdownContext* context);
   static uint32_t MakeArgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
   static uint32_t Interpolate(uint32_t start_color, uint32_t end_color,
                               float start_pos, float end_pos,

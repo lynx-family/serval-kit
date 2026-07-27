@@ -68,6 +68,7 @@ NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   AttachDrawable(std::make_shared<MarkdownView>(
       this,
       std::make_shared<MarkdownContext>(CreateHarmonyMarkdownPlatform())));
+  GetMarkdownView()->SetEnableRegionView(false);
   GetMarkdownView()->SetResourceLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   ArkUINativeAPI::GetGestureApi()->setGestureInterrupterToNode(
@@ -170,14 +171,17 @@ std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadImage(
   return InsertEtsView(loader_->LoadImageView(
       src, desire_width, desire_height, max_width, max_height, border_radius));
 }
-
-std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadReplacementView(
+MarkdownReplacementView NativeServalMarkdownView::LoadReplacementView(
     void* ud, int32_t id, float max_width, float max_height) {
   if (loader_ == nullptr) {
-    return nullptr;
+    return {};
   }
-  return InsertEtsView(
-      loader_->LoadReplacementView(ud, id, max_width, max_height));
+  auto replacement_view =
+      loader_->LoadReplacementView(ud, id, max_width, max_height);
+  return {
+      .view_ = InsertEtsView(replacement_view.view_),
+      .alt_text_ = std::move(replacement_view.alt_text_),
+  };
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();

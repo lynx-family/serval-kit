@@ -13,16 +13,17 @@ namespace serval::markdown {
 namespace {
 class TextLayoutManager {
  public:
-  TextLayoutManager() {
-    auto ft = tttext::PlatformHelper::CreateFontManager(
-        tttext::PlatformType::kSystem);
-    tttext::FontmgrCollection collection(ft);
-    text_layout_ = std::make_unique<tttext::TextLayout>(
-        &collection, tttext::ShaperType::kSystem);
-  }
+  TextLayoutManager()
+      : font_collection_(tttext::PlatformHelper::CreateFontManager(
+            tttext::PlatformType::kSystem)),
+        text_layout_(std::make_unique<tttext::TextLayout>(
+            &font_collection_, tttext::ShaperType::kSystem)) {}
   ~TextLayoutManager() = default;
 
   tttext::TextLayout* GetTextLayout() { return text_layout_.get(); }
+
+ private:
+  tttext::FontmgrCollection font_collection_;
   std::unique_ptr<tttext::TextLayout> text_layout_;
 };
 

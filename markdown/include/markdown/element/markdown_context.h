@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_CONTEXT_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_CONTEXT_H_
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -14,8 +15,27 @@ namespace serval::markdown {
 
 class MarkdownContext {
  public:
+  enum class HexColorFormat : uint8_t {
+    kRGBA,
+    kARGB,
+  };
+
   explicit MarkdownContext(std::unique_ptr<MarkdownPlatform> platform)
       : platform_(std::move(platform)) {}
+
+  void SetHashHexColorFormat(HexColorFormat format) {
+    hash_hex_color_format_ = format;
+  }
+  HexColorFormat GetHashHexColorFormat() const {
+    return hash_hex_color_format_;
+  }
+
+  void SetHarmonyShaperForceLowAPI(bool force_low_api) {
+    harmony_shaper_force_low_api_ = force_low_api;
+  }
+  bool IsHarmonyShaperForceLowAPI() const {
+    return harmony_shaper_force_low_api_;
+  }
 
   tttext::TextLayout* GetTextLayout() const {
     return platform_ == nullptr ? nullptr : platform_->GetTextLayout();
@@ -28,6 +48,8 @@ class MarkdownContext {
   }
 
  private:
+  HexColorFormat hash_hex_color_format_{HexColorFormat::kRGBA};
+  bool harmony_shaper_force_low_api_{true};
   std::unique_ptr<MarkdownPlatform> platform_;
 };
 

@@ -186,6 +186,16 @@ void MarkdownViewRenderer::SetContentComplete(bool complete) {
     region.second.view_->RequestDraw();
   }
 }
+void MarkdownViewRenderer::SetEnableRegionView(bool enable) {
+  if (enable_region_view_ == enable) {
+    return;
+  }
+  enable_region_view_ = enable;
+  RemoveAllRegionViews();
+  region_views_dirty_ = true;
+  full_redraw_required_ = true;
+  has_last_view_rect_ = false;
+}
 void MarkdownViewRenderer::RequestDrawRegion(uint32_t region_index) {
   const auto iter = region_views_.find(static_cast<int32_t>(region_index));
   if (iter != region_views_.end() && iter->second.view_ != nullptr) {
@@ -245,7 +255,7 @@ void MarkdownViewRenderer::ClearRegionViewPool() {
   scroll_x_region_view_pool_.clear();
 }
 bool MarkdownViewRenderer::NeedUseRegionView() const {
-  return handle_ != nullptr;
+  return enable_region_view_ && handle_ != nullptr;
 }
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {

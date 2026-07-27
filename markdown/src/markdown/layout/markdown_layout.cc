@@ -16,7 +16,10 @@
 namespace serval::markdown {
 MarkdownLayout::MarkdownLayout(MarkdownDocument* document)
     : document_(document),
-      context_(document == nullptr ? nullptr : document->GetContextPtr()) {}
+      context_(document == nullptr ? nullptr : document->GetContextPtr()) {
+  text_context_.SetHarmonyShaperForceLowAPI(
+      context_ == nullptr || context_->IsHarmonyShaperForceLowAPI());
+}
 std::pair<float, float> MarkdownLayout::Layout(float width, float height,
                                                int text_max_lines) {
   if (document_ == nullptr)
@@ -459,6 +462,8 @@ std::unique_ptr<tttext::LayoutRegion> MarkdownLayout::LayoutParagraph(
     return nullptr;
   }
   text_context_.Reset();
+  text_context_.SetHarmonyShaperForceLowAPI(
+      context->IsHarmonyShaperForceLowAPI());
   text_context_.SetLastLineCanOverflow(overflow == MarkdownTextOverflow::kClip);
   auto region = std::make_unique<tttext::LayoutRegion>(
       width, height, width_mode, tttext::LayoutMode::kAtMost);

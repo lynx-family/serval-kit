@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "markdown/element/markdown_attachments.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_document.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_color.h"
@@ -1429,7 +1430,7 @@ class MarkdownStyleReaderImpl {
     if (it != map.end()) {
       if (it->second->GetType() == ValueType::kString) {
         std::string_view color_str = it->second->AsString();
-        MarkdownColor::Parse(color_str, result);
+        MarkdownColor::Parse(color_str, result, context_);
       }
     }
   }
@@ -1650,14 +1651,19 @@ MarkdownBaseStylePart MarkdownStyleReader::ReadBaseStyle(
     const ValueMap& map, MarkdownResourceLoader* loader,
     MarkdownContext* context) {
   MarkdownStyleReaderImpl impl(loader, context);
-  MarkdownBaseStylePart base_style_part;
+  MarkdownBaseStylePart base_style_part{};
+  MarkdownStyleInitializer::ClearBaseStyle(&base_style_part);
   impl.ReadMarkdownBaseStylePart(map, &base_style_part);
   return base_style_part;
 }
-uint32_t MarkdownStyleReader::ReadColor(const std::string& color) {
+uint32_t MarkdownStyleReader::ReadColor(const std::string& color,
+                                        const MarkdownContext* context) {
   uint32_t result = 0;
-  MarkdownColor::Parse(color, &result);
+  MarkdownColor::Parse(color, &result, context);
   return result;
+}
+uint32_t MarkdownStyleReader::ReadColor(const std::string& color) {
+  return ReadColor(color, nullptr);
 }
 
 }  // namespace serval::markdown

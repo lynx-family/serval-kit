@@ -12,7 +12,14 @@ namespace serval::markdown {
 Range MarkdownSelection::GetCharRangeByPoint(
     const serval::markdown::MarkdownPage* page, PointF point,
     CharRangeType type) {
+  if (!page || page->regions_.empty()) {
+    return {0, 0};
+  }
   auto region_index = FindClosestRegionIndex(page, point.y_);
+  if (region_index < 0 ||
+      region_index >= static_cast<int32_t>(page->regions_.size())) {
+    return {0, 0};
+  }
   auto& region = page->regions_[region_index];
   auto line_index =
       FindClosestMarkdownRegionLineIndexOrRowIndex(region.get(), point.y_);
@@ -84,6 +91,9 @@ Range MarkdownSelection::GetCharRangeByPoint(
 
 int MarkdownSelection::FindClosestRegionIndex(
     const serval::markdown::MarkdownPage* page, float y) {
+  if (page == nullptr || page->regions_.empty()) {
+    return -1;
+  }
   auto lower_iter = std::lower_bound(
       page->regions_.begin(), page->regions_.end(), y,
       [](const std::unique_ptr<MarkdownPageRegion>& region, float y) -> bool {

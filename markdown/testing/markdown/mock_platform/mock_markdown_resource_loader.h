@@ -42,9 +42,10 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
     }
     return nullptr;
   }
-  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) override {
-    return nullptr;
+  MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
+                                              float max_width,
+                                              float max_height) override {
+    return {};
   }
   void* LoadFont(const char* family, MarkdownFontWeight weight) override {
     std::string font = family;
