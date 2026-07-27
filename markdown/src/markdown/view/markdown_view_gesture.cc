@@ -201,6 +201,7 @@ bool MarkdownViewGesture::ShouldBeginPan(PointF position, PointF motion) {
 
 bool MarkdownViewGesture::OnPan(PointF position, PointF motion,
                                 GestureEventType event) {
+  pan_position_ = position;
   switch (event) {
     case GestureEventType::kDown:
       return BeginPan(position, motion);
@@ -519,7 +520,7 @@ void MarkdownViewGesture::EnterSelection(PointF position) {
   select_end_index_ = select_start_index_ + 1;
   is_adjust_start_pos_ = false;
   is_adjust_end_pos_ = false;
-  handle_pan_before_motion_ = {0, 0};
+  handle_pan_before_position_ = {0, 0};
   long_press_selection_drag_pending_ = true;
   long_press_selection_drag_origin_ = position;
   UpdateSelectionRects(SelectionState::kEnter);
@@ -571,7 +572,7 @@ void MarkdownViewGesture::SwapSelectionStartAndEnd() {
 void MarkdownViewGesture::RecalculateSelectionPosition() {
   is_adjust_start_pos_ = false;
   is_adjust_end_pos_ = false;
-  handle_pan_before_motion_ = {0, 0};
+  handle_pan_before_position_ = {0, 0};
   ClearLongPressSelectionDrag();
   if (selection_highlight_rects_.empty()) {
     return;
@@ -678,14 +679,14 @@ bool MarkdownViewGesture::OnEndHandleMove(PointF position, PointF motion,
   return OnHandleMove(position, motion, type);
 }
 
-bool MarkdownViewGesture::OnHandleMove(PointF position, PointF motion,
+bool MarkdownViewGesture::OnHandleMove(PointF position, PointF /* motion */,
                                        GestureEventType type) {
   if (type == GestureEventType::kDown) {
-    handle_pan_before_motion_ = motion;
+    handle_pan_before_position_ = position;
     return true;
   }
-  PointF delta = motion - handle_pan_before_motion_;
-  handle_pan_before_motion_ = motion;
+  PointF delta = position - handle_pan_before_position_;
+  handle_pan_before_position_ = position;
   if (is_adjust_start_pos_) {
     select_start_position_ += delta;
     UpdateSelectionStart();

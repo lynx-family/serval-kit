@@ -18,15 +18,16 @@
 #include "arkui/native_node.h"
 #include "arkui/native_node_napi.h"
 #include "arkui/native_type.h"
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/utils/markdown_value.h"
 #include "napi/native_api.h"
 namespace serval::markdown {
-class HarmonyEnv {
+class L_EXPORT HarmonyEnv {
  public:
   static napi_env GetEnv();
   static void SetEnv(napi_env env);
 };
-class HarmonyUIThread {
+class L_EXPORT HarmonyUIThread {
  public:
   static void Init(napi_env env);
   static void RunOnUIThread(std::function<void()> task,

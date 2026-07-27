@@ -7,6 +7,7 @@
 #include <cmath>
 #include <string_view>
 
+#include "markdown/element/markdown_context.h"
 #include "markdown/utils/markdown_string_utils.h"
 
 namespace serval::markdown {
@@ -33,12 +34,17 @@ float ClampFloat01(float value) {
   return value;
 }
 
-bool ParseHexColor(std::string_view value, uint32_t* color) {
+bool ParseHexColor(std::string_view value, uint32_t* color,
+                   const MarkdownContext* context) {
   if (value.empty()) {
     return false;
   }
   const bool has_hash = value[0] == '#';
   const auto hex = has_hash ? value.substr(1) : value;
+  const bool alpha_first =
+      !has_hash ||
+      (context != nullptr && context->GetHashHexColorFormat() ==
+                                 MarkdownContext::HexColorFormat::kARGB);
   auto nibble = [](char c) -> int32_t {
     if (c >= '0' && c <= '9') {
       return c - '0';
@@ -59,29 +65,14 @@ bool ParseHexColor(std::string_view value, uint32_t* color) {
     }
     return (high_value << 4) | low_value;
   };
-  if (!has_hash) {
-    if (hex.empty() || hex.size() > 8) {
-      return false;
-    }
-    uint32_t legacy_color = 0;
-    for (const auto c : hex) {
-      const auto value = nibble(c);
-      if (value < 0) {
-        return false;
-      }
-      legacy_color = (legacy_color << 4) | static_cast<uint32_t>(value);
-    }
-    if (hex.size() <= 6) {
-      legacy_color |= 0xff000000;
-    }
-    *color = legacy_color;
-    return true;
-  }
   if (hex.size() == 3 || hex.size() == 4) {
-    const auto r = nibble(hex[0]);
-    const auto g = nibble(hex[1]);
-    const auto b = nibble(hex[2]);
-    const auto a = hex.size() == 4 ? nibble(hex[3]) : 0xF;
+    const bool has_alpha = hex.size() == 4;
+    const size_t rgb_offset = has_alpha && alpha_first ? 1 : 0;
+    const size_t alpha_offset = alpha_first ? 0 : 3;
+    const auto a = has_alpha ? nibble(hex[alpha_offset]) : 0xF;
+    const auto r = nibble(hex[rgb_offset]);
+    const auto g = nibble(hex[rgb_offset + 1]);
+    const auto b = nibble(hex[rgb_offset + 2]);
     if (r < 0 || g < 0 || b < 0 || a < 0) {
       return false;
     }
@@ -91,10 +82,15 @@ bool ParseHexColor(std::string_view value, uint32_t* color) {
     return true;
   }
   if (hex.size() == 6 || hex.size() == 8) {
-    const auto r = byte_from_pair(hex[0], hex[1]);
-    const auto g = byte_from_pair(hex[2], hex[3]);
-    const auto b = byte_from_pair(hex[4], hex[5]);
-    const auto a = hex.size() == 8 ? byte_from_pair(hex[6], hex[7]) : 0xFF;
+    const bool has_alpha = hex.size() == 8;
+    const size_t rgb_offset = has_alpha && alpha_first ? 2 : 0;
+    const size_t alpha_offset = alpha_first ? 0 : 6;
+    const auto a =
+        has_alpha ? byte_from_pair(hex[alpha_offset], hex[alpha_offset + 1])
+                  : static_cast<int32_t>(0xFF);
+    const auto r = byte_from_pair(hex[rgb_offset], hex[rgb_offset + 1]);
+    const auto g = byte_from_pair(hex[rgb_offset + 2], hex[rgb_offset + 3]);
+    const auto b = byte_from_pair(hex[rgb_offset + 4], hex[rgb_offset + 5]);
     if (r < 0 || g < 0 || b < 0 || a < 0) {
       return false;
     }
@@ -275,6 +271,11 @@ uint32_t MarkdownColor::Interpolate(uint32_t start_color, uint32_t end_color,
 }
 
 bool MarkdownColor::Parse(std::string_view value, uint32_t* color) {
+  return Parse(value, color, nullptr);
+}
+
+bool MarkdownColor::Parse(std::string_view value, uint32_t* color,
+                          const MarkdownContext* context) {
   if (color == nullptr) {
     return false;
   }
@@ -282,7 +283,7 @@ bool MarkdownColor::Parse(std::string_view value, uint32_t* color) {
   if (trimmed.empty()) {
     return false;
   }
-  return ParseHexColor(trimmed, color) ||
+  return ParseHexColor(trimmed, color, context) ||
          ParseFunctionalColor(trimmed, color) ||
          ParseNamedColor(trimmed, color);
 }

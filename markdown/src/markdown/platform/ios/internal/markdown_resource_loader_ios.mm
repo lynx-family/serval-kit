@@ -87,11 +87,9 @@ void* MarkdownResourceLoaderIOS::LoadFont(const char* family,
   return (__bridge void*)font;
 }
 
-std::shared_ptr<MarkdownDrawable>
-MarkdownResourceLoaderIOS::LoadReplacementView(void* ud, int32_t id,
-                                               float max_width,
-                                               float max_height) {
-  return nullptr;
+MarkdownReplacementView MarkdownResourceLoaderIOS::LoadReplacementView(
+    void* ud, int32_t id, float max_width, float max_height) {
+  return {};
 }
 
 }  // namespace serval::markdown

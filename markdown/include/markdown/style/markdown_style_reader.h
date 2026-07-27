@@ -27,6 +27,8 @@ class L_EXPORT MarkdownStyleReader {
       const ValueMap& map, MarkdownResourceLoader* loader,
       MarkdownContext* context = nullptr);
   static uint32_t ReadColor(const std::string& color);
+  static uint32_t ReadColor(const std::string& color,
+                            const MarkdownContext* context);
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_STYLE_MARKDOWN_STYLE_READER_H_

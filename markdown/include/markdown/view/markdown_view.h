@@ -5,6 +5,7 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_VIEW_H_
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -32,9 +33,17 @@ class MarkdownExposureListener;
 
 class L_EXPORT MarkdownView final : public MarkdownDrawable {
  public:
+  using LongPressListener =
+      std::function<bool(PointF position, GestureEventType event)>;
+  using TapListener =
+      std::function<bool(PointF position, GestureEventType event)>;
+  using PanListener = std::function<bool(PointF position, PointF motion,
+                                         GestureEventType event)>;
+
   MarkdownView(MarkdownPlatformView* view,
                std::shared_ptr<MarkdownContext> context);
   ~MarkdownView() override;
+  MarkdownContext* GetMarkdownContext() const;
   void SetResourceLoader(MarkdownResourceLoader* loader);
   MarkdownResourceLoader* GetResourceLoader() const;
   void SetEventListener(MarkdownEventListener* listener);
@@ -52,6 +61,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
                          int32_t char_end);
   void SetTextMaxLines(int32_t max_lines);
   void SetEnableBreakAroundPunctuation(bool allow);
+  void SetEnableRegionView(bool enable);
   void SetTextAttachments(std::unique_ptr<Value> attachments);
   void SetMarkdownEffect(std::unique_ptr<Value> effect);
 
@@ -119,10 +129,19 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void NeedsAlign() const;
   void NeedsDraw() const;
 
+  void SetLongPressListener(LongPressListener listener);
+  void SetTapListener(TapListener listener);
+  void SetPanListener(PanListener listener);
+  PointF GetPanPosition() const;
+
   bool OnLongPress(PointF position, GestureEventType event);
   bool OnTap(PointF position, GestureEventType event);
   bool ShouldBeginPan(PointF position, PointF motion);
   bool OnPan(PointF position, PointF motion, GestureEventType event);
+
+  bool DoLongPress(PointF position, GestureEventType event);
+  bool DoTap(PointF position, GestureEventType event);
+  bool DoPan(PointF position, PointF motion, GestureEventType event);
 
   void OnFontLoaded(std::string_view family, int weight, int style);
   void OnImageLoaded(std::string_view url);
@@ -211,6 +230,9 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   MarkdownExposureListener* exposure_listener_{nullptr};
   MarkdownResourceLoader* resource_loader_{nullptr};
   MarkdownEventListener* event_listener_{nullptr};
+  LongPressListener long_press_listener_;
+  TapListener tap_listener_;
+  PanListener pan_listener_;
 
   bool trim_paragraph_spaces_{false};
 

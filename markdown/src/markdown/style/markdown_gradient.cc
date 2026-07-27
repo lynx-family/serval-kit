@@ -40,7 +40,8 @@ enum class ParseStatus {
   kInvalid,
 };
 
-bool ExtractColorStop(std::string_view value, ColorStop* stop) {
+bool ExtractColorStop(std::string_view value, ColorStop* stop,
+                      const MarkdownContext* context) {
   const auto trimmed = Trim(value);
   if (trimmed.empty()) {
     return false;
@@ -75,7 +76,7 @@ bool ExtractColorStop(std::string_view value, ColorStop* stop) {
     }
   }
 
-  if (!MarkdownColor::Parse(color_part, &stop->color)) {
+  if (!MarkdownColor::Parse(color_part, &stop->color, context)) {
     return false;
   }
 
@@ -159,12 +160,13 @@ void ClampColorStops(std::vector<uint32_t>* colors, std::vector<float>* stops) {
 
 bool ParseColorStopList(const std::vector<std::string_view>& args,
                         size_t start_index, std::vector<uint32_t>* colors,
-                        std::vector<float>* stops) {
+                        std::vector<float>* stops,
+                        const MarkdownContext* context) {
   size_t position_begin_index = kInvalidIndex;
   float position_begin_value = kMinColorStop;
   for (size_t index = start_index; index < args.size(); index++) {
     ColorStop stop;
-    if (!ExtractColorStop(args[index], &stop)) {
+    if (!ExtractColorStop(args[index], &stop, context)) {
       return false;
     }
     colors->emplace_back(stop.color);
@@ -310,7 +312,8 @@ ParseStatus ParseLinearPrelude(std::string_view value, float* angle,
 bool ParseLinearGradient(std::string_view args, float* angle,
                          MarkdownLinearGradientDirection* direction,
                          std::vector<uint32_t>* colors,
-                         std::vector<float>* stops) {
+                         std::vector<float>* stops,
+                         const MarkdownContext* context) {
   const auto parts = SplitTopLevel(args, ',');
   if (parts.size() < 2) {
     return false;
@@ -326,7 +329,7 @@ bool ParseLinearGradient(std::string_view args, float* angle,
     color_start_index = 1;
   }
 
-  return ParseColorStopList(parts, color_start_index, colors, stops);
+  return ParseColorStopList(parts, color_start_index, colors, stops, context);
 }
 
 std::string ExtractUrl(std::string_view value) {
@@ -598,7 +601,8 @@ std::shared_ptr<MarkdownBackgroundDrawable> ParseGradientValue(
   auto direction = MarkdownLinearGradientDirection::kToBottom;
   std::vector<uint32_t> colors;
   std::vector<float> stops;
-  if (!ParseLinearGradient(args, &angle, &direction, &colors, &stops)) {
+  if (!ParseLinearGradient(args, &angle, &direction, &colors, &stops,
+                           context)) {
     return nullptr;
   }
   return std::make_shared<MarkdownLinearGradientDrawable>(

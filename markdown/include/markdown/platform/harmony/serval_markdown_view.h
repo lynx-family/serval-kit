@@ -75,8 +75,9 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
                                               float desire_height,
                                               float max_width, float max_height,
                                               float border_radius) override;
-  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) override;
+  MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
+                                              float max_width,
+                                              float max_height) override;
   // end
 
   // HarmonyVSyncCallback

@@ -45,8 +45,9 @@ class AndroidServalMarkdownView : public AndroidMainView,
                                                    float max_width,
                                                    float max_height) override;
   void* LoadFont(const char* family, MarkdownFontWeight weight) override;
-  std::shared_ptr<MarkdownDrawable> LoadReplacementView(
-      void* ud, int32_t id, float max_width, float max_height) override;
+  MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
+                                              float max_width,
+                                              float max_height) override;
 
  public:
   void OnParseEnd() override;

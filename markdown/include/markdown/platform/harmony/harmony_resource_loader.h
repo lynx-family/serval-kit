@@ -4,9 +4,15 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_
+#include <string>
+
 #include "arkui/native_type.h"
 #include "native_drawing/drawing_types.h"
 namespace serval::markdown {
+struct HarmonyReplacementView {
+  ArkUI_NodeHandle view_{nullptr};
+  std::string alt_text_;
+};
 class IHarmonyResourceLoader {
  public:
   virtual OH_Drawing_Font* LoadFont(const char* family) = 0;
@@ -16,9 +22,9 @@ class IHarmonyResourceLoader {
                                          float border_radius) = 0;
   virtual ArkUI_NodeHandle LoadInlineView(const char* id, float max_width,
                                           float max_height) = 0;
-  virtual ArkUI_NodeHandle LoadReplacementView(void* ud, int id,
-                                               float max_width,
-                                               float max_height) = 0;
+  virtual HarmonyReplacementView LoadReplacementView(void* ud, int id,
+                                                     float max_width,
+                                                     float max_height) = 0;
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_

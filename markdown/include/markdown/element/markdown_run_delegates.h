@@ -200,6 +200,45 @@ class MarkdownInlineBorderDelegate : public MarkdownDrawable {
   }
 };
 
+class MarkdownReplacementViewWrapper : public MarkdownDrawable {
+ public:
+  MarkdownReplacementViewWrapper(std::shared_ptr<MarkdownDrawable> view,
+                                 float max_width, float max_height,
+                                 float font_size)
+      : view_(std::move(view)),
+        max_width_(max_width),
+        max_height_(max_height),
+        font_size_(font_size) {}
+
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
+    view_->Draw(canvas, x, y);
+  }
+
+  void Align(float x, float y) override { view_->Align(x, y); }
+
+  void SetBounds(RectF bounds) override { view_->SetBounds(bounds); }
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    if (max_width_ > 0) {
+      spec.width_ = max_width_;
+    }
+    if (max_height_ > 0) {
+      spec.height_ = max_height_;
+    }
+    const auto size = view_->Measure(spec);
+    return {.width_ = size.width_,
+            .height_ = size.height_,
+            .baseline_ = (size.height_ + 0.6f * font_size_) / 2};
+  }
+
+ private:
+  std::shared_ptr<MarkdownDrawable> view_;
+  float max_width_{0};
+  float max_height_{0};
+  float font_size_{0};
+};
+
 class BlockViewWrapper : public MarkdownDrawable {
  public:
   BlockViewWrapper(const float max_width, const float indent,

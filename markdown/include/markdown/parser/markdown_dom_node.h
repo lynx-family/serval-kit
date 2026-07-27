@@ -42,6 +42,12 @@ enum class MarkdownDomType : uint8_t {
   kEscape,
   kHtmlEntity,
   kBreakLine,
+  kFormula,
+};
+enum class MarkdownTaskState : uint8_t {
+  kNone,
+  kUnchecked,
+  kChecked,
 };
 class MarkdownDomNode : public MarkdownNode {
  public:
@@ -70,11 +76,11 @@ class MarkdownDomCodeBlock final : public MarkdownDomNode {
   explicit MarkdownDomCodeBlock()
       : MarkdownDomNode(MarkdownDomType::kCodeBlock) {}
   ~MarkdownDomCodeBlock() override = default;
-  const std::string& GetLanguage() { return language_; }
-  void SetLanguage(std::string_view language) { language_ = language; }
+  const std::string& GetInfo() const { return info_; }
+  void SetInfo(std::string_view info) { info_ = info; }
 
  protected:
-  std::string language_;
+  std::string info_;
 };
 class MarkdownDomList final : public MarkdownDomNode {
  public:
@@ -86,14 +92,24 @@ class MarkdownDomList final : public MarkdownDomNode {
   void SetDelimiter(char delimiter) { delimiter_ = delimiter; }
   void SetExtraLevel(int32_t extra_level) { extra_level_ = extra_level; }
   int32_t GetExtraLevel() const { return extra_level_; }
-  bool IsChecked() const { return checked_; }
-  void SetChecked(bool checked) { checked_ = checked; }
+  bool IsTight() const { return tight_; }
+  void SetTight(bool tight) { tight_ = tight; }
 
  protected:
   int32_t start_{0};
   char delimiter_{'-'};
   int32_t extra_level_{0};
-  bool checked_{false};
+  bool tight_{false};
+};
+class MarkdownDomListItem final : public MarkdownDomNode {
+ public:
+  MarkdownDomListItem() : MarkdownDomNode(MarkdownDomType::kListItem) {}
+  ~MarkdownDomListItem() override = default;
+  MarkdownTaskState GetTaskState() const { return task_state_; }
+  void SetTaskState(MarkdownTaskState task_state) { task_state_ = task_state; }
+
+ protected:
+  MarkdownTaskState task_state_{MarkdownTaskState::kNone};
 };
 class MarkdownDomTable final : public MarkdownDomNode {
  public:
@@ -106,6 +122,19 @@ class MarkdownDomTable final : public MarkdownDomNode {
 
  protected:
   std::vector<MarkdownTextAlign> aligns_;
+};
+class MarkdownDomTableCell final : public MarkdownDomNode {
+ public:
+  MarkdownDomTableCell() : MarkdownDomNode(MarkdownDomType::kTableCell) {}
+  ~MarkdownDomTableCell() override = default;
+  bool IsHeader() const { return is_header_; }
+  void SetHeader(bool is_header) { is_header_ = is_header; }
+  MarkdownTextAlign GetAlign() const { return align_; }
+  void SetAlign(MarkdownTextAlign align) { align_ = align; }
+
+ protected:
+  bool is_header_{false};
+  MarkdownTextAlign align_{MarkdownTextAlign::kUndefined};
 };
 class MarkdownDomLink final : public MarkdownDomNode {
  public:
@@ -139,13 +168,23 @@ class MarkdownDomImage final : public MarkdownDomNode {
   std::string url_;
   std::string alt_text_;
   std::string caption_;
-  float width_{0};
-  float height_{0};
+  float width_{-1};
+  float height_{-1};
 };
 class MarkdownDomRawText final : public MarkdownDomNode {
  public:
   explicit MarkdownDomRawText(MarkdownDomType type) : MarkdownDomNode(type) {}
   ~MarkdownDomRawText() override = default;
+  const std::string& GetText() const { return text_; }
+  void SetText(std::string_view text) { text_ = text; }
+
+ protected:
+  std::string text_;
+};
+class MarkdownDomFormula final : public MarkdownDomNode {
+ public:
+  MarkdownDomFormula() : MarkdownDomNode(MarkdownDomType::kFormula) {}
+  ~MarkdownDomFormula() override = default;
   const std::string& GetText() const { return text_; }
   void SetText(std::string_view text) { text_ = text; }
 

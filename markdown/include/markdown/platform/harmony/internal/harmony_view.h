@@ -132,6 +132,7 @@ class HarmonyView : public MarkdownPlatformView {
   void SetVisibility(ArkUI_Visibility visible);
   void SetClipByParent(bool clip);
   void SetOpacity(float opacity);
+  void SetZIndex(int index);
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;

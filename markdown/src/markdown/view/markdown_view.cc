@@ -4,6 +4,8 @@
 
 #include "markdown/view/markdown_view.h"
 
+#include <utility>
+
 #include "markdown/draw/markdown_typewriter_drawer.h"
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/layout/markdown_selection.h"
@@ -52,6 +54,9 @@ MarkdownView::MarkdownView(MarkdownPlatformView* view,
 }
 MarkdownView::~MarkdownView() {
   gesture_.SetRenderer(nullptr);
+}
+MarkdownContext* MarkdownView::GetMarkdownContext() const {
+  return context_.get();
 }
 void MarkdownView::SetResourceLoader(MarkdownResourceLoader* loader) {
   resource_loader_ = loader;
@@ -106,6 +111,10 @@ void MarkdownView::SetTextMaxLines(int32_t max_lines) {
 void MarkdownView::SetEnableBreakAroundPunctuation(bool allow) {
   measurer_.SetEnableBreakAroundPunctuation(allow);
   NeedsMeasure();
+}
+void MarkdownView::SetEnableRegionView(bool enable) {
+  renderer_.SetEnableRegionView(enable);
+  view_->RequestDraw();
 }
 void MarkdownView::SetTextAttachments(std::unique_ptr<Value> attachments) {
   attachments_ = std::move(attachments);
@@ -640,8 +649,27 @@ std::vector<RectF> MarkdownView::GetTextLineBoundingRect(Range range) const {
   return gesture_.GetTextLineBoundingRect(range);
 }
 
+void MarkdownView::SetLongPressListener(LongPressListener listener) {
+  long_press_listener_ = std::move(listener);
+}
+
+void MarkdownView::SetTapListener(TapListener listener) {
+  tap_listener_ = std::move(listener);
+}
+
+void MarkdownView::SetPanListener(PanListener listener) {
+  pan_listener_ = std::move(listener);
+}
+
+PointF MarkdownView::GetPanPosition() const {
+  return gesture_.GetPanPosition();
+}
+
 bool MarkdownView::OnTap(PointF position, GestureEventType event) {
-  return gesture_.OnTap(position, event);
+  if (tap_listener_) {
+    return tap_listener_(position, event);
+  }
+  return DoTap(position, event);
 }
 
 bool MarkdownView::ShouldBeginPan(PointF position, PointF motion) {
@@ -650,10 +678,29 @@ bool MarkdownView::ShouldBeginPan(PointF position, PointF motion) {
 
 bool MarkdownView::OnPan(PointF position, PointF motion,
                          GestureEventType event) {
-  return gesture_.OnPan(position, motion, event);
+  if (pan_listener_) {
+    return pan_listener_(position, motion, event);
+  }
+  return DoPan(position, motion, event);
 }
 
 bool MarkdownView::OnLongPress(PointF position, GestureEventType event) {
+  if (long_press_listener_) {
+    return long_press_listener_(position, event);
+  }
+  return DoLongPress(position, event);
+}
+
+bool MarkdownView::DoTap(PointF position, GestureEventType event) {
+  return gesture_.OnTap(position, event);
+}
+
+bool MarkdownView::DoPan(PointF position, PointF motion,
+                         GestureEventType event) {
+  return gesture_.OnPan(position, motion, event);
+}
+
+bool MarkdownView::DoLongPress(PointF position, GestureEventType event) {
   return gesture_.OnLongPress(position, event);
 }
 

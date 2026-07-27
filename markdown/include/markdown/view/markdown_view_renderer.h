@@ -27,6 +27,7 @@ class MarkdownViewRenderer {
   void SetMarkdownAnimationType(MarkdownAnimationType type);
   void SetMarkdownAnimationStep(int32_t step);
   void SetContentComplete(bool complete);
+  void SetEnableRegionView(bool enable);
   void OnNextFrame();
   void RequestDrawRegion(uint32_t region_index);
 
@@ -60,6 +61,7 @@ class MarkdownViewRenderer {
   bool full_redraw_required_{true};
   bool has_last_view_rect_{false};
   bool content_complete_{true};
+  bool enable_region_view_{true};
   RectF last_view_rect_{};
 };
 }  // namespace serval::markdown

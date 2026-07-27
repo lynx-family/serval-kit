@@ -5,8 +5,10 @@
 
 #include "gtest/gtest.h"
 #include "markdown/draw/markdown_path.h"
+#include "markdown/element/markdown_context.h"
 #include "markdown/style/markdown_color.h"
 #include "markdown/style/markdown_gradient.h"
+#include "markdown/style/markdown_style_reader.h"
 #include "markdown/style/markdown_style_value.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_selection_view.h"
@@ -55,6 +57,21 @@ TEST(MarkdownColorTest, ParseCssFormats) {
   EXPECT_TRUE(MarkdownColor::Parse("#abc", &color));
   EXPECT_EQ(color, 0xffaabbccu);
 
+  EXPECT_TRUE(MarkdownColor::Parse("abc", &color));
+  EXPECT_EQ(color, 0xffaabbccu);
+
+  EXPECT_TRUE(MarkdownColor::Parse("#8abc", &color));
+  EXPECT_EQ(color, 0xcc88aabbu);
+
+  EXPECT_TRUE(MarkdownColor::Parse("8abc", &color));
+  EXPECT_EQ(color, 0x88aabbccu);
+
+  EXPECT_TRUE(MarkdownColor::Parse("#80fff59d", &color));
+  EXPECT_EQ(color, 0x9d80fff5u);
+
+  EXPECT_TRUE(MarkdownColor::Parse("80fff59d", &color));
+  EXPECT_EQ(color, 0x80fff59du);
+
   EXPECT_TRUE(MarkdownColor::Parse("0000ff", &color));
   EXPECT_EQ(color, 0xff0000ffu);
 
@@ -68,6 +85,39 @@ TEST(MarkdownColorTest, ParseCssFormats) {
   EXPECT_EQ(color, 0xff800080u);
 
   EXPECT_FALSE(MarkdownColor::Parse("not-a-color", &color));
+}
+
+TEST(MarkdownColorTest, ContextControlsHashHexColorFormat) {
+  auto context = CreateTestMarkdownSharedContext();
+  uint32_t color = 0;
+
+  EXPECT_EQ(context->GetHashHexColorFormat(),
+            MarkdownContext::HexColorFormat::kRGBA);
+  EXPECT_TRUE(MarkdownColor::Parse("#80fff59d", &color, context.get()));
+  EXPECT_EQ(color, 0x9d80fff5u);
+
+  context->SetHashHexColorFormat(MarkdownContext::HexColorFormat::kARGB);
+  EXPECT_TRUE(MarkdownColor::Parse("#80fff59d", &color, context.get()));
+  EXPECT_EQ(color, 0x80fff59du);
+  EXPECT_TRUE(MarkdownColor::Parse("80fff59d", &color, context.get()));
+  EXPECT_EQ(color, 0x80fff59du);
+
+  ValueMap style_map;
+  style_map.emplace("color", Value::MakeString("#80fff59d"));
+  const auto style =
+      MarkdownStyleReader::ReadBaseStyle(style_map, nullptr, context.get());
+  EXPECT_EQ(style.color_, 0x80fff59du);
+
+  const auto gradient =
+      ParseGradientValue("linear-gradient(#80fff59d, #40123456)",
+                         MakeGradientTestContext(), context.get());
+  ASSERT_NE(gradient, nullptr);
+  const auto linear =
+      std::static_pointer_cast<MarkdownLinearGradientDrawable>(gradient);
+  ASSERT_NE(linear, nullptr);
+  ASSERT_EQ(linear->GetGradient().colors.size(), 2u);
+  EXPECT_EQ(linear->GetGradient().colors[0], 0x80fff59du);
+  EXPECT_EQ(linear->GetGradient().colors[1], 0x40123456u);
 }
 
 TEST(MarkdownLengthTest, Calculate) {

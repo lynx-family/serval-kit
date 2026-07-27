@@ -41,6 +41,10 @@ add_subdirectory(${SRC_ROOT_PATH} markdown_dir)
 add_subdirectory(${DISCOUNT_ROOT_PATH} discount_dir)
 add_subdirectory(${BASE_ROOT_PATH} base_dir)
 
+target_compile_definitions(markdown PRIVATE
+    MARKDOWN_ENABLE_PARSER_PROVIDER=1
+)
+
 file(GLOB NATIVE_SOURCES
  ${NATIVERENDER_ROOT_PATH}/*.cpp)
 
