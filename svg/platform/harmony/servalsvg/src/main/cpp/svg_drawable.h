@@ -11,7 +11,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <multimedia/image_framework/image_pixel_map_mdk.h>
+#include <multimedia/image_framework/image/pixelmap_native.h>
 #include <native_drawing/drawing_types.h>
 #include <node_api.h>
 #include <string>

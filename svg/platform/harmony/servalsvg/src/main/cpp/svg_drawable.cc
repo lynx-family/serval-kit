@@ -6,12 +6,12 @@
 #include "element/SrSVGTypes.h"
 #include "parser/SrSVGDOM.h"
 #include "platform/harmony/sr_harmony_canvas.h"
+#include "utils/SrSVGLog.h"
 
 #include <cstdint>
 #include <iterator>
 #include <memory>
-#include <multimedia/image_framework/image_pixel_map_mdk.h>
-#include <native_drawing/drawing_pixel_map.h>
+#include <multimedia/image_framework/image/pixelmap_native.h>
 #include <native_drawing/drawing_types.h>
 #include <utility>
 #include <vector>
@@ -79,9 +79,9 @@ void ReleasePixelMapReference(napi_env env, napi_ref &pixel_map_ref, bool releas
 }
 
 void ReleaseCachedImage(napi_env env, SvgDrawable::CachedImage &cached_image, bool release_pixel_map) {
-    if (cached_image.image_data.draw_pixel_map != nullptr) {
-        OH_Drawing_PixelMapDissolve(cached_image.image_data.draw_pixel_map);
-        cached_image.image_data.draw_pixel_map = nullptr;
+    if (cached_image.image_data.pixel_map != nullptr) {
+        OH_PixelmapNative_Release(cached_image.image_data.pixel_map);
+        cached_image.image_data.pixel_map = nullptr;
     }
     ReleasePixelMapReference(env, cached_image.pixel_map_ref, release_pixel_map);
     cached_image.state = ImageLoadState::kIdle;
@@ -514,24 +514,37 @@ bool SvgDrawable::CacheImage(const std::string &url, napi_value pixel_map_value)
     }
 
     CachedImage cached_image;
-    NativePixelMap *native_pixel_map = OH_PixelMap_InitNativePixelMap(env_, pixel_map_value);
-    if (native_pixel_map == nullptr) {
+    OH_PixelmapNative *native_pixel_map = nullptr;
+    const auto convert_result =
+        OH_PixelmapNative_ConvertPixelmapNativeFromNapi(env_, pixel_map_value, &native_pixel_map);
+    if (convert_result != IMAGE_SUCCESS || native_pixel_map == nullptr) {
+        LOGE("Failed to convert NAPI PixelMap to OH_PixelmapNative: %d", static_cast<int>(convert_result));
         return false;
     }
 
-    OhosPixelMapInfos image_info{};
-    if (OH_PixelMap_GetImageInfo(native_pixel_map, &image_info) != 0) {
+    OH_Pixelmap_ImageInfo *image_info = nullptr;
+    const auto create_info_result = OH_PixelmapImageInfo_Create(&image_info);
+    if (create_info_result != IMAGE_SUCCESS || image_info == nullptr) {
+        LOGE("Failed to create OH_Pixelmap_ImageInfo: %d", static_cast<int>(create_info_result));
+        OH_PixelmapNative_Release(native_pixel_map);
         return false;
     }
 
-    OH_Drawing_PixelMap *draw_pixel_map = OH_Drawing_PixelMapGetFromNativePixelMap(native_pixel_map);
-    if (draw_pixel_map == nullptr) {
+    uint32_t image_width = 0;
+    uint32_t image_height = 0;
+    const bool has_image_info = OH_PixelmapNative_GetImageInfo(native_pixel_map, image_info) == IMAGE_SUCCESS &&
+                                OH_PixelmapImageInfo_GetWidth(image_info, &image_width) == IMAGE_SUCCESS &&
+                                OH_PixelmapImageInfo_GetHeight(image_info, &image_height) == IMAGE_SUCCESS;
+    OH_PixelmapImageInfo_Release(image_info);
+    if (!has_image_info) {
+        LOGE("Failed to read OH_PixelmapNative dimensions");
+        OH_PixelmapNative_Release(native_pixel_map);
         return false;
     }
 
-    cached_image.image_data.draw_pixel_map = draw_pixel_map;
-    cached_image.image_data.width = image_info.width;
-    cached_image.image_data.height = image_info.height;
+    cached_image.image_data.pixel_map = native_pixel_map;
+    cached_image.image_data.width = image_width;
+    cached_image.image_data.height = image_height;
     cached_image.state = ImageLoadState::kReady;
     if (napi_create_reference(env_, pixel_map_value, 1, &cached_image.pixel_map_ref) != napi_ok) {
         ReleaseCachedImage(env_, cached_image, false);
