@@ -1,5 +1,10 @@
 {
   "apiType": "stageMode",
+  "buildOption": {
+    "nativeLib": {
+      "headerPath": "../../../include/platform/harmony/public"
+    }
+  },
   "buildOptionSet": [
     {
       "name": "release",

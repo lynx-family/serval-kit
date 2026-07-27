@@ -6,6 +6,7 @@
 #include "element/SrSVGNode.h"
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
+#include "utils/SrSVGLog.h"
 #include "utils/SrSVGPatternUtils.h"
 #include <algorithm>
 #include <deviceinfo.h>
@@ -15,6 +16,7 @@
 #include <native_drawing/drawing_image_filter.h>
 #include <native_drawing/drawing_matrix.h>
 #include <native_drawing/drawing_path_effect.h>
+#include <native_drawing/drawing_pixel_map.h>
 #include <native_drawing/drawing_rect.h>
 #include <native_drawing/drawing_sampling_options.h>
 #include <native_drawing/drawing_shader_effect.h>
@@ -285,7 +287,7 @@ void SrHarmonyCanvas::DrawImage(const char *url, float x, float y, float width, 
         return;
     }
     const auto *image = image_provider_(std::string(url));
-    if (image == nullptr || image->draw_pixel_map == nullptr || image->width == 0 || image->height == 0) {
+    if (image == nullptr || image->pixel_map == nullptr || image->width == 0 || image->height == 0) {
         return;
     }
     const float image_width = static_cast<float>(image->width);
@@ -318,13 +320,22 @@ void SrHarmonyCanvas::DrawImage(const char *url, float x, float y, float width, 
     }
     OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
 
+    auto drawing_pixel_map = std::unique_ptr<OH_Drawing_PixelMap, decltype(&OH_Drawing_PixelMapDissolve)>(
+        OH_Drawing_PixelMapGetFromOhPixelMapNative(image->pixel_map), OH_Drawing_PixelMapDissolve);
+    if (!drawing_pixel_map) {
+        LOGE("Failed to bridge OH_PixelmapNative to OH_Drawing_PixelMap");
+        OH_Drawing_MatrixDestroy(matrix);
+        OH_Drawing_RectDestroy(src_rect);
+        OH_Drawing_RectDestroy(dst_rect);
+        return;
+    }
     if (FloatLess(opacity, 1.f)) {
         BeginOpacityLayer(nullptr, opacity);
     } else {
         OH_Drawing_CanvasSave(context_);
     }
     OH_Drawing_CanvasConcatMatrix(context_, matrix);
-    OH_Drawing_CanvasDrawPixelMapRect(context_, image->draw_pixel_map, src_rect, dst_rect, image_sampling_);
+    OH_Drawing_CanvasDrawPixelMapRect(context_, drawing_pixel_map.get(), src_rect, dst_rect, image_sampling_);
     if (FloatLess(opacity, 1.f)) {
         EndOpacityLayer();
     } else {

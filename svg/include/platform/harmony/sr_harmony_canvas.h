@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include <multimedia/image_framework/image/pixelmap_native.h>
 #include <native_drawing/drawing_brush.h>
 #include <native_drawing/drawing_canvas.h>
 #include <native_drawing/drawing_path.h>
@@ -30,7 +31,7 @@ namespace harmony {
 class SrHarmonyCanvas : public canvas::SrCanvas {
  public:
   struct ImageData {
-    OH_Drawing_PixelMap* draw_pixel_map{nullptr};
+    OH_PixelmapNative* pixel_map{nullptr};
     uint32_t width{0};
     uint32_t height{0};
   };

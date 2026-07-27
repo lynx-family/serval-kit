@@ -117,6 +117,8 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/utils/SrSVGPatternUtils.cc
         ${NATIVERENDER_ROOT_PATH}/platform/harmony/SrLogHarmony.cc
         #harmony
+        ${SVG_SRC_DIRECTORY}/include/platform/harmony/public/serval_svg_capi.h
+        ${NATIVERENDER_ROOT_PATH}/serval_svg_capi.cc
         ${NATIVERENDER_ROOT_PATH}/entry.cc
         ${NATIVERENDER_ROOT_PATH}/svg_drawable.h
         ${NATIVERENDER_ROOT_PATH}/svg_drawable.cc
@@ -132,7 +134,7 @@ add_library(
 target_link_libraries(servalsvg PUBLIC libace_napi.z.so
                                  libhilog_ndk.z.so
                                  libdeviceinfo_ndk.z.so
-                                 libpixelmap_ndk.z.so
+                                 libpixelmap.so
                                  librawfile.z.so
                                  libace_ndk.z.so
                                  libnative_drawing.so
