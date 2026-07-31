@@ -13,8 +13,6 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
   explicit MarkdownCustomViewIOS(id<IMarkdownPlatformViewHandle> view);
   ~MarkdownCustomViewIOS() override;
   void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) override;
-  void RequestMeasure() override;
-  void RequestAlign() override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
   MarkdownCustomViewHandle* GetCustomViewHandle() override { return this; }

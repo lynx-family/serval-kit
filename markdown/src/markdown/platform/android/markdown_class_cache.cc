@@ -28,8 +28,6 @@ void MarkdownClassCache::Initial(JNIEnv* env) {
 AndroidMarkdownView::Methods AndroidMarkdownView::methods_{};
 void AndroidMarkdownView::Initialize(JNIEnv* env) {
   auto clazz = env->FindClass("com/lynx/markdown/IMarkdownViewHandle");
-  methods_.request_measure_ = env->GetMethodID(clazz, "requestMeasure", "()V");
-  methods_.request_align_ = env->GetMethodID(clazz, "requestAlign", "()V");
   methods_.request_draw_ = env->GetMethodID(clazz, "requestDraw", "()V");
   methods_.measure_ = env->GetMethodID(clazz, "measure", "(IIII)J");
   methods_.align_ = env->GetMethodID(clazz, "align", "(II)V");
@@ -46,14 +44,6 @@ AndroidMarkdownView::AndroidMarkdownView(JNIEnv* env, jobject ref)
     : ref_(env, ref) {}
 void AndroidMarkdownView::UpdateObject(JNIEnv* env, jobject ref) {
   ref_.Reset(env, ref);
-}
-void AndroidMarkdownView::RequestMeasure() {
-  auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.request_measure_);
-}
-void AndroidMarkdownView::RequestAlign() {
-  auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.request_align_);
 }
 void AndroidMarkdownView::RequestDraw() {
   auto* env = MarkdownClassCache::GetEnv();
@@ -144,6 +134,7 @@ serval::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
 }
 void AndroidMainView::Initialize(JNIEnv* env) {
   auto clazz = env->FindClass("com/lynx/markdown/ServalMarkdownView");
+  methods_.request_measure_ = env->GetMethodID(clazz, "requestMeasure", "()V");
   methods_.create_custom_subview_ = env->GetMethodID(
       clazz, "createCustomView", "()Lcom/lynx/markdown/CustomDrawView;");
   methods_.create_region_subview_ = env->GetMethodID(
@@ -163,6 +154,10 @@ void AndroidMainView::Initialize(JNIEnv* env) {
 AndroidMainView::Methods AndroidMainView::methods_{};
 AndroidMainView::AndroidMainView(JNIEnv* env, jobject ref)
     : AndroidCustomView(env, ref) {}
+void AndroidMainView::RequestMeasure() {
+  auto* env = MarkdownClassCache::GetEnv();
+  env->CallVoidMethod(ref_.Get(), methods_.request_measure_);
+}
 std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateCustomSubView() {
   auto* env = MarkdownClassCache::GetEnv();

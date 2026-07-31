@@ -12,8 +12,6 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
  public:
   explicit MarkdownPlatformViewIOS(id<IMarkdownPlatformViewHandle> handle);
   ~MarkdownPlatformViewIOS() override;
-  void RequestMeasure() override;
-  void RequestAlign() override;
   void RequestDraw() override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;

@@ -97,8 +97,8 @@ void MarkdownViewMeasurer::SetEnableBreakAroundPunctuation(bool allow) {
   break_around_punctuation_ = allow;
   NeedsMeasure();
 }
-void MarkdownViewMeasurer::SetTrimLastParagraphSpace(bool trim) {
-  trim_last_paragraph_space_ = trim;
+void MarkdownViewMeasurer::SetTrimParagraphSpaces(bool trim) {
+  trim_paragraph_spaces_ = trim;
   NeedsMeasure();
 }
 
@@ -148,7 +148,7 @@ SizeF MarkdownViewMeasurer::Measure(MeasureSpec spec) {
     } else {
       MarkdownParserImpl::ParsePlainText(document_.get());
     }
-    if (trim_last_paragraph_space_) {
+    if (trim_paragraph_spaces_) {
       document_->TrimParagraphSpaces();
     }
     if (event_listener_) {

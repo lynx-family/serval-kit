@@ -14,8 +14,6 @@ typedef struct {
   float baseline;
 } ServalMarkdownMeasureResult;
 @protocol IMarkdownPlatformViewHandle <NSObject>
-- (void)requestMeasure;
-- (void)requestAlign;
 - (void)requestDraw;
 
 - (ServalMarkdownMeasureResult)

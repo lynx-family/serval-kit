@@ -119,7 +119,11 @@ class L_EXPORT MarkdownSelection {
     return {line_index, char_index};
   }
   static int GetCharPosInLineByX(tttext::TextLine* line, float x) {
-    return line->GetCharPosByCoordinateX(x);
+    if (line == nullptr || line->GetCharCount() == 0) {
+      return 0;
+    }
+    return std::clamp(static_cast<int>(line->GetCharPosByCoordinateX(x)), 0,
+                      static_cast<int>(line->GetCharCount() - 1));
   }
   static int FindRegionLineIndex(tttext::LayoutRegion* region, float y);
   static int FindTableRowIndex(MarkdownTableRegion* table, float y);

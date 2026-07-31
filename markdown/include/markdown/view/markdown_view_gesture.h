@@ -37,6 +37,7 @@ class MarkdownViewGesture {
   explicit MarkdownViewGesture(MarkdownViewContainerHandle* handle = nullptr,
                                MarkdownContext* context = nullptr,
                                MarkdownViewRenderer* renderer = nullptr);
+  void SetViewContainerHandle(MarkdownViewContainerHandle* handle);
   void SetRenderer(MarkdownViewRenderer* renderer);
   void SetDocument(std::shared_ptr<MarkdownDocument> document);
   void SetEventListener(MarkdownEventListener* listener);

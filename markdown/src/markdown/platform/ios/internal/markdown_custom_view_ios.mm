@@ -31,12 +31,6 @@ void MarkdownCustomViewIOS::AttachDrawable(
     [view attachDrawable:drawable_.get()];
   }
 }
-void MarkdownCustomViewIOS::RequestMeasure() {
-  MarkdownPlatformViewIOS::RequestMeasure();
-}
-void MarkdownCustomViewIOS::RequestAlign() {
-  MarkdownPlatformViewIOS::RequestAlign();
-}
 MeasureResult MarkdownCustomViewIOS::OnMeasure(MeasureSpec spec) {
   if (drawable_ == nullptr) {
     return {};

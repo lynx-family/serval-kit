@@ -50,8 +50,6 @@ class MarkdownPlatformView : public MarkdownDrawable {
  public:
   ~MarkdownPlatformView() override = default;
 
-  virtual void RequestMeasure() = 0;
-  virtual void RequestAlign() = 0;
   virtual void RequestDraw() = 0;
 
   void Align(float left, float top) override = 0;

@@ -88,8 +88,8 @@ void MarkdownSelectionHandle::UpdateViewRect(PointF pivot,
   } else if (handle_type_ == SelectionHandleType::kLeftHandle) {
     top = pivot.y_ - text_height_ - size_;
   }
-  view->Align(left, top);
   view->SetMeasuredSize(GetSize());
+  view->SetAlignPosition({left, top});
 }
 SizeF MarkdownSelectionHandle::GetSize() const {
   return {size_, size_};
@@ -148,7 +148,7 @@ void MarkdownSelectionHighlight::CalculateBoundingBox() {
 void MarkdownSelectionHighlight::UpdateViewRect(
     MarkdownPlatformView* view) const {
   view->SetMeasuredSize({bounding_box_.GetWidth(), bounding_box_.GetHeight()});
-  view->Align(bounding_box_.GetLeft(), bounding_box_.GetTop());
+  view->SetAlignPosition({bounding_box_.GetLeft(), bounding_box_.GetTop()});
 }
 
 }  // namespace serval::markdown

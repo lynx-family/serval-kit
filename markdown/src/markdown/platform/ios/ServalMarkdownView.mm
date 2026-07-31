@@ -80,7 +80,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
         std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
     markdown_view_handle_->AttachDrawable(
         std::make_shared<serval::markdown::MarkdownView>(
-            markdown_view_handle_.get(),
+            markdown_view_handle_.get(), markdown_view_handle_.get(),
             std::make_shared<serval::markdown::MarkdownContext>(
                 serval::markdown::CreateIOSMarkdownPlatform())));
     event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
@@ -246,6 +246,12 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     return YES;
   }
   return NO;
+}
+
+- (void)requestMeasure {
+  [self invalidateIntrinsicContentSize];
+  [self setNeedsLayout];
+  [self setNeedsDisplay];
 }
 
 - (MarkdownCustomDrawView*)createCustomView {

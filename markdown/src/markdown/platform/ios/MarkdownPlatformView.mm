@@ -48,16 +48,6 @@ static const CGFloat kMarkdownMaxMeasureSize = 1e8;
   return _nativePlatformView;
 }
 
-- (void)requestMeasure {
-  [self invalidateIntrinsicContentSize];
-  [self setNeedsLayout];
-  [self setNeedsDisplay];
-}
-
-- (void)requestAlign {
-  [self setNeedsLayout];
-}
-
 - (void)requestDraw {
   [self setNeedsDisplay];
 }

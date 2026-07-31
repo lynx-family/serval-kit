@@ -48,7 +48,7 @@ class MarkdownViewMeasurer {
 
   void SetTextMaxLines(int32_t max_lines);
   void SetEnableBreakAroundPunctuation(bool allow);
-  void SetTrimLastParagraphSpace(bool trim);
+  void SetTrimParagraphSpaces(bool trim);
   void SetPaddings(Paddings paddings);
 
   void NeedsMeasure();
@@ -73,7 +73,7 @@ class MarkdownViewMeasurer {
   int32_t content_start_{0};
   int32_t content_end_{std::numeric_limits<int32_t>::max()};
   bool break_around_punctuation_{false};
-  bool trim_last_paragraph_space_{false};
+  bool trim_paragraph_spaces_{false};
 
   std::string parser_type_{};
   void* parser_ud_{nullptr};

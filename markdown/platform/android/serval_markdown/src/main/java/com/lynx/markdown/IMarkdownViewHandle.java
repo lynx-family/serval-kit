@@ -7,8 +7,6 @@ import androidx.annotation.Keep;
 
 @Keep
 public interface IMarkdownViewHandle {
-  void requestMeasure();
-  void requestAlign();
   void requestDraw();
   long measure(int width, int widthMode, int height, int heightMode);
   void align(int left, int top);

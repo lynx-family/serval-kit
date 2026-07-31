@@ -104,6 +104,7 @@ This is a plain text paragraph, ***111****1* containing **bold**, *italic*, ***b
 
 `
   private contentLength = 1
+  private appendContentTimer = -1
 
   build() {
     Row() {
@@ -112,14 +113,25 @@ This is a plain text paragraph, ***111****1* containing **bold**, *italic*, ***b
   }
 
   appendContent() {
+    if (this.appendContentTimer >= 0) {
+      return
+    }
     if (this.contentLength >= this.content.length) {
       return
     }
-    this.contentLength += 2000;
-    this.servalMarkdownView.setContent(this.content.substring(0, this.contentLength))
-    // setTimeout(() => {
-    //   this.appendContent()
-    // }, 100)
+    this.appendContentTimer = setTimeout(() => {
+      this.appendContentTimer = -1
+      this.contentLength = Math.min(this.contentLength + 2, this.content.length)
+      this.servalMarkdownView.setContent(this.content.substring(0, this.contentLength))
+      this.appendContent()
+    }, 100)
+  }
+
+  aboutToDisappear(): void {
+    if (this.appendContentTimer >= 0) {
+      clearTimeout(this.appendContentTimer)
+      this.appendContentTimer = -1
+    }
   }
 
   onDidBuild(): void {

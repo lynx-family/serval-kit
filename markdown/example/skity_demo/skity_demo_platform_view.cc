@@ -18,14 +18,6 @@ void SkityDemoPlatformView::AttachDrawable(
   MarkdownCustomViewHandle::AttachDrawable(std::move(drawable));
 }
 
-void SkityDemoPlatformView::RequestMeasure() {
-  needs_measure_ = true;
-}
-
-void SkityDemoPlatformView::RequestAlign() {
-  needs_align_ = true;
-}
-
 void SkityDemoPlatformView::RequestDraw() {}
 
 void SkityDemoPlatformView::Align(float left, float top) {
@@ -73,18 +65,6 @@ MarkdownCustomViewHandle* SkityDemoPlatformView::GetCustomViewHandle() {
   return this;
 }
 
-bool SkityDemoPlatformView::TakeNeedsMeasure() {
-  const bool needs_measure = needs_measure_;
-  needs_measure_ = false;
-  return needs_measure;
-}
-
-bool SkityDemoPlatformView::TakeNeedsAlign() {
-  const bool needs_align = needs_align_;
-  needs_align_ = false;
-  return needs_align;
-}
-
 MeasureResult SkityDemoPlatformView::OnMeasure(MeasureSpec spec) {
   if (drawable_ == nullptr) {
     return {};
@@ -97,6 +77,16 @@ MeasureResult SkityDemoPlatformView::OnMeasure(MeasureSpec spec) {
 SkityDemoMainView::SkityDemoMainView()
     : view_rect_in_screen_(
           RectF::MakeLTWH(0, 0, kSkityDemoWidth, kSkityDemoHeight)) {}
+
+void SkityDemoMainView::RequestMeasure() {
+  needs_measure_ = true;
+}
+
+bool SkityDemoMainView::TakeNeedsMeasure() {
+  const bool needs_measure = needs_measure_;
+  needs_measure_ = false;
+  return needs_measure;
+}
 
 std::shared_ptr<MarkdownPlatformView> SkityDemoMainView::CreateCustomSubView() {
   auto view = std::make_shared<SkityDemoPlatformView>();

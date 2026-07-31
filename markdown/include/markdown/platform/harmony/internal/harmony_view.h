@@ -62,8 +62,6 @@ class HarmonyView : public MarkdownPlatformView {
   void SetLayoutPosition(int32_t x_offset, int32_t y_offset) {
     api_->setLayoutPosition(handle_, x_offset, y_offset);
   }
-  void RequestMeasure() override { MarkNeedsMeasure(); }
-  void RequestAlign() override { MarkNeedsLayout(); }
   void RequestDraw() override { MarkNeedsRender(); }
 
   void SetWidth(float width) {
@@ -92,7 +90,6 @@ class HarmonyView : public MarkdownPlatformView {
     api_->setAttribute(handle_, NODE_BACKGROUND_COLOR, &item);
   }
   void MarkNeedsMeasure() { api_->markDirty(handle_, NODE_NEED_MEASURE); }
-  void MarkNeedsLayout() { api_->markDirty(handle_, NODE_NEED_LAYOUT); }
   void MarkNeedsRender() { api_->markDirty(handle_, NODE_NEED_RENDER); }
 
   void AddChild(std::shared_ptr<HarmonyView> child) {

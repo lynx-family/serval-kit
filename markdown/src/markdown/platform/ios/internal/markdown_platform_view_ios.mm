@@ -32,18 +32,6 @@ MarkdownPlatformViewIOS::~MarkdownPlatformViewIOS() {
   }
 }
 
-void MarkdownPlatformViewIOS::RequestMeasure() {
-  if (handle_ != nil) {
-    [handle_ requestMeasure];
-  }
-}
-
-void MarkdownPlatformViewIOS::RequestAlign() {
-  if (handle_ != nil) {
-    [handle_ requestAlign];
-  }
-}
-
 void MarkdownPlatformViewIOS::RequestDraw() {
   if (handle_ != nil) {
     [handle_ requestDraw];

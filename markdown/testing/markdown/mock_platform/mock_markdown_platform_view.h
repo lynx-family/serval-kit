@@ -16,6 +16,7 @@
 #include "markdown/view/markdown_platform_view.h"
 #include "markdown/view/markdown_view.h"
 #include "markdown/view/markdown_view_gesture.h"
+#include "markdown/view/markdown_view_measure_host.h"
 
 namespace serval::markdown {
 class MarkdownView;
@@ -31,8 +32,6 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
                                     MockMarkdownPlatformView* parent);
   ~MockMarkdownPlatformView() override = default;
 
-  void RequestMeasure() override;
-  void RequestAlign() override;
   void RequestDraw() override;
 
   void Align(float left, float top) override;
@@ -114,13 +113,15 @@ class MockInlineView : public MockMarkdownPlatformView {
 };
 
 class MockMarkdownMainView : public MockMarkdownCustomView,
-                             public MarkdownViewContainerHandle {
+                             public MarkdownViewContainerHandle,
+                             public MarkdownViewMeasureHost {
   friend class MarkdownFrameDriver;
 
  public:
   MockMarkdownMainView(std::shared_ptr<MarkdownContext> context);
   ~MockMarkdownMainView() override = default;
 
+  void RequestMeasure() override;
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHandleSubView(

@@ -9,15 +9,16 @@
 #include <memory>
 #include <vector>
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
+#include "markdown/view/markdown_view_measure_host.h"
 namespace serval::markdown {
 class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
-                            public MarkdownViewContainerHandle {
+                            public MarkdownViewContainerHandle,
+                            public MarkdownViewMeasureHost {
  public:
   explicit MarkdownMainViewIOS(ServalMarkdownView* view);
   ~MarkdownMainViewIOS() override = default;
 
   void RequestMeasure() override;
-  void RequestAlign() override;
 
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
