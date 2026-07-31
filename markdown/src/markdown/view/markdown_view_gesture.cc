@@ -26,6 +26,18 @@ MarkdownViewGesture::MarkdownViewGesture(MarkdownViewContainerHandle* handle,
       selection_handle_size_(MarkdownScreenMetrics::DPToPx(10)),
       selection_handle_touch_margin_(MarkdownScreenMetrics::DPToPx(20)) {}
 
+void MarkdownViewGesture::SetViewContainerHandle(
+    MarkdownViewContainerHandle* handle) {
+  if (handle_ != nullptr || handle == nullptr) {
+    return;
+  }
+  handle_ = handle;
+  if (enable_selection_) {
+    CreateSelectionHandles();
+    UpdateSelectionViews();
+  }
+}
+
 void MarkdownViewGesture::SetRenderer(MarkdownViewRenderer* renderer) {
   renderer_ = renderer;
   ResetPan();
@@ -600,21 +612,21 @@ void MarkdownViewGesture::UpdateSelectionViews() const {
   auto* highlight = GetSelectionHighlight(selection_highlight_);
   highlight->SetRects(selection_highlight_rects_);
   highlight->UpdateViewRect(selection_highlight_.get());
-  selection_highlight_->RequestMeasure();
+  selection_highlight_->RequestDraw();
 
   const auto rect_start = selection_highlight_rects_.front();
   auto* handle_start = GetSelectionHandle(selection_handles_.left_);
   handle_start->SetTextHeight(rect_start.GetHeight());
   handle_start->UpdateViewRect({rect_start.GetLeft(), rect_start.GetBottom()},
                                selection_handles_.left_.get());
-  selection_handles_.left_->RequestMeasure();
+  selection_handles_.left_->RequestDraw();
 
   const auto& rect_end = selection_highlight_rects_.back();
   auto* handle_end = GetSelectionHandle(selection_handles_.right_);
   handle_end->SetTextHeight(rect_end.GetHeight());
   handle_end->UpdateViewRect({rect_end.GetRight(), rect_end.GetBottom()},
                              selection_handles_.right_.get());
-  selection_handles_.right_->RequestMeasure();
+  selection_handles_.right_->RequestDraw();
 }
 
 void MarkdownViewGesture::UpdateSelectionRects() {

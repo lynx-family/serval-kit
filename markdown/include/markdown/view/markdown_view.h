@@ -25,6 +25,7 @@
 #include "markdown/view/markdown_props.h"
 #include "markdown/view/markdown_view_animator.h"
 #include "markdown/view/markdown_view_gesture.h"
+#include "markdown/view/markdown_view_measure_host.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown_view_renderer.h"
 namespace serval::markdown {
@@ -41,8 +42,10 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
                                          GestureEventType event)>;
 
   MarkdownView(MarkdownPlatformView* view,
+               MarkdownViewMeasureHost* measure_host,
                std::shared_ptr<MarkdownContext> context);
   ~MarkdownView() override;
+  void SetView(MarkdownPlatformView* view);
   MarkdownContext* GetMarkdownContext() const;
   void SetResourceLoader(MarkdownResourceLoader* loader);
   MarkdownResourceLoader* GetResourceLoader() const;
@@ -126,7 +129,6 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
 
   void MarkDirty();
   void NeedsMeasure();
-  void NeedsAlign() const;
   void NeedsDraw() const;
 
   void SetLongPressListener(LongPressListener listener);
@@ -176,6 +178,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
  protected:
   MarkdownPlatformView* view_{nullptr};
   MarkdownViewContainerHandle* handle_{nullptr};
+  MarkdownViewMeasureHost* measure_host_{nullptr};
   std::unique_ptr<Value> attachments_;
   std::unique_ptr<Value> effect_;
 
@@ -233,8 +236,6 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   LongPressListener long_press_listener_;
   TapListener tap_listener_;
   PanListener pan_listener_;
-
-  bool trim_paragraph_spaces_{false};
 
   bool typewriter_height_transition_prefetch_{true};
   bool draw_start_sent_{false};

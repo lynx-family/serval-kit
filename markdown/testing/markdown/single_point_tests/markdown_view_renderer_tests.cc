@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <memory>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "markdown/view/markdown_view_measurer.h"
@@ -124,6 +125,39 @@ TEST(MarkdownViewRendererTest, EnableRegionViewControlsSubviewRendering) {
   renderer.SetEnableRegionView(true);
   renderer.OnNextFrame();
   EXPECT_GT(main_view.GetSubviewCount(), 0u);
+}
+
+TEST(MarkdownViewRendererTest, RebindsRegionViewsWhenDocumentChanges) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto first_document = CreateDocumentWithQuoteBorder(context);
+  auto second_document = CreateDocumentWithQuoteBorder(context);
+  ASSERT_NE(first_document, nullptr);
+  ASSERT_NE(second_document, nullptr);
+
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(first_document);
+  renderer.OnNextFrame();
+  ASSERT_GT(main_view.GetSubviewCount(), 0u);
+
+  const auto original_views = main_view.GetSubviews();
+  std::vector<MarkdownDrawable*> original_drawables;
+  for (auto* view : original_views) {
+    ASSERT_NE(view->GetCustomViewHandle(), nullptr);
+    original_drawables.push_back(view->GetCustomViewHandle()->GetDrawable());
+    view->needs_draw_ = false;
+  }
+
+  renderer.SetDocument(second_document);
+
+  ASSERT_EQ(main_view.GetSubviewCount(), original_views.size());
+  for (size_t i = 0; i < original_views.size(); ++i) {
+    EXPECT_TRUE(main_view.ContainsSubview(original_views[i]));
+    EXPECT_NE(original_views[i]->GetCustomViewHandle()->GetDrawable(),
+              original_drawables[i]);
+    EXPECT_TRUE(original_views[i]->needs_draw_);
+  }
 }
 
 }  // namespace serval::markdown::testing

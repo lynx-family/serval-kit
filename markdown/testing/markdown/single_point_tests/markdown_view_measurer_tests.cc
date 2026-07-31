@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 #include "../mock_platform/markdown_tests_platform.h"
+#include "markdown/layout/markdown_selection.h"
 #include "markdown/view/markdown_view_measurer.h"
 
 namespace serval::markdown {
@@ -89,6 +90,41 @@ TEST(MarkdownViewMeasurerTest, LineEndIndicesRespectMaxLines) {
   EXPECT_EQ(line_texts[0], "first");
   EXPECT_NE(document->GetContentByCharPos(0, line_ends[0]).find("first"),
             std::string::npos);
+}
+
+TEST(MarkdownViewMeasurerTest, CharHitPastWrappedLineEndStaysOnCurrentLine) {
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
+  measurer.SetSourceType(SourceType::kPlainText);
+  measurer.SetContent("abcdefghij");
+  MeasureSpec spec;
+  spec.width_ = 50;
+  spec.width_mode_ = tttext::LayoutMode::kDefinite;
+  spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
+  spec.height_mode_ = tttext::LayoutMode::kIndefinite;
+
+  measurer.Measure(spec);
+  auto page = measurer.GetDocument()->GetPage();
+  ASSERT_NE(page, nullptr);
+  auto* page_region =
+      static_cast<MarkdownPageParagraphRegion*>(page->GetRegion(0));
+  ASSERT_NE(page_region, nullptr);
+  ASSERT_NE(page_region->region_, nullptr);
+  ASSERT_GT(page_region->region_->GetLineCount(), 1);
+  auto* first_line = page_region->region_->GetLine(0);
+  ASSERT_NE(first_line, nullptr);
+  ASSERT_GT(first_line->GetCharCount(), 0u);
+
+  PointF point{
+      page_region->rect_.GetLeft() + first_line->GetLineRight() + 1.f,
+      page_region->rect_.GetTop() +
+          (first_line->GetLineTop() + first_line->GetLineBottom()) / 2.f};
+  auto range = MarkdownSelection::GetCharRangeByPoint(
+      page.get(), point, MarkdownSelection::CharRangeType::kChar);
+  auto line_end = static_cast<int32_t>(page_region->element_->GetCharStart() +
+                                       first_line->GetEndCharPos());
+
+  EXPECT_EQ(range.start_, line_end - 1);
+  EXPECT_EQ(range.end_, line_end);
 }
 
 }  // namespace serval::markdown

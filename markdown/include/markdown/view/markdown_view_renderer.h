@@ -39,6 +39,9 @@ class MarkdownViewRenderer {
   static void UpdateSubViewRect(MarkdownPlatformView* view, const RectF& rect);
   std::shared_ptr<MarkdownPlatformView> CreateRegionView(bool scroll_x);
   void RecycleRegionView(RegionViewEntry& entry);
+  void AttachRegionDrawable(MarkdownPlatformView* view, uint32_t region_index);
+  void AttachBorderDrawable(MarkdownPlatformView* view, uint32_t border_index);
+  void RebindRegionViews();
   bool NeedUseRegionView() const;
   bool NeedUpdateVisibleRegionViews(const RectF& view_rect) const;
   void RemoveAllRegionViews();

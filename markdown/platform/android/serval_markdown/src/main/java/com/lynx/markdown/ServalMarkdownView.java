@@ -63,6 +63,7 @@ public class ServalMarkdownView extends MarkdownGestureView {
       nativeSetExposureListenerEnabled(mInstance, listener != null);
     }
   }
+  public void requestMeasure() { requestLayout(); }
   protected CustomDrawView createCustomView() {
     CustomDrawView view = new CustomDrawView(getContext());
     view.mResourceManager = mResourceManager;

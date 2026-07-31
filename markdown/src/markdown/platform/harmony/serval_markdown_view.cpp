@@ -27,6 +27,7 @@
 #include "markdown/platform/harmony/markdown_platform_harmony.h"
 #include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/view/markdown_selection_view.h"
 #include "textra/platform_helper.h"
 namespace serval::markdown {
 namespace {
@@ -44,20 +45,23 @@ void UnregisterRecognizer(ArkUI_GestureRecognizer* recognizer) {
   std::lock_guard<std::mutex> lock(g_recognizer_to_view_mutex);
   g_recognizer_to_view.erase(recognizer);
 }
-}  // namespace
 
-class MarkdownRegionView : public HarmonyCustomView {
+class MarkdownLayoutSubView : public HarmonyCustomView {
  public:
-  ~MarkdownRegionView() override = default;
+  ~MarkdownLayoutSubView() override = default;
+
   void SetMeasuredSize(SizeF size) override {
+    MarkNeedsMeasure();
     MarkdownDrawable::Measure(MeasureSpec{});
     HarmonyView::SetMeasuredSize(size);
   }
+
   void SetAlignPosition(PointF position) override {
-    serval::markdown::HarmonyView::Align(position.x_, position.y_);
+    HarmonyView::Align(position.x_, position.y_);
     HarmonyView::SetAlignPosition(position);
   }
 };
+}  // namespace
 
 void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyEnv::SetEnv(env);
@@ -66,9 +70,9 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
 }
 NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
   AttachDrawable(std::make_shared<MarkdownView>(
-      this,
+      this, this,
       std::make_shared<MarkdownContext>(CreateHarmonyMarkdownPlatform())));
-  GetMarkdownView()->SetEnableRegionView(false);
+  GetMarkdownView()->SetEnableRegionView(true);
   GetMarkdownView()->SetResourceLoader(this);
   HarmonyVSyncManager::AddVSyncCallback(this);
   ArkUINativeAPI::GetGestureApi()->setGestureInterrupterToNode(
@@ -193,7 +197,7 @@ void NativeServalMarkdownView::RequestMeasure() {
   if (request_measure_callback_) {
     request_measure_callback_();
   } else {
-    HarmonyView::RequestMeasure();
+    MarkNeedsMeasure();
   }
 }
 
@@ -280,7 +284,7 @@ NativeServalMarkdownView::CreateCustomSubView() {
 
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateRegionSubView() {
-  auto custom_view = std::make_shared<MarkdownRegionView>();
+  auto custom_view = std::make_shared<MarkdownLayoutSubView>();
   InsertChild(custom_view, 0);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
@@ -288,6 +292,31 @@ NativeServalMarkdownView::CreateRegionSubView() {
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateScrollXRegionView() {
   return CreateRegionSubView();
+}
+
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateSelectionHighlightSubView(
+    const uint32_t color) {
+  const auto view = std::make_shared<MarkdownLayoutSubView>();
+  AddChild(view);
+  auto highlight = std::make_shared<MarkdownSelectionHighlight>();
+  highlight->SetColor(color);
+  view->GetCustomViewHandle()->AttachDrawable(std::move(highlight));
+  return view;
+}
+
+std::shared_ptr<MarkdownPlatformView>
+NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
+                                                       float size,
+                                                       uint32_t color) {
+  const auto view = std::make_shared<MarkdownLayoutSubView>();
+  AddChild(view);
+  auto selection_handle = std::make_shared<MarkdownSelectionHandle>(
+      size, type, color, SelectionHandleShape::kWaterDrop);
+  view->GetCustomViewHandle()->AttachDrawable(std::move(selection_handle));
+  view->SetClipByParent(false);
+  view->SetZIndex(9999);
+  return view;
 }
 
 ArkUI_GestureInterruptResult

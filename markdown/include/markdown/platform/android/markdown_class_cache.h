@@ -12,6 +12,7 @@
 
 #include "base/include/platform/android/scoped_java_ref.h"
 #include "markdown/view/markdown_platform_view.h"
+#include "markdown/view/markdown_view_measure_host.h"
 
 namespace serval::markdown {
 
@@ -65,8 +66,6 @@ class AndroidMarkdownView : public MarkdownPlatformView {
   AndroidMarkdownView(JNIEnv* env, jobject ref);
   ~AndroidMarkdownView() override = default;
   void UpdateObject(JNIEnv* env, jobject ref);
-  void RequestMeasure() override;
-  void RequestAlign() override;
   void RequestDraw() override;
   void Align(float left, float top) final;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
@@ -85,8 +84,6 @@ class AndroidMarkdownView : public MarkdownPlatformView {
 
  protected:
   static struct Methods {
-    jmethodID request_measure_{};
-    jmethodID request_align_{};
     jmethodID request_draw_{};
     jmethodID measure_{};
     jmethodID align_{};
@@ -117,10 +114,12 @@ class AndroidCustomView : public AndroidMarkdownView,
 };
 
 class AndroidMainView : public AndroidCustomView,
-                        public MarkdownViewContainerHandle {
+                        public MarkdownViewContainerHandle,
+                        public MarkdownViewMeasureHost {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMainView(JNIEnv* env, jobject ref);
+  void RequestMeasure() final;
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() final;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() final;
   std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() final;
@@ -142,6 +141,7 @@ class AndroidMainView : public AndroidCustomView,
   RectF cached_view_rect_in_screen_{};
 
   static struct Methods {
+    jmethodID request_measure_{};
     jmethodID create_custom_subview_{};
     jmethodID create_region_subview_{};
     jmethodID create_scroll_x_region_subview_{};

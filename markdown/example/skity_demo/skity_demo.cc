@@ -133,7 +133,8 @@ void SkityDemo::Start() {
   auto context = std::make_shared<MarkdownContext>(std::move(platform));
   root_view_.SetMarkdownContext(context.get());
 
-  markdown_view_ = std::make_shared<MarkdownView>(&root_view_, context);
+  markdown_view_ =
+      std::make_shared<MarkdownView>(&root_view_, &root_view_, context);
   root_view_.AttachDrawable(markdown_view_);
   markdown_view_->SetResourceLoader(resource_loader_.get());
   markdown_view_->SetEventListener(this);
@@ -165,7 +166,6 @@ void SkityDemo::Resize(int32_t width, int32_t height) {
   screen_width_ = width;
   screen_height_ = height;
   root_view_.RequestMeasure();
-  root_view_.RequestAlign();
 }
 
 void SkityDemo::Render(skity::Canvas* canvas, int64_t now_ms) {
@@ -459,7 +459,6 @@ void SkityDemo::ApplyCase(size_t index) {
   scroll_y_ = InitialScrollY(attributes);
   content_height_ = 0.f;
   root_view_.RequestMeasure();
-  root_view_.RequestAlign();
 
   const auto title = config_.window_title + " - " + demo_case.name + " (" +
                      std::to_string(case_index_ + 1) + "/" +
@@ -506,9 +505,6 @@ void SkityDemo::MeasureAndAlignIfNeeded() {
     content_height_ = std::max(result.height_, ViewportHeight());
     root_view_.SetMeasuredSize({layout_width, content_height_});
     ClampScrollY();
-    root_view_.RequestAlign();
-  }
-  if (root_view_.TakeNeedsAlign()) {
     root_view_.Align(0, 0);
   }
 }

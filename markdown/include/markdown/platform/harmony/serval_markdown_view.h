@@ -22,6 +22,7 @@
 namespace serval::markdown {
 class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
                                           public MarkdownViewContainerHandle,
+                                          public MarkdownViewMeasureHost,
                                           public MarkdownResourceLoader,
                                           public HarmonyVSyncCallback {
  public:

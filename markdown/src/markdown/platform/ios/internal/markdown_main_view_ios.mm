@@ -29,10 +29,7 @@ MarkdownMainViewIOS::MarkdownMainViewIOS(ServalMarkdownView* view)
     : MarkdownCustomViewIOS(view) {}
 
 void MarkdownMainViewIOS::RequestMeasure() {
-  MarkdownPlatformViewIOS::RequestMeasure();
-}
-void MarkdownMainViewIOS::RequestAlign() {
-  MarkdownPlatformViewIOS::RequestAlign();
+  [GetServalView() requestMeasure];
 }
 std::shared_ptr<MarkdownPlatformView>
 MarkdownMainViewIOS::CreateCustomSubView() {

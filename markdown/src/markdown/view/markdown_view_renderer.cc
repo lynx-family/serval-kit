@@ -21,6 +21,15 @@ namespace {
 constexpr float kViewVisibilityTolerant = 5.f;
 constexpr size_t kRegionViewPoolCapacity = 16;
 
+class MarkdownRegionPlaceholderDrawable final : public MarkdownDrawable {
+ public:
+  ~MarkdownRegionPlaceholderDrawable() override = default;
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
+
+ private:
+  MeasureResult OnMeasure(MeasureSpec spec) override { return {}; }
+};
+
 class MarkdownRegionDrawable final : public MarkdownDrawable {
  public:
   MarkdownRegionDrawable(std::shared_ptr<MarkdownDocument> document,
@@ -133,10 +142,11 @@ class MarkdownBorderDrawable final : public MarkdownDrawable {
 
 void MarkdownViewRenderer::SetDocument(
     std::shared_ptr<MarkdownDocument> document) {
-  if (document_ != document) {
-    RemoveAllRegionViews();
-  }
+  const bool document_changed = document_ != document;
   document_ = std::move(document);
+  if (document_changed) {
+    RebindRegionViews();
+  }
   region_views_dirty_ = true;
   full_redraw_required_ = true;
   has_last_view_rect_ = false;
@@ -230,6 +240,94 @@ std::shared_ptr<MarkdownPlatformView> MarkdownViewRenderer::CreateRegionView(
   return scroll_x ? handle_->CreateScrollXRegionView()
                   : handle_->CreateRegionSubView();
 }
+
+void MarkdownViewRenderer::AttachRegionDrawable(MarkdownPlatformView* view,
+                                                uint32_t region_index) {
+  if (view == nullptr || document_ == nullptr ||
+      view->GetCustomViewHandle() == nullptr) {
+    return;
+  }
+  auto drawable = std::make_shared<MarkdownRegionDrawable>(
+      document_, region_index, &animation_type_, &animation_step_);
+  drawable->SetContentComplete(content_complete_);
+  view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+}
+
+void MarkdownViewRenderer::AttachBorderDrawable(MarkdownPlatformView* view,
+                                                uint32_t border_index) {
+  if (view == nullptr || document_ == nullptr ||
+      view->GetCustomViewHandle() == nullptr) {
+    return;
+  }
+  view->GetCustomViewHandle()->AttachDrawable(
+      std::make_shared<MarkdownBorderDrawable>(document_, border_index));
+}
+
+void MarkdownViewRenderer::RebindRegionViews() {
+  auto page = document_ == nullptr ? nullptr : document_->GetPage();
+  const auto region_count =
+      page == nullptr ? 0 : static_cast<int32_t>(page->GetRegionCount());
+  for (auto iter = region_views_.begin(); iter != region_views_.end();) {
+    if (iter->second.view_ == nullptr ||
+        iter->second.view_->GetCustomViewHandle() == nullptr) {
+      iter = region_views_.erase(iter);
+      continue;
+    }
+    auto* region = iter->first >= 0 && iter->first < region_count
+                       ? page->GetRegion(static_cast<uint32_t>(iter->first))
+                       : nullptr;
+    if (region == nullptr || iter->second.scroll_x_ != region->scroll_x_) {
+      RecycleRegionView(iter->second);
+      iter = region_views_.erase(iter);
+      continue;
+    }
+    AttachRegionDrawable(iter->second.view_.get(),
+                         static_cast<uint32_t>(iter->first));
+    UpdateSubViewRect(iter->second.view_.get(),
+                      page->GetRegionRect(static_cast<uint32_t>(iter->first)));
+    iter->second.view_->RequestDraw();
+    ++iter;
+  }
+
+  const auto border_count =
+      page == nullptr ? 0 : static_cast<int32_t>(page->GetExtraBorderCount());
+  for (auto iter = border_views_.begin(); iter != border_views_.end();) {
+    if (iter->second == nullptr ||
+        iter->second->GetCustomViewHandle() == nullptr) {
+      iter = border_views_.erase(iter);
+      continue;
+    }
+    auto* border = iter->first >= 0 && iter->first < border_count
+                       ? page->GetExtraBorder(iter->first)
+                       : nullptr;
+    if (border == nullptr) {
+      if (handle_ != nullptr) {
+        handle_->RemoveSubView(iter->second.get());
+      }
+      iter = border_views_.erase(iter);
+      continue;
+    }
+    AttachBorderDrawable(iter->second.get(),
+                         static_cast<uint32_t>(iter->first));
+    UpdateSubViewRect(iter->second.get(), border->rect_);
+    iter->second->RequestDraw();
+    ++iter;
+  }
+
+  const auto detach_drawable = [](const auto& view) {
+    if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
+      view->GetCustomViewHandle()->AttachDrawable(
+          std::make_shared<MarkdownRegionPlaceholderDrawable>());
+    }
+  };
+  for (const auto& view : region_view_pool_) {
+    detach_drawable(view);
+  }
+  for (const auto& view : scroll_x_region_view_pool_) {
+    detach_drawable(view);
+  }
+}
+
 void MarkdownViewRenderer::RecycleRegionView(RegionViewEntry& entry) {
   if (entry.view_ == nullptr) {
     return;
@@ -322,11 +420,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
         const auto view = CreateRegionView(scroll_x);
         if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
           view->SetVisibility(true);
-          auto drawable = std::make_shared<MarkdownRegionDrawable>(
-              document_, static_cast<uint32_t>(i), &animation_type_,
-              &animation_step_);
-          drawable->SetContentComplete(content_complete_);
-          view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+          AttachRegionDrawable(view.get(), static_cast<uint32_t>(i));
           iter =
               region_views_.emplace(i, RegionViewEntry{view, scroll_x}).first;
           created = true;
@@ -371,9 +465,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
       if (iter == border_views_.end()) {
         const auto view = handle_->CreateRegionSubView();
         if (view != nullptr && view->GetCustomViewHandle() != nullptr) {
-          auto drawable =
-              std::make_shared<MarkdownBorderDrawable>(document_, i);
-          view->GetCustomViewHandle()->AttachDrawable(std::move(drawable));
+          AttachBorderDrawable(view.get(), static_cast<uint32_t>(i));
           iter = border_views_.emplace(i, view).first;
           created = true;
         }

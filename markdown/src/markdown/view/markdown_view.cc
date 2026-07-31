@@ -44,9 +44,11 @@ std::unique_ptr<Value> ConvertEffectToAttachment(ValueMap& effect) {
 }  // namespace
 
 MarkdownView::MarkdownView(MarkdownPlatformView* view,
+                           MarkdownViewMeasureHost* measure_host,
                            std::shared_ptr<MarkdownContext> context)
     : view_(view),
-      handle_(view->GetViewContainerHandle()),
+      handle_(view == nullptr ? nullptr : view->GetViewContainerHandle()),
+      measure_host_(measure_host),
       context_(std::move(context)),
       measurer_(context_),
       gesture_(handle_, context_.get(), &renderer_) {
@@ -54,6 +56,17 @@ MarkdownView::MarkdownView(MarkdownPlatformView* view,
 }
 MarkdownView::~MarkdownView() {
   gesture_.SetRenderer(nullptr);
+}
+void MarkdownView::SetView(MarkdownPlatformView* view) {
+  if (view_ != nullptr || view == nullptr) {
+    return;
+  }
+  view_ = view;
+  handle_ = view_->GetViewContainerHandle();
+  renderer_.SetViewContainerHandle(handle_);
+  gesture_.SetViewContainerHandle(handle_);
+  measure_host_->RequestMeasure();
+  view_->RequestDraw();
 }
 MarkdownContext* MarkdownView::GetMarkdownContext() const {
   return context_.get();
@@ -114,7 +127,9 @@ void MarkdownView::SetEnableBreakAroundPunctuation(bool allow) {
 }
 void MarkdownView::SetEnableRegionView(bool enable) {
   renderer_.SetEnableRegionView(enable);
-  view_->RequestDraw();
+  if (view_ != nullptr) {
+    view_->RequestDraw();
+  }
 }
 void MarkdownView::SetTextAttachments(std::unique_ptr<Value> attachments) {
   attachments_ = std::move(attachments);
@@ -131,9 +146,11 @@ void MarkdownView::SetAnimationType(const MarkdownAnimationType type) {
 void MarkdownView::SetAnimationStep(int32_t animation_step) {
   animator_.SetAnimationStep(animation_step);
   if (animator_.GetTypewriterDynamicHeight()) {
-    view_->RequestMeasure();
+    measure_host_->RequestMeasure();
   } else {
-    view_->RequestDraw();
+    if (view_ != nullptr) {
+      view_->RequestDraw();
+    }
     PublishRendererBundle();
   }
 }
@@ -146,7 +163,7 @@ void MarkdownView::SetHeightTransitionDuration(float duration) {
 }
 void MarkdownView::SetTypewriterHeightTransitionPrefetch(bool enable) {
   typewriter_height_transition_prefetch_ = enable;
-  view_->RequestMeasure();
+  measure_host_->RequestMeasure();
 }
 void MarkdownView::SetAnimationVelocity(float velocity) {
   animator_.SetAnimationVelocity(velocity);
@@ -239,13 +256,12 @@ void MarkdownView::MarkDirty() {
 }
 void MarkdownView::NeedsMeasure() {
   measurer_.NeedsMeasure();
-  view_->RequestMeasure();
-}
-void MarkdownView::NeedsAlign() const {
-  view_->RequestAlign();
+  measure_host_->RequestMeasure();
 }
 void MarkdownView::NeedsDraw() const {
-  view_->RequestDraw();
+  if (view_ != nullptr) {
+    view_->RequestDraw();
+  }
 }
 void MarkdownView::UpdateTextAttachments() {
   if (layout_data_.document_ == nullptr) {
@@ -286,9 +302,11 @@ void MarkdownView::UpdateAnimationStep() {
   const auto result = animator_.UpdateAnimationStep();
   if (result > 0) {
     if (animator_.GetTypewriterDynamicHeight()) {
-      view_->RequestMeasure();
+      measure_host_->RequestMeasure();
     } else {
-      view_->RequestDraw();
+      if (view_ != nullptr) {
+        view_->RequestDraw();
+      }
       PublishRendererBundle();
     }
   }
@@ -296,7 +314,7 @@ void MarkdownView::UpdateAnimationStep() {
 
 void MarkdownView::UpdateTransitionHeight() const {
   if (animator_.IsHeightTransitionRunning()) {
-    view_->RequestMeasure();
+    measure_host_->RequestMeasure();
   }
 }
 
@@ -358,7 +376,7 @@ void MarkdownView::SendDrawEnd() {
   }
 }
 void MarkdownView::UpdateExposure() {
-  if (exposure_listener_ == nullptr) {
+  if (exposure_listener_ == nullptr || handle_ == nullptr) {
     return;
   }
   if (renderer_data_.document_ == nullptr) {
@@ -439,6 +457,9 @@ std::set<MarkdownPlatformView*> MarkdownView::GetInlineViews() const {
 void MarkdownView::RemoveUnusedViews(
     const std::set<MarkdownPlatformView*>& before,
     const std::set<MarkdownPlatformView*>& after) const {
+  if (handle_ == nullptr) {
+    return;
+  }
   std::vector<MarkdownPlatformView*> diff;
   std::set_difference(before.begin(), before.end(), after.begin(), after.end(),
                       std::inserter(diff, diff.begin()));
@@ -528,7 +549,7 @@ void MarkdownView::SetTextSelection(const Range char_range) {
 }
 
 void MarkdownView::SetTrimParagraphSpaces(bool trim_spaces) {
-  trim_paragraph_spaces_ = trim_spaces;
+  measurer_.SetTrimParagraphSpaces(trim_spaces);
 }
 
 Range MarkdownView::GetSelectedRange() const {

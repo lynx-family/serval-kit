@@ -778,8 +778,7 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     para->AddTextRun(&new_style, number_str.c_str(), number_str.length());
     auto delegate = std::make_shared<MarkdownTextDelegate>(
         document_->GetContextPtr(), std::move(para),
-        style.ordered_list_number_.block_, document_->GetMaxWidth(),
-        document_->GetMaxHeight());
+        style.ordered_list_number_.block_, 0, 0);
     delegate->Measure(MeasureSpec{});
     context_.GetListItem()->SetMarker(delegate);
     context_.marker_ = delegate;

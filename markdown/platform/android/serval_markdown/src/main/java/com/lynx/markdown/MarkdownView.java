@@ -30,8 +30,6 @@ public class MarkdownView extends ViewGroup implements IMarkdownViewHandle {
     setMeasuredDimension(width, height);
   }
 
-  public void requestMeasure() { requestLayout(); }
-  public void requestAlign() { requestLayout(); }
   public void requestDraw() { invalidate(); }
 
   public long measure(int width, int widthMode, int height, int heightMode) {

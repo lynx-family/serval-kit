@@ -21,27 +21,16 @@ MockMarkdownMainView::MockMarkdownMainView(
     : MockMarkdownCustomView(nullptr, nullptr) {
   main_context_ = context;
   MockMarkdownCustomView::AttachDrawable(
-      std::make_unique<MarkdownView>(this, main_context_));
+      std::make_unique<MarkdownView>(this, this, main_context_));
   context_ = main_context_.get();
   view_id_ = 0;
   view_name_ = "main";
 }
 
-void MockMarkdownPlatformView::RequestMeasure() {
+void MockMarkdownMainView::RequestMeasure() {
   needs_measure_ = true;
   needs_align_ = true;
   needs_draw_ = true;
-  if (parent_) {
-    parent_->RequestMeasure();
-  }
-}
-
-void MockMarkdownPlatformView::RequestAlign() {
-  needs_align_ = true;
-  needs_draw_ = true;
-  if (parent_) {
-    parent_->RequestAlign();
-  }
 }
 
 void MockMarkdownPlatformView::RequestDraw() {

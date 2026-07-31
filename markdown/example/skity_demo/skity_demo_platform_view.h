@@ -10,6 +10,7 @@
 
 #include "markdown/element/markdown_context.h"
 #include "markdown/view/markdown_platform_view.h"
+#include "markdown/view/markdown_view_measure_host.h"
 
 namespace serval::markdown::example {
 
@@ -21,8 +22,6 @@ class SkityDemoPlatformView : public MarkdownPlatformView,
 
   void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) override;
 
-  void RequestMeasure() override;
-  void RequestAlign() override;
   void RequestDraw() override;
 
   void Align(float left, float top) override;
@@ -35,9 +34,6 @@ class SkityDemoPlatformView : public MarkdownPlatformView,
   void SetVisibility(bool visible) override;
   MarkdownCustomViewHandle* GetCustomViewHandle() override;
 
-  bool TakeNeedsMeasure();
-  bool TakeNeedsAlign();
-
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
@@ -45,16 +41,16 @@ class SkityDemoPlatformView : public MarkdownPlatformView,
   PointF align_position_;
   SizeF measured_size_;
   bool visible_{true};
-  bool needs_measure_{true};
-  bool needs_align_{true};
 };
 
 class SkityDemoMainView final : public SkityDemoPlatformView,
-                                public MarkdownViewContainerHandle {
+                                public MarkdownViewContainerHandle,
+                                public MarkdownViewMeasureHost {
  public:
   SkityDemoMainView();
   ~SkityDemoMainView() override = default;
 
+  void RequestMeasure() override;
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() override;
   std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() override;
@@ -70,6 +66,7 @@ class SkityDemoMainView final : public SkityDemoPlatformView,
 
   void SetMarkdownContext(MarkdownContext* context);
   void SetViewRectInScreen(RectF rect);
+  bool TakeNeedsMeasure();
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
@@ -86,6 +83,7 @@ class SkityDemoMainView final : public SkityDemoPlatformView,
   std::vector<std::shared_ptr<MarkdownPlatformView>> overlay_views_;
   RectF view_rect_in_screen_;
   MarkdownContext* markdown_context_{nullptr};
+  bool needs_measure_{true};
 };
 
 }  // namespace serval::markdown::example

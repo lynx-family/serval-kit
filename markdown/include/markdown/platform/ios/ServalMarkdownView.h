@@ -25,6 +25,7 @@
 - (NSString*)getContent:(int)start
                     end:(int)end
               indexType:(ServalMarkdownIndexType)indexType;
+- (void)requestMeasure;
 - (void)markDirty;
 - (NSString*)getContent;
 - (NSString*)getContentID;
