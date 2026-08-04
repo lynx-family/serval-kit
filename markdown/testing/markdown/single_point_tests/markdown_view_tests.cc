@@ -122,6 +122,25 @@ TEST(MarkdownViewTest, MeasuresWithoutPlatformViewAndBindsViewOnce) {
   EXPECT_FALSE(replacement_view.needs_draw_);
 }
 
+TEST(MarkdownViewTest, ContentIDComesFromRenderedDocument) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("markdown content");
+  view->SetContentID("content-id");
+
+  EXPECT_TRUE(view->GetContentID().empty());
+
+  main_view.Measure(MakeMeasureSpec());
+  EXPECT_TRUE(view->GetContentID().empty());
+
+  main_view.OnVSync(0);
+  EXPECT_EQ(view->GetContentID(), "content-id");
+
+  view->SetContentID("updated-content-id");
+  EXPECT_EQ(view->GetContentID(), "updated-content-id");
+}
+
 TEST(MarkdownViewTest, CreatesSelectionSubviewsAfterBindingView) {
   auto context = testing::CreateTestMarkdownSharedContext();
   CountingMarkdownViewMeasureHost measure_host;

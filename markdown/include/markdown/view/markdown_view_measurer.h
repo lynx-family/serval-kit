@@ -34,7 +34,6 @@ class MarkdownViewMeasurer {
 
   void SetContent(std::string_view content);
   void SetContentID(std::string_view id);
-  std::string GetContentID() const;
   void SetContentRange(Range range);
   int32_t GetContentStart() const { return content_start_; }
   int32_t GetContentEnd() const { return content_end_; }

@@ -12,7 +12,6 @@
 
 #include "base/include/platform/android/scoped_java_ref.h"
 #include "markdown/view/markdown_platform_view.h"
-#include "markdown/view/markdown_view_measure_host.h"
 
 namespace serval::markdown {
 
@@ -114,12 +113,10 @@ class AndroidCustomView : public AndroidMarkdownView,
 };
 
 class AndroidMainView : public AndroidCustomView,
-                        public MarkdownViewContainerHandle,
-                        public MarkdownViewMeasureHost {
+                        public MarkdownViewContainerHandle {
  public:
   static void Initialize(JNIEnv* env);
   AndroidMainView(JNIEnv* env, jobject ref);
-  void RequestMeasure() final;
   std::shared_ptr<MarkdownPlatformView> CreateCustomSubView() final;
   std::shared_ptr<MarkdownPlatformView> CreateRegionSubView() final;
   std::shared_ptr<MarkdownPlatformView> CreateScrollXRegionView() final;
@@ -127,6 +124,7 @@ class AndroidMainView : public AndroidCustomView,
       SelectionHandleType type, float size, uint32_t color) final;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) final;
+  void AddSubView(std::shared_ptr<AndroidMarkdownView> subview);
 
  public:
   void RemoveSubView(MarkdownPlatformView* subview) final;
@@ -141,7 +139,6 @@ class AndroidMainView : public AndroidCustomView,
   RectF cached_view_rect_in_screen_{};
 
   static struct Methods {
-    jmethodID request_measure_{};
     jmethodID create_custom_subview_{};
     jmethodID create_region_subview_{};
     jmethodID create_scroll_x_region_subview_{};

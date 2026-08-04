@@ -66,6 +66,7 @@ void MarkdownView::SetView(MarkdownPlatformView* view) {
   renderer_.SetViewContainerHandle(handle_);
   gesture_.SetViewContainerHandle(handle_);
   measure_host_->RequestMeasure();
+  ConsumeRendererBundleIfNeeded();
   view_->RequestDraw();
 }
 MarkdownContext* MarkdownView::GetMarkdownContext() const {
@@ -568,7 +569,10 @@ std::string MarkdownView::GetContent() const {
 }
 
 std::string MarkdownView::GetContentID() const {
-  return measurer_.GetContentID();
+  if (renderer_data_.document_ == nullptr) {
+    return {};
+  }
+  return renderer_data_.document_->GetContentID();
 }
 
 const std::vector<RectF>& MarkdownView::GetSelectedLineBoundingRect() {

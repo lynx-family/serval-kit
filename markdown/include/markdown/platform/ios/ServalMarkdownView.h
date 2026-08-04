@@ -11,8 +11,10 @@
 #import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
 #import <ServalMarkdown/IMarkdownResourceDelegate.h>
 #import <ServalMarkdown/MarkdownCustomDrawView.h>
+#import <ServalMarkdown/MarkdownMeasurer.h>
 #import <ServalMarkdown/ServalMarkdownConstants.h>
 @interface ServalMarkdownView : MarkdownCustomDrawView
+@property(nonatomic, strong, readonly) MarkdownMeasurer* markdownMeasurer;
 @property(nonatomic, strong) NSString* content;
 @property(nonatomic, strong) NSDictionary* style;
 @property(nonatomic, assign) ServalMarkdownAnimationType animationType;
@@ -21,6 +23,9 @@
 @property(nonatomic, weak) id<IMarkdownResourceDelegate> resourceDelegate;
 @property(nonatomic, weak) id<IMarkdownEventDelegate> eventDelegate;
 @property(nonatomic, weak) id<IMarkdownExposureDelegate> exposureDelegate;
+
+- (instancetype)initWithCreateMeasurer:(BOOL)createMeasurer;
+- (BOOL)attachMarkdownMeasurer:(MarkdownMeasurer*)measurer;
 
 - (NSString*)getContent:(int)start
                     end:(int)end

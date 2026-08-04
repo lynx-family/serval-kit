@@ -5,25 +5,19 @@
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #include <cstdint>
-#include <functional>
 #include <memory>
-#include <string>
 #include <unordered_map>
-#include <utility>
 
 #include "arkui/native_gesture.h"
-#include "markdown/platform/harmony/harmony_resource_loader.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
 #include "markdown/utils/markdown_marco.h"
-#include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
 #include "markdown/view/markdown_view_gesture.h"
 namespace serval::markdown {
+class NativeMarkdownMeasurer;
 class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
                                           public MarkdownViewContainerHandle,
-                                          public MarkdownViewMeasureHost,
-                                          public MarkdownResourceLoader,
                                           public HarmonyVSyncCallback {
  public:
   static void InitEnv(napi_env env);
@@ -31,24 +25,12 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
  public:
   NativeServalMarkdownView();
   ~NativeServalMarkdownView() override;
-  void SetContent(const std::string& content) const {
-    GetMarkdownView()->SetContent(content);
-  }
-  void SetStyle(const ValueMap& style) const {
-    GetMarkdownView()->SetStyle(style);
-  }
-  void MarkDirty() const { GetMarkdownView()->MarkDirty(); }
-  void SetConfig(const ValueMap& config);
-  using RequestMeasureCallback = std::function<void()>;
-  void SetRequestMeasureCallback(RequestMeasureCallback callback) {
-    request_measure_callback_ = std::move(callback);
-  }
+  bool SetMeasurer(NativeMarkdownMeasurer* measurer);
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());
   }
   void AttachToNodeContent(ArkUI_NodeContentHandle handle);
   void DetachFromNodeContent();
-  void SetResourceLoader(IHarmonyResourceLoader* loader) { loader_ = loader; }
 
   // MarkdownMainViewHandle
   void RemoveSubView(MarkdownPlatformView* view) override;
@@ -67,20 +49,6 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
       uint32_t color) override;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   // end
-  void* LoadFont(const char* family, MarkdownFontWeight wieght) override;
-  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
-                                                   float max_width,
-                                                   float max_height) override;
-  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
-                                              float desire_width,
-                                              float desire_height,
-                                              float max_width, float max_height,
-                                              float border_radius) override;
-  MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
-                                              float max_width,
-                                              float max_height) override;
-  // end
-
   // HarmonyVSyncCallback
   void OnVSync(int64_t time_stamp) override;
   // end
@@ -89,11 +57,15 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
     return this;
   }
 
-  void RequestMeasure() override;
+  void RequestMeasure();
 
  protected:
+  friend class NativeMarkdownMeasurer;
+
   RectF CalculateViewRectInScreen();
-  std::shared_ptr<MarkdownPlatformView> InsertEtsView(ArkUI_NodeHandle handle);
+  std::shared_ptr<MarkdownPlatformView> InsertEtsView(
+      ArkUI_NodeHandle handle,
+      std::shared_ptr<MarkdownPlatformView> existing_view = nullptr);
 
   static void UpdateDisplayMetrics();
   static ArkUI_GestureInterruptResult GestureInterruptDispatcher(
@@ -108,7 +80,6 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
                             GestureEventType event);
 
   ArkUI_NodeContentHandle node_content_handle_{nullptr};
-  IHarmonyResourceLoader* loader_;
 
   std::unordered_map<ArkUI_NodeHandle, std::shared_ptr<MarkdownPlatformView>>
       view_cache_;
@@ -119,7 +90,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   ArkUI_GestureRecognizer* tap_{nullptr};
   ArkUI_GestureRecognizer* pan_{nullptr};
   bool pan_tracking_{false};
-  RequestMeasureCallback request_measure_callback_;
+  NativeMarkdownMeasurer* measurer_{nullptr};
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_

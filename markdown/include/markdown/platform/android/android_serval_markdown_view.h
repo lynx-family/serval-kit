@@ -4,96 +4,29 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_ANDROID_SERVAL_MARKDOWN_VIEW_H_
-#include <cstdint>
-#include <memory>
-#include <string_view>
-#include "markdown/markdown_event_listener.h"
-#include "markdown/markdown_exposure_listener.h"
-#include "markdown/parser/markdown_resource_loader.h"
+
+#include <jni.h>
+
 #include "markdown/platform/android/markdown_class_cache.h"
-#include "markdown/view/markdown_view.h"
 
 namespace serval::markdown {
 
-class AndroidServalMarkdownView : public AndroidMainView,
-                                  public MarkdownResourceLoader,
-                                  public MarkdownEventListener,
-                                  public MarkdownExposureListener {
+class AndroidMarkdownMeasurer;
+class MarkdownView;
+
+class AndroidServalMarkdownView : public AndroidMainView {
  public:
-  static void Initialize(JNIEnv* env);
   AndroidServalMarkdownView(JNIEnv* env, jobject view);
-  MarkdownView* GetMarkdownView() {
-    return static_cast<MarkdownView*>(drawable_.get());
-  }
-  int LoadImage(const char* source);
-  std::shared_ptr<AndroidMarkdownView> LoadInlineView(const char* id);
-  int64_t LoadFont(const char* family, int32_t weight, int32_t style);
-  void SetExposureListenerEnabled(bool enabled);
+  ~AndroidServalMarkdownView() override;
+
+  void SetMeasurer(AndroidMarkdownMeasurer* measurer);
+  MarkdownView* GetMarkdownView();
+
   void OnLayoutFrame(int64_t time);
   void OnRendererFrame(int64_t time);
-  void OnVSync(int64_t time);
-  void OnFontLoaded(std::string_view family, int32_t weight, int32_t style);
-  void OnImageLoaded(std::string_view url);
 
- public:
-  std::shared_ptr<MarkdownDrawable> LoadImage(const char* src,
-                                              float desire_width,
-                                              float desire_height,
-                                              float max_width, float max_height,
-                                              float border_radius) override;
-  std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
-                                                   float max_width,
-                                                   float max_height) override;
-  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
-  MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
-                                              float max_width,
-                                              float max_height) override;
-
- public:
-  void OnParseEnd() override;
-  void OnTextOverflow(MarkdownTextOverflow overflow) override;
-  void OnDrawStart() override;
-  void OnDrawEnd() override;
-  void OnAnimationStep(int32_t animation_step,
-                       int32_t max_animation_step) override;
-  void OnLinkClicked(const char* url, const char* content) override;
-  void OnImageClicked(const char* url) override;
-  void OnSelectionChanged(int32_t start_index, int32_t end_index,
-                          SelectionHandleType handle,
-                          SelectionState state) override;
-
- public:
-  void OnLinkAppear(const char* url, const char* content) override;
-  void OnLinkDisappear(const char* url, const char* content) override;
-  void OnImageAppear(const char* url) override;
-  void OnImageDisappear(const char* url) override;
-
- protected:
-  SizeF GetImageSize(int32_t id);
-  lynx::base::android::ScopedWeakGlobalJavaRef<jobject> view_ref_;
-
- protected:
-  bool exposure_listener_enabled_{false};
-
- protected:
-  static struct Methods {
-    jmethodID load_image_{};
-    jmethodID get_image_size_{};
-    jmethodID load_inline_view_{};
-    jmethodID load_font_{};
-    jmethodID on_parse_end_{};
-    jmethodID on_text_overflow_{};
-    jmethodID on_draw_start_{};
-    jmethodID on_draw_end_{};
-    jmethodID on_animation_step_{};
-    jmethodID on_link_clicked_{};
-    jmethodID on_image_clicked_{};
-    jmethodID on_selection_changed_{};
-    jmethodID on_link_appear_{};
-    jmethodID on_link_disappear_{};
-    jmethodID on_image_appear_{};
-    jmethodID on_image_disappear_{};
-  } methods_;
+ private:
+  AndroidMarkdownMeasurer* measurer_{nullptr};
 };
 
 }  // namespace serval::markdown

@@ -12,14 +12,17 @@
 #include "base/include/platform/android/jni_convert_helper.h"
 #include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_drawable.h"
+#include "markdown/platform/android/android_markdown_measurer.h"
 #include "markdown/platform/android/android_serval_markdown_view.h"
 #include "markdown/platform/android/buffer_output_stream.h"
 #include "markdown/platform/android/markdown_buffer_reader.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
 #include "markdown/platform/android/markdown_platform_android.h"
 #include "markdown/utils/markdown_screen_metrics.h"
+#include "markdown/view/markdown_view.h"
 #include "markdown/view/markdown_view_gesture.h"
 #include "markdown/view/markdown_view_measurer.h"
+using serval::markdown::AndroidMarkdownMeasurer;
 using serval::markdown::AndroidServalMarkdownView;
 using serval::markdown::BufferInputStream;
 using serval::markdown::MarkdownBufferReader;
@@ -27,7 +30,6 @@ using serval::markdown::MarkdownClassCache;
 using serval::markdown::MarkdownDrawable;
 using serval::markdown::MarkdownJavaCanvasHelper;
 using serval::markdown::MarkdownJNIUtils;
-using serval::markdown::MarkdownViewMeasurer;
 using serval::markdown::MeasureSpec;
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_CustomDrawable_measure(JNIEnv* env, jclass clazz,
@@ -62,8 +64,18 @@ Java_com_lynx_markdown_CustomDrawable_nativeDrawCustomDrawable(JNIEnv* env,
       env, reinterpret_cast<const jbyte*>(buffer.GetBuffer()),
       static_cast<jsize>(buffer.GetSize()));
 }
-AndroidServalMarkdownView* ConvertView(jlong instance) {
+AndroidServalMarkdownView* ConvertPlatformView(jlong instance) {
   return reinterpret_cast<AndroidServalMarkdownView*>(instance);
+}
+AndroidMarkdownMeasurer* ConvertMeasurer(jlong instance) {
+  return reinterpret_cast<AndroidMarkdownMeasurer*>(instance);
+}
+serval::markdown::MarkdownView* GetMeasurerMarkdownView(jlong instance) {
+  return instance == 0 ? nullptr : ConvertMeasurer(instance)->GetMarkdownView();
+}
+serval::markdown::MarkdownView* GetPlatformMarkdownView(jlong instance) {
+  return instance == 0 ? nullptr
+                       : ConvertPlatformView(instance)->GetMarkdownView();
 }
 
 jobjectArray CreateJavaStringArray(JNIEnv* env,
@@ -90,6 +102,24 @@ jobjectArray CreateJavaStringArray(JNIEnv* env,
   return result;
 }
 
+jfloatArray CreateJavaRectArray(
+    JNIEnv* env, const std::vector<serval::markdown::RectF>& rects) {
+  std::vector<jfloat> values;
+  values.reserve(rects.size() * 4);
+  for (const auto& rect : rects) {
+    values.emplace_back(rect.GetLeft());
+    values.emplace_back(rect.GetTop());
+    values.emplace_back(rect.GetRight());
+    values.emplace_back(rect.GetBottom());
+  }
+  auto result = env->NewFloatArray(static_cast<jsize>(values.size()));
+  if (!values.empty()) {
+    env->SetFloatArrayRegion(result, 0, static_cast<jsize>(values.size()),
+                             values.data());
+  }
+  return result;
+}
+
 jbyteArray CreateMeasureResultBuffer(JNIEnv* env, serval::markdown::SizeF size,
                                      const std::vector<std::string>& lines) {
   serval::markdown::BufferOutputStream writer;
@@ -105,13 +135,13 @@ jbyteArray CreateMeasureResultBuffer(JNIEnv* env, serval::markdown::SizeF size,
 }
 
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_com_lynx_markdown_MarkdownMeasurer_nativeMeasure(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeMeasureLegacy(
     JNIEnv* env, jclass clazz, jstring markdown, jbyteArray style,
     jfloat max_width, jint max_lines, jfloat density) {
   serval::markdown::MarkdownScreenMetrics::SetDensity(density);
   auto context = std::make_shared<serval::markdown::MarkdownContext>(
       serval::markdown::CreateAndroidMarkdownPlatform());
-  MarkdownViewMeasurer measurer(std::move(context));
+  serval::markdown::MarkdownViewMeasurer measurer(std::move(context));
   if (style != nullptr) {
     const auto length = env->GetArrayLength(style);
     auto* array = env->GetByteArrayElements(style, nullptr);
@@ -198,29 +228,33 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeCreateInstance(JNIEnv* env,
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeDestroyInstance(
     JNIEnv* env, jobject thiz, jlong instance) {
-  auto* view = ConvertView(instance);
-  delete ConvertView(instance);
+  delete ConvertPlatformView(instance);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetContent(JNIEnv* env,
-                                                           jobject thiz,
-                                                           jlong instance,
-                                                           jstring content) {
-  auto* view = ConvertView(instance);
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetMarkdownMeasurer(
+    JNIEnv* env, jobject thiz, jlong instance, jlong measurer_instance) {
+  ConvertPlatformView(instance)->SetMeasurer(
+      ConvertMeasurer(measurer_instance));
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetContent(JNIEnv* env,
+                                                         jobject thiz,
+                                                         jlong instance,
+                                                         jstring content) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr || content == nullptr) {
+    return;
+  }
   auto length = env->GetStringUTFLength(content);
   auto* chars = env->GetStringUTFChars(content, nullptr);
-  view->GetMarkdownView()->SetContent({chars, static_cast<size_t>(length)});
+  markdown_view->SetContent({chars, static_cast<size_t>(length)});
   env->ReleaseStringUTFChars(content, chars);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeMarkDirty(JNIEnv* env,
-                                                          jobject thiz,
-                                                          jlong instance) {
-  if (instance == 0) {
-    return;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+Java_com_lynx_markdown_MarkdownMeasurer_nativeMarkDirty(JNIEnv* env,
+                                                        jobject thiz,
+                                                        jlong instance) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
   if (markdown_view == nullptr) {
     return;
   }
@@ -229,11 +263,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeMarkDirty(JNIEnv* env,
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetDocumentContent(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return env->NewStringUTF("");
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return env->NewStringUTF("");
   }
@@ -244,11 +274,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetContentID(JNIEnv* env,
                                                              jobject thiz,
                                                              jlong instance) {
-  if (instance == 0) {
-    return env->NewStringUTF("");
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return env->NewStringUTF("");
   }
@@ -261,11 +287,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetContent(JNIEnv* env,
                                                            jlong instance,
                                                            jint start, jint end,
                                                            jint index_type) {
-  if (instance == 0) {
-    return env->NewStringUTF("");
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return env->NewStringUTF("");
   }
@@ -276,11 +298,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetContent(JNIEnv* env,
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectedText(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return env->NewStringUTF("");
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return env->NewStringUTF("");
   }
@@ -291,84 +309,45 @@ extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetAllImageUrl(JNIEnv* env,
                                                                jobject thiz,
                                                                jlong instance) {
-  auto result = CreateJavaStringArray(env, {});
-  if (instance == 0) {
-    return result;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
-  if (markdown_view == nullptr) {
-    return result;
-  }
-  return CreateJavaStringArray(env, markdown_view->GetAllImageUrl());
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return CreateJavaStringArray(env, markdown_view == nullptr
+                                        ? std::vector<std::string>{}
+                                        : markdown_view->GetAllImageUrl());
 }
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetLinkUrl(JNIEnv* env,
                                                            jobject thiz,
                                                            jlong instance) {
-  auto result = CreateJavaStringArray(env, {});
-  if (instance == 0) {
-    return result;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
-  if (markdown_view == nullptr) {
-    return result;
-  }
-  return CreateJavaStringArray(env, markdown_view->GetLinkUrl());
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return CreateJavaStringArray(env, markdown_view == nullptr
+                                        ? std::vector<std::string>{}
+                                        : markdown_view->GetLinkUrl());
 }
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetLinkContent(JNIEnv* env,
                                                                jobject thiz,
                                                                jlong instance) {
-  auto result = CreateJavaStringArray(env, {});
-  if (instance == 0) {
-    return result;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
-  if (markdown_view == nullptr) {
-    return result;
-  }
-  return CreateJavaStringArray(env, markdown_view->GetLinkContent());
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return CreateJavaStringArray(env, markdown_view == nullptr
+                                        ? std::vector<std::string>{}
+                                        : markdown_view->GetLinkContent());
 }
 extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetLinkBoundingRect(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return env->NewFloatArray(0);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
-  if (markdown_view == nullptr) {
-    return env->NewFloatArray(0);
-  }
-  auto rects = markdown_view->GetLinkBoundingRect();
-  const auto float_count = static_cast<jsize>(rects.size() * 4);
-  auto result = env->NewFloatArray(float_count);
-  if (float_count == 0) {
-    return result;
-  }
-  std::vector<jfloat> flatten_rects;
-  flatten_rects.reserve(float_count);
-  for (const auto& rect : rects) {
-    flatten_rects.emplace_back(rect.GetLeft());
-    flatten_rects.emplace_back(rect.GetTop());
-    flatten_rects.emplace_back(rect.GetRight());
-    flatten_rects.emplace_back(rect.GetBottom());
-  }
-  env->SetFloatArrayRegion(result, 0, float_count, flatten_rects.data());
-  return result;
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return CreateJavaRectArray(env, markdown_view == nullptr
+                                      ? std::vector<serval::markdown::RectF>{}
+                                      : markdown_view->GetLinkBoundingRect());
 }
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSyntaxSourceRanges(
     JNIEnv* env, jobject thiz, jlong instance, jstring tag) {
   auto result = env->NewLongArray(0);
-  if (instance == 0 || tag == nullptr) {
+  if (tag == nullptr) {
     return result;
   }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return result;
   }
@@ -395,11 +374,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetSyntaxSourceRanges(
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectedRange(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return MarkdownJNIUtils::PackIntPair(-1, -1);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return MarkdownJNIUtils::PackIntPair(-1, -1);
   }
@@ -409,39 +384,16 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectedRange(
 extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectedLineBoundingRect(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return env->NewFloatArray(0);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
-  if (markdown_view == nullptr) {
-    return env->NewFloatArray(0);
-  }
-  const auto& rects = markdown_view->GetSelectedLineBoundingRect();
-  const auto float_count = static_cast<jsize>(rects.size() * 4);
-  auto result = env->NewFloatArray(float_count);
-  if (float_count == 0) {
-    return result;
-  }
-  std::vector<jfloat> flatten_rects;
-  flatten_rects.reserve(float_count);
-  for (const auto& rect : rects) {
-    flatten_rects.emplace_back(rect.GetLeft());
-    flatten_rects.emplace_back(rect.GetTop());
-    flatten_rects.emplace_back(rect.GetRight());
-    flatten_rects.emplace_back(rect.GetBottom());
-  }
-  env->SetFloatArrayRegion(result, 0, float_count, flatten_rects.data());
-  return result;
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return CreateJavaRectArray(
+      env, markdown_view == nullptr
+               ? std::vector<serval::markdown::RectF>{}
+               : markdown_view->GetSelectedLineBoundingRect());
 }
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectionHandlePosition(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return MarkdownJNIUtils::PackIntPair(-1, -1);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return MarkdownJNIUtils::PackIntPair(-1, -1);
   }
@@ -452,11 +404,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectionHandlePosition(
 extern "C" JNIEXPORT jfloat JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetSelectionHandleRadius(
     JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return 0;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return 0;
   }
@@ -466,41 +414,19 @@ extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetTextBoundingRect(
     JNIEnv* env, jobject thiz, jlong instance, jint start, jint end,
     jint index_type) {
-  if (instance == 0) {
-    return env->NewFloatArray(0);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return env->NewFloatArray(0);
   }
   auto char_range = ConvertToCharRange(markdown_view, start, end, index_type);
-  auto rects = markdown_view->GetTextLineBoundingRect(char_range);
-  const auto float_count = static_cast<jsize>(rects.size() * 4);
-  auto result = env->NewFloatArray(float_count);
-  if (float_count == 0) {
-    return result;
-  }
-  std::vector<jfloat> flatten_rects;
-  flatten_rects.reserve(float_count);
-  for (const auto& rect : rects) {
-    flatten_rects.emplace_back(rect.GetLeft());
-    flatten_rects.emplace_back(rect.GetTop());
-    flatten_rects.emplace_back(rect.GetRight());
-    flatten_rects.emplace_back(rect.GetBottom());
-  }
-  env->SetFloatArrayRegion(result, 0, float_count, flatten_rects.data());
-  return result;
+  return CreateJavaRectArray(
+      env, markdown_view->GetTextLineBoundingRect(char_range));
 }
 extern "C" JNIEXPORT jint JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetCharIndexByPoint(
     JNIEnv* env, jobject thiz, jlong instance, jfloat x, jfloat y,
     jint index_type) {
-  if (instance == 0) {
-    return -1;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return -1;
   }
@@ -514,11 +440,7 @@ extern "C" JNIEXPORT jlong JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeGetCharRangeByPoint(
     JNIEnv* env, jobject thiz, jlong instance, jfloat x, jfloat y,
     jint index_type, jint range_type) {
-  if (instance == 0) {
-    return MarkdownJNIUtils::PackIntPair(-1, -1);
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetPlatformMarkdownView(instance);
   if (markdown_view == nullptr) {
     return MarkdownJNIUtils::PackIntPair(-1, -1);
   }
@@ -538,13 +460,9 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetCharRangeByPoint(
   return MarkdownJNIUtils::PackIntPair(char_range.start_, char_range.end_);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetTextSelection(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetTextSelection(
     JNIEnv* env, jobject thiz, jlong instance, jint start, jint end) {
-  if (instance == 0) {
-    return;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
   if (markdown_view == nullptr) {
     return;
   }
@@ -555,38 +473,25 @@ Java_com_lynx_markdown_Markdown_initialClassCache(JNIEnv* env, jclass clazz) {
   MarkdownClassCache::GetInstance().Initial(env);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetDensity(JNIEnv* env,
-                                                           jobject thiz,
-                                                           jfloat density) {
-  serval::markdown::MarkdownScreenMetrics::SetDensity(density);
-}
-extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetStyle(JNIEnv* env,
-                                                         jobject thiz,
-                                                         jlong instance,
-                                                         jbyteArray buffer) {
-  if (buffer == nullptr || instance == 0)
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetStyle(JNIEnv* env,
+                                                       jobject thiz,
+                                                       jlong instance,
+                                                       jbyteArray buffer) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr || buffer == nullptr) {
     return;
-  auto view = ConvertView(instance);
+  }
   auto length = env->GetArrayLength(buffer);
   auto array = env->GetByteArrayElements(buffer, nullptr);
   BufferInputStream stream(reinterpret_cast<uint8_t*>(array), length);
   MarkdownBufferReader reader(stream);
   auto result = reader.ReadValue();
   env->ReleaseByteArrayElements(buffer, array, 0);
-  if (result->GetType() != serval::markdown::ValueType::kMap)
+  if (result == nullptr ||
+      result->GetType() != serval::markdown::ValueType::kMap) {
     return;
-  view->GetMarkdownView()->SetStyle(result->AsMap());
-}
-extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeOnVSync(JNIEnv* env,
-                                                        jobject thiz,
-                                                        jlong instance,
-                                                        jlong time) {
-  if (instance == 0)
-    return;
-  auto view = ConvertView(instance);
-  view->OnVSync(time);
+  }
+  markdown_view->SetStyle(result->AsMap());
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -597,7 +502,7 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnLayoutFrame(JNIEnv* env,
   if (instance == 0) {
     return;
   }
-  auto* view = ConvertView(instance);
+  auto* view = ConvertPlatformView(instance);
   view->OnLayoutFrame(time);
 }
 
@@ -609,48 +514,46 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(JNIEnv* env,
   if (instance == 0) {
     return;
   }
-  auto* view = ConvertView(instance);
+  auto* view = ConvertPlatformView(instance);
   view->OnRendererFrame(time);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeOnFontLoaded(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeOnFontLoaded(
     JNIEnv* env, jobject thiz, jlong instance, jstring family, jint weight,
     jint style) {
-  if (instance == 0 || family == nullptr) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr || family == nullptr) {
     return;
   }
-  auto* view = ConvertView(instance);
   const auto length = env->GetStringUTFLength(family);
   const auto* chars = env->GetStringUTFChars(family, nullptr);
-  view->OnFontLoaded({chars, static_cast<size_t>(length)},
-                     static_cast<int32_t>(weight), static_cast<int32_t>(style));
+  markdown_view->OnFontLoaded({chars, static_cast<size_t>(length)},
+                              static_cast<int32_t>(weight),
+                              static_cast<int32_t>(style));
   env->ReleaseStringUTFChars(family, chars);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeOnImageLoaded(JNIEnv* env,
-                                                              jobject thiz,
-                                                              jlong instance,
-                                                              jstring url) {
-  if (instance == 0 || url == nullptr) {
+Java_com_lynx_markdown_MarkdownMeasurer_nativeOnImageLoaded(JNIEnv* env,
+                                                            jobject thiz,
+                                                            jlong instance,
+                                                            jstring url) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr || url == nullptr) {
     return;
   }
-  auto* view = ConvertView(instance);
   const auto length = env->GetStringUTFLength(url);
   const auto* chars = env->GetStringUTFChars(url, nullptr);
-  view->OnImageLoaded({chars, static_cast<size_t>(length)});
+  markdown_view->OnImageLoaded({chars, static_cast<size_t>(length)});
   env->ReleaseStringUTFChars(url, chars);
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeGetAnimationStep(
-    JNIEnv* env, jobject thiz, jlong instance) {
-  if (instance == 0) {
-    return 0;
-  }
-  auto* view = ConvertView(instance);
-  auto* markdown_view = view->GetMarkdownView();
+Java_com_lynx_markdown_MarkdownMeasurer_nativeGetAnimationStep(JNIEnv* env,
+                                                               jobject thiz,
+                                                               jlong instance) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
   if (markdown_view == nullptr) {
     return 0;
   }
@@ -658,60 +561,55 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeGetAnimationStep(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetAnimationStep(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetAnimationStep(
     JNIEnv* env, jobject thiz, jlong instance, jint animation_step) {
-  if (instance == 0) {
-    return;
+  if (auto* view = GetMeasurerMarkdownView(instance); view != nullptr) {
+    view->SetAnimationStep(animation_step);
   }
-  auto* view = ConvertView(instance);
-  view->GetMarkdownView()->SetAnimationStep(animation_step);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetExposureListenerEnabled(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetExposureListenerEnabled(
     JNIEnv* env, jobject thiz, jlong instance, jboolean enabled) {
-  if (instance == 0) {
-    return;
+  if (instance != 0) {
+    ConvertMeasurer(instance)->SetExposureListenerEnabled(enabled == JNI_TRUE);
   }
-  auto* view = ConvertView(instance);
-  view->SetExposureListenerEnabled(enabled == JNI_TRUE);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetNumberProp(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetNumberProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jdouble value) {
-  if (instance == 0)
-    return;
-  auto* view = ConvertView(instance);
-  view->GetMarkdownView()->SetNumberProp(
-      static_cast<serval::markdown::MarkdownProps>(key), value);
+  if (auto* view = GetMeasurerMarkdownView(instance); view != nullptr) {
+    view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(key),
+                        value);
+  }
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetStringProp(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetStringProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jstring value) {
-  if (instance == 0) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr) {
     return;
   }
-  auto* view = ConvertView(instance);
   if (value == nullptr) {
-    view->GetMarkdownView()->SetStringProp(
+    markdown_view->SetStringProp(
         static_cast<serval::markdown::MarkdownProps>(key), "");
     return;
   }
   const auto length = env->GetStringUTFLength(value);
   const auto* chars = env->GetStringUTFChars(value, nullptr);
-  view->GetMarkdownView()->SetStringProp(
+  markdown_view->SetStringProp(
       static_cast<serval::markdown::MarkdownProps>(key),
       {chars, static_cast<size_t>(length)});
   env->ReleaseStringUTFChars(value, chars);
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueProp(
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetValueProp(
     JNIEnv* env, jobject thiz, jlong instance, jint key, jbyteArray config) {
-  if (instance == 0 || config == nullptr) {
+  auto* markdown_view = GetMeasurerMarkdownView(instance);
+  if (markdown_view == nullptr || config == nullptr) {
     return;
   }
-  auto* view = ConvertView(instance);
   const auto length = env->GetArrayLength(config);
   if (length <= 0) {
     return;
@@ -726,10 +624,48 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeSetValueProp(
   }
   const auto prop = static_cast<serval::markdown::MarkdownProps>(key);
   if (result->GetType() == serval::markdown::ValueType::kArray) {
-    view->GetMarkdownView()->SetArrayProp(prop, result->AsArray());
+    markdown_view->SetArrayProp(prop, result->AsArray());
   } else if (result->GetType() == serval::markdown::ValueType::kMap) {
-    view->GetMarkdownView()->SetMapProp(prop, result->AsMap());
+    markdown_view->SetMapProp(prop, result->AsMap());
   }
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeCreateInstance(JNIEnv* env,
+                                                             jobject thiz) {
+  return reinterpret_cast<jlong>(new AndroidMarkdownMeasurer(env, thiz));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeDestroyInstance(JNIEnv* env,
+                                                              jobject thiz,
+                                                              jlong instance) {
+  delete ConvertMeasurer(instance);
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeMeasureInstance(
+    JNIEnv* env, jobject thiz, jlong instance, jfloat width, jint width_mode,
+    jfloat height, jint height_mode) {
+  if (instance == 0) {
+    return MarkdownJNIUtils::PackMeasureResult(0, 0, 0);
+  }
+  auto* measurer = ConvertMeasurer(instance);
+  const auto result = measurer->Measure(
+      {.width_ = width,
+       .width_mode_ = static_cast<tttext::LayoutMode>(width_mode),
+       .height_ = height,
+       .height_mode_ = static_cast<tttext::LayoutMode>(height_mode)});
+  return MarkdownJNIUtils::PackMeasureResult(
+      static_cast<int32_t>(result.width_), static_cast<int32_t>(result.height_),
+      static_cast<int32_t>(result.baseline_));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeSetDensity(JNIEnv* env,
+                                                         jclass clazz,
+                                                         jfloat density) {
+  serval::markdown::MarkdownScreenMetrics::SetDensity(density);
 }
 
 serval::markdown::GestureEventType ConvertGestureEventType(jint type) {
@@ -753,12 +689,11 @@ Java_com_lynx_markdown_MarkdownGestureView_nativeDispatchTap(
   if (target == 0) {
     return JNI_FALSE;
   }
-  auto* view = ConvertView(target);
-  if (view->GetMarkdownView() == nullptr) {
+  auto* view = ConvertPlatformView(target)->GetMarkdownView();
+  if (view == nullptr) {
     return JNI_FALSE;
   }
-  return view->GetMarkdownView()->OnTap(
-             {x, y}, serval::markdown::GestureEventType::kDown)
+  return view->OnTap({x, y}, serval::markdown::GestureEventType::kDown)
              ? JNI_TRUE
              : JNI_FALSE;
 }
@@ -769,12 +704,11 @@ Java_com_lynx_markdown_MarkdownGestureView_nativeDispatchLongPress(
   if (target == 0) {
     return JNI_FALSE;
   }
-  auto* view = ConvertView(target);
-  if (view->GetMarkdownView() == nullptr) {
+  auto* view = ConvertPlatformView(target)->GetMarkdownView();
+  if (view == nullptr) {
     return JNI_FALSE;
   }
-  return view->GetMarkdownView()->OnLongPress(
-             {x, y}, serval::markdown::GestureEventType::kDown)
+  return view->OnLongPress({x, y}, serval::markdown::GestureEventType::kDown)
              ? JNI_TRUE
              : JNI_FALSE;
 }
@@ -786,13 +720,12 @@ Java_com_lynx_markdown_MarkdownGestureView_nativeShouldBeginPan(
   if (target == 0) {
     return JNI_FALSE;
   }
-  auto* view = ConvertView(target);
-  if (view->GetMarkdownView() == nullptr) {
+  auto* view = ConvertPlatformView(target)->GetMarkdownView();
+  if (view == nullptr) {
     return JNI_FALSE;
   }
-  return view->GetMarkdownView()->ShouldBeginPan({x, y}, {motion_x, motion_y})
-             ? JNI_TRUE
-             : JNI_FALSE;
+  return view->ShouldBeginPan({x, y}, {motion_x, motion_y}) ? JNI_TRUE
+                                                            : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -803,11 +736,10 @@ Java_com_lynx_markdown_MarkdownGestureView_nativeDispatchPan(
     return JNI_FALSE;
   }
   const auto event = ConvertGestureEventType(type);
-  auto* view = ConvertView(target);
-  if (view->GetMarkdownView() == nullptr) {
+  auto* view = ConvertPlatformView(target)->GetMarkdownView();
+  if (view == nullptr) {
     return JNI_FALSE;
   }
-  return view->GetMarkdownView()->OnPan({x, y}, {motion_x, motion_y}, event)
-             ? JNI_TRUE
-             : JNI_FALSE;
+  return view->OnPan({x, y}, {motion_x, motion_y}, event) ? JNI_TRUE
+                                                          : JNI_FALSE;
 }
