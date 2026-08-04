@@ -2,38 +2,49 @@ import { NodeContent } from "@kit.ArkUI";
 
 export const createNativeMarkdownNode: (node: NodeContent) => void;
 
-export const setMarkdownContent: (node: NodeContent, content: string) => void;
+export const createNativeMarkdownMeasurer: (measurer: object) => void;
 
-export const setMarkdownStyle: (node: NodeContent, style: object) => void;
-
-export const markDirty: (node: NodeContent) => void;
-
-export const setMarkdownConfig: (node: NodeContent, config: object) => void;
-
-export const registerImageLoader: (node: NodeContent, fn: Function) => void;
-
-export const registerFontLoader: (node: NodeContent, fn: Function) => void;
-
-export const registerInlineViewLoader: (
+export const setNativeMarkdownMeasurer: (
   node: NodeContent,
-  fn: Function
-) => void;
+  measurer: object
+) => boolean;
+
+export const setMarkdownContent: (measurer: object, content: string) => void;
+
+export const setMarkdownStyle: (measurer: object, style: object) => void;
+
+export const markDirty: (measurer: object) => void;
+
+export const setMarkdownConfig: (measurer: object, config: object) => void;
+
+export const measureMarkdown: (measurer: object, spec: object) => object;
+
+export const registerImageLoader: (measurer: object, fn: Function) => void;
+
+export const registerFontLoader: (measurer: object, fn: Function) => void;
+
+export const registerInlineViewLoader: (measurer: object, fn: Function) => void;
 
 export const registerReplacementViewLoader: (
-  node: NodeContent,
+  measurer: object,
   fn: Function
 ) => void;
 
-export const bindEvent: (node: NodeContent, name: string, fn: Function) => void;
+export const bindEvent: (measurer: object, name: string, fn: Function) => void;
 
 export const bindExposure: (
-  node: NodeContent,
+  measurer: object,
   name: string,
   fn: Function
 ) => void;
 
+export const setRequestMeasureCallback: (
+  measurer: object,
+  fn?: () => void
+) => void;
+
 export const applyStyleInRange: (
-  node: NodeContent,
+  measurer: object,
   style: object,
   start: number,
   end: number

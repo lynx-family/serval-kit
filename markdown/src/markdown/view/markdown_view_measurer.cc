@@ -39,10 +39,9 @@ void MarkdownViewMeasurer::SetContent(std::string_view content) {
 
 void MarkdownViewMeasurer::SetContentID(std::string_view id) {
   content_id_ = id;
-}
-
-std::string MarkdownViewMeasurer::GetContentID() const {
-  return content_id_;
+  if (document_ != nullptr) {
+    document_->SetContentID(content_id_);
+  }
 }
 
 void MarkdownViewMeasurer::SetContentRange(Range range) {
@@ -112,6 +111,7 @@ void MarkdownViewMeasurer::InitialDocument() {
   new_document->InheritState(document_.get());
   document_ = std::move(new_document);
   document_->SetMarkdownContent(content_);
+  document_->SetContentID(content_id_);
   document_->SetMarkdownContentRange({content_start_, content_end_});
   document_->SetMaxLines(text_max_lines_);
   document_->SetStyle(style_);

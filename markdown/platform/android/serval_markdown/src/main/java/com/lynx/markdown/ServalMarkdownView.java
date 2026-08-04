@@ -7,22 +7,16 @@ import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
-import android.util.DisplayMetrics;
 import android.view.Choreographer;
 import android.view.View;
 import androidx.annotation.Keep;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 @Keep
 public class ServalMarkdownView extends MarkdownGestureView {
   protected long mInstance = 0;
-  protected IResourceLoader mLoader = null;
-  protected IMarkdownEventListener mEventListener = null;
-  protected IMarkdownExposureListener mExposureListener = null;
+  protected MarkdownMeasurer mMeasurer = null;
   private boolean mAnimationPaused = false;
   private boolean mDisableInternalVSync = false;
   private boolean mInternalVSyncPosted = false;
@@ -32,36 +26,57 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private final Choreographer.FrameCallback mInternalVSyncCallback =
       this::onVSync;
 
-  public ServalMarkdownView(Context context) {
+  public ServalMarkdownView(Context context) { this(context, true); }
+  public ServalMarkdownView(Context context, boolean createMeasurer) {
     super(context, 0);
     Markdown.ensureInitialized();
     updateDisplayMetrics();
     mInstance = nativeCreateInstance();
     setNativeGestureTarget(mInstance);
-    mResourceManager = new MarkdownResourceManager();
+    if (createMeasurer) {
+      setMarkdownMeasurer(new MarkdownMeasurer(context));
+    }
     initialVSync();
     setClipChildren(false);
     setClipToPadding(false);
   }
   public void destroy() {
     clearInternalVSync();
+    attachDrawable(0);
     if (mInstance != 0) {
       nativeDestroyInstance(mInstance);
       mInstance = 0;
       setNativeGestureTarget(0);
     }
+    if (mMeasurer != null) {
+      mMeasurer.destroy();
+    }
+    mMeasurer = null;
     mAnimationPaused = false;
     mTotalPausedDurationMs = 0;
   }
-  public void setResourceLoader(IResourceLoader loader) { mLoader = loader; }
+  public void setMarkdownMeasurer(MarkdownMeasurer measurer) {
+    if (mInstance == 0 || mMeasurer != null || measurer == null ||
+        measurer.getNativeInstance() == 0) {
+      return;
+    }
+    mResourceManager = measurer.getResourceManager();
+    measurer.setMarkdownView(this);
+    nativeSetMarkdownMeasurer(mInstance, measurer.getNativeInstance());
+    mMeasurer = measurer;
+  }
+  public MarkdownMeasurer getMarkdownMeasurer() { return mMeasurer; }
+  public void setResourceLoader(IResourceLoader loader) {
+    if (mMeasurer != null)
+      mMeasurer.setResourceLoader(loader);
+  }
   public void setEventListener(IMarkdownEventListener listener) {
-    mEventListener = listener;
+    if (mMeasurer != null)
+      mMeasurer.setEventListener(listener);
   }
   public void setExposureListener(IMarkdownExposureListener listener) {
-    mExposureListener = listener;
-    if (mInstance != 0) {
-      nativeSetExposureListenerEnabled(mInstance, listener != null);
-    }
+    if (mMeasurer != null)
+      mMeasurer.setExposureListener(listener);
   }
   public void requestMeasure() { requestLayout(); }
   protected CustomDrawView createCustomView() {
@@ -106,142 +121,83 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
 
   public void setContent(String content) {
-    nativeSetContent(mInstance, content);
+    if (mMeasurer != null)
+      mMeasurer.setContent(content);
   }
   public void markDirty() {
-    if (mInstance == 0) {
-      return;
-    }
-    nativeMarkDirty(mInstance);
+    if (mMeasurer != null)
+      mMeasurer.markDirty();
   }
   public String getContent() {
-    if (mInstance == 0) {
-      return "";
-    }
-    return nativeGetDocumentContent(mInstance);
+    return mInstance == 0 ? "" : nativeGetDocumentContent(mInstance);
   }
   public String getContentID() {
-    if (mInstance == 0) {
-      return "";
-    }
-    return nativeGetContentID(mInstance);
+    return mInstance == 0 ? "" : nativeGetContentID(mInstance);
   }
   public String getContent(int start, int end, int indexType) {
-    if (mInstance == 0) {
-      return "";
-    }
-    return nativeGetContent(mInstance, start, end, indexType);
+    return mInstance == 0 ? ""
+                          : nativeGetContent(mInstance, start, end, indexType);
   }
   public String getSelectedText() {
-    if (mInstance == 0) {
-      return "";
-    }
-    return nativeGetSelectedText(mInstance);
+    return mInstance == 0 ? "" : nativeGetSelectedText(mInstance);
   }
   public String[] getAllImageUrl() {
-    if (mInstance == 0) {
-      return new String[0];
-    }
-    return nativeGetAllImageUrl(mInstance);
+    return mInstance == 0 ? new String[0] : nativeGetAllImageUrl(mInstance);
   }
   public String[] getLinkUrl() {
-    if (mInstance == 0) {
-      return new String[0];
-    }
-    return nativeGetLinkUrl(mInstance);
+    return mInstance == 0 ? new String[0] : nativeGetLinkUrl(mInstance);
   }
   public String[] getLinkContent() {
-    if (mInstance == 0) {
-      return new String[0];
-    }
-    return nativeGetLinkContent(mInstance);
+    return mInstance == 0 ? new String[0] : nativeGetLinkContent(mInstance);
   }
   public ArrayList<RectF> getLinkBoundingRect() {
-    ArrayList<RectF> result = new ArrayList<>();
-    if (mInstance == 0) {
-      return result;
-    }
-    float[] rects = nativeGetLinkBoundingRect(mInstance);
-    for (int i = 0; i + 3 < rects.length; i += 4) {
-      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
-    }
-    return result;
+    return convertRects(mInstance == 0 ? new float[0]
+                                       : nativeGetLinkBoundingRect(mInstance));
   }
   public long[] getSyntaxSourceRanges(String tag) {
-    if (mInstance == 0) {
-      return new long[0];
-    }
-    return nativeGetSyntaxSourceRanges(mInstance, tag);
+    return mInstance == 0 ? new long[0]
+                          : nativeGetSyntaxSourceRanges(mInstance, tag);
   }
   public long getSelectedRange() {
-    if (mInstance == 0) {
-      return MarkdownValuePack.packIntPair(-1, -1);
-    }
-    return nativeGetSelectedRange(mInstance);
+    return mInstance == 0 ? MarkdownValuePack.packIntPair(-1, -1)
+                          : nativeGetSelectedRange(mInstance);
   }
   public ArrayList<RectF> getSelectedLineBoundingRect() {
-    ArrayList<RectF> result = new ArrayList<>();
-    if (mInstance == 0) {
-      return result;
-    }
-    float[] rects = nativeGetSelectedLineBoundingRect(mInstance);
-    for (int i = 0; i + 3 < rects.length; i += 4) {
-      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
-    }
-    return result;
+    return convertRects(mInstance == 0
+                            ? new float[0]
+                            : nativeGetSelectedLineBoundingRect(mInstance));
   }
   public long getSelectionHandlePosition() {
-    if (mInstance == 0) {
-      return MarkdownValuePack.packIntPair(-1, -1);
-    }
-    return nativeGetSelectionHandlePosition(mInstance);
+    return mInstance == 0 ? MarkdownValuePack.packIntPair(-1, -1)
+                          : nativeGetSelectionHandlePosition(mInstance);
   }
   public float getSelectionHandleRadius() {
-    if (mInstance == 0) {
-      return 0;
-    }
-    return nativeGetSelectionHandleRadius(mInstance);
+    return mInstance == 0 ? 0 : nativeGetSelectionHandleRadius(mInstance);
   }
   public ArrayList<RectF> getTextBoundingRect(int start, int end,
                                               int indexType) {
-    ArrayList<RectF> result = new ArrayList<>();
-    if (mInstance == 0) {
-      return result;
-    }
-    float[] rects = nativeGetTextBoundingRect(mInstance, start, end, indexType);
-    for (int i = 0; i + 3 < rects.length; i += 4) {
-      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
-    }
-    return result;
+    return convertRects(mInstance == 0 ? new float[0]
+                                       : nativeGetTextBoundingRect(
+                                             mInstance, start, end, indexType));
   }
   public int getCharIndexByPoint(float x, float y, int indexType) {
-    if (mInstance == 0) {
-      return -1;
-    }
-    return nativeGetCharIndexByPoint(mInstance, x, y, indexType);
+    return mInstance == 0
+        ? -1
+        : nativeGetCharIndexByPoint(mInstance, x, y, indexType);
   }
   public long getCharRangeByPoint(float x, float y, int indexType,
                                   int rangeType) {
-    if (mInstance == 0) {
-      return MarkdownValuePack.packIntPair(-1, -1);
-    }
-    return nativeGetCharRangeByPoint(mInstance, x, y, indexType, rangeType);
+    return mInstance == 0
+        ? MarkdownValuePack.packIntPair(-1, -1)
+        : nativeGetCharRangeByPoint(mInstance, x, y, indexType, rangeType);
   }
   public void setTextSelection(int start, int end) {
-    if (mInstance == 0) {
-      return;
-    }
-    nativeSetTextSelection(mInstance, start, end);
+    if (mMeasurer != null)
+      mMeasurer.setTextSelection(start, end);
   }
   public void setStyle(HashMap<String, Object> style) {
-    MarkdownBufferWriter writer = new MarkdownBufferWriter();
-    try {
-      writer.writeMap(style);
-      byte[] buffer = writer.getBuffer();
-      nativeSetStyle(mInstance, buffer);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    if (mMeasurer != null)
+      mMeasurer.setStyle(style);
   }
 
   public void setAnimationType(int animationType) {
@@ -254,10 +210,7 @@ public class ServalMarkdownView extends MarkdownGestureView {
     setNumberProp(Constants.MARKDOWN_PROPS_INITIAL_ANIMATION_STEP, initialStep);
   }
   public int getAnimationStep() {
-    if (mInstance == 0) {
-      return 0;
-    }
-    return nativeGetAnimationStep(mInstance);
+    return mMeasurer == null ? 0 : mMeasurer.getAnimationStep();
   }
   public void pauseAnimation() {
     if (mAnimationPaused) {
@@ -268,8 +221,8 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
   public void resumeAnimation() { resumeAnimation(-1); }
   public void resumeAnimation(int animationStep) {
-    if (animationStep != -1 && mInstance != 0) {
-      nativeSetAnimationStep(mInstance, animationStep);
+    if (animationStep != -1 && mMeasurer != null) {
+      mMeasurer.setAnimationStep(animationStep);
     }
     if (mAnimationPaused) {
       mAnimationPaused = false;
@@ -284,36 +237,25 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
   public void setColorProp(int key, int value) { setNumberProp(key, value); }
   public void setNumberProp(int key, double value) {
-    nativeSetNumberProp(mInstance, key, value);
+    if (mMeasurer != null)
+      mMeasurer.setNumberProp(key, value);
   }
   public void setStringProp(int key, String value) {
-    nativeSetStringProp(mInstance, key, value);
+    if (mMeasurer != null)
+      mMeasurer.setStringProp(key, value);
   }
   public void setArrayProp(int key, ArrayList<Object> object) {
-    MarkdownBufferWriter writer = new MarkdownBufferWriter();
-    try {
-      writer.writeArray(object);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    nativeSetValueProp(mInstance, key, writer.getBuffer());
+    if (mMeasurer != null)
+      mMeasurer.setArrayProp(key, object);
   }
 
   public void setObjectProp(int key, HashMap<String, Object> object) {
-    MarkdownBufferWriter writer = new MarkdownBufferWriter();
-    try {
-      writer.writeMap(object);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    nativeSetValueProp(mInstance, key, writer.getBuffer());
+    if (mMeasurer != null)
+      mMeasurer.setObjectProp(key, object);
   }
 
   protected void updateDisplayMetrics() {
-    DisplayMetrics metrics = getResources().getDisplayMetrics();
-    if (metrics != null) {
-      nativeSetDensity(metrics.density);
-    }
+    MarkdownMeasurer.updateDensity(getContext());
   }
   protected void initialVSync() { postInternalVSync(); }
   protected void onVSync(long frameTimeNanos) {
@@ -351,19 +293,13 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
 
   public void onFontLoaded(String family, int weight, int style) {
-    if (mInstance == 0 || family == null) {
-      return;
-    }
-    requestMeasure();
-    nativeOnFontLoaded(mInstance, family, weight, style);
+    if (mMeasurer != null)
+      mMeasurer.onFontLoaded(family, weight, style);
   }
 
   public void onImageLoaded(String url) {
-    if (mInstance == 0 || url == null) {
-      return;
-    }
-    requestMeasure();
-    nativeOnImageLoaded(mInstance, url);
+    if (mMeasurer != null)
+      mMeasurer.onImageLoaded(url);
   }
 
   private void postInternalVSync() {
@@ -382,102 +318,18 @@ public class ServalMarkdownView extends MarkdownGestureView {
     mInternalVSyncPosted = false;
   }
 
-  protected int loadImage(String source) {
-    if (mLoader == null)
-      return 0;
-    Drawable drawable = mLoader.loadImage(source);
-    if (drawable == null)
-      return 0;
-    return mResourceManager.add(drawable);
-  }
-  protected long getImageSize(int id) {
-    Drawable drawable = mResourceManager.getRunDelegate(id);
-    if (drawable == null) {
-      return MarkdownValuePack.packIntPair(0, 0);
+  private static ArrayList<RectF> convertRects(float[] rects) {
+    ArrayList<RectF> result = new ArrayList<>();
+    for (int i = 0; i + 3 < rects.length; i += 4) {
+      result.add(new RectF(rects[i], rects[i + 1], rects[i + 2], rects[i + 3]));
     }
-    Rect bounds = drawable.getBounds();
-    int width = bounds.width();
-    int height = bounds.height();
-    if (width <= 0 || height <= 0) {
-      width = drawable.getIntrinsicWidth();
-      height = drawable.getIntrinsicHeight();
-    }
-    if (width < 0) {
-      width = 0;
-    }
-    if (height < 0) {
-      height = 0;
-    }
-    return MarkdownValuePack.packIntPair(width, height);
-  }
-  protected IMarkdownViewHandle loadInlineView(String id) {
-    if (mLoader == null)
-      return null;
-    return mLoader.loadInlineView(id);
-  }
-  protected long loadFont(String family, int weight, int style) {
-    if (mLoader == null)
-      return 0;
-    Typeface typeface = mLoader.loadFont(family, weight, style);
-    if (typeface == null)
-      return 0;
-    return mResourceManager.add(typeface, family, weight, style).mIndex;
+    return result;
   }
 
-  protected void onParseEnd() {
-    if (mEventListener != null)
-      mEventListener.onParseEnd();
-  }
-  protected void onTextOverflow(int overflow) {
-    if (mEventListener != null)
-      mEventListener.onTextOverflow(overflow);
-  }
-  protected void onDrawStart() {
-    if (mEventListener != null)
-      mEventListener.onDrawStart();
-  }
-  protected void onDrawEnd() {
-    if (mEventListener != null)
-      mEventListener.onDrawEnd();
-  }
-  protected void onAnimationStep(int animationStep, int maxAnimationStep) {
-    if (mEventListener != null)
-      mEventListener.onAnimationStep(animationStep, maxAnimationStep);
-  }
-  protected void onLinkClicked(String url, String content) {
-    if (mEventListener != null)
-      mEventListener.onLinkClicked(url, content);
-  }
-  protected void onImageClicked(String url) {
-    if (mEventListener != null)
-      mEventListener.onImageClicked(url);
-  }
-  protected void onSelectionChanged(int startIndex, int endIndex, int handle,
-                                    int state) {
-    if (mEventListener != null)
-      mEventListener.onSelectionChanged(startIndex, endIndex, handle, state);
-  }
-
-  protected void onLinkAppear(String url, String content) {
-    if (mExposureListener != null)
-      mExposureListener.onLinkAppear(url, content);
-  }
-  protected void onLinkDisappear(String url, String content) {
-    if (mExposureListener != null)
-      mExposureListener.onLinkDisappear(url, content);
-  }
-  protected void onImageAppear(String url) {
-    if (mExposureListener != null)
-      mExposureListener.onImageAppear(url);
-  }
-  protected void onImageDisappear(String url) {
-    if (mExposureListener != null)
-      mExposureListener.onImageDisappear(url);
-  }
   private native long nativeCreateInstance();
+  private native void nativeSetMarkdownMeasurer(long instance,
+                                                long measurerInstance);
   private native void nativeDestroyInstance(long instance);
-  private native void nativeSetContent(long instance, String content);
-  private native void nativeMarkDirty(long instance);
   private native String nativeGetDocumentContent(long instance);
   private native String nativeGetContentID(long instance);
   private native String nativeGetContent(long instance, int start, int end,
@@ -498,19 +350,6 @@ public class ServalMarkdownView extends MarkdownGestureView {
                                                int indexType);
   private native long nativeGetCharRangeByPoint(long instance, float x, float y,
                                                 int indexType, int rangeType);
-  private native void nativeSetTextSelection(long instance, int start, int end);
-  private native void nativeSetDensity(float density);
-  private native void nativeSetStyle(long instance, byte[] buffer);
   private native void nativeOnLayoutFrame(long instance, long time);
   private native void nativeOnRendererFrame(long instance, long time);
-  private native void nativeOnFontLoaded(long instance, String family,
-                                         int weight, int style);
-  private native void nativeOnImageLoaded(long instance, String url);
-  private native int nativeGetAnimationStep(long instance);
-  private native void nativeSetAnimationStep(long instance, int animationStep);
-  private native void nativeSetNumberProp(long instance, int key, double value);
-  private native void nativeSetStringProp(long instance, int key, String value);
-  private native void nativeSetValueProp(long instance, int key, byte[] value);
-  private native void nativeSetExposureListenerEnabled(long instance,
-                                                       boolean enabled);
 }

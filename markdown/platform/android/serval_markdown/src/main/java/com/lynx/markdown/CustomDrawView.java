@@ -14,10 +14,6 @@ public class CustomDrawView extends MarkdownView {
   }
 
   @Override
-  protected void onLayout(boolean b, int left, int top, int right, int bottom) {
-  }
-
-  @Override
   public void align(int left, int top) {
     super.align(left, top);
     if (mDrawable != 0) {
@@ -28,11 +24,15 @@ public class CustomDrawView extends MarkdownView {
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
+    if (mDrawable == 0)
+      return;
     CustomDrawable.draw(mDrawable, canvas, mResourceManager);
   }
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    if (mDrawable == 0)
+      return;
     int width = MeasureSpec.getSize(widthMeasureSpec);
     int wMode = MeasureSpec.getMode(widthMeasureSpec);
     int height = MeasureSpec.getSize(heightMeasureSpec);

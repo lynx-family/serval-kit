@@ -6,17 +6,14 @@
 #import "markdown/platform/ios/MarkdownCustomDrawView.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <memory>
-#include "markdown/element/markdown_context.h"
+#include <string>
+#include <vector>
+
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
-#include "markdown/platform/ios/internal/markdown_event_ios.h"
-#include "markdown/platform/ios/internal/markdown_exposure_ios.h"
 #include "markdown/platform/ios/internal/markdown_main_view_ios.h"
-#include "markdown/platform/ios/internal/markdown_platform_ios.h"
-#include "markdown/platform/ios/internal/markdown_resource_loader_ios.h"
-#include "markdown/platform/ios/internal/markdown_value_convert.h"
+#include "markdown/platform/ios/internal/markdown_measurer_ios.h"
 #include "markdown/view/markdown_view.h"
 
 namespace {
@@ -24,9 +21,36 @@ serval::markdown::PointF ConvertPoint(CGPoint point) {
   return {static_cast<float>(point.x), static_cast<float>(point.y)};
 }
 
+NSArray<NSString*>* ConvertStrings(const std::vector<std::string>& strings) {
+  NSMutableArray<NSString*>* result =
+      [NSMutableArray arrayWithCapacity:strings.size()];
+  for (const auto& string : strings) {
+    NSString* value =
+        string.empty() ? @""
+                       : [[NSString alloc] initWithBytes:string.data()
+                                                  length:string.size()
+                                                encoding:NSUTF8StringEncoding];
+    [result addObject:value == nil ? @"" : value];
+  }
+  return result;
+}
+
+NSArray<NSValue*>* ConvertRects(
+    const std::vector<serval::markdown::RectF>& rects) {
+  NSMutableArray<NSValue*>* result =
+      [NSMutableArray arrayWithCapacity:rects.size()];
+  for (const auto& rect : rects) {
+    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
+                                                          rect.GetTop(),
+                                                          rect.GetWidth(),
+                                                          rect.GetHeight())]];
+  }
+  return result;
+}
+
 serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
-    ServalMarkdownCharRangeType range_type) {
-  switch (range_type) {
+    ServalMarkdownCharRangeType type) {
+  switch (type) {
     case kServalMarkdownCharRangeTypeWord:
       return serval::markdown::MarkdownSelection::CharRangeType::kWord;
     case kServalMarkdownCharRangeTypeSentence:
@@ -42,9 +66,6 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }  // namespace
 
 @interface ServalMarkdownView () <UIGestureRecognizerDelegate> {
-  std::unique_ptr<serval::markdown::MarkdownEventIOS> event_listener_;
-  std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
-  std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
   std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
   BOOL animationPaused_;
   BOOL disableInternalVSync_;
@@ -56,6 +77,7 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   UIPanGestureRecognizer* panGestureRecognizer_;
   BOOL isLongPress_;
 }
+@property(nonatomic, strong, readwrite) MarkdownMeasurer* markdownMeasurer;
 @property(nonatomic, strong) CADisplayLink* displayLink;
 @property(nonatomic, strong) NSMutableArray<UIView*>* customSubviews;
 
@@ -73,24 +95,17 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 
 @implementation ServalMarkdownView
 - (instancetype)init {
+  return [self initWithCreateMeasurer:YES];
+}
+- (instancetype)initWithCreateMeasurer:(BOOL)createMeasurer {
   self = [super init];
   if (self != nil) {
     self.customSubviews = [[NSMutableArray alloc] init];
     markdown_view_handle_ =
         std::make_unique<serval::markdown::MarkdownMainViewIOS>(self);
-    markdown_view_handle_->AttachDrawable(
-        std::make_shared<serval::markdown::MarkdownView>(
-            markdown_view_handle_.get(), markdown_view_handle_.get(),
-            std::make_shared<serval::markdown::MarkdownContext>(
-                serval::markdown::CreateIOSMarkdownPlatform())));
-    event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
-    resource_loader_ =
-        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();
-    exposure_listener_ =
-        std::make_unique<serval::markdown::MarkdownExposureIOS>();
-    auto* view = [self getMarkdownView];
-    view->SetEventListener(event_listener_.get());
-    view->SetResourceLoader(resource_loader_.get());
+    if (createMeasurer) {
+      [self attachMarkdownMeasurer:[[MarkdownMeasurer alloc] init]];
+    }
     [self setupGesture];
     __unsafe_unretained id weakSelf = self;
     self.displayLink =
@@ -111,15 +126,19 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (void)dealloc {
   [self.displayLink invalidate];
   self.displayLink = nil;
-  auto* view = [self getMarkdownView];
-  if (view != nullptr) {
-    view->SetExposureListener(nullptr);
-    view->SetEventListener(nullptr);
-    view->SetResourceLoader(nullptr);
+  if (self.markdownMeasurer != nil && markdown_view_handle_ != nullptr) {
+    [self.markdownMeasurer detachFromView:markdown_view_handle_.get()];
   }
-  exposure_listener_.reset();
-  event_listener_.reset();
-  resource_loader_.reset();
+}
+
+- (BOOL)attachMarkdownMeasurer:(MarkdownMeasurer*)measurer {
+  if (measurer == nil || self.markdownMeasurer != nil ||
+      markdown_view_handle_ == nullptr ||
+      ![measurer bindToView:markdown_view_handle_.get()]) {
+    return NO;
+  }
+  self.markdownMeasurer = measurer;
+  return YES;
 }
 
 - (void)setupGesture {
@@ -289,80 +308,72 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   [self onRendererFrame:frame_time_nanos];
 }
 - (serval::markdown::MarkdownView*)getMarkdownView {
-  if (markdown_view_handle_ == nullptr) {
-    return nullptr;
-  }
-  return static_cast<serval::markdown::MarkdownView*>(
-      markdown_view_handle_->GetDrawable());
+  return markdown_view_handle_ == nullptr
+             ? nullptr
+             : static_cast<serval::markdown::MarkdownView*>(
+                   markdown_view_handle_->GetDrawable());
 }
 
 - (void)setResourceDelegate:(id<IMarkdownResourceDelegate>)resourceDelegate {
-  _resourceDelegate = resourceDelegate;
-  if (resource_loader_ != nullptr) {
-    resource_loader_->SetDelegate(resourceDelegate);
-  }
+  self.markdownMeasurer.resourceDelegate = resourceDelegate;
+}
+
+- (id<IMarkdownResourceDelegate>)resourceDelegate {
+  return self.markdownMeasurer.resourceDelegate;
 }
 
 - (void)setEventDelegate:(id<IMarkdownEventDelegate>)eventDelegate {
-  _eventDelegate = eventDelegate;
-  if (event_listener_ != nullptr) {
-    event_listener_->SetDelegate(eventDelegate);
-  }
+  self.markdownMeasurer.eventDelegate = eventDelegate;
+}
+
+- (id<IMarkdownEventDelegate>)eventDelegate {
+  return self.markdownMeasurer.eventDelegate;
 }
 
 - (void)setExposureDelegate:(id<IMarkdownExposureDelegate>)exposureDelegate {
-  _exposureDelegate = exposureDelegate;
-  if (exposure_listener_ != nullptr) {
-    exposure_listener_->SetDelegate(exposureDelegate);
-  }
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  if (exposureDelegate == nil) {
-    view->SetExposureListener(nullptr);
-    return;
-  } else {
-    view->SetExposureListener(exposure_listener_.get());
-  }
+  self.markdownMeasurer.exposureDelegate = exposureDelegate;
 }
+
+- (id<IMarkdownExposureDelegate>)exposureDelegate {
+  return self.markdownMeasurer.exposureDelegate;
+}
+
 - (void)setContent:(NSString*)content {
-  auto* view = [self getMarkdownView];
-  auto* str = [content UTF8String];
-  view->SetContent(str);
-  _content = content;
+  self.markdownMeasurer.content = content;
 }
+
+- (NSString*)content {
+  return self.markdownMeasurer.content;
+}
+
 - (void)markDirty {
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  view->MarkDirty();
+  [self.markdownMeasurer markDirty];
 }
+
 - (NSString*)getContent {
   auto* view = [self getMarkdownView];
   if (view == nullptr) {
     return @"";
   }
-  const auto content = view->GetContent();
-  NSString* content_string =
-      [[NSString alloc] initWithBytes:content.data()
-                               length:content.size()
-                             encoding:NSUTF8StringEncoding];
-  return content_string != nil ? content_string : @"";
+  const auto value = view->GetContent();
+  return [[NSString alloc] initWithBytes:value.data()
+                                  length:value.size()
+                                encoding:NSUTF8StringEncoding]
+             ?: @"";
 }
+
 - (NSString*)getContentID {
   auto* view = [self getMarkdownView];
   if (view == nullptr) {
     return @"";
   }
-  const auto content_id = view->GetContentID();
-  NSString* content_id_string =
-      [[NSString alloc] initWithBytes:content_id.data()
-                               length:content_id.size()
-                             encoding:NSUTF8StringEncoding];
-  return content_id_string != nil ? content_id_string : @"";
+  const auto value = view->GetContentID();
+  return [[NSString alloc] initWithBytes:value.data()
+                                  length:value.size()
+                                encoding:NSUTF8StringEncoding]
+             ?: @"";
 }
+
 - (NSString*)getContent:(int)start
                     end:(int)end
               indexType:(ServalMarkdownIndexType)indexType {
@@ -376,99 +387,52 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     range_start = view->SourceOffsetToCharOffset(range_start);
     range_end = view->SourceOffsetToCharOffset(range_end);
   }
-  const auto content = view->GetParsedContent({range_start, range_end});
-  NSString* content_string =
-      [[NSString alloc] initWithBytes:content.data()
-                               length:content.size()
-                             encoding:NSUTF8StringEncoding];
-  return content_string != nil ? content_string : @"";
+  const auto value =
+      view->GetParsedContent({.start_ = range_start, .end_ = range_end});
+  return [[NSString alloc] initWithBytes:value.data()
+                                  length:value.size()
+                                encoding:NSUTF8StringEncoding]
+             ?: @"";
 }
+
 - (NSString*)getSelectedText {
   auto* view = [self getMarkdownView];
   if (view == nullptr) {
     return @"";
   }
-  const auto content = view->GetSelectedText();
-  NSString* content_string =
-      [[NSString alloc] initWithBytes:content.data()
-                               length:content.size()
-                             encoding:NSUTF8StringEncoding];
-  return content_string != nil ? content_string : @"";
+  const auto value = view->GetSelectedText();
+  return [[NSString alloc] initWithBytes:value.data()
+                                  length:value.size()
+                                encoding:NSUTF8StringEncoding]
+             ?: @"";
 }
+
 - (NSArray<NSString*>*)getAllImageUrl {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return @[];
-  }
-  const auto urls = view->GetAllImageUrl();
-  NSMutableArray<NSString*>* result =
-      [NSMutableArray arrayWithCapacity:urls.size()];
-  for (const auto& url : urls) {
-    NSString* value = [[NSString alloc] initWithBytes:url.data()
-                                               length:url.size()
-                                             encoding:NSUTF8StringEncoding];
-    [result addObject:value != nil ? value : @""];
-  }
-  return result;
+  return view == nullptr ? @[] : ConvertStrings(view->GetAllImageUrl());
 }
+
 - (NSArray<NSString*>*)getLinkUrl {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return @[];
-  }
-  const auto urls = view->GetLinkUrl();
-  NSMutableArray<NSString*>* result =
-      [NSMutableArray arrayWithCapacity:urls.size()];
-  for (const auto& url : urls) {
-    NSString* value = [[NSString alloc] initWithBytes:url.data()
-                                               length:url.size()
-                                             encoding:NSUTF8StringEncoding];
-    [result addObject:value != nil ? value : @""];
-  }
-  return result;
+  return view == nullptr ? @[] : ConvertStrings(view->GetLinkUrl());
 }
+
 - (NSArray<NSString*>*)getLinkContent {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return @[];
-  }
-  const auto contents = view->GetLinkContent();
-  NSMutableArray<NSString*>* result =
-      [NSMutableArray arrayWithCapacity:contents.size()];
-  for (const auto& content : contents) {
-    NSString* value = [[NSString alloc] initWithBytes:content.data()
-                                               length:content.size()
-                                             encoding:NSUTF8StringEncoding];
-    [result addObject:value != nil ? value : @""];
-  }
-  return result;
+  return view == nullptr ? @[] : ConvertStrings(view->GetLinkContent());
 }
+
 - (NSArray<NSValue*>*)getLinkBoundingRect {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return @[];
-  }
-  const auto rects = view->GetLinkBoundingRect();
-  NSMutableArray<NSValue*>* result =
-      [NSMutableArray arrayWithCapacity:rects.size()];
-  for (const auto& rect : rects) {
-    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
-                                                          rect.GetTop(),
-                                                          rect.GetWidth(),
-                                                          rect.GetHeight())]];
-  }
-  return result;
+  return view == nullptr ? @[] : ConvertRects(view->GetLinkBoundingRect());
 }
+
 - (NSArray<NSValue*>*)getSyntaxSourceRanges:(NSString*)tag {
   auto* view = [self getMarkdownView];
-  if (view == nullptr || tag == nil) {
+  if (view == nullptr || tag == nil || tag.UTF8String == nullptr) {
     return @[];
   }
-  const auto* tag_chars = [tag UTF8String];
-  if (tag_chars == nullptr) {
-    return @[];
-  }
-  const auto ranges = view->GetSyntaxSourceRanges(tag_chars);
+  const auto ranges = view->GetSyntaxSourceRanges(tag.UTF8String);
   NSMutableArray<NSValue*>* result =
       [NSMutableArray arrayWithCapacity:ranges.size()];
   for (const auto& range : ranges) {
@@ -484,49 +448,38 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   }
   return result;
 }
+
 - (NSRange)getSelectedRange {
   auto* view = [self getMarkdownView];
   if (view == nullptr) {
     return NSMakeRange(NSNotFound, 0);
   }
   const auto range = view->GetSelectedRange();
-  if (range.start_ < 0 || range.end_ < range.start_) {
-    return NSMakeRange(NSNotFound, 0);
-  }
-  return NSMakeRange(static_cast<NSUInteger>(range.start_),
-                     static_cast<NSUInteger>(range.end_ - range.start_));
+  return range.start_ < 0 || range.end_ < range.start_
+             ? NSMakeRange(NSNotFound, 0)
+             : NSMakeRange(range.start_, range.end_ - range.start_);
 }
+
 - (NSArray<NSValue*>*)getSelectedLineBoundingRect {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return @[];
-  }
-  const auto& rects = view->GetSelectedLineBoundingRect();
-  NSMutableArray<NSValue*>* result =
-      [NSMutableArray arrayWithCapacity:rects.size()];
-  for (const auto& rect : rects) {
-    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
-                                                          rect.GetTop(),
-                                                          rect.GetWidth(),
-                                                          rect.GetHeight())]];
-  }
-  return result;
+  return view == nullptr ? @[]
+                         : ConvertRects(view->GetSelectedLineBoundingRect());
 }
+
 - (CGPoint)getSelectionHandlePosition {
   auto* view = [self getMarkdownView];
   if (view == nullptr) {
     return CGPointMake(-1, -1);
   }
-  const auto position = view->GetSelectionHandlePosition();
-  return CGPointMake(position.x_, position.y_);
+  const auto point = view->GetSelectionHandlePosition();
+  return CGPointMake(point.x_, point.y_);
 }
+
 - (float)getSelectionHandleRadius {
   auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return 0;
-  }
-  return view->GetSelectionHandleRadius();
+  return view == nullptr ? 0 : view->GetSelectionHandleRadius();
 }
+
 - (NSArray<NSValue*>*)getTextBoundingRect:(int)start
                                       end:(int)end
                                 indexType:(ServalMarkdownIndexType)indexType {
@@ -540,17 +493,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
     range_start = view->SourceOffsetToCharOffset(range_start);
     range_end = view->SourceOffsetToCharOffset(range_end);
   }
-  const auto rects = view->GetTextLineBoundingRect({range_start, range_end});
-  NSMutableArray<NSValue*>* result =
-      [NSMutableArray arrayWithCapacity:rects.size()];
-  for (const auto& rect : rects) {
-    [result addObject:[NSValue valueWithCGRect:CGRectMake(rect.GetLeft(),
-                                                          rect.GetTop(),
-                                                          rect.GetWidth(),
-                                                          rect.GetHeight())]];
-  }
-  return result;
+  return ConvertRects(view->GetTextLineBoundingRect(
+      {.start_ = range_start, .end_ = range_end}));
 }
+
 - (int)getCharIndexByPoint:(float)x
                          y:(float)y
                  indexType:(ServalMarkdownIndexType)indexType {
@@ -558,12 +504,12 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   if (view == nullptr) {
     return -1;
   }
-  int32_t char_index = view->GetCharIndexByPosition({x, y});
-  if (indexType == kServalMarkdownIndexTypeSource && char_index >= 0) {
-    return view->CharOffsetToSourceOffset(char_index);
-  }
-  return char_index;
+  auto result = view->GetCharIndexByPosition({x, y});
+  return indexType == kServalMarkdownIndexTypeSource && result >= 0
+             ? view->CharOffsetToSourceOffset(result)
+             : result;
 }
+
 - (NSRange)getCharRangeByPoint:(float)x
                              y:(float)y
                      indexType:(ServalMarkdownIndexType)indexType
@@ -572,58 +518,56 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   if (view == nullptr) {
     return NSMakeRange(NSNotFound, 0);
   }
-  auto char_range =
+  auto range =
       view->GetCharRangeByPosition({x, y}, ConvertCharRangeType(rangeType));
   if (indexType == kServalMarkdownIndexTypeSource) {
-    if (char_range.start_ >= 0) {
-      char_range.start_ = view->CharOffsetToSourceOffset(char_range.start_);
+    if (range.start_ >= 0) {
+      range.start_ = view->CharOffsetToSourceOffset(range.start_);
     }
-    if (char_range.end_ >= 0) {
-      char_range.end_ = view->CharOffsetToSourceOffset(char_range.end_);
+    if (range.end_ >= 0) {
+      range.end_ = view->CharOffsetToSourceOffset(range.end_);
     }
   }
-  if (char_range.start_ < 0 || char_range.end_ < char_range.start_) {
-    return NSMakeRange(NSNotFound, 0);
-  }
-  return NSMakeRange(
-      static_cast<NSUInteger>(char_range.start_),
-      static_cast<NSUInteger>(char_range.end_ - char_range.start_));
+  return range.start_ < 0 || range.end_ < range.start_
+             ? NSMakeRange(NSNotFound, 0)
+             : NSMakeRange(static_cast<NSUInteger>(range.start_),
+                           static_cast<NSUInteger>(range.end_ - range.start_));
 }
 - (void)setTextSelection:(int)start end:(int)end {
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  view->SetTextSelection({start, end});
+  [self.markdownMeasurer setTextSelection:start end:end];
 }
 - (void)setStyle:(NSDictionary*)style {
-  auto* view = [self getMarkdownView];
-  auto map = serval::markdown::MarkdownValueConvert::ConvertMap(style);
-  view->SetStyle(map->AsMap());
-  _style = style;
+  self.markdownMeasurer.style = style;
+}
+- (NSDictionary*)style {
+  return self.markdownMeasurer.style;
 }
 - (void)setAnimationType:(ServalMarkdownAnimationType)animationType {
-  auto* view = [self getMarkdownView];
-  view->SetAnimationType(
-      static_cast<serval::markdown::MarkdownAnimationType>(animationType));
-  _animationType = animationType;
+  self.markdownMeasurer.animationType = animationType;
+}
+- (ServalMarkdownAnimationType)animationType {
+  return self.markdownMeasurer == nil ? kServalMarkdownAnimationTypeNone
+                                      : self.markdownMeasurer.animationType;
 }
 - (void)setAnimationVelocity:(float)animationVelocity {
-  _animationVelocity = animationVelocity;
-  auto* view = [self getMarkdownView];
-  view->SetAnimationVelocity(animationVelocity);
+  self.markdownMeasurer.animationVelocity = animationVelocity;
+}
+- (float)animationVelocity {
+  return self.markdownMeasurer == nil ? 0
+                                      : self.markdownMeasurer.animationVelocity;
 }
 - (void)setInitialAnimationStep:(int)initialAnimationStep {
-  _initialAnimationStep = initialAnimationStep;
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  view->SetInitialAnimationStep(initialAnimationStep);
+  self.markdownMeasurer.initialAnimationStep = initialAnimationStep;
+}
+- (int)initialAnimationStep {
+  return self.markdownMeasurer == nil
+             ? 0
+             : self.markdownMeasurer.initialAnimationStep;
 }
 - (int)getAnimationStep {
-  auto* view = [self getMarkdownView];
-  return view == nullptr ? 0 : view->GetAnimationStep();
+  return self.markdownMeasurer == nil
+             ? 0
+             : [self.markdownMeasurer getAnimationStep];
 }
 - (void)disableInternalVSync:(BOOL)disable {
   if (disableInternalVSync_ == disable) {
@@ -658,9 +602,8 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   [self resumeAnimation:-1];
 }
 - (void)resumeAnimation:(int)animationStep {
-  auto* view = [self getMarkdownView];
-  if (animationStep != -1 && view != nullptr) {
-    view->SetAnimationStep(animationStep);
+  if (animationStep != -1) {
+    [self.markdownMeasurer setAnimationStep:animationStep];
   }
   if (animationPaused_) {
     animationPaused_ = NO;
@@ -670,71 +613,27 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   }
 }
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value {
-  auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                      value);
+  [self.markdownMeasurer setNumberProp:prop Value:value];
 }
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value {
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  const char* utf8 = value == nil ? "" : [value UTF8String];
-  if (utf8 == nullptr) {
-    utf8 = "";
-  }
-  view->SetStringProp(static_cast<serval::markdown::MarkdownProps>(prop), utf8);
+  [self.markdownMeasurer setStringProp:prop Value:value];
 }
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value {
-  auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                      value ? 1 : 0);
+  [self.markdownMeasurer setBooleanProp:prop Value:value];
 }
 - (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color {
-  auto* view = [self getMarkdownView];
-  view->SetNumberProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                      color);
+  [self.markdownMeasurer setColorProp:prop Value:color];
 }
 - (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array {
-  auto* view = [self getMarkdownView];
-  auto result = serval::markdown::MarkdownValueConvert::ConvertArray(array);
-  view->SetArrayProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                     result->AsArray());
+  [self.markdownMeasurer setArrayProp:prop Value:array];
 }
 - (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict {
-  auto* view = [self getMarkdownView];
-  auto result = serval::markdown::MarkdownValueConvert::ConvertMap(dict);
-  view->SetMapProp(static_cast<serval::markdown::MarkdownProps>(prop),
-                   result->AsMap());
+  [self.markdownMeasurer setMapProp:prop Value:dict];
 }
 - (void)onFontLoaded:(NSString*)family Weight:(int)weight Style:(int)style {
-  if (family == nil) {
-    return;
-  }
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  const auto* family_utf8 = [family UTF8String];
-  if (family_utf8 == nullptr) {
-    return;
-  }
-  [self requestMeasure];
-  view->OnFontLoaded(family_utf8, weight, style);
+  [self.markdownMeasurer onFontLoaded:family Weight:weight Style:style];
 }
 - (void)onImageLoaded:(NSString*)url {
-  if (url == nil) {
-    return;
-  }
-  auto* view = [self getMarkdownView];
-  if (view == nullptr) {
-    return;
-  }
-  const auto* url_utf8 = [url UTF8String];
-  if (url_utf8 == nullptr) {
-    return;
-  }
-  [self requestMeasure];
-  view->OnImageLoaded(url_utf8);
+  [self.markdownMeasurer onImageLoaded:url];
 }
 @end

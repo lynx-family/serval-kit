@@ -70,6 +70,8 @@ class L_EXPORT MarkdownDocument {
   void SetMarkdownContent(std::string_view content) {
     markdown_content_ = content;
   }
+  const std::string& GetContentID() const { return content_id_; }
+  void SetContentID(std::string_view id) { content_id_ = id; }
   void SetMarkdownContentRange(Range range) { content_range_ = range; }
   Range GetMarkdownContentRange() const { return content_range_; }
   void SetMaxSize(float width, float height) {
@@ -193,6 +195,7 @@ class L_EXPORT MarkdownDocument {
 
  private:
   std::string markdown_content_;
+  std::string content_id_;
   Range content_range_{0, std::numeric_limits<int32_t>::max()};
   float max_width_{std::numeric_limits<float>::max()};
   float max_height_{std::numeric_limits<float>::max()};

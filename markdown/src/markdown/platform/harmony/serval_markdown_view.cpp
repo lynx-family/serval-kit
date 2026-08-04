@@ -12,23 +12,13 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <string>
 #include <unordered_map>
 #include <utility>
 
-#include "markdown/draw/markdown_drawer.h"
-#include "markdown/element/markdown_context.h"
-#include "markdown/element/markdown_run_delegates.h"
-#include "markdown/layout/markdown_layout.h"
-#include "markdown/parser/markdown_parser.h"
-#include "markdown/platform/harmony/harmony_resource_loader.h"
-#include "markdown/platform/harmony/internal/harmony_markdown_canvas.h"
+#include "markdown/platform/harmony/harmony_markdown_measurer.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
-#include "markdown/platform/harmony/markdown_platform_harmony.h"
-#include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/view/markdown_selection_view.h"
-#include "textra/platform_helper.h"
 namespace serval::markdown {
 namespace {
 std::mutex g_recognizer_to_view_mutex;
@@ -68,20 +58,26 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyUIThread::Init(env);
   UpdateDisplayMetrics();
 }
-NativeServalMarkdownView::NativeServalMarkdownView() : loader_(nullptr) {
-  AttachDrawable(std::make_shared<MarkdownView>(
-      this, this,
-      std::make_shared<MarkdownContext>(CreateHarmonyMarkdownPlatform())));
-  GetMarkdownView()->SetEnableRegionView(true);
-  GetMarkdownView()->SetResourceLoader(this);
+NativeServalMarkdownView::NativeServalMarkdownView() {
   HarmonyVSyncManager::AddVSyncCallback(this);
   ArkUINativeAPI::GetGestureApi()->setGestureInterrupterToNode(
       GetHandle(), GestureInterruptDispatcher);
   SetupGestures();
 }
 NativeServalMarkdownView::~NativeServalMarkdownView() {
+  if (measurer_ != nullptr) {
+    measurer_->DetachView(this);
+  }
   DisposeGestures();
   HarmonyVSyncManager::RemoveVSyncCallback(this);
+}
+bool NativeServalMarkdownView::SetMeasurer(NativeMarkdownMeasurer* measurer) {
+  if (measurer_ != nullptr || measurer == nullptr ||
+      !measurer->BindView(this)) {
+    return false;
+  }
+  measurer_ = measurer;
+  return true;
 }
 void NativeServalMarkdownView::UpdateDisplayMetrics() {
   float density;
@@ -130,12 +126,6 @@ RectF NativeServalMarkdownView::CalculateViewRectInScreen() {
       std::min(static_cast<float>(offset.y) + screen_h, size.height_);
   return RectF::MakeLTRB(left, top, right, bottom);
 }
-void* NativeServalMarkdownView::LoadFont(const char* family,
-                                         MarkdownFontWeight weight) {
-  if (loader_ == nullptr)
-    return nullptr;
-  return loader_->LoadFont(family);
-}
 void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
   auto find = handle_cache_.find(view);
   if (find != handle_cache_.end()) {
@@ -145,7 +135,8 @@ void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
   RemoveChild(static_cast<HarmonyView*>(view));
 }
 std::shared_ptr<MarkdownPlatformView> NativeServalMarkdownView::InsertEtsView(
-    ArkUI_NodeHandle handle) {
+    ArkUI_NodeHandle handle,
+    std::shared_ptr<MarkdownPlatformView> existing_view) {
   if (handle == nullptr) {
     return nullptr;
   }
@@ -153,128 +144,28 @@ std::shared_ptr<MarkdownPlatformView> NativeServalMarkdownView::InsertEtsView(
   if (find != view_cache_.end()) {
     return find->second;
   }
-  auto view = std::make_shared<EtsViewHolder>(handle);
+  auto view = existing_view == nullptr
+                  ? std::static_pointer_cast<MarkdownPlatformView>(
+                        std::make_shared<EtsViewHolder>(handle))
+                  : std::move(existing_view);
   auto* view_ptr = view.get();
-  AddChild(view);
+  AddChild(std::static_pointer_cast<HarmonyView>(view));
   view_cache_.emplace(handle, view);
   handle_cache_.emplace(view_ptr, handle);
   return view;
 }
-std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadInlineView(
-    const char* id_selector, float max_width, float max_height) {
-  if (loader_ == nullptr)
-    return nullptr;
-  return InsertEtsView(
-      loader_->LoadInlineView(id_selector, max_width, max_height));
-}
-std::shared_ptr<MarkdownDrawable> NativeServalMarkdownView::LoadImage(
-    const char* src, float desire_width, float desire_height, float max_width,
-    float max_height, float border_radius) {
-  if (loader_ == nullptr)
-    return nullptr;
-  return InsertEtsView(loader_->LoadImageView(
-      src, desire_width, desire_height, max_width, max_height, border_radius));
-}
-MarkdownReplacementView NativeServalMarkdownView::LoadReplacementView(
-    void* ud, int32_t id, float max_width, float max_height) {
-  if (loader_ == nullptr) {
-    return {};
-  }
-  auto replacement_view =
-      loader_->LoadReplacementView(ud, id, max_width, max_height);
-  return {
-      .view_ = InsertEtsView(replacement_view.view_),
-      .alt_text_ = std::move(replacement_view.alt_text_),
-  };
-}
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();
-  GetMarkdownView()->OnLayoutFrame(time_stamp / 1000 / 1000);
-  GetMarkdownView()->OnRendererFrame(time_stamp / 1000 / 1000);
+  if (auto* view = GetMarkdownView(); view != nullptr) {
+    view->OnLayoutFrame(time_stamp / 1000 / 1000);
+    view->OnRendererFrame(time_stamp / 1000 / 1000);
+  }
 }
 
 void NativeServalMarkdownView::RequestMeasure() {
-  if (request_measure_callback_) {
-    request_measure_callback_();
-  } else {
-    MarkNeedsMeasure();
-  }
+  MarkNeedsMeasure();
 }
 
-std::string GetStringValue(const ValueMap& config, const std::string& key,
-                           const std::string& default_value = "") {
-  if (auto iter = config.find(key);
-      iter != config.end() && iter->second->GetType() == ValueType::kString) {
-    return iter->second->GetString();
-  }
-  return default_value;
-}
-
-double GetNumberValue(const ValueMap& config, const std::string& key,
-                      double default_value = 0) {
-  if (auto iter = config.find(key);
-      iter != config.end() && (iter->second->GetType() == ValueType::kDouble)) {
-    return iter->second->GetDouble();
-  }
-  return default_value;
-}
-
-bool GetBooleanValue(const ValueMap& config, const std::string& key,
-                     bool default_value = false) {
-  if (auto iter = config.find(key);
-      iter != config.end() && (iter->second->GetType() == ValueType::kBool)) {
-    return iter->second->GetBool();
-  }
-  return default_value;
-}
-
-void NativeServalMarkdownView::SetConfig(const ValueMap& config) {
-  if (auto animation_type = GetStringValue(config, "animationType");
-      !animation_type.empty()) {
-    if (animation_type == "typewriter") {
-      GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kTypewriter);
-    } else if (animation_type == "line-expand") {
-      GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kLineExpand);
-    } else {
-      GetMarkdownView()->SetAnimationType(MarkdownAnimationType::kNone);
-    }
-  }
-  if (auto velocity = GetNumberValue(config, "animationVelocity", -1);
-      velocity >= 0) {
-    GetMarkdownView()->SetAnimationVelocity(static_cast<float>(velocity));
-  }
-  if (auto iter = config.find("typewriterDynamicHeight");
-      iter != config.end() && iter->second->GetType() == ValueType::kBool) {
-    GetMarkdownView()->SetTypewriterDynamicHeight(iter->second->AsBool());
-  }
-  GetMarkdownView()->SetEnableSelection(
-      GetBooleanValue(config, "enableSelection"));
-  if (auto type = GetStringValue(config, "sourceType"); !type.empty()) {
-    if (type == "plainText") {
-      GetMarkdownView()->SetSourceType(SourceType::kPlainText);
-    }
-  }
-  if (auto parser = GetStringValue(config, "parser"); !parser.empty()) {
-    GetMarkdownView()->SetParserType(parser, nullptr);
-  }
-  if (auto color = GetStringValue(config, "selectionHandleColor");
-      !color.empty()) {
-    GetMarkdownView()->SetSelectionHandleColor(
-        MarkdownStyleReader::ReadColor(color));
-  }
-  if (auto color = GetStringValue(config, "selectionHighlightColor");
-      !color.empty()) {
-    GetMarkdownView()->SetSelectionHighlightColor(
-        MarkdownStyleReader::ReadColor(color));
-  }
-  if (auto size = GetNumberValue(config, "selectionHandleSize"); size > 0) {
-    GetMarkdownView()->SetSelectionHandleSize(static_cast<float>(size));
-  }
-  if (auto size = GetNumberValue(config, "selectionHandleTouchMargin");
-      size > 0) {
-    GetMarkdownView()->SetSelectionHandleTouchMargin(static_cast<float>(size));
-  }
-}
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateCustomSubView() {
   auto custom_view = std::make_shared<HarmonyCustomView>();
@@ -479,8 +370,9 @@ void NativeServalMarkdownView::DisposeGestures() {
 
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   HarmonyCustomView::OnLayout(offset_x, offset_y);
-  GetMarkdownView()->Align(static_cast<float>(offset_x),
-                           static_cast<float>(offset_y));
+  if (auto* view = GetMarkdownView(); view != nullptr) {
+    view->Align(static_cast<float>(offset_x), static_cast<float>(offset_y));
+  }
 }
 
 bool NativeServalMarkdownView::OnTapGesture(PointF position,

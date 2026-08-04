@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "base/include/platform/android/jni_utils.h"
+#include "markdown/platform/android/android_markdown_measurer.h"
 #include "markdown/platform/android/android_serval_markdown_view.h"
 #include "markdown/view/markdown_selection_view.h"
 
@@ -22,7 +23,7 @@ void MarkdownClassCache::Initial(JNIEnv* env) {
   AndroidMarkdownView::Initialize(env);
   AndroidCustomView::Initialize(env);
   AndroidMainView::Initialize(env);
-  AndroidServalMarkdownView::Initialize(env);
+  AndroidMarkdownMeasurer::Initialize(env);
   lynx::base::android::InitVM(java_vm_);
 }
 AndroidMarkdownView::Methods AndroidMarkdownView::methods_{};
@@ -134,7 +135,6 @@ serval::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
 }
 void AndroidMainView::Initialize(JNIEnv* env) {
   auto clazz = env->FindClass("com/lynx/markdown/ServalMarkdownView");
-  methods_.request_measure_ = env->GetMethodID(clazz, "requestMeasure", "()V");
   methods_.create_custom_subview_ = env->GetMethodID(
       clazz, "createCustomView", "()Lcom/lynx/markdown/CustomDrawView;");
   methods_.create_region_subview_ = env->GetMethodID(
@@ -154,9 +154,10 @@ void AndroidMainView::Initialize(JNIEnv* env) {
 AndroidMainView::Methods AndroidMainView::methods_{};
 AndroidMainView::AndroidMainView(JNIEnv* env, jobject ref)
     : AndroidCustomView(env, ref) {}
-void AndroidMainView::RequestMeasure() {
-  auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.request_measure_);
+void AndroidMainView::AddSubView(std::shared_ptr<AndroidMarkdownView> subview) {
+  if (subview != nullptr) {
+    subviews_.insert(subviews_.end(), std::move(subview));
+  }
 }
 std::shared_ptr<serval::markdown::MarkdownPlatformView>
 AndroidMainView::CreateCustomSubView() {
@@ -164,7 +165,7 @@ AndroidMainView::CreateCustomSubView() {
   auto object =
       env->CallObjectMethod(ref_.Get(), methods_.create_custom_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
-  subviews_.insert(subviews_.end(), subview);
+  AddSubView(subview);
   return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
       subview);
 }
@@ -175,7 +176,7 @@ AndroidMainView::CreateRegionSubView() {
   auto object =
       env->CallObjectMethod(ref_.Get(), methods_.create_region_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
-  subviews_.insert(subviews_.end(), subview);
+  AddSubView(subview);
   return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
       subview);
 }
@@ -186,7 +187,7 @@ AndroidMainView::CreateScrollXRegionView() {
   auto object = env->CallObjectMethod(ref_.Get(),
                                       methods_.create_scroll_x_region_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
-  subviews_.insert(subviews_.end(), subview);
+  AddSubView(subview);
   return std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(
       subview);
 }
@@ -198,7 +199,7 @@ AndroidMainView::CreateSelectionHandleSubView(
   auto object = env->CallObjectMethod(
       ref_.Get(), methods_.create_selection_handle_subview_);
   auto subview = std::make_shared<AndroidCustomView>(env, object);
-  subviews_.insert(subviews_.end(), subview);
+  AddSubView(subview);
   const auto view =
       std::static_pointer_cast<serval::markdown::MarkdownPlatformView>(subview);
   auto selection_handle =
