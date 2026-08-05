@@ -93,7 +93,6 @@ NSArray<NSString*>* ConvertLineTexts(
   int64_t total_paused_duration_ms_;
 }
 - (void)requestMeasure;
-- (void)align:(CGFloat)left top:(CGFloat)top;
 @end
 
 namespace {

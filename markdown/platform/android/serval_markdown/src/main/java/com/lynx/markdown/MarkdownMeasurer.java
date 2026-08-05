@@ -82,7 +82,7 @@ public final class MarkdownMeasurer {
             View.MeasureSpec.getMode(heightMeasureSpec)));
   }
 
-  void align(int left, int top) {
+  public void align(int left, int top) {
     if (mInstance != 0) {
       nativeAlignInstance(mInstance, left, top);
     }
