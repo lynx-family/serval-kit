@@ -23,12 +23,6 @@ MarkdownView* AndroidServalMarkdownView::GetMarkdownView() {
   return static_cast<MarkdownView*>(drawable_.get());
 }
 
-void AndroidServalMarkdownView::OnLayoutFrame(int64_t time) {
-  if (auto* markdown_view = GetMarkdownView(); markdown_view != nullptr) {
-    markdown_view->OnLayoutFrame(time);
-  }
-}
-
 void AndroidServalMarkdownView::OnRendererFrame(int64_t time) {
   UpdateCachedViewRectInScreen();
   if (auto* markdown_view = GetMarkdownView(); markdown_view != nullptr) {

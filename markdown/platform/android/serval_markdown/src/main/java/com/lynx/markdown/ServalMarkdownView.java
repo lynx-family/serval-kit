@@ -17,12 +17,8 @@ import java.util.HashMap;
 public class ServalMarkdownView extends MarkdownGestureView {
   protected long mInstance = 0;
   protected MarkdownMeasurer mMeasurer = null;
-  private boolean mAnimationPaused = false;
   private boolean mDisableInternalVSync = false;
   private boolean mInternalVSyncPosted = false;
-  private long mCurrentTime = 0;
-  private long mPauseStartTime = 0;
-  private long mTotalPausedDurationMs = 0;
   private final Choreographer.FrameCallback mInternalVSyncCallback =
       this::onVSync;
 
@@ -52,8 +48,6 @@ public class ServalMarkdownView extends MarkdownGestureView {
       mMeasurer.destroy();
     }
     mMeasurer = null;
-    mAnimationPaused = false;
-    mTotalPausedDurationMs = 0;
   }
   public void setMarkdownMeasurer(MarkdownMeasurer measurer) {
     if (mInstance == 0 || mMeasurer != null || measurer == null ||
@@ -79,6 +73,12 @@ public class ServalMarkdownView extends MarkdownGestureView {
       mMeasurer.setExposureListener(listener);
   }
   public void requestMeasure() { requestLayout(); }
+  @Override
+  protected void alignDrawable(int left, int top) {
+    if (mMeasurer != null) {
+      mMeasurer.align(left, top);
+    }
+  }
   protected CustomDrawView createCustomView() {
     CustomDrawView view = new CustomDrawView(getContext());
     view.mResourceManager = mResourceManager;
@@ -212,25 +212,6 @@ public class ServalMarkdownView extends MarkdownGestureView {
   public int getAnimationStep() {
     return mMeasurer == null ? 0 : mMeasurer.getAnimationStep();
   }
-  public void pauseAnimation() {
-    if (mAnimationPaused) {
-      return;
-    }
-    mAnimationPaused = true;
-    mPauseStartTime = mCurrentTime;
-  }
-  public void resumeAnimation() { resumeAnimation(-1); }
-  public void resumeAnimation(int animationStep) {
-    if (animationStep != -1 && mMeasurer != null) {
-      mMeasurer.setAnimationStep(animationStep);
-    }
-    if (mAnimationPaused) {
-      mAnimationPaused = false;
-      if (mPauseStartTime > 0 && mCurrentTime > mPauseStartTime) {
-        mTotalPausedDurationMs += mCurrentTime - mPauseStartTime;
-      }
-    }
-  }
 
   public void setBooleanProp(int key, boolean value) {
     setNumberProp(key, value ? 1 : 0);
@@ -260,7 +241,9 @@ public class ServalMarkdownView extends MarkdownGestureView {
   protected void initialVSync() { postInternalVSync(); }
   protected void onVSync(long frameTimeNanos) {
     mInternalVSyncPosted = false;
-    onLayoutFrame(frameTimeNanos);
+    if (mMeasurer != null) {
+      mMeasurer.onLayoutFrame(frameTimeNanos);
+    }
     onRendererFrame(frameTimeNanos);
     postInternalVSync();
   }
@@ -274,14 +257,6 @@ public class ServalMarkdownView extends MarkdownGestureView {
       clearInternalVSync();
     } else {
       postInternalVSync();
-    }
-  }
-
-  public void onLayoutFrame(long frameTimeNanos) {
-    mCurrentTime = frameTimeNanos / 1000000;
-    if (!mAnimationPaused && mInstance != 0) {
-      long adjustedTimeMs = mCurrentTime - mTotalPausedDurationMs;
-      nativeOnLayoutFrame(mInstance, adjustedTimeMs);
     }
   }
 
@@ -350,6 +325,5 @@ public class ServalMarkdownView extends MarkdownGestureView {
                                                int indexType);
   private native long nativeGetCharRangeByPoint(long instance, float x, float y,
                                                 int indexType, int rangeType);
-  private native void nativeOnLayoutFrame(long instance, long time);
   private native void nativeOnRendererFrame(long instance, long time);
 }

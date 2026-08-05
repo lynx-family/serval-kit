@@ -33,6 +33,10 @@ public final class MarkdownMeasurer {
   private IMarkdownExposureListener mExposureListener;
   private RequestMeasureCallback mRequestMeasureCallback;
   private WeakReference<ServalMarkdownView> mView;
+  private boolean mAnimationPaused = false;
+  private long mCurrentTimeMs = 0;
+  private long mPauseStartTimeMs = 0;
+  private long mTotalPausedDurationMs = 0;
 
   public MarkdownMeasurer(Context context) {
     Markdown.ensureInitialized();
@@ -47,6 +51,10 @@ public final class MarkdownMeasurer {
     }
     nativeDestroyInstance(mInstance);
     mInstance = 0;
+    mAnimationPaused = false;
+    mCurrentTimeMs = 0;
+    mPauseStartTimeMs = 0;
+    mTotalPausedDurationMs = 0;
   }
 
   long getNativeInstance() { return mInstance; }
@@ -72,6 +80,12 @@ public final class MarkdownMeasurer {
         View.MeasureSpec.getSize(heightMeasureSpec),
         Constants.ConvertLayoutMode(
             View.MeasureSpec.getMode(heightMeasureSpec)));
+  }
+
+  void align(int left, int top) {
+    if (mInstance != 0) {
+      nativeAlignInstance(mInstance, left, top);
+    }
   }
 
   /**
@@ -158,6 +172,32 @@ public final class MarkdownMeasurer {
   public void setAnimationStep(int step) {
     if (mInstance != 0) {
       nativeSetAnimationStep(mInstance, step);
+    }
+  }
+  public void pauseAnimation() {
+    if (mAnimationPaused) {
+      return;
+    }
+    mAnimationPaused = true;
+    mPauseStartTimeMs = mCurrentTimeMs;
+  }
+  public void resumeAnimation() { resumeAnimation(-1); }
+  public void resumeAnimation(int animationStep) {
+    if (animationStep != -1) {
+      setAnimationStep(animationStep);
+    }
+    if (!mAnimationPaused) {
+      return;
+    }
+    mAnimationPaused = false;
+    if (mPauseStartTimeMs > 0 && mCurrentTimeMs > mPauseStartTimeMs) {
+      mTotalPausedDurationMs += mCurrentTimeMs - mPauseStartTimeMs;
+    }
+  }
+  public void onLayoutFrame(long frameTimeNanos) {
+    mCurrentTimeMs = frameTimeNanos / 1000000;
+    if (!mAnimationPaused && mInstance != 0) {
+      nativeOnLayoutFrame(mInstance, mCurrentTimeMs - mTotalPausedDurationMs);
     }
   }
   public void setBooleanProp(int key, boolean value) {
@@ -343,6 +383,8 @@ public final class MarkdownMeasurer {
   private native long nativeMeasureInstance(long instance, float width,
                                             int widthMode, float height,
                                             int heightMode);
+  private native void nativeAlignInstance(long instance, float left, float top);
+  private native void nativeOnLayoutFrame(long instance, long timeMs);
   private native void nativeSetContent(long instance, String content);
   private native void nativeMarkDirty(long instance);
   private native void nativeSetTextSelection(long instance, int start, int end);

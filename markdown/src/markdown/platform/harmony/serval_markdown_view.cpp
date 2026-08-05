@@ -370,8 +370,9 @@ void NativeServalMarkdownView::DisposeGestures() {
 
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   HarmonyCustomView::OnLayout(offset_x, offset_y);
-  if (auto* view = GetMarkdownView(); view != nullptr) {
-    view->Align(static_cast<float>(offset_x), static_cast<float>(offset_y));
+  if (measurer_ != nullptr) {
+    measurer_->Align(static_cast<float>(offset_x),
+                     static_cast<float>(offset_y));
   }
 }
 

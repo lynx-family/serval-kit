@@ -12,6 +12,7 @@
 @interface MarkdownCustomDrawView () {
   serval::markdown::MarkdownDrawable* _drawable;
 }
+- (void)alignDrawable:(CGFloat)left top:(CGFloat)top;
 @end
 
 const float kServalMarkdownMaxSize = 1e8;
@@ -31,8 +32,12 @@ const float kServalMarkdownMaxSize = 1e8;
 
 - (void)layoutSubviews {
   [super layoutSubviews];
+  [self alignDrawable:self.frame.origin.x top:self.frame.origin.y];
+}
+
+- (void)alignDrawable:(CGFloat)left top:(CGFloat)top {
   if (_drawable != nullptr) {
-    _drawable->Align(self.frame.origin.x, self.frame.origin.y);
+    _drawable->Align(left, top);
   }
 }
 
@@ -54,9 +59,7 @@ const float kServalMarkdownMaxSize = 1e8;
 }
 
 - (void)align:(CGFloat)left top:(CGFloat)top {
-  if (_drawable != nullptr) {
-    _drawable->Align(self.frame.origin.x, self.frame.origin.y);
-  }
+  [self alignDrawable:self.frame.origin.x top:self.frame.origin.y];
 }
 
 - (CGSize)sizeThatFits:(CGSize)size {

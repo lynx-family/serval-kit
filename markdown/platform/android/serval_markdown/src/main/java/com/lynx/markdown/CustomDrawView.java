@@ -16,8 +16,12 @@ public class CustomDrawView extends MarkdownView {
   @Override
   public void align(int left, int top) {
     super.align(left, top);
+    alignDrawable(getLeft(), getTop());
+  }
+
+  protected void alignDrawable(int left, int top) {
     if (mDrawable != 0) {
-      CustomDrawable.align(mDrawable, getLeft(), getTop());
+      CustomDrawable.align(mDrawable, left, top);
     }
   }
 

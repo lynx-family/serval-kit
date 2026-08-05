@@ -87,8 +87,13 @@ NSArray<NSString*>* ConvertLineTexts(
   std::unique_ptr<serval::markdown::MarkdownExposureIOS> exposure_listener_;
   std::unique_ptr<serval::markdown::MarkdownResourceLoaderIOS> resource_loader_;
   serval::markdown::MarkdownMainViewIOS* bound_view_;
+  BOOL animation_paused_;
+  int64_t current_time_ms_;
+  int64_t pause_start_time_ms_;
+  int64_t total_paused_duration_ms_;
 }
 - (void)requestMeasure;
+- (void)align:(CGFloat)left top:(CGFloat)top;
 @end
 
 namespace {
@@ -121,6 +126,10 @@ class MarkdownMeasureHostIOS final
     resource_loader_ =
         std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();
     bound_view_ = nullptr;
+    animation_paused_ = NO;
+    current_time_ms_ = 0;
+    pause_start_time_ms_ = 0;
+    total_paused_duration_ms_ = 0;
     auto* view = [self getMarkdownView];
     view->SetEventListener(event_listener_.get());
     view->SetResourceLoader(resource_loader_.get());
@@ -196,6 +205,12 @@ class MarkdownMeasureHostIOS final
   };
 }
 
+- (void)align:(CGFloat)left top:(CGFloat)top {
+  if (native_view_ != nullptr) {
+    native_view_->Align(static_cast<float>(left), static_cast<float>(top));
+  }
+}
+
 - (void)setContent:(NSString*)content {
   const char* value = content == nil ? "" : content.UTF8String;
   [self getMarkdownView]->SetContent(value == nullptr ? "" : value);
@@ -255,6 +270,38 @@ class MarkdownMeasureHostIOS final
 
 - (void)setAnimationStep:(int)animationStep {
   [self getMarkdownView]->SetAnimationStep(animationStep);
+}
+
+- (void)pauseAnimation {
+  if (animation_paused_) {
+    return;
+  }
+  animation_paused_ = YES;
+  pause_start_time_ms_ = current_time_ms_;
+}
+
+- (void)resumeAnimation {
+  [self resumeAnimation:-1];
+}
+
+- (void)resumeAnimation:(int)animationStep {
+  if (animationStep != -1) {
+    [self setAnimationStep:animationStep];
+  }
+  if (!animation_paused_) {
+    return;
+  }
+  animation_paused_ = NO;
+  if (pause_start_time_ms_ > 0 && current_time_ms_ > pause_start_time_ms_) {
+    total_paused_duration_ms_ += current_time_ms_ - pause_start_time_ms_;
+  }
+}
+
+- (void)onLayoutFrame:(int64_t)frameTimeNanos {
+  current_time_ms_ = frameTimeNanos / 1000000;
+  if (!animation_paused_ && native_view_ != nullptr) {
+    native_view_->OnLayoutFrame(current_time_ms_ - total_paused_duration_ms_);
+  }
 }
 
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value {
