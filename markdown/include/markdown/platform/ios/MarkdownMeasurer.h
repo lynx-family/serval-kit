@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_MARKDOWN_MEASURER_H_
 
 #import <UIKit/UIKit.h>
+#include <stdint.h>
 
 #import <ServalMarkdown/IMarkdownEventDelegate.h>
 #import <ServalMarkdown/IMarkdownExposureDelegate.h>
@@ -50,6 +51,10 @@ typedef void (^MarkdownRequestMeasureCallback)(void);
 - (void)setTextSelection:(int)start end:(int)end;
 - (int)getAnimationStep;
 - (void)setAnimationStep:(int)animationStep;
+- (void)pauseAnimation;
+- (void)resumeAnimation;
+- (void)resumeAnimation:(int)animationStep;
+- (void)onLayoutFrame:(int64_t)frameTimeNanos;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value;

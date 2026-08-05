@@ -119,6 +119,10 @@ MeasureResult NativeMarkdownMeasurer::Measure(MeasureSpec spec) {
   return view_->Measure(spec);
 }
 
+void NativeMarkdownMeasurer::Align(float left, float top) {
+  view_->Align(left, top);
+}
+
 bool NativeMarkdownMeasurer::BindView(NativeServalMarkdownView* view) {
   if (view == nullptr || bound_view_ != nullptr) {
     return false;

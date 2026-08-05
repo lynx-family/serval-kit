@@ -31,6 +31,7 @@ class NativeMarkdownMeasurer : public MarkdownResourceLoader,
   void MarkDirty() const;
   void SetConfig(const ValueMap& config) const;
   MeasureResult Measure(MeasureSpec spec);
+  void Align(float left, float top);
 
   bool BindView(NativeServalMarkdownView* view);
   void DetachView(NativeServalMarkdownView* view);

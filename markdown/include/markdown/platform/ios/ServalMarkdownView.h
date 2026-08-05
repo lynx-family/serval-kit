@@ -56,11 +56,7 @@
                      rangeType:(ServalMarkdownCharRangeType)rangeType;
 - (void)setTextSelection:(int)start end:(int)end;
 - (int)getAnimationStep;
-- (void)pauseAnimation;
-- (void)resumeAnimation;
-- (void)resumeAnimation:(int)animationStep;
 - (void)disableInternalVSync:(BOOL)disable;
-- (void)onLayoutFrame:(int64_t)frameTimeNanos;
 - (void)onRendererFrame:(int64_t)frameTimeNanos;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
 - (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;

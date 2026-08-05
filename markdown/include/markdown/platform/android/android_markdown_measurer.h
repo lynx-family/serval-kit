@@ -33,6 +33,8 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
 
   MarkdownView* GetMarkdownView() const { return view_.get(); }
   MeasureResult Measure(MeasureSpec spec) { return view_->Measure(spec); }
+  void Align(float left, float top) { view_->Align(left, top); }
+  void OnLayoutFrame(int64_t time) { view_->OnLayoutFrame(time); }
 
   void BindView(AndroidServalMarkdownView* view);
   void SetExposureListenerEnabled(bool enabled);

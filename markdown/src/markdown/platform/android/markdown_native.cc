@@ -495,15 +495,13 @@ Java_com_lynx_markdown_MarkdownMeasurer_nativeSetStyle(JNIEnv* env,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeOnLayoutFrame(JNIEnv* env,
-                                                              jobject thiz,
-                                                              jlong instance,
-                                                              jlong time) {
-  if (instance == 0) {
-    return;
+Java_com_lynx_markdown_MarkdownMeasurer_nativeOnLayoutFrame(JNIEnv* env,
+                                                            jobject thiz,
+                                                            jlong instance,
+                                                            jlong time) {
+  if (instance != 0) {
+    ConvertMeasurer(instance)->OnLayoutFrame(time);
   }
-  auto* view = ConvertPlatformView(instance);
-  view->OnLayoutFrame(time);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -659,6 +657,14 @@ Java_com_lynx_markdown_MarkdownMeasurer_nativeMeasureInstance(
   return MarkdownJNIUtils::PackMeasureResult(
       static_cast<int32_t>(result.width_), static_cast<int32_t>(result.height_),
       static_cast<int32_t>(result.baseline_));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_MarkdownMeasurer_nativeAlignInstance(
+    JNIEnv* env, jobject thiz, jlong instance, jfloat left, jfloat top) {
+  if (instance != 0) {
+    ConvertMeasurer(instance)->Align(left, top);
+  }
 }
 
 extern "C" JNIEXPORT void JNICALL

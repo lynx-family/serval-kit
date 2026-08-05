@@ -22,7 +22,6 @@ class AndroidServalMarkdownView : public AndroidMainView {
   void SetMeasurer(AndroidMarkdownMeasurer* measurer);
   MarkdownView* GetMarkdownView();
 
-  void OnLayoutFrame(int64_t time);
   void OnRendererFrame(int64_t time);
 
  private:
