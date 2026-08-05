@@ -47,6 +47,7 @@ typedef void (^MarkdownRequestMeasureCallback)(void);
               height:(CGFloat)height
           heightMode:(ServalMarkdownLayoutMode)heightMode;
 
+- (void)align:(CGFloat)left top:(CGFloat)top;
 - (void)markDirty;
 - (void)setTextSelection:(int)start end:(int)end;
 - (int)getAnimationStep;

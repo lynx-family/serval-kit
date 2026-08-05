@@ -69,10 +69,6 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (void)alignDrawable:(CGFloat)left top:(CGFloat)top;
 @end
 
-@interface MarkdownMeasurer (AlignInternal)
-- (void)align:(CGFloat)left top:(CGFloat)top;
-@end
-
 @interface ServalMarkdownView () <UIGestureRecognizerDelegate> {
   std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
   BOOL disableInternalVSync_;
