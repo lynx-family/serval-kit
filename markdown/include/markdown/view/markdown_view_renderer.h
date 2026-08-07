@@ -17,12 +17,14 @@ class MarkdownViewContainerHandle;
 
 class MarkdownViewRenderer {
  public:
-  MarkdownViewRenderer() = default;
+  explicit MarkdownViewRenderer(MarkdownPlatformView* main_view = nullptr)
+      : main_view_(main_view) {}
   ~MarkdownViewRenderer() = default;
 
   void Draw(tttext::ICanvasHelper* canvas, float left, float top) const;
   void SetDocument(std::shared_ptr<MarkdownDocument> document);
   const std::shared_ptr<MarkdownDocument>& GetDocument() const;
+  void SetMainView(MarkdownPlatformView* main_view) { main_view_ = main_view; }
   void SetViewContainerHandle(MarkdownViewContainerHandle* handle);
   void SetMarkdownAnimationType(MarkdownAnimationType type);
   void SetMarkdownAnimationStep(int32_t step);
@@ -52,6 +54,7 @@ class MarkdownViewRenderer {
   void ClearRegionViewPool();
 
   std::shared_ptr<MarkdownDocument> document_;
+  MarkdownPlatformView* main_view_{nullptr};
   MarkdownViewContainerHandle* handle_{nullptr};
   MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
   int32_t animation_step_{0};

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
   "deps": {
-    "@lynx/textra": "0.1.6"
+    "@lynx/textra": "0.2.0"
   }
 }

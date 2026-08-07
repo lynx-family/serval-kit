@@ -58,9 +58,10 @@ Range MarkdownSelection::GetCharRangeByPoint(
         FindCellLineAndCharIndex(table, line_index, char_index, point);
     auto& cell = content->GetTable()->GetCell(line_index, char_index);
     auto& region_cell = table->table_->GetCell(line_index, char_index);
-    if (cell.paragraph_ == nullptr) {
+    if (cell.paragraph_ == nullptr || region_cell.region_ == nullptr) {
       range.start_ = static_cast<int32_t>(cell.char_start_);
       range.end_ = range.start_ + 1;
+      return range;
     } else {
       if (type == CharRangeType::kChar || type == CharRangeType::kWord) {
         auto char_pos =

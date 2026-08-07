@@ -51,6 +51,7 @@ MarkdownView::MarkdownView(MarkdownPlatformView* view,
       measure_host_(measure_host),
       context_(std::move(context)),
       measurer_(context_),
+      renderer_(view),
       gesture_(handle_, context_.get(), &renderer_) {
   renderer_.SetViewContainerHandle(handle_);
 }
@@ -63,6 +64,7 @@ void MarkdownView::SetView(MarkdownPlatformView* view) {
   }
   view_ = view;
   handle_ = view_->GetViewContainerHandle();
+  renderer_.SetMainView(view_);
   renderer_.SetViewContainerHandle(handle_);
   gesture_.SetViewContainerHandle(handle_);
   measure_host_->RequestMeasure();

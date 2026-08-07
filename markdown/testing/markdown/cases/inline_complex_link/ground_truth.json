@@ -37,7 +37,7 @@
           "rect": {
             "left": 0.0,
             "top": 0.0,
-            "right": 340.0,
+            "right": 272.0,
             "bottom": 60.0
           }
         },
@@ -94,11 +94,11 @@
         },
         {
           "op": "glyphs",
-          "text": " link",
+          "text": "link",
           "font": "",
           "origin": {
-            "x": 255.0,
-            "y": 22.649999618530273
+            "x": 0.0,
+            "y": 52.650001525878906
           },
           "painter": {
             "stroke_width": 1.0,
@@ -111,10 +111,27 @@
         },
         {
           "op": "glyphs",
+          "text": " ",
+          "font": "",
+          "origin": {
+            "x": 68.0,
+            "y": 52.650001525878906
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
           "text": "&",
           "font": "",
           "origin": {
-            "x": 0.0,
+            "x": 85.0,
             "y": 52.650001525878906
           },
           "painter": {
@@ -131,7 +148,7 @@
           "text": " text",
           "font": "",
           "origin": {
-            "x": 17.0,
+            "x": 102.0,
             "y": 52.650001525878906
           },
           "painter": {
@@ -148,7 +165,7 @@
           "text": " end.",
           "font": "",
           "origin": {
-            "x": 102.0,
+            "x": 187.0,
             "y": 52.650001525878906
           },
           "painter": {
