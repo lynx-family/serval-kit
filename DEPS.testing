@@ -21,7 +21,7 @@ deps = {
     "./markdown/third_party/lynx-textra": {
         'type': 'git',
         'url': 'https://github.com/lynx-family/lynx-textra.git',
-        'commit': '27d334449d6521f7809fc9e80713932213a8c264',
+        'commit': '14a7c148b59fc44505a9e871c6f90eeeed065054',
         'ignore_in_git': True,
     },
 }

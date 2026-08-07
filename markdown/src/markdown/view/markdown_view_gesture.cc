@@ -51,7 +51,7 @@ void MarkdownViewGesture::SetDocument(
   }
   document_ = std::move(document);
   if (is_in_selection_) {
-    UpdateSelectionRects(SelectionState::kMove);
+    UpdateSelectionRects();
   }
 }
 

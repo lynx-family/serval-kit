@@ -127,6 +127,20 @@ TEST(MarkdownViewRendererTest, EnableRegionViewControlsSubviewRendering) {
   EXPECT_GT(main_view.GetSubviewCount(), 0u);
 }
 
+TEST(MarkdownViewRendererTest,
+     RequestDrawRegionRequestsMainViewWhenRegionViewsDisabled) {
+  auto context = CreateTestMarkdownSharedContext();
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer(&main_view);
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetEnableRegionView(false);
+  main_view.needs_draw_ = false;
+
+  renderer.RequestDrawRegion(0);
+
+  EXPECT_TRUE(main_view.needs_draw_);
+}
+
 TEST(MarkdownViewRendererTest, RebindsRegionViewsWhenDocumentChanges) {
   auto context = CreateTestMarkdownSharedContext();
   auto first_document = CreateDocumentWithQuoteBorder(context);

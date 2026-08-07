@@ -54,5 +54,5 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 
     implementation project(':serval_markdown')
-    implementation 'org.lynxsdk.lynx:lynxtextra:0.1.1'
+    implementation 'org.lynxsdk.lynx:lynxtextra:0.2.0'
 }

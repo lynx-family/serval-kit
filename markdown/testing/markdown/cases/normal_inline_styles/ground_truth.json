@@ -114,7 +114,7 @@
           "text": ",",
           "font": "",
           "origin": {
-            "x": 272.0,
+            "x": 276.25,
             "y": 22.649999618530273
           },
           "painter": {
@@ -122,25 +122,6 @@
             "fill_color": 4278190080,
             "stroke_color": 0,
             "text_size": 17.0,
-            "bold": false,
-            "italic": false
-          }
-        },
-        {
-          "op": "line",
-          "p1": {
-            "x": 289.0,
-            "y": 15.0
-          },
-          "p2": {
-            "x": 289.0,
-            "y": 15.0
-          },
-          "painter": {
-            "stroke_width": 1.2142857313156128,
-            "fill_color": 4278190080,
-            "stroke_color": 4278190080,
-            "text_size": 14.0,
             "bold": false,
             "italic": false
           }
@@ -234,11 +215,11 @@
           "op": "line",
           "p1": {
             "x": 0.0,
-            "y": 45.0
+            "y": 44.39285659790039
           },
           "p2": {
             "x": 102.0,
-            "y": 45.0
+            "y": 44.39285659790039
           },
           "painter": {
             "stroke_width": 1.2142857313156128,

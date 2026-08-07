@@ -207,6 +207,13 @@ void MarkdownViewRenderer::SetEnableRegionView(bool enable) {
   has_last_view_rect_ = false;
 }
 void MarkdownViewRenderer::RequestDrawRegion(uint32_t region_index) {
+  if (!NeedUseRegionView()) {
+    full_redraw_required_ = true;
+    if (main_view_ != nullptr) {
+      main_view_->RequestDraw();
+    }
+    return;
+  }
   const auto iter = region_views_.find(static_cast<int32_t>(region_index));
   if (iter != region_views_.end() && iter->second.view_ != nullptr) {
     iter->second.view_->RequestDraw();
