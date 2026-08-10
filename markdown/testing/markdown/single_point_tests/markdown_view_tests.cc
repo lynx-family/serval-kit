@@ -141,6 +141,35 @@ TEST(MarkdownViewTest, ContentIDComesFromRenderedDocument) {
   EXPECT_EQ(view->GetContentID(), "updated-content-id");
 }
 
+TEST(MarkdownViewTest, PausedRenderUpdateKeepsRenderedAnimationStep) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("rendered animation step");
+  view->SetAnimationType(MarkdownAnimationType::kTypewriter);
+  view->SetTypewriterDynamicHeight(false);
+  view->SetAnimationStep(1);
+  main_view.Measure(MakeMeasureSpec());
+  view->OnRendererFrame(0);
+
+  EXPECT_EQ(view->GetAnimationStep(), 1);
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 1);
+
+  view->PauseRenderUpdate();
+  view->SetAnimationStep(5);
+  view->SetAnimationStep(8);
+  view->OnRendererFrame(1);
+
+  EXPECT_EQ(view->GetAnimationStep(), 8);
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 1);
+
+  main_view.needs_draw_ = false;
+  view->ResumeRenderUpdate();
+
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 8);
+  EXPECT_TRUE(main_view.needs_draw_);
+}
+
 TEST(MarkdownViewTest, CreatesSelectionSubviewsAfterBindingView) {
   auto context = testing::CreateTestMarkdownSharedContext();
   CountingMarkdownViewMeasureHost measure_host;

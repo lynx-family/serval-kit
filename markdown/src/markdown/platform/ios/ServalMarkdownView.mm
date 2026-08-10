@@ -569,6 +569,20 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
              ? 0
              : [self.markdownMeasurer getAnimationStep];
 }
+- (int)getRenderedAnimationStep {
+  auto* view = [self getMarkdownView];
+  return view == nullptr ? 0 : view->GetRenderedAnimationStep();
+}
+- (void)pauseRenderUpdate {
+  if (auto* view = [self getMarkdownView]; view != nullptr) {
+    view->PauseRenderUpdate();
+  }
+}
+- (void)resumeRenderUpdate {
+  if (auto* view = [self getMarkdownView]; view != nullptr) {
+    view->ResumeRenderUpdate();
+  }
+}
 - (void)disableInternalVSync:(BOOL)disable {
   if (disableInternalVSync_ == disable) {
     return;

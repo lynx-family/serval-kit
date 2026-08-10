@@ -70,6 +70,11 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
 
   void SetAnimationStep(int32_t animation_step);
   int32_t GetAnimationStep() const { return animator_.GetAnimationStep(); }
+  int32_t GetRenderedAnimationStep() const {
+    return renderer_data_.animation_step_;
+  }
+  void PauseRenderUpdate();
+  void ResumeRenderUpdate();
   void SetAnimationType(MarkdownAnimationType type);
   void SetAnimationVelocity(float velocity);
   void SetInitialAnimationStep(int32_t step);
@@ -216,6 +221,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
 
   struct RendererData {
     std::shared_ptr<MarkdownDocument> document_{nullptr};
+    int32_t animation_step_{0};
     std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_links_;
     std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_images_;
   };
@@ -240,6 +246,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   bool typewriter_height_transition_prefetch_{true};
   bool draw_start_sent_{false};
   bool draw_end_sent_{false};
+  bool render_update_paused_{false};
 
   // Exposure checks are expensive (image/link look-ups by view rect). We do
   // not need to run them on every VSync frame; skipping most frames keeps CPU

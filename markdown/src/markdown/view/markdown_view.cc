@@ -157,6 +157,17 @@ void MarkdownView::SetAnimationStep(int32_t animation_step) {
     PublishRendererBundle();
   }
 }
+void MarkdownView::PauseRenderUpdate() {
+  render_update_paused_ = true;
+}
+void MarkdownView::ResumeRenderUpdate() {
+  if (!render_update_paused_) {
+    return;
+  }
+  render_update_paused_ = false;
+  ConsumeRendererBundleIfNeeded();
+  NeedsDraw();
+}
 void MarkdownView::SetTypewriterDynamicHeight(bool enable) {
   animator_.SetTypewriterDynamicHeight(enable);
   NeedsMeasure();
@@ -340,6 +351,9 @@ void MarkdownView::PublishRendererBundle() {
 }
 
 void MarkdownView::ConsumeRendererBundleIfNeeded() {
+  if (render_update_paused_) {
+    return;
+  }
   std::unique_ptr<RendererBundle> bundle;
   {
     std::lock_guard<std::mutex> guard(renderer_bundle_mutex_);
@@ -359,6 +373,7 @@ void MarkdownView::ConsumeRendererBundleIfNeeded() {
   }
   renderer_.SetMarkdownAnimationType(bundle->animation_type_);
   renderer_.SetMarkdownAnimationStep(bundle->animation_step_);
+  renderer_data_.animation_step_ = bundle->animation_step_;
   renderer_.SetContentComplete(bundle->content_complete_);
 }
 

@@ -212,6 +212,19 @@ public class ServalMarkdownView extends MarkdownGestureView {
   public int getAnimationStep() {
     return mMeasurer == null ? 0 : mMeasurer.getAnimationStep();
   }
+  public int getRenderedAnimationStep() {
+    return mInstance == 0 ? 0 : nativeGetRenderedAnimationStep(mInstance);
+  }
+  public void pauseRenderUpdate() {
+    if (mInstance != 0) {
+      nativePauseRenderUpdate(mInstance);
+    }
+  }
+  public void resumeRenderUpdate() {
+    if (mInstance != 0) {
+      nativeResumeRenderUpdate(mInstance);
+    }
+  }
 
   public void setBooleanProp(int key, boolean value) {
     setNumberProp(key, value ? 1 : 0);
@@ -325,5 +338,8 @@ public class ServalMarkdownView extends MarkdownGestureView {
                                                int indexType);
   private native long nativeGetCharRangeByPoint(long instance, float x, float y,
                                                 int indexType, int rangeType);
+  private native int nativeGetRenderedAnimationStep(long instance);
+  private native void nativePauseRenderUpdate(long instance);
+  private native void nativeResumeRenderUpdate(long instance);
   private native void nativeOnRendererFrame(long instance, long time);
 }
