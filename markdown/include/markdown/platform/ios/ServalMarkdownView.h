@@ -56,6 +56,9 @@
                      rangeType:(ServalMarkdownCharRangeType)rangeType;
 - (void)setTextSelection:(int)start end:(int)end;
 - (int)getAnimationStep;
+- (int)getRenderedAnimationStep;
+- (void)pauseRenderUpdate;
+- (void)resumeRenderUpdate;
 - (void)disableInternalVSync:(BOOL)disable;
 - (void)onRendererFrame:(int64_t)frameTimeNanos;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;

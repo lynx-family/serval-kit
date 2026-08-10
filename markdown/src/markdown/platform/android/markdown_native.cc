@@ -516,6 +516,30 @@ Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(JNIEnv* env,
   view->OnRendererFrame(time);
 }
 
+extern "C" JNIEXPORT jint JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeGetRenderedAnimationStep(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  auto* markdown_view = GetPlatformMarkdownView(instance);
+  return markdown_view == nullptr ? 0
+                                  : markdown_view->GetRenderedAnimationStep();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativePauseRenderUpdate(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (auto* view = GetPlatformMarkdownView(instance); view != nullptr) {
+    view->PauseRenderUpdate();
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeResumeRenderUpdate(
+    JNIEnv* env, jobject thiz, jlong instance) {
+  if (auto* view = GetPlatformMarkdownView(instance); view != nullptr) {
+    view->ResumeRenderUpdate();
+  }
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_MarkdownMeasurer_nativeOnFontLoaded(
     JNIEnv* env, jobject thiz, jlong instance, jstring family, jint weight,
