@@ -103,6 +103,13 @@ android {
 
     buildFeatures {
         prefab true
+        prefabPublishing true
+    }
+
+    prefab {
+        serval_markdown {
+            headers "../../../include"
+        }
     }
 
     packagingOptions {
