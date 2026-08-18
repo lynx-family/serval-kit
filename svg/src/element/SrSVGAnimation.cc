@@ -975,8 +975,8 @@ std::vector<MotionPoint> BuildPolyline(const SrPathData* path) {
   return points;
 }
 
-bool SamplePolyline(const std::vector<MotionPoint>& points, double progress,
-                    MotionSample* sample) {
+[[maybe_unused]] bool SamplePolyline(const std::vector<MotionPoint>& points,
+                                     double progress, MotionSample* sample) {
   if (!sample || points.empty()) {
     return false;
   }
