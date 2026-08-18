@@ -27,6 +27,7 @@ constexpr std::string_view kUrlPrefix = "url(";
 constexpr size_t kInvalidIndex = static_cast<size_t>(-1);
 constexpr float kMinColorStop = 0.f;
 constexpr float kMaxColorStop = 1.f;
+constexpr float kPi = 3.14159265358979323846f;
 
 struct ColorStop {
   uint32_t color{0};
@@ -239,7 +240,7 @@ bool ParseAngle(std::string_view value, float* angle) {
   if (parse_angle_with_unit("grad", 360.f / 400.f)) {
     return true;
   }
-  if (parse_angle_with_unit("rad", 180.f / static_cast<float>(M_PI))) {
+  if (parse_angle_with_unit("rad", 180.f / kPi)) {
     return true;
   }
   if (parse_angle_with_unit("turn", 360.f)) {
@@ -353,7 +354,7 @@ float SafeLength(float value) {
 }
 
 float ToRadians(float angle) {
-  return angle * static_cast<float>(M_PI) / 180.f;
+  return angle * kPi / 180.f;
 }
 
 void UpdateGradientPoints(float width, float height, float angle,
