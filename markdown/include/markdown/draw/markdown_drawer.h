@@ -47,6 +47,7 @@ class MarkdownDrawer {
                                       MarkdownTextAttachment* attachment,
                                       int32_t region_char_start,
                                       int32_t region_char_end);
+  virtual int32_t GetAttachmentMaxCharCount(const MarkdownPage& page) const;
 
   tttext::ICanvasHelper* canvas_;
   MarkdownContext* context_;

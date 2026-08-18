@@ -214,6 +214,10 @@ TEST(MarkdownCaseUnittest, TextAttachmentsMark) {
   RunSingleCase(CASES_PATH / "text_attachments_mark");
 }
 
+TEST(MarkdownCaseUnittest, TextAttachmentsNegativeIndex) {
+  RunSingleCase(CASES_PATH / "text_attachments_negative_index");
+}
+
 TEST(MarkdownCaseUnittest, TextAttachmentsSourceIndex) {
   RunSingleCase(CASES_PATH / "text_attachments_source_index");
 }
