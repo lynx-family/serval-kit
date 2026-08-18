@@ -4,6 +4,8 @@
 
 #include "markdown/draw/markdown_drawer.h"
 
+#include <limits>
+
 #include "markdown/draw/markdown_path.h"
 #include "markdown/element/markdown_attachments.h"
 #include "markdown/element/markdown_context.h"
@@ -393,21 +395,53 @@ void MarkdownDrawer::DrawTextRegion(tttext::LayoutRegion* page,
 
 void MarkdownDrawer::DrawAttachment(const MarkdownPage& page,
                                     MarkdownTextAttachment* attachment) {
-  const auto rects = MarkdownSelection::GetSelectionRectByCharPos(
-      &page, attachment->start_index_, attachment->end_index_,
-      MarkdownSelection::RectType::kLineBounding);
-  attachment->DrawOnMultiLines(canvas_, rects, 0, context_);
+  DrawAttachmentOnRegion(page, attachment, 0,
+                         std::numeric_limits<int32_t>::max());
 }
 
 void MarkdownDrawer::DrawAttachmentOnRegion(const MarkdownPage& page,
                                             MarkdownTextAttachment* attachment,
                                             int32_t region_char_start,
                                             int32_t region_char_end) {
-  if (region_char_start > attachment->end_index_ ||
-      region_char_end <= attachment->start_index_) {
+  const int32_t max_char_count = GetAttachmentMaxCharCount(page);
+  int32_t start_index = attachment->start_index_;
+  int32_t end_index = attachment->end_index_;
+  if (start_index < 0) {
+    start_index = std::max(0, max_char_count + start_index + 1);
+  }
+  if (end_index < 0) {
+    end_index = std::max(0, max_char_count + end_index + 1);
+  }
+  if (start_index >= end_index) {
     return;
   }
-  DrawAttachment(page, attachment);
+  if (region_char_start > end_index || region_char_end <= start_index) {
+    return;
+  }
+  if (max_char_count <= start_index) {
+    return;
+  }
+  const auto rects_origin = MarkdownSelection::GetSelectionRectByCharPos(
+      &page, start_index, end_index,
+      MarkdownSelection::RectType::kLineBounding);
+  float total_width = 0;
+  for (const auto& rect : rects_origin) {
+    total_width += rect.GetWidth();
+  }
+  if (max_char_count < end_index) {
+    end_index = max_char_count;
+    const auto rects = MarkdownSelection::GetSelectionRectByCharPos(
+        &page, start_index, end_index,
+        MarkdownSelection::RectType::kLineBounding);
+    attachment->DrawOnMultiLines(canvas_, rects, total_width, context_);
+  } else {
+    attachment->DrawOnMultiLines(canvas_, rects_origin, total_width, context_);
+  }
+}
+
+int32_t MarkdownDrawer::GetAttachmentMaxCharCount(
+    const MarkdownPage& page) const {
+  return MarkdownSelection::GetPageCharCount(&page);
 }
 
 }  // namespace serval::markdown

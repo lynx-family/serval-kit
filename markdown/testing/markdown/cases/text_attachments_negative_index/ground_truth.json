@@ -1,0 +1,90 @@
+[
+  {
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 170.0,
+            "bottom": 30.0
+          }
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 1000000.0,
+            "bottom": 1000000.0
+          }
+        },
+        {
+          "op": "rect",
+          "rect": {
+            "left": 85.0,
+            "top": 0.0,
+            "right": 170.0,
+            "bottom": 30.0
+          },
+          "painter": {
+            "stroke_width": 0.0,
+            "fill_color": 4294901760,
+            "stroke_color": 0,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "0123456789",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 22.649999618530273
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ]
+    ]
+  }
+]

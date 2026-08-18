@@ -52,12 +52,7 @@ class MarkdownCharTypewriterDrawer : public MarkdownDrawer {
                  int32_t row_count) override;
 
   tttext::RunDelegate* LoadTypewriterCursor(float size, uint32_t color);
-  void DrawAttachment(const MarkdownPage& page,
-                      MarkdownTextAttachment* attachment) override;
-  void DrawAttachmentOnRegion(const MarkdownPage& page,
-                              MarkdownTextAttachment* attachment,
-                              int32_t region_char_start,
-                              int32_t region_char_end) override;
+  int32_t GetAttachmentMaxCharCount(const MarkdownPage& page) const override;
 
  private:
   int32_t GetVisibleTableRowCount(const MarkdownElement& element) const;

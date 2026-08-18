@@ -1,0 +1,16 @@
+{
+  "width": 320,
+  "height": 100,
+  "text-mark-attachments": [
+    {
+      "startIndex": -6,
+      "endIndex": -1,
+      "indexType": "parsedContent",
+      "layer": "background",
+      "id": "negative-index-highlight",
+      "style": {
+        "color": "#ff0000"
+      }
+    }
+  ]
+}
