@@ -125,19 +125,21 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   ImageProvider image_provider_{};
 
   void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
+  void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state,
+                bool anti_alias);
   void StrokePath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);
   void DrawLinearGradientShader(OH_Drawing_Canvas* canvas,
                                 const canvas::LinearGradientModel& lg_model,
                                 OH_Drawing_Path* path,
                                 const SrSVGRenderState& render_state,
-                                bool is_stroke,
+                                bool is_stroke, bool anti_alias,
                                 OH_Drawing_Path* bounds_path = nullptr,
                                 const float* extra_transform = nullptr);
   void DrawRadialGradientShader(OH_Drawing_Canvas* canvas,
                                 const canvas::RadialGradientModel& rg_model,
                                 OH_Drawing_Path* path,
                                 const SrSVGRenderState& render_state,
-                                bool is_stroke,
+                                bool is_stroke, bool anti_alias,
                                 OH_Drawing_Path* bounds_path = nullptr,
                                 const float* extra_transform = nullptr);
 

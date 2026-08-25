@@ -24,14 +24,8 @@ extern "C" {
 
 typedef struct ServalSvgHandle ServalSvgHandle;
 
-typedef struct ServalSvgImageData {
-  OH_PixelmapNative* pixel_map;
-  uint32_t width;
-  uint32_t height;
-} ServalSvgImageData;
-
-typedef const ServalSvgImageData* (*ServalSvgImageProvider)(void* user_data,
-                                                            const char* source);
+typedef OH_PixelmapNative* (*ServalSvgImageProvider)(void* user_data,
+                                                     const char* source);
 
 typedef enum ServalSvgStatus {
   SERVAL_SVG_STATUS_OK = 0,
@@ -51,8 +45,12 @@ typedef enum ServalSvgUpdateResult {
 // Operations on different handles may run concurrently. Operations on the
 // same handle are serialized internally. The business owner must ensure that
 // destruction is the final operation and does not run concurrently with any
-// other operation on the handle.
-SERVAL_SVG_EXPORT ServalSvgHandle* serval_svg_create(void);
+// other operation on the handle. The provider is called synchronously from
+// serval_svg_render. Mutating, rendering, or destroying the same handle from
+// the provider is rejected. user_data and the returned pixel_map must remain
+// valid until rendering finishes. The caller retains ownership of pixel_map.
+SERVAL_SVG_EXPORT ServalSvgHandle* serval_svg_create(
+    ServalSvgImageProvider provider, void* user_data);
 
 SERVAL_SVG_EXPORT ServalSvgStatus serval_svg_destroy(ServalSvgHandle* handle);
 
@@ -69,14 +67,6 @@ serval_svg_update(ServalSvgHandle* handle, const char* content,
 // valid until the next serval_svg_get_last_error call on the same thread.
 SERVAL_SVG_EXPORT const char* serval_svg_get_last_error(
     const ServalSvgHandle* handle);
-
-// The provider is called synchronously from serval_svg_render. Mutating,
-// rendering, or destroying the same handle from the provider is rejected with
-// a reentrant status. serval_svg_get_last_error remains available. user_data
-// and the returned pixel_map must remain valid until rendering finishes. The
-// caller retains ownership of pixel_map.
-SERVAL_SVG_EXPORT ServalSvgStatus serval_svg_set_image_provider(
-    ServalSvgHandle* handle, ServalSvgImageProvider provider, void* user_data);
 
 SERVAL_SVG_EXPORT ServalSvgStatus serval_svg_render(ServalSvgHandle* handle,
                                                     OH_Drawing_Canvas* canvas);

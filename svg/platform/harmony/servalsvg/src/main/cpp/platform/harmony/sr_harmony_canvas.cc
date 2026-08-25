@@ -89,6 +89,18 @@ static inline void CopyTransformArray(const std::array<float, 6> &src, float (&o
     }
 }
 
+static inline bool NeedsHarmonyCubicFillAntiAliasFallback(const uint8_t *ops, uint32_t n_ops) {
+    if (!ops || n_ops < 3 || ops[0] != SPO_MOVE_TO || ops[n_ops - 1] != SPO_CLOSE) {
+        return false;
+    }
+    for (uint32_t i = 1; i + 1 < n_ops; ++i) {
+        if (ops[i] != SPO_CUBIC_BEZ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 OH_Drawing_ColorFilter *BuildHarmonyColorFilter(const canvas::SrFilterPrimitiveModel &primitive) {
     if (primitive.color_matrix_type == "luminanceToAlpha") {
         return OH_Drawing_ColorFilterCreateLuma();
@@ -274,7 +286,11 @@ void SrHarmonyCanvas::DrawPath(const char *, uint8_t *ops, uint32_t n_ops, float
     Save();
     auto path = path_factory_->CreatePath(ops, n_ops, args, n_args);
     auto path_impl = static_cast<PathHarmonyImpl *>(path.get());
-    FillPath(path_impl->GetPath(), render_state);
+    // Native Drawing can drop the fill of some anti-aliased closed cubic paths.
+    // Disable anti-aliasing only for the affected fill; keep stroke and all other
+    // paths on the caller-selected anti-aliasing setting.
+    const bool fill_anti_alias = anti_alias_ && !NeedsHarmonyCubicFillAntiAliasFallback(ops, n_ops);
+    FillPath(path_impl->GetPath(), render_state, fill_anti_alias);
     StrokePath(path_impl->GetPath(), render_state);
     Restore();
 }
@@ -656,8 +672,12 @@ void SrHarmonyCanvas::InitFillPaint(const SrSVGRenderState &render_state, bool a
 }
 
 void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &render_state) {
+    FillPath(path, render_state, anti_alias_);
+}
+
+void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &render_state, bool anti_alias) {
     Save();
-    InitFillPaint(render_state, anti_alias_);
+    InitFillPaint(render_state, anti_alias);
     if (render_state.fill_rule == SR_SVG_EO_FILL) {
         OH_Drawing_PathSetFillType(path, PATH_FILL_TYPE_EVEN_ODD);
     } else {
@@ -692,12 +712,12 @@ void SrHarmonyCanvas::FillPath(OH_Drawing_Path *path, const SrSVGRenderState &re
         auto it1 = lg_models_.find(iri);
         if (it1 != lg_models_.end()) {
             const canvas::LinearGradientModel &lgModel = it1->second;
-            DrawLinearGradientShader(context_, lgModel, path, render_state, false);
+            DrawLinearGradientShader(context_, lgModel, path, render_state, false, anti_alias);
         }
         auto it2 = rg_models_.find(iri);
         if (it2 != rg_models_.end()) {
             const canvas::RadialGradientModel &rgModel = it2->second;
-            DrawRadialGradientShader(context_, rgModel, path, render_state, false);
+            DrawRadialGradientShader(context_, rgModel, path, render_state, false, anti_alias);
         }
     }
     Restore();
@@ -711,7 +731,7 @@ static inline uint32_t MixColorWithOpacity(uint32_t color, float opacity) {
 
 void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const canvas::LinearGradientModel &lg_model,
                                                OH_Drawing_Path *path, const SrSVGRenderState &render_state,
-                                               bool is_stroke, OH_Drawing_Path *bounds_path,
+                                               bool is_stroke, bool anti_alias, OH_Drawing_Path *bounds_path,
                                                const float *extra_transform) {
     if (!canvas || !path || lg_model.stop_size() == 0) {
         return;
@@ -795,7 +815,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
     OH_Drawing_MatrixDestroy(transform);
     Save();
     if (is_stroke) {
-        InitStrokePaint(render_state, anti_alias_);
+        InitStrokePaint(render_state, anti_alias);
         if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
             OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
         }
@@ -804,7 +824,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
         OH_Drawing_CanvasDrawPath(context_, path);
         OH_Drawing_CanvasDetachPen(context_);
     } else {
-        InitFillPaint(render_state, anti_alias_);
+        InitFillPaint(render_state, anti_alias);
         if (FloatsNotEqual(render_state.fill_opacity, 1)) {
             OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
         }
@@ -818,7 +838,7 @@ void SrHarmonyCanvas::DrawLinearGradientShader(OH_Drawing_Canvas *canvas, const 
 
 void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const canvas::RadialGradientModel &rg_model,
                                                OH_Drawing_Path *path, const SrSVGRenderState &render_state,
-                                               bool is_stroke, OH_Drawing_Path *bounds_path,
+                                               bool is_stroke, bool anti_alias, OH_Drawing_Path *bounds_path,
                                                const float *extra_transform) {
     if (!canvas || !path || rg_model.stop_size() == 0) {
         return;
@@ -899,7 +919,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
     shader_ = OH_Drawing_ShaderEffectCreateTwoPointConicalGradient(
         &startCenter, startRadius, &endCenter, endRadius, colors.data(), offsets.data(), colors.size(), mode, matrix);
     if (is_stroke) {
-        InitStrokePaint(render_state, anti_alias_);
+        InitStrokePaint(render_state, anti_alias);
         if (FloatsNotEqual(render_state.stroke_opacity, 1)) {
             OH_Drawing_PenSetAlpha(pen_, ConvertAlpha(render_state.stroke_opacity));
         }
@@ -908,7 +928,7 @@ void SrHarmonyCanvas::DrawRadialGradientShader(OH_Drawing_Canvas *canvas, const 
         OH_Drawing_CanvasDrawPath(context_, path);
         OH_Drawing_CanvasDetachPen(context_);
     } else {
-        InitFillPaint(render_state, anti_alias_);
+        InitFillPaint(render_state, anti_alias);
         if (FloatsNotEqual(render_state.fill_opacity, 1)) {
             OH_Drawing_BrushSetAlpha(brush_, ConvertAlpha(render_state.fill_opacity));
         }
@@ -974,12 +994,13 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
                     auto transformed_path = source_path->CreateTransformCopy(current);
                     OH_Drawing_Path *stroke_path = static_cast<PathHarmonyImpl *>(transformed_path.get())->GetPath();
                     Transform(inverse);
-                    DrawLinearGradientShader(context_, lg_model, stroke_path, render_state, true, path, current);
+                    DrawLinearGradientShader(context_, lg_model, stroke_path, render_state, true, anti_alias_, path,
+                                             current);
                 } else {
-                    DrawLinearGradientShader(context_, lg_model, path, render_state, true);
+                    DrawLinearGradientShader(context_, lg_model, path, render_state, true, anti_alias_);
                 }
             } else {
-                DrawLinearGradientShader(context_, lg_model, path, render_state, true);
+                DrawLinearGradientShader(context_, lg_model, path, render_state, true, anti_alias_);
             }
         }
         auto it2 = rg_models_.find(iri);
@@ -994,12 +1015,13 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
                     auto transformed_path = source_path->CreateTransformCopy(current);
                     OH_Drawing_Path *stroke_path = static_cast<PathHarmonyImpl *>(transformed_path.get())->GetPath();
                     Transform(inverse);
-                    DrawRadialGradientShader(context_, rgModel, stroke_path, render_state, true, path, current);
+                    DrawRadialGradientShader(context_, rgModel, stroke_path, render_state, true, anti_alias_, path,
+                                             current);
                 } else {
-                    DrawRadialGradientShader(context_, rgModel, path, render_state, true);
+                    DrawRadialGradientShader(context_, rgModel, path, render_state, true, anti_alias_);
                 }
             } else {
-                DrawRadialGradientShader(context_, rgModel, path, render_state, true);
+                DrawRadialGradientShader(context_, rgModel, path, render_state, true, anti_alias_);
             }
         }
     }
