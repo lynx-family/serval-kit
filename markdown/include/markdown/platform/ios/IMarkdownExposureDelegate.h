@@ -7,6 +7,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol IMarkdownExposureDelegate <NSObject>
 - (void)onLinkAppear:(nonnull NSString*)url Content:(nonnull NSString*)content;
 - (void)onLinkDisappear:(nonnull NSString*)url
@@ -14,5 +16,7 @@
 - (void)onImageAppear:(nonnull NSString*)url;
 - (void)onImageDisappear:(nonnull NSString*)url;
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_IMARKDOWNEXPOSUREDELEGATE_H_

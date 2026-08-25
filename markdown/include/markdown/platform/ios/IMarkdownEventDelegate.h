@@ -8,6 +8,8 @@
 #import <Foundation/Foundation.h>
 #import <ServalMarkdown/ServalMarkdownConstants.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol IMarkdownEventDelegate <NSObject>
 - (void)onParseEnd;
 - (void)onTextOverflow:(ServalMarkdownTextOverflow)overflow;
@@ -22,5 +24,7 @@
                     Handle:(ServalMarkdownSelectionHandleType)handle
                      State:(ServalMarkdownSelectionState)state;
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_IMARKDOWNEVENTDELEGATE_H_

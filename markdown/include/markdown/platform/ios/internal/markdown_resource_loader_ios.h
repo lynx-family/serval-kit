@@ -13,13 +13,15 @@
 
 #import "markdown/platform/ios/IMarkdownResourceDelegate.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
  public:
   MarkdownResourceLoaderIOS() = default;
   ~MarkdownResourceLoaderIOS() override;
 
-  void SetDelegate(id<IMarkdownResourceDelegate> delegate) {
+  void SetDelegate(id<IMarkdownResourceDelegate> _Nullable delegate) {
     delegate_ = delegate;
   }
 
@@ -33,17 +35,20 @@ class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
                                                    float max_width,
                                                    float max_height) override;
 
-  void* LoadFont(const char* family, MarkdownFontWeight weight) override;
+  void* _Nullable LoadFont(const char* family,
+                           MarkdownFontWeight weight) override;
 
   MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
                                               float max_width,
                                               float max_height) override;
 
  private:
-  __weak id<IMarkdownResourceDelegate> delegate_{nil};
+  __weak id<IMarkdownResourceDelegate> _Nullable delegate_{nil};
   // Keep returned UIFont handles alive while the loader is alive.
-  NSMutableSet<UIFont*>* font_cache_{nil};
+  NSMutableSet<UIFont*>* _Nullable font_cache_{nil};
 };
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_RESOURCE_LOADER_IOS_H_

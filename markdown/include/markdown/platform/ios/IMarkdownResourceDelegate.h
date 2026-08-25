@@ -7,6 +7,9 @@
 
 #import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
 #import <UIKit/UIKit.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol IMarkdownResourceDelegate <NSObject>
 - (nullable UIImage*)loadImageByURL:(nonnull NSString*)url;
 - (nullable UIFont*)loadFontByFamilyName:(nonnull NSString*)family
@@ -15,4 +18,7 @@
 - (nullable id<IMarkdownPlatformViewHandle>)loadInlineView:
     (nonnull NSString*)idSelector;
 @end
+
+NS_ASSUME_NONNULL_END
+
 #endif  // THIRD_PARTY_MARKDOWN_IOS_I_RESOURCE_DELEGATE_H_
