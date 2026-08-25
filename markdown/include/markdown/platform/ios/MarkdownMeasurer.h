@@ -14,6 +14,8 @@
 #import <ServalMarkdown/IMarkdownResourceDelegate.h>
 #import <ServalMarkdown/ServalMarkdownConstants.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 typedef void (^MarkdownRequestMeasureCallback)(void);
 
 @interface MarkdownMeasureResult : NSObject
@@ -30,15 +32,17 @@ typedef void (^MarkdownRequestMeasureCallback)(void);
 
 @interface MarkdownMeasurer : NSObject
 
-@property(nonatomic, strong) NSString* content;
-@property(nonatomic, strong) NSDictionary* style;
+@property(nonatomic, strong, nullable) NSString* content;
+@property(nonatomic, strong, nullable) NSDictionary* style;
 @property(nonatomic, assign) ServalMarkdownAnimationType animationType;
 @property(nonatomic, assign) float animationVelocity;
 @property(nonatomic, assign) int initialAnimationStep;
-@property(nonatomic, weak) id<IMarkdownResourceDelegate> resourceDelegate;
-@property(nonatomic, weak) id<IMarkdownEventDelegate> eventDelegate;
-@property(nonatomic, weak) id<IMarkdownExposureDelegate> exposureDelegate;
-@property(nonatomic, copy)
+@property(nonatomic, weak, nullable) id<IMarkdownResourceDelegate>
+    resourceDelegate;
+@property(nonatomic, weak, nullable) id<IMarkdownEventDelegate> eventDelegate;
+@property(nonatomic, weak, nullable) id<IMarkdownExposureDelegate>
+    exposureDelegate;
+@property(nonatomic, copy, nullable)
     MarkdownRequestMeasureCallback requestMeasureCallback;
 
 - (ServalMarkdownMeasureResult)
@@ -57,13 +61,15 @@ typedef void (^MarkdownRequestMeasureCallback)(void);
 - (void)resumeAnimation:(int)animationStep;
 - (void)onLayoutFrame:(int64_t)frameTimeNanos;
 - (void)setNumberProp:(ServalMarkdownProps)prop Value:(double)value;
-- (void)setStringProp:(ServalMarkdownProps)prop Value:(NSString*)value;
+- (void)setStringProp:(ServalMarkdownProps)prop Value:(nullable NSString*)value;
 - (void)setBooleanProp:(ServalMarkdownProps)prop Value:(BOOL)value;
 - (void)setColorProp:(ServalMarkdownProps)prop Value:(uint32_t)color;
-- (void)setArrayProp:(ServalMarkdownProps)prop Value:(NSArray*)array;
-- (void)setMapProp:(ServalMarkdownProps)prop Value:(NSDictionary*)dict;
-- (void)onImageLoaded:(NSString*)url;
-- (void)onFontLoaded:(NSString*)family Weight:(int)weight Style:(int)style;
+- (void)setArrayProp:(ServalMarkdownProps)prop Value:(nullable NSArray*)array;
+- (void)setMapProp:(ServalMarkdownProps)prop Value:(nullable NSDictionary*)dict;
+- (void)onImageLoaded:(nullable NSString*)url;
+- (void)onFontLoaded:(nullable NSString*)family
+              Weight:(int)weight
+               Style:(int)style;
 
 /**
  * Measures Markdown without creating a view.
@@ -76,11 +82,13 @@ typedef void (^MarkdownRequestMeasureCallback)(void);
  * @param maxLines Maximum number of lines; values less than or equal to zero
  *     mean unlimited.
  */
-+ (MarkdownMeasureResult*)measure:(NSString*)markdown
-                            style:(NSDictionary*)style
-                         maxWidth:(CGFloat)maxWidth
-                         maxLines:(NSInteger)maxLines;
++ (nonnull MarkdownMeasureResult*)measure:(nullable NSString*)markdown
+                                    style:(nullable NSDictionary*)style
+                                 maxWidth:(CGFloat)maxWidth
+                                 maxLines:(NSInteger)maxLines;
 
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_MARKDOWN_MEASURER_H_

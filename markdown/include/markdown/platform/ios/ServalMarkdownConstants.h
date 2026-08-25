@@ -7,6 +7,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 typedef NS_ENUM(NSUInteger, ServalMarkdownProps) {
   kServalMarkdownPropsAnimationType,
   kServalMarkdownPropsAnimationVelocity,
@@ -84,5 +86,7 @@ typedef NS_ENUM(NSUInteger, ServalMarkdownCharRangeType) {
   kServalMarkdownCharRangeTypeSentence = 2,
   kServalMarkdownCharRangeTypeParagraph = 3,
 };
+
+NS_ASSUME_NONNULL_END
 
 #endif  //MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_SERVAL_MARKDOWN_PROPS_H_

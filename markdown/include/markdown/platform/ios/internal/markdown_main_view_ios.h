@@ -9,6 +9,9 @@
 #include <memory>
 #include <vector>
 #include "markdown/platform/ios/internal/markdown_custom_view_ios.h"
+
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
                             public MarkdownViewContainerHandle {
@@ -40,7 +43,7 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
  private:
   RectF CalculateViewRectInScreen();
 
-  ServalMarkdownView* GetServalView() {
+  ServalMarkdownView* _Nullable GetServalView() {
     return static_cast<ServalMarkdownView*>(this->GetHandle());
   }
 
@@ -49,5 +52,7 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
 };
 
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_MAIN_VIEW_IOS_H_

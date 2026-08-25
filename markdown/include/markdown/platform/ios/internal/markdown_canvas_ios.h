@@ -13,6 +13,8 @@
 #import "textra/platform/ios/ios_canvas_base.h"
 #import "textra/run_delegate.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 
 enum class MarkdownRunDelegateType : uint8_t {
@@ -54,7 +56,7 @@ class MarkdownRunDelegate : public MarkdownDrawable {
 
 class MarkdownImageRunDelegate : public MarkdownRunDelegate {
  public:
-  MarkdownImageRunDelegate(UIImage* image, float desire_width,
+  MarkdownImageRunDelegate(UIImage* _Nullable image, float desire_width,
                            float desire_height, float max_width,
                            float max_height, float border_radius)
       : image_(nullptr),
@@ -94,11 +96,11 @@ class MarkdownImageRunDelegate : public MarkdownRunDelegate {
     }
   }
   ~MarkdownImageRunDelegate() override = default;
-  UIImage* GetImage() const { return image_; }
+  UIImage* _Nullable GetImage() const { return image_; }
   float GetBorderRadius() const { return border_radius_; }
 
  private:
-  UIImage* image_;
+  UIImage* _Nullable image_;
   float border_radius_;
 };
 
@@ -145,7 +147,7 @@ class MarkdownInlineViewRunDelegate : public MarkdownRunDelegate {
 
 class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
  public:
-  explicit MarkdownCanvasIOS(CGContextRef context);
+  explicit MarkdownCanvasIOS(CGContextRef _Nullable context);
   ~MarkdownCanvasIOS() override = default;
 
  public:
@@ -155,20 +157,21 @@ class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
 
   void DrawRunDelegate(const tttext::RunDelegate* run_delegate, float left,
                        float top, float right, float bottom,
-                       tttext::Painter* painter) override;
+                       tttext::Painter* _Nullable painter) override;
 
   void ClipPath(MarkdownPath* path) override;
   void DrawDelegateOnPath(tttext::RunDelegate* run_delegate, MarkdownPath* path,
                           tttext::Painter* painter) override;
   void DrawMarkdownPath(serval::markdown::MarkdownPath* path,
-                        tttext::Painter* painter) override;
+                        tttext::Painter* _Nullable painter) override;
   void DrawLinearGradientOnRect(
       serval::markdown::MarkdownLinearGradient* gradient,
-      serval::markdown::RectF rect, tttext::Painter* painter) override;
+      serval::markdown::RectF rect,
+      tttext::Painter* _Nullable painter) override;
   void DrawLinearGradientOnPath(
       serval::markdown::MarkdownLinearGradient* gradient,
       serval::markdown::MarkdownPath* path, serval::markdown::RectF bounds,
-      tttext::Painter* painter) override;
+      tttext::Painter* _Nullable painter) override;
 
  protected:
   void AddPath(MarkdownPath* path, CGMutablePathRef result);
@@ -182,5 +185,7 @@ class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
 };
 
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_CANVAS_IOS_H_

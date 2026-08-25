@@ -12,6 +12,8 @@ class MarkdownMainViewIOS;
 class MarkdownView;
 }  // namespace serval::markdown
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface MarkdownMeasurer (Internal)
 
 - (serval::markdown::MarkdownView*)getMarkdownView;
@@ -19,5 +21,7 @@ class MarkdownView;
 - (void)detachFromView:(serval::markdown::MarkdownMainViewIOS*)view;
 
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_MEASURER_IOS_H_

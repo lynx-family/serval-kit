@@ -6,6 +6,8 @@
 #include <memory>
 #include "markdown/platform/ios/internal/markdown_platform_view_ios.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
                               public MarkdownCustomViewHandle {
@@ -21,4 +23,7 @@ class MarkdownCustomViewIOS : public MarkdownPlatformViewIOS,
   MeasureResult OnMeasure(MeasureSpec spec) override;
 };
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
+
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_CUSTOM_VIEW_IOS_H_

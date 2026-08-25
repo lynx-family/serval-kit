@@ -7,6 +7,9 @@
 
 #import "markdown/platform/ios/IMarkdownPlatformViewHandle.h"
 #include "markdown/view/markdown_platform_view.h"
+
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownPlatformViewIOS : public MarkdownPlatformView {
  public:
@@ -22,12 +25,15 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
 
-  id<IMarkdownPlatformViewHandle> GetHandle() { return handle_; }
+  id<IMarkdownPlatformViewHandle> _Nullable GetHandle() { return handle_; }
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
-  __weak id<IMarkdownPlatformViewHandle> handle_;
+  __weak id<IMarkdownPlatformViewHandle> _Nullable handle_;
 };
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
+
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_IOS_INTERNAL_MARKDOWN_PLATFORM_VIEW_IOS_H_

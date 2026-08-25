@@ -8,6 +8,9 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <Foundation/Foundation.h>
 #import <ServalMarkdown/ServalMarkdownConstants.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
 typedef struct {
   float width;
   float height;
@@ -33,5 +36,7 @@ typedef struct {
 @optional
 - (ServalMarkdownVerticalAlign)getVerticalAlign;
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_IMARKDOWNPLATFORMVIEWHANDLE_H_

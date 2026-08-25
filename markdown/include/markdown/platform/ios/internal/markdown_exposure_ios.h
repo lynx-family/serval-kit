@@ -9,13 +9,15 @@
 
 #import "markdown/platform/ios/IMarkdownExposureDelegate.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownExposureIOS final : public MarkdownExposureListener {
  public:
   MarkdownExposureIOS() = default;
   ~MarkdownExposureIOS() override = default;
 
-  void SetDelegate(id<IMarkdownExposureDelegate> delegate) {
+  void SetDelegate(id<IMarkdownExposureDelegate> _Nullable delegate) {
     delegate_ = delegate;
   }
 
@@ -46,8 +48,10 @@ class MarkdownExposureIOS final : public MarkdownExposureListener {
   }
 
  private:
-  __weak id<IMarkdownExposureDelegate> delegate_{nil};
+  __weak id<IMarkdownExposureDelegate> _Nullable delegate_{nil};
 };
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_EXPOSURE_IOS_H_

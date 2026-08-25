@@ -8,12 +8,14 @@
 #import "markdown/platform/ios/IMarkdownEventDelegate.h"
 #import "markdown/platform/ios/IMarkdownResourceDelegate.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 namespace serval::markdown {
 class MarkdownEventIOS final : public MarkdownEventListener {
  public:
   MarkdownEventIOS() {}
 
-  void SetDelegate(id<IMarkdownEventDelegate> delegate) {
+  void SetDelegate(id<IMarkdownEventDelegate> _Nullable delegate) {
     delegate_ = delegate;
   }
   void OnParseEnd() override {
@@ -70,7 +72,10 @@ class MarkdownEventIOS final : public MarkdownEventListener {
   }
 
  private:
-  __weak id<IMarkdownEventDelegate> delegate_{nil};
+  __weak id<IMarkdownEventDelegate> _Nullable delegate_{nil};
 };
 }  // namespace serval::markdown
+
+NS_ASSUME_NONNULL_END
+
 #endif  // THIRD_PARTY_MARKDOWN_IOS_MARKDOWN_EVENT_IOS_H_

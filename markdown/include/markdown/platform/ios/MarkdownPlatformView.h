@@ -9,7 +9,11 @@
 
 #import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface MarkdownPlatformView : UIView <IMarkdownPlatformViewHandle>
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_MARKDOWNPLATFORMVIEW_H_
