@@ -51,9 +51,37 @@ void UpdateLastError(ServalSvgHandle *handle, const std::vector<serval::svg::par
     handle->last_error = diagnostics.empty() ? std::string() : diagnostics.front().message;
 }
 
+bool UpdateImageData(ServalSvgHandle *handle, OH_PixelmapNative *pixel_map) {
+    OH_Pixelmap_ImageInfo *image_info = nullptr;
+    if (OH_PixelmapImageInfo_Create(&image_info) != IMAGE_SUCCESS || image_info == nullptr) {
+        return false;
+    }
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+    const bool success = OH_PixelmapNative_GetImageInfo(pixel_map, image_info) == IMAGE_SUCCESS &&
+                         OH_PixelmapImageInfo_GetWidth(image_info, &width) == IMAGE_SUCCESS &&
+                         OH_PixelmapImageInfo_GetHeight(image_info, &height) == IMAGE_SUCCESS && width > 0 &&
+                         height > 0;
+    OH_PixelmapImageInfo_Release(image_info);
+    if (!success) {
+        return false;
+    }
+
+    handle->image_data.pixel_map = pixel_map;
+    handle->image_data.width = width;
+    handle->image_data.height = height;
+    return true;
+}
+
 }  // namespace
 
-ServalSvgHandle *serval_svg_create(void) { return new ServalSvgHandle(); }
+ServalSvgHandle *serval_svg_create(ServalSvgImageProvider provider, void *user_data) {
+    auto *handle = new ServalSvgHandle();
+    handle->image_provider = provider;
+    handle->image_provider_user_data = user_data;
+    return handle;
+}
 
 ServalSvgStatus serval_svg_destroy(ServalSvgHandle *handle) {
     if (handle == nullptr) {
@@ -117,20 +145,6 @@ const char *serval_svg_get_last_error(const ServalSvgHandle *handle) {
     return last_error_snapshot.c_str();
 }
 
-ServalSvgStatus serval_svg_set_image_provider(ServalSvgHandle *handle, ServalSvgImageProvider provider,
-                                              void *user_data) {
-    if (handle == nullptr) {
-        return SERVAL_SVG_STATUS_INVALID_ARGUMENT;
-    }
-    std::lock_guard<std::recursive_mutex> lock(handle->mutex);
-    if (handle->in_provider_callback) {
-        return SERVAL_SVG_STATUS_REENTRANT;
-    }
-    handle->image_provider = provider;
-    handle->image_provider_user_data = user_data;
-    return SERVAL_SVG_STATUS_OK;
-}
-
 ServalSvgStatus serval_svg_render(ServalSvgHandle *handle, OH_Drawing_Canvas *canvas) {
     if (handle == nullptr || canvas == nullptr) {
         return SERVAL_SVG_STATUS_INVALID_ARGUMENT;
@@ -155,13 +169,10 @@ ServalSvgStatus serval_svg_render(ServalSvgHandle *handle, OH_Drawing_Canvas *ca
                 return nullptr;
             }
             ScopedProviderCallback callback_scope(handle);
-            const ServalSvgImageData *image = handle->image_provider(handle->image_provider_user_data, source.c_str());
-            if (image == nullptr || image->pixel_map == nullptr) {
+            OH_PixelmapNative *pixel_map = handle->image_provider(handle->image_provider_user_data, source.c_str());
+            if (pixel_map == nullptr || !UpdateImageData(handle, pixel_map)) {
                 return nullptr;
             }
-            handle->image_data.pixel_map = image->pixel_map;
-            handle->image_data.width = image->width;
-            handle->image_data.height = image->height;
             return &handle->image_data;
         });
 
