@@ -146,6 +146,10 @@ TEST(MarkdownCaseUnittest, HrOnlyBlocks) {
   RunSingleCase(CASES_PATH / "hr_only_blocks");
 }
 
+TEST(MarkdownCaseUnittest, ImageAltFallbackIntrinsicSize) {
+  RunSingleCase(CASES_PATH / "image_alt_fallback_intrinsic_size");
+}
+
 TEST(MarkdownCaseUnittest, ImageCaptionAltFallback) {
   RunSingleCase(CASES_PATH / "image_caption_alt_fallback");
 }
