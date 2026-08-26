@@ -5,6 +5,7 @@
 #include "markdown/element/markdown_run_delegates.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <utility>
 
@@ -117,6 +118,21 @@ void MarkdownTextDelegate::Layout() {
   context.SetHarmonyShaperForceLowAPI(true);
   context.SetLastLineCanOverflow(true);
   layout->LayoutEx(text_.get(), page_.get(), context);
+  if (width_ <= 0 || height_ <= 0) {
+    const float layout_width =
+        width_ > 0
+            ? width_
+            : std::ceil(MarkdownPlatform::GetMdLayoutRegionWidth(page_.get()));
+    const float layout_height =
+        height_ > 0
+            ? height_
+            : std::ceil(MarkdownPlatform::GetMdLayoutRegionHeight(page_.get()));
+    context.Reset();
+    page_ = std::make_unique<tttext::LayoutRegion>(
+        layout_width, layout_height, tttext::LayoutMode::kDefinite,
+        tttext::LayoutMode::kDefinite);
+    layout->LayoutEx(text_.get(), page_.get(), context);
+  }
   context.Reset();
   const float left = block_style_.margin_left_;
   const float top = block_style_.margin_top_;
