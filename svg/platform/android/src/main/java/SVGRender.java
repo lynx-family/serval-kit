@@ -547,7 +547,7 @@ public class SVGRender {
   private static List<SVGDiagnostic> toDiagnosticList(
       SVGDiagnostic[] diagnostics) {
     return diagnostics == null || diagnostics.length == 0
-        ? Collections.emptyList()
+        ? Collections.<SVGDiagnostic>emptyList()
         : Collections.unmodifiableList(Arrays.asList(diagnostics));
   }
 

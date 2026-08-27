@@ -757,7 +757,8 @@ int SrSVGNode::ParseTransformArgs(const char* str, float* args,
 
 void SrSVGNode::ParseStrokeDashArray(const char* value) {
   stroke_dash_array_.clear();
-  if (!value) {
+  // SVG `none` disables the dash pattern and is represented by an empty array.
+  if (!value || Trim(value) == "none") {
     return;
   }
 
@@ -771,10 +772,15 @@ void SrSVGNode::ParseStrokeDashArray(const char* value) {
       break;
     }
 
-    ptr = ParseNumber(ptr, token, sizeof(token));
-    if (token[0] != '\0') {
-      stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
+    const char* next = ParseNumber(ptr, token, sizeof(token));
+    // ParseNumber does not advance for non-numeric tokens. Reject the whole
+    // value instead of repeatedly parsing the same input.
+    if (next == ptr || token[0] == '\0') {
+      stroke_dash_array_.clear();
+      return;
     }
+    stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
+    ptr = next;
   }
 }
 

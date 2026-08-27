@@ -89,8 +89,15 @@ bool SrSVGFeColorMatrix::ParseAndSetAttribute(const char* name,
       if (!*ptr)
         break;
 
-      ptr = SrSVGNode::ParseNumber(ptr, it, 64);
+      const char* next = SrSVGNode::ParseNumber(ptr, it, 64);
+      // `values` only accepts numbers. Reject an invalid token if the number
+      // parser cannot consume it; retrying the same token would never finish.
+      if (next == ptr) {
+        values_.clear();
+        return true;
+      }
       values_.push_back(Atof(it));
+      ptr = next;
     }
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
