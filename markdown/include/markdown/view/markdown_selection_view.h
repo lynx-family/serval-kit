@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_SELECTION_VIEW_H_
 #include <vector>
 
+#include "markdown/utils/markdown_marco.h"
 #include "markdown/view/markdown_platform_view.h"
 namespace serval::markdown {
 class MarkdownContext;
@@ -17,7 +18,7 @@ enum class SelectionHandleShape : uint8_t {
   kCircle,
   kWaterDrop,
 };
-class MarkdownSelectionHandle final : public MarkdownDrawable {
+class L_EXPORT MarkdownSelectionHandle final : public MarkdownDrawable {
  public:
   MarkdownSelectionHandle(
       const float size, const SelectionHandleType type, const uint32_t color,
@@ -49,7 +50,7 @@ class MarkdownSelectionHandle final : public MarkdownDrawable {
   float text_height_;
 };
 
-class MarkdownSelectionHighlight final : public MarkdownDrawable {
+class L_EXPORT MarkdownSelectionHighlight final : public MarkdownDrawable {
  public:
   MarkdownSelectionHighlight() = default;
   ~MarkdownSelectionHighlight() override = default;

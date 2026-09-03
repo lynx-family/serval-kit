@@ -18,9 +18,6 @@ bool RectF::InterSects(const RectF& rect) const {
   return InterSects(rect.GetLeft(), rect.GetTop(), rect.GetRight(),
                     rect.GetBottom());
 }
-bool RectF::IsEmpty() const {
-  return FloatsEqual(GetWidth(), 0) || FloatsEqual(GetHeight(), 0);
-}
 bool RectF::operator==(const RectF& rect) const {
   return FloatsEqual(x_, rect.x_) && FloatsEqual(y_, rect.y_) &&
          FloatsEqual(width_, rect.width_) && FloatsEqual(height_, rect.height_);
