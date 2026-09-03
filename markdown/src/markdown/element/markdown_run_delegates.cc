@@ -297,9 +297,17 @@ void ImageWithCaption::Layout() {
       .width_ = width_, .height_ = height_, .baseline_ = height_};
 }
 void ImageWithCaption::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
+  auto align = align_;
+  if (align == MarkdownTextAlign::kStart || align == MarkdownTextAlign::kEnd) {
+    const bool is_rtl =
+        caption_->GetResolvedWriteDirection() == tttext::WriteDirection::kRTL;
+    align = (align == MarkdownTextAlign::kStart) == is_rtl
+                ? MarkdownTextAlign::kRight
+                : MarkdownTextAlign::kLeft;
+  }
   float image_x_offset = x;
-  if (align_ == MarkdownTextAlign::kLeft) {
-  } else if (align_ == MarkdownTextAlign::kRight) {
+  if (align == MarkdownTextAlign::kLeft) {
+  } else if (align == MarkdownTextAlign::kRight) {
     image_x_offset += std::max(0.f, width_ - image_->GetAdvance());
   } else {
     image_x_offset += std::max(0.f, (width_ - image_->GetAdvance()) / 2);
@@ -310,8 +318,8 @@ void ImageWithCaption::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
                : region_->GetPageHeight());
   image_->Draw(canvas, image_x_offset, image_y_offset);
   float text_x_offset = x;
-  if (align_ == MarkdownTextAlign::kLeft) {
-  } else if (align_ == MarkdownTextAlign::kRight) {
+  if (align == MarkdownTextAlign::kLeft) {
+  } else if (align == MarkdownTextAlign::kRight) {
     text_x_offset += std::max(0.f, (width_ - region_->GetPageWidth()));
   } else {
     text_x_offset += std::max(0.f, (width_ - region_->GetPageWidth()) / 2);

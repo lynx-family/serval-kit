@@ -106,6 +106,34 @@ void AppendText(MarkdownDomNode* parent, MarkdownDomRawText* text,
   parent->AppendChild(text);
 }
 
+TEST(MarkdownConverterTest, ConvertsLogicalTextAlignments) {
+  const auto convert = [](MarkdownTextAlign alignment) {
+    MockMarkdownResourceLoader loader;
+    auto document = MakeDocument(&loader);
+    auto style = document->GetStyle();
+    style.normal_text_.base_.text_align_ = alignment;
+    document->SetStyle(style);
+
+    MarkdownDomNode root(MarkdownDomType::kSource);
+    MarkdownDomNode paragraph(MarkdownDomType::kParagraph);
+    MarkdownDomRawText text(MarkdownDomType::kRawText);
+    AppendText(&paragraph, &text, "text");
+    root.AppendChild(&paragraph);
+    TestMarkdownParserImpl::ConvertDomTree(document.get(), &root);
+
+    auto* paragraph_element = static_cast<MarkdownParagraphElement*>(
+        document->GetParagraphs().front().get());
+    return paragraph_element->GetParagraph()
+        ->GetParagraphStyle()
+        .GetHorizontalAlign();
+  };
+
+  EXPECT_EQ(convert(MarkdownTextAlign::kStart),
+            tttext::ParagraphHorizontalAlignment::kStart);
+  EXPECT_EQ(convert(MarkdownTextAlign::kEnd),
+            tttext::ParagraphHorizontalAlignment::kEnd);
+}
+
 TEST(MarkdownReplacementViewWrapperTest, UsesFontAdjustedBaseline) {
   auto view = std::make_shared<RecordingMeasureDrawable>(SizeF{10, 10});
   MarkdownReplacementViewWrapper wrapper(view, 120, 80, 20);
@@ -131,22 +159,39 @@ TEST(MarkdownConverterTest, UsesPerCellHeaderAndAlignmentMetadata) {
 
   MarkdownDomNode root(MarkdownDomType::kSource);
   MarkdownDomTable table;
-  table.SetAligns({MarkdownTextAlign::kLeft});
+  table.SetAligns({MarkdownTextAlign::kStart, MarkdownTextAlign::kEnd,
+                   MarkdownTextAlign::kJustify});
   MarkdownDomNode first_row(MarkdownDomType::kTableRow);
   MarkdownDomTableCell first_cell;
+  MarkdownDomTableCell first_end_cell;
+  MarkdownDomTableCell first_justify_cell;
   MarkdownDomRawText first_text(MarkdownDomType::kRawText);
+  MarkdownDomRawText first_end_text(MarkdownDomType::kRawText);
+  MarkdownDomRawText first_justify_text(MarkdownDomType::kRawText);
   first_cell.SetHeader(false);
   first_cell.SetAlign(MarkdownTextAlign::kRight);
   AppendText(&first_cell, &first_text, "body");
+  first_end_cell.SetHeader(false);
+  AppendText(&first_end_cell, &first_end_text, "body end");
+  first_justify_cell.SetHeader(false);
+  AppendText(&first_justify_cell, &first_justify_text, "body justify");
   first_row.AppendChild(&first_cell);
+  first_row.AppendChild(&first_end_cell);
+  first_row.AppendChild(&first_justify_cell);
 
   MarkdownDomNode second_row(MarkdownDomType::kTableRow);
   MarkdownDomTableCell second_cell;
+  MarkdownDomTableCell second_start_cell;
   MarkdownDomRawText second_text(MarkdownDomType::kRawText);
+  MarkdownDomRawText second_start_text(MarkdownDomType::kRawText);
   second_cell.SetHeader(true);
   second_cell.SetAlign(MarkdownTextAlign::kCenter);
   AppendText(&second_cell, &second_text, "header");
+  second_start_cell.SetHeader(true);
+  second_start_cell.SetAlign(MarkdownTextAlign::kStart);
+  AppendText(&second_start_cell, &second_start_text, "header start");
   second_row.AppendChild(&second_cell);
+  second_row.AppendChild(&second_start_cell);
 
   table.AppendChild(&first_row);
   table.AppendChild(&second_row);
@@ -161,7 +206,7 @@ TEST(MarkdownConverterTest, UsesPerCellHeaderAndAlignmentMetadata) {
       static_cast<MarkdownTableElement*>(elements[0].get())->GetTable();
   ASSERT_NE(converted_table, nullptr);
   ASSERT_EQ(converted_table->GetRowCount(), 2);
-  ASSERT_EQ(converted_table->GetColumnCount(), 1);
+  ASSERT_EQ(converted_table->GetColumnCount(), 3);
 
   const auto& body_cell = converted_table->GetCell(0, 0);
   EXPECT_EQ(body_cell.alignment_, tttext::ParagraphHorizontalAlignment::kRight);
@@ -178,6 +223,13 @@ TEST(MarkdownConverterTest, UsesPerCellHeaderAndAlignmentMetadata) {
                       .GetDefaultStyle()
                       .GetTextSize(),
                   31);
+
+  EXPECT_EQ(converted_table->GetCell(0, 1).alignment_,
+            tttext::ParagraphHorizontalAlignment::kEnd);
+  EXPECT_EQ(converted_table->GetCell(1, 1).alignment_,
+            tttext::ParagraphHorizontalAlignment::kStart);
+  EXPECT_EQ(converted_table->GetCell(0, 2).alignment_,
+            tttext::ParagraphHorizontalAlignment::kJustify);
 }
 
 TEST(MarkdownConverterTest, AppliesListBlockStyleToEveryListItem) {

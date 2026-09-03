@@ -120,6 +120,20 @@ TEST(MarkdownColorTest, ContextControlsHashHexColorFormat) {
   EXPECT_EQ(linear->GetGradient().colors[1], 0x40123456u);
 }
 
+TEST(MarkdownStyleTest, TextAlignSupportsLogicalValuesAndDefaultsToStart) {
+  const auto default_style =
+      MarkdownStyleReader::ReadStyle(ValueMap{}, nullptr);
+  EXPECT_EQ(default_style.normal_text_.base_.text_align_,
+            MarkdownTextAlign::kStart);
+
+  ValueMap style_map;
+  style_map.emplace("textAlign", Value::MakeString("start"));
+  style_map.emplace("lastLineAlignment", Value::MakeString("end"));
+  const auto style = MarkdownStyleReader::ReadBaseStyle(style_map, nullptr);
+  EXPECT_EQ(style.text_align_, MarkdownTextAlign::kStart);
+  EXPECT_EQ(style.last_line_alignment_, MarkdownTextAlign::kEnd);
+}
+
 TEST(MarkdownLengthTest, Calculate) {
   constexpr MarkdownLengthContext ctx{
       .screen_width_ = 1000,

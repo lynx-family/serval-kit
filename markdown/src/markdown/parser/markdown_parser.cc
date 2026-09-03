@@ -391,12 +391,19 @@ tttext::ParagraphHorizontalAlignment
 MarkdownConverter::ConvertHorizontalAlignment(MarkdownTextAlign align) {
   switch (align) {
     case MarkdownTextAlign::kLeft:
-    default:
       return tttext::ParagraphHorizontalAlignment::kLeft;
     case MarkdownTextAlign::kCenter:
       return tttext::ParagraphHorizontalAlignment::kCenter;
     case MarkdownTextAlign::kRight:
       return tttext::ParagraphHorizontalAlignment::kRight;
+    case MarkdownTextAlign::kJustify:
+      return tttext::ParagraphHorizontalAlignment::kJustify;
+    case MarkdownTextAlign::kStart:
+      return tttext::ParagraphHorizontalAlignment::kStart;
+    case MarkdownTextAlign::kEnd:
+      return tttext::ParagraphHorizontalAlignment::kEnd;
+    default:
+      return tttext::ParagraphHorizontalAlignment::kStart;
   }
 }
 

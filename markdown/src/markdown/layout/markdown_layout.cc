@@ -234,12 +234,13 @@ std::unique_ptr<MarkdownPageRegion> MarkdownLayout::LayoutElement(
   if (paragraph.GetType() == MarkdownElementType::kParagraph) {
     auto* para_element =
         reinterpret_cast<const MarkdownParagraphElement*>(&paragraph);
-    auto width_mode = (para_element->GetParagraph()
-                           ->GetParagraphStyle()
-                           .GetHorizontalAlign() ==
-                       tttext::ParagraphHorizontalAlignment::kLeft)
-                          ? tttext::LayoutMode::kAtMost
-                          : tttext::LayoutMode::kDefinite;
+    const auto horizontal_align =
+        para_element->GetParagraph()->GetParagraphStyle().GetHorizontalAlign();
+    auto width_mode =
+        (horizontal_align == tttext::ParagraphHorizontalAlignment::kLeft ||
+         horizontal_align == tttext::ParagraphHorizontalAlignment::kStart)
+            ? tttext::LayoutMode::kAtMost
+            : tttext::LayoutMode::kDefinite;
     auto region = LayoutParagraph(context_, para_element->GetParagraph(),
                                   region_width, width_mode, region_max_height,
                                   max_lines, paragraph.GetTextOverflow(),

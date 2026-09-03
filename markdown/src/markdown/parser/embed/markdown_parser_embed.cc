@@ -505,7 +505,6 @@ tttext::WriteDirection MarkdownParserEmbed::ConvertWriteDirection(
 tttext::ParagraphHorizontalAlignment MarkdownParserEmbed::ConvertTextAlign(
     MarkdownTextAlign align) {
   switch (align) {
-    default:
     case MarkdownTextAlign::kLeft:
       return tttext::ParagraphHorizontalAlignment::kLeft;
     case MarkdownTextAlign::kCenter:
@@ -514,6 +513,12 @@ tttext::ParagraphHorizontalAlignment MarkdownParserEmbed::ConvertTextAlign(
       return tttext::ParagraphHorizontalAlignment::kRight;
     case MarkdownTextAlign::kJustify:
       return tttext::ParagraphHorizontalAlignment::kJustify;
+    case MarkdownTextAlign::kStart:
+      return tttext::ParagraphHorizontalAlignment::kStart;
+    case MarkdownTextAlign::kEnd:
+      return tttext::ParagraphHorizontalAlignment::kEnd;
+    default:
+      return tttext::ParagraphHorizontalAlignment::kStart;
   }
 }
 

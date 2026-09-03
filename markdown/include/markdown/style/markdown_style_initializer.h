@@ -322,7 +322,7 @@ class MarkdownStyleInitializer {
     base->line_space_ = Dp(DEFAULT_LINE_SPACE);
     base->word_break_ = MarkdownWordBreak::kNormal;
     base->direction_ = MarkdownDirection::kNormal;
-    base->text_align_ = MarkdownTextAlign::kUndefined;
+    base->text_align_ = MarkdownTextAlign::kStart;
     base->text_indent_ = 0;
     base->last_line_alignment_ = MarkdownTextAlign::kUndefined;
   }

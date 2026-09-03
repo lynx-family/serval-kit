@@ -735,7 +735,7 @@ void MarkdownDocument::TrimParagraphSpaces() const {
     block_front.margin_top_ = 0;
     block_front.padding_top_ = 0;
     para_front->SetBlockStyle(block_front);
-    auto& para_back = para_vec_.front();
+    auto& para_back = para_vec_.back();
     auto block_back = para_back->GetBlockStyle();
     block_back.margin_bottom_ = 0;
     block_back.padding_bottom_ = 0;
