@@ -8,6 +8,8 @@
 #include <cmath>
 #include <string>
 
+#include "markdown/utils/markdown_float_comparison.h"
+
 namespace serval::markdown {
 class RectF {
  public:
@@ -52,7 +54,9 @@ class RectF {
   bool Contains(float x, float y) const;
   bool InterSects(float left, float top, float right, float bottom) const;
   bool InterSects(const RectF& rect) const;
-  bool IsEmpty() const;
+  bool IsEmpty() const {
+    return FloatsEqual(GetWidth(), 0) || FloatsEqual(GetHeight(), 0);
+  }
   bool operator==(const RectF& rect) const;
   bool operator!=(const RectF& rect) const { return !operator==(rect); }
   void operator=(const RectF& rect) {
