@@ -65,11 +65,13 @@ NativeServalMarkdownView::NativeServalMarkdownView() {
   SetupGestures();
 }
 NativeServalMarkdownView::~NativeServalMarkdownView() {
+  destroyed_.store(true, std::memory_order_release);
   if (measurer_ != nullptr) {
     measurer_->DetachView(this);
   }
   DisposeGestures();
   HarmonyVSyncManager::RemoveVSyncCallback(this);
+  AttachDrawable(nullptr);
 }
 bool NativeServalMarkdownView::SetMeasurer(NativeMarkdownMeasurer* measurer) {
   if (measurer_ != nullptr || measurer == nullptr ||
@@ -226,7 +228,7 @@ NativeServalMarkdownView::GestureInterruptDispatcher(
       view = iter->second;
     }
   }
-  if (view == nullptr) {
+  if (view == nullptr || view->destroyed_.load(std::memory_order_acquire)) {
     return GESTURE_INTERRUPT_RESULT_REJECT;
   }
   if (recognizer == view->tap_ || recognizer == view->long_press_ ||
@@ -257,8 +259,11 @@ void NativeServalMarkdownView::SetupGestures() {
   tap_ = api->createTapGestureWithDistanceThreshold(1, 1, 1);
   auto tap_callback = [](ArkUI_GestureEvent* event, void* ud) {
     auto* view = reinterpret_cast<NativeServalMarkdownView*>(ud);
+    if (view == nullptr || view->destroyed_.load(std::memory_order_acquire)) {
+      return;
+    }
     auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
-    if (view == nullptr || input_event == nullptr) {
+    if (input_event == nullptr) {
       return;
     }
     auto x = OH_ArkUI_PointerEvent_GetX(input_event);
@@ -285,8 +290,11 @@ void NativeServalMarkdownView::SetupGestures() {
   long_press_ = api->createLongPressGesture(1, false, 500);
   auto long_press_callback = [](ArkUI_GestureEvent* event, void* ud) {
     auto* view = reinterpret_cast<NativeServalMarkdownView*>(ud);
+    if (view == nullptr || view->destroyed_.load(std::memory_order_acquire)) {
+      return;
+    }
     auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
-    if (view == nullptr || input_event == nullptr) {
+    if (input_event == nullptr) {
       return;
     }
     auto x = OH_ArkUI_PointerEvent_GetX(input_event);
@@ -310,8 +318,11 @@ void NativeServalMarkdownView::SetupGestures() {
   pan_ = api->createPanGesture(1, GESTURE_DIRECTION_ALL, 5);
   auto pan_callback = [](ArkUI_GestureEvent* event, void* ud) {
     auto* view = reinterpret_cast<NativeServalMarkdownView*>(ud);
+    if (view == nullptr || view->destroyed_.load(std::memory_order_acquire)) {
+      return;
+    }
     auto* input_event = OH_ArkUI_GestureEvent_GetRawInputEvent(event);
-    if (view == nullptr || input_event == nullptr) {
+    if (input_event == nullptr) {
       return;
     }
     auto x = OH_ArkUI_PointerEvent_GetX(input_event);
@@ -352,6 +363,7 @@ void NativeServalMarkdownView::DisposeGestures() {
   if (tap_ != nullptr) {
     api->removeGestureFromNode(GetHandle(), tap_);
     UnregisterRecognizer(tap_);
+    api->dispose(tap_);
   }
   if (long_press_pan_group_ != nullptr) {
     api->removeGestureFromNode(GetHandle(), long_press_pan_group_);

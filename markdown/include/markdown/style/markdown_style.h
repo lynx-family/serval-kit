@@ -190,6 +190,8 @@ enum class MarkdownTextAlign {
   kCenter = 2,
   kRight = 3,
   kJustify = 4,
+  kStart = 5,
+  kEnd = 6,
 };
 enum class MarkdownCaptionPosition {
   kBottom = 0,

@@ -4,6 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -90,6 +91,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   ArkUI_GestureRecognizer* tap_{nullptr};
   ArkUI_GestureRecognizer* pan_{nullptr};
   bool pan_tracking_{false};
+  std::atomic_bool destroyed_{false};
   NativeMarkdownMeasurer* measurer_{nullptr};
 };
 }  // namespace serval::markdown

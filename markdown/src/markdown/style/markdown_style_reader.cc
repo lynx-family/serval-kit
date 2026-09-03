@@ -658,6 +658,10 @@ class MarkdownStyleReaderImpl {
         return "right";
       case MarkdownTextAlign::kJustify:
         return "justify";
+      case MarkdownTextAlign::kStart:
+        return "start";
+      case MarkdownTextAlign::kEnd:
+        return "end";
     }
     return "";
   }
@@ -674,6 +678,8 @@ class MarkdownStyleReaderImpl {
                  MarkdownTextAlign::kCenter,
                  MarkdownTextAlign::kRight,
                  MarkdownTextAlign::kJustify,
+                 MarkdownTextAlign::kStart,
+                 MarkdownTextAlign::kEnd,
              }) {
           if (value->AsString() == ToString(item)) {
             *result = item;
