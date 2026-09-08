@@ -143,6 +143,9 @@ enum class MarkdownVerticalAlign {
   kTop = 1,
   kBottom = 2,
   kCenter = 3,
+  kLength = 4,
+  kTextTop = 5,
+  kTextBottom = 6,
 };
 enum class MarkdownFontWeight {
   kNormal = 0,

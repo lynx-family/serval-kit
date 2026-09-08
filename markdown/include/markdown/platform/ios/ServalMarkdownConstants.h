@@ -61,6 +61,10 @@ typedef NS_ENUM(NSUInteger, ServalMarkdownVerticalAlign) {
   kServalMarkdownVerticalAlignCenter = 1,
   kServalMarkdownVerticalAlignBaseline = 2,
   kServalMarkdownVerticalAlignBottom = 3,
+  kServalMarkdownVerticalAlignLength = 4,
+  kServalMarkdownVerticalAlignTextTop = 5,
+  kServalMarkdownVerticalAlignMiddle = kServalMarkdownVerticalAlignCenter,
+  kServalMarkdownVerticalAlignTextBottom = 6,
 };
 
 typedef NS_ENUM(NSUInteger, ServalMarkdownPanGestureDirection) {

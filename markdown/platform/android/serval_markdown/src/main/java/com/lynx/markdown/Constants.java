@@ -14,6 +14,10 @@ public class Constants {
   public static final int VERTICAL_ALIGN_CENTER = 1;
   public static final int VERTICAL_ALIGN_BASELINE = 2;
   public static final int VERTICAL_ALIGN_BOTTOM = 3;
+  public static final int VERTICAL_ALIGN_LENGTH = 4;
+  public static final int VERTICAL_ALIGN_TEXT_TOP = 5;
+  public static final int VERTICAL_ALIGN_MIDDLE = VERTICAL_ALIGN_CENTER;
+  public static final int VERTICAL_ALIGN_TEXT_BOTTOM = 6;
 
   public static final int INDEX_TYPE_CHAR = 0;
   public static final int INDEX_TYPE_SOURCE = 1;

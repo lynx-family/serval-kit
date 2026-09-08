@@ -4,6 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_ELEMENT_MARKDOWN_DRAWABLE_H_
+#include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
@@ -37,6 +38,11 @@ class MarkdownDrawable : public tttext::RunDelegate {
   }
   virtual void Align(float x, float y) {}
   virtual void SetBounds(RectF bounds) {}
+  virtual MarkdownVerticalAlign GetVerticalAlign() const {
+    return MarkdownVerticalAlign::kBaseline;
+  }
+  // In layout units; a positive length moves the view upward.
+  virtual float GetVerticalAlignLength() const { return 0; }
 
  protected:
   virtual MeasureResult OnMeasure(MeasureSpec spec) = 0;

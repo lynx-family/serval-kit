@@ -200,15 +200,17 @@ class MarkdownInlineBorderDelegate : public MarkdownDrawable {
   }
 };
 
-class MarkdownReplacementViewWrapper : public MarkdownDrawable {
+class MarkdownInlineViewWrapper : public MarkdownDrawable {
  public:
-  MarkdownReplacementViewWrapper(std::shared_ptr<MarkdownDrawable> view,
-                                 float max_width, float max_height,
-                                 float font_size)
+  // Replacement nodes default to center; embedded views use their alignment.
+  MarkdownInlineViewWrapper(std::shared_ptr<MarkdownDrawable> view,
+                            float max_width, float max_height, float font_size,
+                            bool use_view_vertical_align = false)
       : view_(std::move(view)),
         max_width_(max_width),
         max_height_(max_height),
-        font_size_(font_size) {}
+        font_size_(font_size),
+        use_view_vertical_align_(use_view_vertical_align) {}
 
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     view_->Draw(canvas, x, y);
@@ -226,17 +228,38 @@ class MarkdownReplacementViewWrapper : public MarkdownDrawable {
     if (max_height_ > 0) {
       spec.height_ = max_height_;
     }
-    const auto size = view_->Measure(spec);
-    return {.width_ = size.width_,
-            .height_ = size.height_,
-            .baseline_ = (size.height_ + 0.6f * font_size_) / 2};
+    auto size = view_->Measure(spec);
+    const auto vertical_align = use_view_vertical_align_
+                                    ? view_->GetVerticalAlign()
+                                    : MarkdownVerticalAlign::kCenter;
+    // Match x-markdown's estimated text ascent and descent.
+    switch (vertical_align) {
+      case MarkdownVerticalAlign::kBaseline:
+        break;
+      case MarkdownVerticalAlign::kTop:
+      case MarkdownVerticalAlign::kTextTop:
+        size.baseline_ = 0.92f * font_size_;
+        break;
+      case MarkdownVerticalAlign::kBottom:
+      case MarkdownVerticalAlign::kTextBottom:
+        size.baseline_ = size.height_ - 0.24f * font_size_;
+        break;
+      case MarkdownVerticalAlign::kCenter:
+        size.baseline_ = (size.height_ + 0.68f * font_size_) / 2;
+        break;
+      case MarkdownVerticalAlign::kLength:
+        size.baseline_ += view_->GetVerticalAlignLength();
+        break;
+    }
+    return size;
   }
 
  private:
   std::shared_ptr<MarkdownDrawable> view_;
   float max_width_{0};
   float max_height_{0};
-  float font_size_{0};
+  float font_size_;
+  bool use_view_vertical_align_;
 };
 
 class BlockViewWrapper : public MarkdownDrawable {

@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 
+#include "markdown/platform/ios/ServalMarkdownConstants.h"
+#include "markdown/style/markdown_style.h"
 #include "markdown/utils/markdown_value.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -16,6 +18,8 @@ namespace serval::markdown {
 
 class MarkdownValueConvert {
  public:
+  static MarkdownVerticalAlign ConvertVerticalAlign(
+      ServalMarkdownVerticalAlign align);
   static std::unique_ptr<Value> ConvertObject(NSObject* _Nullable object);
   static std::unique_ptr<Value> ConvertMap(NSDictionary* _Nullable dictionary);
   static std::unique_ptr<Value> ConvertArray(NSArray* _Nullable array);

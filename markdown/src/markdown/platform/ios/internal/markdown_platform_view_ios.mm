@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/platform/ios/internal/markdown_platform_view_ios.h"
 
+#include "markdown/platform/ios/internal/markdown_value_convert.h"
+
 @protocol MarkdownNativePlatformViewBridge <NSObject>
 - (void)setNativePlatformView:(void*)platform_view;
 - (void*)nativePlatformView;
@@ -97,5 +99,18 @@ void MarkdownPlatformViewIOS::SetVisibility(bool visible) {
     [handle_ setVisibility:visible];
     return;
   }
+}
+
+MarkdownVerticalAlign MarkdownPlatformViewIOS::GetVerticalAlign() const {
+  return [handle_ respondsToSelector:@selector(getVerticalAlign)]
+             ? MarkdownValueConvert::ConvertVerticalAlign(
+                   [handle_ getVerticalAlign])
+             : MarkdownVerticalAlign::kBaseline;
+}
+
+float MarkdownPlatformViewIOS::GetVerticalAlignLength() const {
+  return [handle_ respondsToSelector:@selector(getVerticalAlignLength)]
+             ? [handle_ getVerticalAlignLength]
+             : 0;
 }
 }  // namespace serval::markdown

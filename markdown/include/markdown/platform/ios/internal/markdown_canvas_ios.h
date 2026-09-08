@@ -9,6 +9,7 @@
 #include <vector>
 #include "markdown/draw/markdown_canvas.h"
 #include "markdown/element/markdown_run_delegates.h"
+#include "markdown/platform/ios/internal/markdown_value_convert.h"
 #include "markdown/utils/markdown_definition.h"
 #import "textra/platform/ios/ios_canvas_base.h"
 #import "textra/run_delegate.h"
@@ -124,6 +125,17 @@ class MarkdownInlineViewRunDelegate : public MarkdownRunDelegate {
     [handle_ setPosition:bounds.GetLeft() top:bounds.GetTop()];
   }
   id<IMarkdownPlatformViewHandle> GetHandle() const { return handle_; }
+  MarkdownVerticalAlign GetVerticalAlign() const override {
+    return [handle_ respondsToSelector:@selector(getVerticalAlign)]
+               ? MarkdownValueConvert::ConvertVerticalAlign(
+                     [handle_ getVerticalAlign])
+               : MarkdownVerticalAlign::kBaseline;
+  }
+  float GetVerticalAlignLength() const override {
+    return [handle_ respondsToSelector:@selector(getVerticalAlignLength)]
+               ? [handle_ getVerticalAlignLength]
+               : 0;
+  }
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override {

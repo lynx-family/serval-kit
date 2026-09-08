@@ -35,6 +35,8 @@ typedef struct {
 
 @optional
 - (ServalMarkdownVerticalAlign)getVerticalAlign;
+// Offset in points for length alignment; positive values move the view upward.
+- (CGFloat)getVerticalAlignLength;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -402,6 +402,12 @@ class MarkdownStyleReaderImpl {
         return "bottom";
       case MarkdownVerticalAlign::kCenter:
         return "center";
+      case MarkdownVerticalAlign::kLength:
+        return "length";
+      case MarkdownVerticalAlign::kTextTop:
+        return "text-top";
+      case MarkdownVerticalAlign::kTextBottom:
+        return "text-bottom";
     }
     return "";
   }
