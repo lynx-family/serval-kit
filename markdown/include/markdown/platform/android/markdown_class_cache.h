@@ -75,6 +75,8 @@ class AndroidMarkdownView : public MarkdownPlatformView {
   void SetMeasuredSize(SizeF size) final;
   void SetAlignPosition(PointF position) final;
   void SetVisibility(bool visible) final;
+  MarkdownVerticalAlign GetVerticalAlign() const override;
+  float GetVerticalAlignLength() const override;
   jobject GetObject() const { return ref_.Get(); }
 
  protected:
@@ -89,6 +91,7 @@ class AndroidMarkdownView : public MarkdownPlatformView {
     jmethodID get_size_{};
     jmethodID get_position_{};
     jmethodID get_vertical_align_{};
+    jmethodID get_vertical_align_length_{};
     jmethodID set_size_{};
     jmethodID set_position_{};
     jmethodID set_visibility_{};

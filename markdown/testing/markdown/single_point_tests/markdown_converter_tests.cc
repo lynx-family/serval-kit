@@ -134,15 +134,15 @@ TEST(MarkdownConverterTest, ConvertsLogicalTextAlignments) {
             tttext::ParagraphHorizontalAlignment::kEnd);
 }
 
-TEST(MarkdownReplacementViewWrapperTest, UsesFontAdjustedBaseline) {
+TEST(MarkdownInlineViewWrapperTest, ReplacementUsesCenterAlignment) {
   auto view = std::make_shared<RecordingMeasureDrawable>(SizeF{10, 10});
-  MarkdownReplacementViewWrapper wrapper(view, 120, 80, 20);
+  MarkdownInlineViewWrapper wrapper(view, 120, 80, 20);
 
   const auto result = wrapper.Measure(MeasureSpec{});
 
   EXPECT_FLOAT_EQ(result.width_, 10);
   EXPECT_FLOAT_EQ(result.height_, 10);
-  EXPECT_FLOAT_EQ(result.baseline_, (10 + 0.6f * 20) / 2);
+  EXPECT_FLOAT_EQ(result.baseline_, 11.8f);
   EXPECT_FLOAT_EQ(view->last_spec_.width_, 120);
   EXPECT_FLOAT_EQ(view->last_spec_.height_, 80);
 }

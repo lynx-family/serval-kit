@@ -24,6 +24,8 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   void SetMeasuredSize(SizeF size) override;
   void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
+  MarkdownVerticalAlign GetVerticalAlign() const override;
+  float GetVerticalAlignLength() const override;
 
   id<IMarkdownPlatformViewHandle> _Nullable GetHandle() { return handle_; }
 

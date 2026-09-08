@@ -236,7 +236,7 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ReplaceBlockNode(
         context_.state_stack_.empty()
             ? document_->GetStyle().normal_text_.base_.font_size_
             : context_.GetCurrentState().run_style_.GetTextSize();
-    auto delegate = std::make_shared<MarkdownReplacementViewWrapper>(
+    auto delegate = std::make_shared<MarkdownInlineViewWrapper>(
         std::move(view), max_width, document_->GetMaxHeight(), font_size);
     auto element = std::make_unique<MarkdownParagraphElement>();
     auto para = tttext::Paragraph::Create();
@@ -505,7 +505,7 @@ void MarkdownConverter::ReplaceInlineNode(MarkdownDomNode* node) {
         id, static_cast<int32_t>(char_offset), false, view.get()});
     style.SetVerticalAlignment(tttext::CharacterVerticalAlignment::kMiddle);
     document_->SetShapeRunAltString(char_offset, replacement.alt_text_);
-    auto delegate = std::make_shared<MarkdownReplacementViewWrapper>(
+    auto delegate = std::make_shared<MarkdownInlineViewWrapper>(
         std::move(view), max_width, document_->GetMaxHeight(),
         style.GetTextSize());
     current_para->AddShapeRun(&style, std::move(delegate), false);

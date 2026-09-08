@@ -16,4 +16,6 @@ public interface IMarkdownViewHandle {
   void setPosition(int left, int top);
   void setVisibility(boolean visible);
   int getVerticalAlign();
+  // Offset in pixels for VERTICAL_ALIGN_LENGTH; positive values move the view upward.
+  default float getVerticalAlignLength() { return 0; }
 }

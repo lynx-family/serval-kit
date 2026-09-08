@@ -36,6 +36,8 @@ void AndroidMarkdownView::Initialize(JNIEnv* env) {
   methods_.get_size_ = env->GetMethodID(clazz, "getSize", "()J");
   methods_.get_vertical_align_ =
       env->GetMethodID(clazz, "getVerticalAlign", "()I");
+  methods_.get_vertical_align_length_ =
+      env->GetMethodID(clazz, "getVerticalAlignLength", "()F");
   methods_.set_size_ = env->GetMethodID(clazz, "setSize", "(II)V");
   methods_.set_position_ = env->GetMethodID(clazz, "setPosition", "(II)V");
   methods_.set_visibility_ = env->GetMethodID(clazz, "setVisibility", "(Z)V");
@@ -101,6 +103,33 @@ void AndroidMarkdownView::SetAlignPosition(serval::markdown::PointF position) {
 void AndroidMarkdownView::SetVisibility(bool visible) {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.set_visibility_, visible);
+}
+
+MarkdownVerticalAlign AndroidMarkdownView::GetVerticalAlign() const {
+  auto* env = MarkdownClassCache::GetEnv();
+  // com.lynx.markdown.Constants keeps its existing platform enum values.
+  switch (env->CallIntMethod(ref_.Get(), methods_.get_vertical_align_)) {
+    case 0:  // VERTICAL_ALIGN_TOP
+      return MarkdownVerticalAlign::kTop;
+    case 1:  // VERTICAL_ALIGN_CENTER / VERTICAL_ALIGN_MIDDLE
+      return MarkdownVerticalAlign::kCenter;
+    case 3:  // VERTICAL_ALIGN_BOTTOM
+      return MarkdownVerticalAlign::kBottom;
+    case 4:  // VERTICAL_ALIGN_LENGTH
+      return MarkdownVerticalAlign::kLength;
+    case 5:  // VERTICAL_ALIGN_TEXT_TOP
+      return MarkdownVerticalAlign::kTextTop;
+    case 6:  // VERTICAL_ALIGN_TEXT_BOTTOM
+      return MarkdownVerticalAlign::kTextBottom;
+    case 2:  // VERTICAL_ALIGN_BASELINE
+    default:
+      return MarkdownVerticalAlign::kBaseline;
+  }
+}
+
+float AndroidMarkdownView::GetVerticalAlignLength() const {
+  auto* env = MarkdownClassCache::GetEnv();
+  return env->CallFloatMethod(ref_.Get(), methods_.get_vertical_align_length_);
 }
 
 void AndroidCustomView::Initialize(JNIEnv* env) {

@@ -6,6 +6,27 @@
 
 namespace serval::markdown {
 
+MarkdownVerticalAlign MarkdownValueConvert::ConvertVerticalAlign(
+    ServalMarkdownVerticalAlign align) {
+  switch (align) {
+    case kServalMarkdownVerticalAlignTop:
+      return MarkdownVerticalAlign::kTop;
+    case kServalMarkdownVerticalAlignCenter:
+      return MarkdownVerticalAlign::kCenter;
+    case kServalMarkdownVerticalAlignBottom:
+      return MarkdownVerticalAlign::kBottom;
+    case kServalMarkdownVerticalAlignLength:
+      return MarkdownVerticalAlign::kLength;
+    case kServalMarkdownVerticalAlignTextTop:
+      return MarkdownVerticalAlign::kTextTop;
+    case kServalMarkdownVerticalAlignTextBottom:
+      return MarkdownVerticalAlign::kTextBottom;
+    case kServalMarkdownVerticalAlignBaseline:
+    default:
+      return MarkdownVerticalAlign::kBaseline;
+  }
+}
+
 std::unique_ptr<Value> MarkdownValueConvert::ConvertObject(NSObject* object) {
   if (object == nil) {
     return Value::MakeNull();

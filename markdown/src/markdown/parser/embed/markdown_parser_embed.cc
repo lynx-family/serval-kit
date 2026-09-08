@@ -485,6 +485,11 @@ tttext::CharacterVerticalAlignment MarkdownParserEmbed::ConvertVerticalAlign(
       return tttext::CharacterVerticalAlignment::kBottom;
     case MarkdownVerticalAlign::kCenter:
       return tttext::CharacterVerticalAlignment::kMiddle;
+    case MarkdownVerticalAlign::kTextTop:
+      return tttext::CharacterVerticalAlignment::kTextTop;
+    case MarkdownVerticalAlign::kTextBottom:
+      return tttext::CharacterVerticalAlignment::kTextBottom;
+    case MarkdownVerticalAlign::kLength:
     default:
       return tttext::CharacterVerticalAlignment::kBaseLine;
   }
@@ -1133,6 +1138,10 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
           delegate = std::make_shared<BlockViewWrapper>(
               context_.max_width_, indent,
               std::static_pointer_cast<MarkdownDrawable>(std::move(delegate)));
+        } else {
+          delegate = std::make_shared<MarkdownInlineViewWrapper>(
+              std::move(delegate), max_width, max_height,
+              base_style.GetTextSize(), /*use_view_vertical_align=*/true);
         }
         document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
                                         node->GetAltText());
