@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 
 #include "base/include/platform/android/jni_convert_helper.h"
@@ -72,6 +73,7 @@ void AndroidMarkdownMeasurer::Initialize(JNIEnv* env) {
       clazz, "onLinkClicked", "(Ljava/lang/String;Ljava/lang/String;)V");
   methods_.on_image_clicked_ =
       env->GetMethodID(clazz, "onImageClicked", "(Ljava/lang/String;)V");
+  methods_.on_text_clicked_ = env->GetMethodID(clazz, "onTextClicked", "([B)V");
   methods_.on_selection_changed_ =
       env->GetMethodID(clazz, "onSelectionChanged", "(IIII)V");
   methods_.on_link_appear_ = env->GetMethodID(
@@ -301,6 +303,20 @@ void AndroidMarkdownMeasurer::OnImageClicked(const char* url) {
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_image_clicked_,
                       j_url.Get());
+}
+
+void AndroidMarkdownMeasurer::OnTextClicked(const char* id) {
+  auto* env = MarkdownClassCache::GetEnv();
+  if (env == nullptr || measurer_ref_.Get() == nullptr) {
+    return;
+  }
+  const auto length = static_cast<jsize>(std::strlen(id));
+  lynx::base::android::ScopedLocalJavaRef<jbyteArray> bytes(
+      env, env->NewByteArray(length));
+  env->SetByteArrayRegion(bytes.Get(), 0, length,
+                          reinterpret_cast<const jbyte*>(id));
+  env->CallVoidMethod(measurer_ref_.Get(), methods_.on_text_clicked_,
+                      bytes.Get());
 }
 
 void AndroidMarkdownMeasurer::OnSelectionChanged(int32_t start_index,

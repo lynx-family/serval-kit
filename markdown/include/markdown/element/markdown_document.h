@@ -189,6 +189,7 @@ class L_EXPORT MarkdownDocument {
 
  private:
   void SetShapeRunAltString(uint32_t char_offset, std::string_view content);
+  void RemoveLastShapeRunAltString(uint32_t char_offset);
   PointF GetTruncationOrigin();
 
   Range GetCharRangeByViewRect(RectF view_rect);

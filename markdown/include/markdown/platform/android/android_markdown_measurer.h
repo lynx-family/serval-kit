@@ -61,6 +61,7 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
                        int32_t max_animation_step) override;
   void OnLinkClicked(const char* url, const char* content) override;
   void OnImageClicked(const char* url) override;
+  void OnTextClicked(const char* id) override;
   void OnSelectionChanged(int32_t start_index, int32_t end_index,
                           SelectionHandleType handle,
                           SelectionState state) override;
@@ -93,6 +94,7 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
     jmethodID on_animation_step_{};
     jmethodID on_link_clicked_{};
     jmethodID on_image_clicked_{};
+    jmethodID on_text_clicked_{};
     jmethodID on_selection_changed_{};
     jmethodID on_link_appear_{};
     jmethodID on_link_disappear_{};

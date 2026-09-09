@@ -201,6 +201,9 @@ class MarkdownParserEmbed {
   std::pair<uint32_t, uint32_t> GetTextLineByteRangeByMarkdownRange(
       uint32_t line_offset, uint32_t line_length);
   int32_t MarkdownSourceByteIndexToCharIndex(int32_t byte_index) const;
+  void AddMarkdownIndexToCharIndexMap(uint32_t char_offset, uint32_t char_start,
+                                      uint32_t char_end, int32_t markdown_start,
+                                      int32_t markdown_end);
   static std::vector<int32_t> CalculateByteIndexToCharIndexMap(
       std::string_view string);
 

@@ -23,6 +23,9 @@ NS_ASSUME_NONNULL_BEGIN
                   EndIndex:(NSInteger)endIndex
                     Handle:(ServalMarkdownSelectionHandleType)handle
                      State:(ServalMarkdownSelectionState)state;
+@optional
+// Called when a text attachment with a non-empty id is tapped.
+- (void)onTextClicked:(NSString*)identifier;
 @end
 
 NS_ASSUME_NONNULL_END

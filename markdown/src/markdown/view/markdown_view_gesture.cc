@@ -171,6 +171,12 @@ bool MarkdownViewGesture::OnTap(PointF position, GestureEventType event) {
     event_listener_->OnImageClicked(image.c_str());
     return true;
   }
+  const auto* attachment =
+      document_->GetTextClickRangeByTouchPosition(position);
+  if (attachment != nullptr) {
+    event_listener_->OnTextClicked(attachment->id_.c_str());
+    return true;
+  }
   return false;
 }
 

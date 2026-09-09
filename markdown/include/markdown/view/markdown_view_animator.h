@@ -24,6 +24,10 @@ class MarkdownViewAnimator {
 
   void SetAnimationVelocity(float velocity) { animation_velocity_ = velocity; }
   float GetAnimationVelocity() const { return animation_velocity_; }
+  // Non-positive values leave animation updates unthrottled.
+  void SetAnimationFrameRate(float frame_rate) {
+    animation_frame_rate_ = frame_rate;
+  }
 
   void SetTypewriterDynamicHeight(bool enable) {
     typewriter_dynamic_height_ = enable;
@@ -79,6 +83,7 @@ class MarkdownViewAnimator {
  private:
   MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
   float animation_velocity_{1};
+  float animation_frame_rate_{60};
   bool typewriter_dynamic_height_{true};
   int32_t initial_animation_step_{0};
   float height_transition_duration_{0};
@@ -92,6 +97,7 @@ class MarkdownViewAnimator {
   int32_t line_expand_shown_lines_{0};
   std::vector<int32_t> line_expand_line_end_steps_;
   int64_t current_animation_step_time_ms_{0};
+  int64_t last_animation_update_time_ms_{0};
   int32_t last_sent_step_{-1};
 
   float transition_start_height_{0};
