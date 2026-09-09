@@ -120,6 +120,10 @@ void MarkdownView::ApplyStyleInRange(const ValueMap& style_map,
                                      int32_t char_start, int32_t char_end) {
   measurer_.ApplyStyleInRange(style_map, char_start, char_end);
 }
+void MarkdownView::SetMaxHeight(float max_height) {
+  measurer_.SetMaxHeight(max_height);
+  NeedsMeasure();
+}
 void MarkdownView::SetTextMaxLines(int32_t max_lines) {
   measurer_.SetTextMaxLines(max_lines);
   NeedsMeasure();
@@ -346,6 +350,8 @@ void MarkdownView::PublishRendererBundle() {
   bundle->animation_type_ = animator_.GetAnimationType();
   bundle->animation_step_ = animator_.GetAnimationStep();
   bundle->content_complete_ = layout_data_.content_complete_;
+  bundle->expose_links_ = layout_data_.expose_links_;
+  bundle->expose_images_ = layout_data_.expose_images_;
   std::lock_guard<std::mutex> guard(renderer_bundle_mutex_);
   renderer_bundle_ = std::move(bundle);
 }
@@ -361,6 +367,12 @@ void MarkdownView::ConsumeRendererBundleIfNeeded() {
       return;
     }
     bundle = std::move(renderer_bundle_);
+  }
+  if (renderer_data_.expose_links_ != bundle->expose_links_ ||
+      renderer_data_.expose_images_ != bundle->expose_images_) {
+    renderer_data_.expose_links_ = bundle->expose_links_;
+    renderer_data_.expose_images_ = bundle->expose_images_;
+    exposure_skip_counter_ = 0;
   }
   if (renderer_data_.document_.get() != bundle->document_.get()) {
     renderer_.SetDocument(bundle->document_);
@@ -408,7 +420,10 @@ void MarkdownView::UpdateExposure() {
     return;
   }
   auto rect_in_screen = handle_->GetViewRectInScreen();
-  auto images = renderer_data_.document_->GetImageByViewRect(rect_in_screen);
+  auto images =
+      renderer_data_.expose_images_
+          ? renderer_data_.document_->GetImageByViewRect(rect_in_screen)
+          : std::vector<MarkdownImage*>{};
   std::unordered_set<ExposureKey, ExposureKey::Hash> current_images;
   for (auto* image : images) {
     if (image == nullptr) {
@@ -430,7 +445,10 @@ void MarkdownView::UpdateExposure() {
   }
   renderer_data_.exposure_images_ = std::move(current_images);
 
-  auto links = renderer_data_.document_->GetLinksByViewRect(rect_in_screen);
+  auto links =
+      renderer_data_.expose_links_
+          ? renderer_data_.document_->GetLinksByViewRect(rect_in_screen)
+          : std::vector<MarkdownLink*>{};
   std::unordered_set<ExposureKey, ExposureKey::Hash> current_links;
   for (auto* item : links) {
     if (item == nullptr) {
@@ -764,6 +782,12 @@ void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {
     case MarkdownProps::kAnimationVelocity:
       SetAnimationVelocity(static_cast<float>(value));
       break;
+    case MarkdownProps::kMarkdownMaxHeight:
+      SetMaxHeight(static_cast<float>(value));
+      break;
+    case MarkdownProps::kAnimationFrameRate:
+      animator_.SetAnimationFrameRate(static_cast<float>(value));
+      break;
     case MarkdownProps::kTextMaxline:
       SetTextMaxLines(static_cast<int32_t>(value));
       break;
@@ -824,6 +848,15 @@ void MarkdownView::SetStringProp(MarkdownProps prop, std::string_view value) {
 void MarkdownView::SetArrayProp(MarkdownProps prop, ValueArray& array) {
   if (prop == MarkdownProps::kTextMarkAttachments) {
     SetTextAttachments(Value::MakeArray(std::move(array)));
+  } else if (prop == MarkdownProps::kExposureTags) {
+    layout_data_.expose_links_ = false;
+    layout_data_.expose_images_ = false;
+    for (const auto& tag : array) {
+      const auto value = tag->GetString();
+      layout_data_.expose_links_ |= value == "link";
+      layout_data_.expose_images_ |= value == "image";
+    }
+    PublishRendererBundle();
   }
 }
 void MarkdownView::SetMapProp(MarkdownProps prop, ValueMap& map) {

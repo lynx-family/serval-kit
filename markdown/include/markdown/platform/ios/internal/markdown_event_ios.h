@@ -58,6 +58,11 @@ class MarkdownEventIOS final : public MarkdownEventListener {
       [delegate_ onImageClicked:[NSString stringWithUTF8String:url]];
     }
   }
+  void OnTextClicked(const char* id) override {
+    if ([delegate_ respondsToSelector:@selector(onTextClicked:)]) {
+      [delegate_ onTextClicked:[NSString stringWithUTF8String:id]];
+    }
+  }
   void OnSelectionChanged(int32_t start_index, int32_t end_index,
                           SelectionHandleType handle,
                           SelectionState state) override {

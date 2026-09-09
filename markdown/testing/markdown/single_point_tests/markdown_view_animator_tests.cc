@@ -158,4 +158,25 @@ TEST(MarkdownViewAnimatorTest, UpdateHeightTransitionClampsDurationMsToOne) {
   EXPECT_EQ(h2, 200);
 }
 
+TEST(MarkdownViewAnimatorTest, FrameRateBatchesStepsWithoutChangingVelocity) {
+  MarkdownViewAnimator animator;
+  animator.SetAnimationType(MarkdownAnimationType::kTypewriter);
+  animator.SetAnimationVelocity(100);
+  animator.SetAnimationFrameRate(5);
+  animator.SetMaxAnimationStep(1000);
+  animator.UpdateCurrentTime(100);
+  EXPECT_EQ(animator.UpdateAnimationStep(), 1);
+  for (int time = 110; time < 300; time += 10) {
+    animator.UpdateCurrentTime(time);
+    EXPECT_EQ(animator.UpdateAnimationStep(), 0);
+    EXPECT_EQ(animator.GetAnimationStep(), 1);
+  }
+  animator.UpdateCurrentTime(300);
+  EXPECT_EQ(animator.UpdateAnimationStep(), 20);
+  EXPECT_EQ(animator.GetAnimationStep(), 21);
+  animator.SetAnimationFrameRate(0);
+  animator.UpdateCurrentTime(310);
+  EXPECT_EQ(animator.UpdateAnimationStep(), 1);
+}
+
 }  // namespace serval::markdown

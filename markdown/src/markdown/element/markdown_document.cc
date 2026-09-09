@@ -254,6 +254,13 @@ void MarkdownDocument::SetShapeRunAltString(uint32_t char_offset,
   shape_run_alt_strings_.emplace_back(char_offset, content);
 }
 
+void MarkdownDocument::RemoveLastShapeRunAltString(uint32_t char_offset) {
+  if (!shape_run_alt_strings_.empty() &&
+      shape_run_alt_strings_.back().first == char_offset) {
+    shape_run_alt_strings_.pop_back();
+  }
+}
+
 void MarkdownDocument::ClearForParse() {
   inline_views_.clear();
   links_.clear();
@@ -527,7 +534,8 @@ int32_t MarkdownDocument::MarkdownOffsetToCharOffset(
   if (markdown_offset > iter->first.end_) {
     return iter->second.end_;
   }
-  return iter->second.start_ + (markdown_offset - iter->first.start_);
+  return std::min(iter->second.start_ + (markdown_offset - iter->first.start_),
+                  iter->second.end_);
 }
 
 int32_t MarkdownDocument::CharOffsetToMarkdownOffset(

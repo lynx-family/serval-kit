@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/view/markdown_view_measurer.h"
 
+#include <algorithm>
+
 #include "markdown/layout/markdown_layout.h"
 #include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/style/markdown_style_reader.h"
@@ -87,6 +89,11 @@ void MarkdownViewMeasurer::ApplyStyleInRange(const ValueMap& style_map,
   document_->ApplyStyleInRange(base_style, {char_start, char_end});
 }
 
+void MarkdownViewMeasurer::SetMaxHeight(float max_height) {
+  max_height_ = max_height;
+  NeedsMeasure();
+}
+
 void MarkdownViewMeasurer::SetTextMaxLines(int32_t max_lines) {
   text_max_lines_ = max_lines;
   NeedsMeasure();
@@ -128,6 +135,10 @@ SizeF MarkdownViewMeasurer::Measure(MeasureSpec spec) {
   }
   if (spec.height_mode_ == tttext::LayoutMode::kIndefinite) {
     spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
+  }
+
+  if (max_height_ > 0) {
+    spec.height_ = std::min(spec.height_, max_height_);
   }
 
   if (FloatsNotEqual(spec.width_, last_measure_spec_.width_)) {

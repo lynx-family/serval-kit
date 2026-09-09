@@ -11,5 +11,6 @@ public interface IMarkdownEventListener {
   void onAnimationStep(int animationStep, int maxAnimationStep);
   void onLinkClicked(String url, String content);
   void onImageClicked(String url);
+  default void onTextClicked(String id) {}
   void onSelectionChanged(int startIndex, int endIndex, int handle, int state);
 }

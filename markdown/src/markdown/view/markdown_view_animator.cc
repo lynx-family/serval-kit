@@ -48,9 +48,11 @@ void MarkdownViewAnimator::SetAnimationStep(int32_t step) {
     SyncLineExpandStateFromAnimationStep();
   }
   current_animation_step_time_ms_ = 0;
+  last_animation_update_time_ms_ = 0;
 }
 
 void MarkdownViewAnimator::ResetAnimationRuntime() {
+  last_animation_update_time_ms_ = 0;
   current_frame_time_ms_ = 0;
   current_animation_step_time_ms_ = 0;
   transition_start_time_ms_ = 0;
@@ -76,6 +78,7 @@ int32_t MarkdownViewAnimator::CalculateAnimationAdvanceCount() {
   const float interval_ms = 1000.0f / animation_velocity_;
   if (current_animation_step_time_ms_ == 0) {
     current_animation_step_time_ms_ = current_frame_time_ms_;
+    last_animation_update_time_ms_ = current_frame_time_ms_;
     return 1;
   }
 
@@ -83,11 +86,20 @@ int32_t MarkdownViewAnimator::CalculateAnimationAdvanceCount() {
       current_frame_time_ms_ - current_animation_step_time_ms_;
   if (duration <= 0) {
     current_animation_step_time_ms_ = current_frame_time_ms_;
+    last_animation_update_time_ms_ = current_frame_time_ms_;
     return 0;
   }
 
+  if (animation_frame_rate_ > 0 &&
+      current_frame_time_ms_ - last_animation_update_time_ms_ <
+          1000.0f / animation_frame_rate_) {
+    return 0;
+  }
   const auto step_count =
       static_cast<int32_t>(static_cast<float>(duration) / interval_ms);
+  if (step_count > 0) {
+    last_animation_update_time_ms_ = current_frame_time_ms_;
+  }
   current_animation_step_time_ms_ +=
       static_cast<int64_t>(static_cast<float>(step_count) * interval_ms);
   return step_count;

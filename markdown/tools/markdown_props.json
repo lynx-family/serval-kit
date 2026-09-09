@@ -32,7 +32,7 @@
     "markdown-max-height": {
         "type": "number",
         "default": 0,
-        "description": "Override the maximum height of the markdown content."
+        "description": "Maximum layout height in platform pixels. Non-positive values remove the constraint."
     },
     "content-range-start": {
         "type": "number",
@@ -47,12 +47,12 @@
     "exposure-tags": {
         "type": "array",
         "default": [],
-        "description": "The exposure tags of the markdown content."
+        "description": "Element types to report exposure for: link and image. An empty array disables exposure."
     },
     "animation-frame-rate": {
         "type": "number",
         "default": 60.0,
-        "description": "The frame rate of the animation."
+        "description": "Maximum animation step updates per second, independent of animation velocity. Non-positive values disable throttling."
     },
     "typewriter-height-transition-duration": {
         "type": "number",

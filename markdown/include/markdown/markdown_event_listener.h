@@ -30,6 +30,7 @@ class MarkdownEventListener {
   virtual void OnSelectionChanged(int32_t start_index, int32_t end_index,
                                   SelectionHandleType handle,
                                   SelectionState state) = 0;
+  virtual void OnTextClicked(const char* id) {}
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_MARKDOWN_EVENT_LISTENER_H_

@@ -302,6 +302,12 @@ public final class MarkdownMeasurer {
     if (mEventListener != null)
       mEventListener.onLinkClicked(url, content);
   }
+  void onTextClicked(byte[] id) {
+    if (mEventListener != null) {
+      mEventListener.onTextClicked(
+          new String(id, java.nio.charset.StandardCharsets.UTF_8));
+    }
+  }
   void onImageClicked(String url) {
     if (mEventListener != null)
       mEventListener.onImageClicked(url);

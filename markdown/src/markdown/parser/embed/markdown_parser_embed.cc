@@ -627,6 +627,12 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
                    static_cast<uint32_t>(text_line->markdown_offset)) &&
               context_.current_paragraph_ != nullptr) {
             // remove list mark/number but apply list indent
+            if (list_type == UL &&
+                context_.current_paragraph_->GetCharCount() > 0) {
+              document_->RemoveLastShapeRunAltString(
+                  context_.char_offset_ +
+                  context_.current_paragraph_->GetCharCount() - 1);
+            }
             auto para = std::move(context_.current_paragraph_);
             context_.current_paragraph_ = tttext::Paragraph::Create();
             auto para_style = para->GetParagraphStyle();
@@ -778,6 +784,9 @@ void MarkdownParserEmbed::AppendUnorderedListMark() {
   tttext::Style style;
   style.SetVerticalAlignment(ConvertVerticalAlign(
       style_.unordered_list_marker_.align_.vertical_align_));
+  document_->SetShapeRunAltString(
+      context_.char_offset_ + context_.current_paragraph_->GetCharCount(),
+      "- ");
   context_.current_paragraph_->AddShapeRun(&style, std::move(mark), false);
 }
 
@@ -1143,9 +1152,13 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
               std::move(delegate), max_width, max_height,
               base_style.GetTextSize(), /*use_view_vertical_align=*/true);
         }
-        document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
+        const uint32_t char_start = para->GetCharCount();
+        document_->SetShapeRunAltString(char_offset + char_start,
                                         node->GetAltText());
         para->AddShapeRun(&base_style, std::move(delegate), false);
+        AddMarkdownIndexToCharIndexMap(
+            char_offset, char_start, para->GetCharCount(), markdown_offset,
+            markdown_offset + node->GetText().length());
       }
     }
   } else {
@@ -1190,9 +1203,13 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
               style_.image_caption_.image_caption_.caption_position_,
               style_.image_caption_.base_.text_align_);
         }
-        document_->SetShapeRunAltString(char_offset + para->GetCharCount(),
+        const uint32_t char_start = para->GetCharCount();
+        document_->SetShapeRunAltString(char_offset + char_start,
                                         node->GetAltText());
         para->AddShapeRun(&base_style, std::move(delegate), false);
+        AddMarkdownIndexToCharIndexMap(
+            char_offset, char_start, para->GetCharCount(), markdown_offset,
+            markdown_offset + node->GetText().length());
       } else {
         need_alt_text = style_.image_.image_.enable_alt_text_;
       }
@@ -1356,6 +1373,15 @@ void MarkdownParserEmbed::AppendRawText(MarkdownInlineNode* node,
   uint32_t char_end = para->GetCharCount();
   int32_t markdown_start = markdown_offset + piece_start;
   int32_t markdown_end = markdown_offset + piece_end;
+  AddMarkdownIndexToCharIndexMap(char_offset, char_start, char_end,
+                                 markdown_start, markdown_end);
+}
+
+void MarkdownParserEmbed::AddMarkdownIndexToCharIndexMap(uint32_t char_offset,
+                                                         uint32_t char_start,
+                                                         uint32_t char_end,
+                                                         int32_t markdown_start,
+                                                         int32_t markdown_end) {
   if (context_.line_index_ > 0 &&
       context_.line_index_ < context_.lines_offset_.size()) {
     const auto offset = context_.lines_offset_[context_.line_index_];

@@ -63,6 +63,8 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void ApplyStyleInRange(const ValueMap& style_map, int32_t char_start,
                          int32_t char_end);
   void SetTextMaxLines(int32_t max_lines);
+  // Non-positive values remove the additional height constraint.
+  void SetMaxHeight(float max_height);
   void SetEnableBreakAroundPunctuation(bool allow);
   void SetEnableRegionView(bool enable);
   void SetTextAttachments(std::unique_ptr<Value> attachments);
@@ -191,6 +193,8 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
     std::shared_ptr<MarkdownDocument> document_{nullptr};
     PointF custom_cursor_position_{0, 0};
     bool content_complete_{true};
+    bool expose_links_{false};
+    bool expose_images_{false};
   };
 
   struct RendererBundle {
@@ -198,6 +202,8 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
     MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
     int32_t animation_step_{0};
     bool content_complete_{true};
+    bool expose_links_{false};
+    bool expose_images_{false};
   };
 
   struct ExposureKey {
@@ -220,6 +226,8 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   };
 
   struct RendererData {
+    bool expose_links_{false};
+    bool expose_images_{false};
     std::shared_ptr<MarkdownDocument> document_{nullptr};
     int32_t animation_step_{0};
     std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_links_;
