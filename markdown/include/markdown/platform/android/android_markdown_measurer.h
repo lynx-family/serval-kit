@@ -9,7 +9,6 @@
 
 #include <memory>
 #include <string_view>
-#include <vector>
 
 #include "base/include/platform/android/scoped_java_ref.h"
 #include "markdown/markdown_event_listener.h"
@@ -79,7 +78,6 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
 
   std::shared_ptr<MarkdownView> view_;
   AndroidServalMarkdownView* bound_view_{nullptr};
-  std::vector<std::weak_ptr<AndroidMarkdownView>> pending_subviews_;
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> measurer_ref_;
 
   static struct Methods {

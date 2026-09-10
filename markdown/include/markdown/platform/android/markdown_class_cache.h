@@ -127,9 +127,6 @@ class AndroidMainView : public AndroidCustomView,
       SelectionHandleType type, float size, uint32_t color) final;
   std::shared_ptr<MarkdownPlatformView> CreateSelectionHighlightSubView(
       uint32_t color) final;
-  void AddSubView(std::shared_ptr<AndroidMarkdownView> subview);
-
- public:
   void RemoveSubView(MarkdownPlatformView* subview) final;
   void RemoveAllSubViews() final;
   RectF GetViewRectInScreen() final;
@@ -138,7 +135,6 @@ class AndroidMainView : public AndroidCustomView,
 
  protected:
   RectF CalculateViewRectInScreen();
-  std::list<std::shared_ptr<AndroidMarkdownView>> subviews_;
   RectF cached_view_rect_in_screen_{};
 
   static struct Methods {
@@ -150,6 +146,11 @@ class AndroidMainView : public AndroidCustomView,
     jmethodID remove_all_subviews_{};
     jmethodID get_view_rect_in_screen_{};
   } methods_;
+
+ private:
+  void AddSubView(std::shared_ptr<AndroidCustomView> subview);
+  // Only contains views created by this container.
+  std::list<std::shared_ptr<AndroidCustomView>> subviews_;
 };
 
 class MarkdownClassCache {

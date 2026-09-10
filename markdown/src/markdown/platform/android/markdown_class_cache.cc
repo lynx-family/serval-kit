@@ -183,7 +183,7 @@ void AndroidMainView::Initialize(JNIEnv* env) {
 AndroidMainView::Methods AndroidMainView::methods_{};
 AndroidMainView::AndroidMainView(JNIEnv* env, jobject ref)
     : AndroidCustomView(env, ref) {}
-void AndroidMainView::AddSubView(std::shared_ptr<AndroidMarkdownView> subview) {
+void AndroidMainView::AddSubView(std::shared_ptr<AndroidCustomView> subview) {
   if (subview != nullptr) {
     subviews_.insert(subviews_.end(), std::move(subview));
   }
@@ -251,7 +251,7 @@ void AndroidMainView::RemoveSubView(
     serval::markdown::MarkdownPlatformView* subview) {
   auto iter =
       std::find_if(subviews_.begin(), subviews_.end(),
-                   [subview](const std::shared_ptr<AndroidMarkdownView>& view) {
+                   [subview](const std::shared_ptr<AndroidCustomView>& view) {
                      return subview == view.get();
                    });
   if (iter != subviews_.end()) {
