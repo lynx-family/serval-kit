@@ -117,12 +117,6 @@ void AndroidMarkdownMeasurer::BindView(AndroidServalMarkdownView* view) {
     return;
   }
   bound_view_ = view;
-  for (const auto& pending_subview : pending_subviews_) {
-    if (auto subview = pending_subview.lock(); subview != nullptr) {
-      bound_view_->AddSubView(subview);
-    }
-  }
-  pending_subviews_.clear();
   view->AttachDrawable(view_);
   view_->SetView(view);
 }
@@ -176,15 +170,6 @@ std::shared_ptr<AndroidMarkdownView> AndroidMarkdownMeasurer::LoadInlineView(
     return nullptr;
   }
   auto result = std::make_shared<AndroidMarkdownView>(env, object);
-  if (bound_view_ != nullptr) {
-    bound_view_->AddSubView(result);
-  } else {
-    pending_subviews_.erase(
-        std::remove_if(pending_subviews_.begin(), pending_subviews_.end(),
-                       [](const auto& subview) { return subview.expired(); }),
-        pending_subviews_.end());
-    pending_subviews_.emplace_back(result);
-  }
   env->DeleteLocalRef(object);
   return result;
 }
