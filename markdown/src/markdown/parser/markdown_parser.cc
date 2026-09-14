@@ -472,7 +472,7 @@ void MarkdownConverter::ConvertImage(MarkdownDomNode* node) {
                       std::move(image), false);
     document_->SetShapeRunAltString(char_offset, image_node->GetAltText());
     para->GetParagraphStyle().SetLineHeightInPxAtLeast(
-        para->GetParagraphStyle().GetLineSpaceAfterPx());
+        para->GetParagraphStyle().GetLineHeightInPx());
   } else if (auto alt_text = image_node->GetAltText(); !alt_text.empty()) {
     context_.GetParagraph()->AddTextRun(
         &(context_.GetCurrentState().run_style_), alt_text.data(),
@@ -510,7 +510,7 @@ void MarkdownConverter::ReplaceInlineNode(MarkdownDomNode* node) {
         style.GetTextSize());
     current_para->AddShapeRun(&style, std::move(delegate), false);
     current_para->GetParagraphStyle().SetLineHeightInPxAtLeast(
-        current_para->GetParagraphStyle().GetLineSpaceAfterPx());
+        current_para->GetParagraphStyle().GetLineHeightInPx());
   }
 }
 

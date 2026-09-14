@@ -841,6 +841,9 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
   auto cell_base = style_.table_cell_.base_;
   tttext::ParagraphStyle paragraph_style;
   SetParagraphStyle(cell_base, &paragraph_style, nullptr);
+  auto header_paragraph_style = paragraph_style;
+  SetParagraphStyle(style_.table_header_.base_, &header_paragraph_style,
+                    nullptr);
   tttext::Style run_style;
   SetTTStyleByMarkdownBaseStyle(cell_base, &run_style);
   // header
@@ -877,7 +880,7 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
       auto header_base = style_.table_header_.base_;
       header_base.background_color_ = 0;
       SetTTStyleByMarkdownBaseStyle(header_base, &header_style);
-      para->SetParagraphStyle(&paragraph_style);
+      para->SetParagraphStyle(&header_paragraph_style);
       para->GetParagraphStyle().SetHorizontalAlign(align[col]);
       ParseInlineSyntax(
           std::string(str), para.get(), header_style, nullptr,
@@ -1156,6 +1159,8 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
         document_->SetShapeRunAltString(char_offset + char_start,
                                         node->GetAltText());
         para->AddShapeRun(&base_style, std::move(delegate), false);
+        para->GetParagraphStyle().SetLineHeightInPxAtLeast(
+            para->GetParagraphStyle().GetLineHeightInPx());
         AddMarkdownIndexToCharIndexMap(
             char_offset, char_start, para->GetCharCount(), markdown_offset,
             markdown_offset + node->GetText().length());
@@ -1207,6 +1212,8 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
         document_->SetShapeRunAltString(char_offset + char_start,
                                         node->GetAltText());
         para->AddShapeRun(&base_style, std::move(delegate), false);
+        para->GetParagraphStyle().SetLineHeightInPxAtLeast(
+            para->GetParagraphStyle().GetLineHeightInPx());
         AddMarkdownIndexToCharIndexMap(
             char_offset, char_start, para->GetCharCount(), markdown_offset,
             markdown_offset + node->GetText().length());
@@ -1243,6 +1250,8 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
           std::make_unique<MarkdownTextDelegate>(
               document_->GetContextPtr(), std::move(alt_text), width, height),
           false);
+      para->GetParagraphStyle().SetLineHeightInPxAtLeast(
+          para->GetParagraphStyle().GetLineHeightInPx());
     }
   }
   context_.line_height_rule_ = tttext::RulerType::kAtLeast;
