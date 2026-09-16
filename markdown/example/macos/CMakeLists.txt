@@ -64,10 +64,17 @@ target_include_directories(markdown PUBLIC
         "${TEXTRA_ROOT}/src/ports"
 )
 
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../skity_demo" skity_demo.out)
+if (NOT DEFINED SKITY_DEMO_SOURCE_DIR)
+    set(SKITY_DEMO_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../skity_demo")
+endif ()
+add_subdirectory("${SKITY_DEMO_SOURCE_DIR}" skity_demo.out)
+
+if (NOT DEFINED MARKDOWN_DEMO_MAIN)
+    set(MARKDOWN_DEMO_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/app/main.mm")
+endif ()
 
 add_executable(serval_markdown_macos_demo
-        app/main.mm
+        "${MARKDOWN_DEMO_MAIN}"
         app/mac_app.mm
         app/mac_app.h
 )

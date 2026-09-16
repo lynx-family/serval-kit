@@ -201,9 +201,7 @@ MeasureResult HarmonyView::OnMeasure(MeasureSpec spec) {
 void HarmonyView::Align(float left, float top) {
   Layout(left, top);
 }
-void HarmonyView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {
-  SetVisibility(true);
-}
+void HarmonyView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {}
 SizeF HarmonyView::GetMeasuredSize() {
   auto size = GetMeasuredIntSize();
   return SizeF{static_cast<float>(size.width), static_cast<float>(size.height)};

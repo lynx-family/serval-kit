@@ -333,6 +333,86 @@ TEST(MarkdownConverterTest, ClearsLastQuoteParagraphSpace) {
   EXPECT_FLOAT_EQ(elements[1]->GetSpaceAfter(), 0);
 }
 
+TEST(MarkdownConverterTest, PreservesSingleChildQuoteSpacing) {
+  for (bool nested : {false, true}) {
+    SCOPED_TRACE(nested);
+    MockMarkdownResourceLoader loader;
+    auto document = MakeDocument(&loader);
+    auto style = document->GetStyle();
+    style.quote_.block_.margin_top_ = 7;
+    style.quote_.block_.padding_top_ = 3;
+    style.quote_.block_.margin_bottom_ = 11;
+    style.quote_.block_.padding_bottom_ = 5;
+    style.quote_.base_.paragraph_space_ = 23;
+    document->SetStyle(style);
+
+    MarkdownDomNode root(MarkdownDomType::kSource);
+    MarkdownDomNode quote(MarkdownDomType::kQuote);
+    MarkdownDomNode inner_quote(MarkdownDomType::kQuote);
+    MarkdownDomNode paragraph(MarkdownDomType::kParagraph);
+    MarkdownDomRawText text(MarkdownDomType::kRawText);
+    AppendText(&paragraph, &text, "quoted");
+    if (nested) {
+      inner_quote.AppendChild(&paragraph);
+      quote.AppendChild(&inner_quote);
+    } else {
+      quote.AppendChild(&paragraph);
+    }
+    root.AppendChild(&quote);
+    MarkdownDomNode following(MarkdownDomType::kParagraph);
+    MarkdownDomRawText following_text(MarkdownDomType::kRawText);
+    AppendText(&following, &following_text, "following");
+    root.AppendChild(&following);
+
+    TestMarkdownParserImpl::ConvertDomTree(document.get(), &root);
+
+    const auto& elements = document->GetParagraphs();
+    ASSERT_EQ(elements.size(), 2u);
+    EXPECT_FLOAT_EQ(elements[0]->GetBlockStyle().margin_top_, nested ? 20 : 10);
+    EXPECT_FLOAT_EQ(elements[0]->GetBlockStyle().margin_bottom_,
+                    nested ? 32 : 16);
+    EXPECT_FLOAT_EQ(elements[0]->GetSpaceAfter(), 0);
+    EXPECT_FLOAT_EQ(elements[1]->GetBlockStyle().margin_top_, 0);
+    EXPECT_FLOAT_EQ(elements[1]->GetBlockStyle().margin_bottom_, 0);
+  }
+}
+
+TEST(MarkdownConverterTest, AppliesQuoteBottomSpacingOnlyToLastParagraph) {
+  MockMarkdownResourceLoader loader;
+  auto document = MakeDocument(&loader);
+  auto style = document->GetStyle();
+  style.quote_.block_.margin_bottom_ = 11;
+  style.quote_.block_.padding_bottom_ = 5;
+  style.quote_.base_.paragraph_space_ = 23;
+  document->SetStyle(style);
+
+  MarkdownDomNode root(MarkdownDomType::kSource);
+  MarkdownDomNode quote(MarkdownDomType::kQuote);
+  MarkdownDomNode first(MarkdownDomType::kParagraph);
+  MarkdownDomRawText first_text(MarkdownDomType::kRawText);
+  AppendText(&first, &first_text, "first");
+  MarkdownDomNode last(MarkdownDomType::kParagraph);
+  MarkdownDomRawText last_text(MarkdownDomType::kRawText);
+  AppendText(&last, &last_text, "last");
+  quote.AppendChild(&first);
+  quote.AppendChild(&last);
+  root.AppendChild(&quote);
+  MarkdownDomNode following(MarkdownDomType::kParagraph);
+  MarkdownDomRawText following_text(MarkdownDomType::kRawText);
+  AppendText(&following, &following_text, "following");
+  root.AppendChild(&following);
+
+  TestMarkdownParserImpl::ConvertDomTree(document.get(), &root);
+
+  const auto& elements = document->GetParagraphs();
+  ASSERT_EQ(elements.size(), 3u);
+  EXPECT_FLOAT_EQ(elements[0]->GetBlockStyle().margin_bottom_, 0);
+  EXPECT_FLOAT_EQ(elements[0]->GetSpaceAfter(), 23);
+  EXPECT_FLOAT_EQ(elements[1]->GetBlockStyle().margin_bottom_, 16);
+  EXPECT_FLOAT_EQ(elements[1]->GetSpaceAfter(), 0);
+  EXPECT_FLOAT_EQ(elements[2]->GetBlockStyle().margin_top_, 0);
+}
+
 TEST(MarkdownConverterTest, UsesUndefinedImageSizeAndFallsBackToAltText) {
   RecordingImageResourceLoader loader;
   auto document = MakeDocument(&loader);
