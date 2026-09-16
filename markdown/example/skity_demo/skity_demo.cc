@@ -135,6 +135,7 @@ void SkityDemo::Start() {
 
   markdown_view_ =
       std::make_shared<MarkdownView>(&root_view_, &root_view_, context);
+  markdown_view_->SetParserType(config_.parser_type, config_.parser_user_data);
   root_view_.AttachDrawable(markdown_view_);
   markdown_view_->SetResourceLoader(resource_loader_.get());
   markdown_view_->SetEventListener(this);

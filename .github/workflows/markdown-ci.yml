@@ -55,6 +55,7 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: 9862592
+          packages: 'platform-tools'
 
       - name: Install CMake
         run: echo "y" | sdkmanager --install "cmake;3.18.1"

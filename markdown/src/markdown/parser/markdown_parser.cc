@@ -1041,17 +1041,12 @@ void MarkdownConverter::MakeElementPlain(
     }
     auto* block = static_cast<MarkdownBlockElement*>(element.get());
     for (auto& child : block->GetChildren()) {
-      if (child.get() == block->GetChildren().front().get()) {
-        MakeElementPlain(std::move(child), target, total_left, total_top,
-                         total_right, 0);
-      } else if (child.get() == block->GetChildren().back().get()) {
-        MakeElementPlain(std::move(child), target,
-                         total_left + none_first_space, 0, total_right,
-                         total_bottom);
-      } else {
-        MakeElementPlain(std::move(child), target,
-                         total_left + none_first_space, 0, total_right, 0);
-      }
+      const bool is_first = &child == &block->GetChildren().front();
+      const bool is_last = &child == &block->GetChildren().back();
+      MakeElementPlain(std::move(child), target,
+                       total_left + (is_first ? 0 : none_first_space),
+                       is_first ? total_top : 0, total_right,
+                       is_last ? total_bottom : 0);
     }
     if (element->GetMarkdownSourceType() == MarkdownSyntaxType::kQuote &&
         element->GetBorderType() == MarkdownBorder::kLeft) {

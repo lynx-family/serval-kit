@@ -19,6 +19,8 @@ constexpr float kSkityDemoHeight = 100000.f;
 struct SkityDemoConfig {
   std::filesystem::path font_root;
   std::filesystem::path cases_root;
+  std::string parser_type;
+  void* parser_user_data{nullptr};
   int32_t initial_width{900};
   int32_t initial_height{720};
   std::string window_title{"Serval Markdown Skity Demo"};
