@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <utility>
 
@@ -58,7 +59,14 @@ void NativeServalMarkdownView::InitEnv(napi_env env) {
   HarmonyUIThread::Init(env);
   UpdateDisplayMetrics();
 }
-NativeServalMarkdownView::NativeServalMarkdownView() {
+NativeServalMarkdownView::NativeServalMarkdownView()
+    : NativeServalMarkdownView(true) {}
+NativeServalMarkdownView::NativeServalMarkdownView(bool create_measurer) {
+  if (create_measurer) {
+    owned_measurer_ = std::make_unique<NativeMarkdownMeasurer>();
+    SetMeasurer(owned_measurer_.get());
+    GetMarkdownView()->SetEnableRegionView(false);
+  }
   HarmonyVSyncManager::AddVSyncCallback(this);
   ArkUINativeAPI::GetGestureApi()->setGestureInterrupterToNode(
       GetHandle(), GestureInterruptDispatcher);
@@ -72,6 +80,8 @@ NativeServalMarkdownView::~NativeServalMarkdownView() {
   DisposeGestures();
   HarmonyVSyncManager::RemoveVSyncCallback(this);
   AttachDrawable(nullptr);
+  owned_measurer_.reset();
+  measurer_ = nullptr;
 }
 bool NativeServalMarkdownView::SetMeasurer(NativeMarkdownMeasurer* measurer) {
   if (measurer_ != nullptr || measurer == nullptr ||
@@ -80,6 +90,19 @@ bool NativeServalMarkdownView::SetMeasurer(NativeMarkdownMeasurer* measurer) {
   }
   measurer_ = measurer;
   return true;
+}
+void NativeServalMarkdownView::SetContent(const std::string& content) const {
+  measurer_->SetContent(content);
+}
+void NativeServalMarkdownView::SetStyle(const ValueMap& style) const {
+  measurer_->SetStyle(style);
+}
+void NativeServalMarkdownView::SetConfig(const ValueMap& config) {
+  measurer_->SetConfig(config);
+}
+void NativeServalMarkdownView::SetResourceLoader(
+    IHarmonyResourceLoader* loader) {
+  measurer_->SetResourceLoader(loader);
 }
 void NativeServalMarkdownView::UpdateDisplayMetrics() {
   float density;
