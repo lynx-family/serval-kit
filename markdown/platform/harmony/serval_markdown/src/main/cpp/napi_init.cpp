@@ -42,7 +42,7 @@ struct NativeMarkdownMeasurerHolder {
 };
 struct NativeMarkdownViewHolder {
   NativeMarkdownViewHolder()
-      : view_(std::make_unique<NativeServalMarkdownView>()) {
+      : view_(std::make_unique<NativeServalMarkdownView>(false)) {
     view_->SetClipByParent(false);
   }
   std::unique_ptr<NativeServalMarkdownView> view_;

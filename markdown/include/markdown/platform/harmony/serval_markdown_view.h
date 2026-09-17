@@ -7,15 +7,18 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 #include "arkui/native_gesture.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/internal/harmony_vsync_manager.h"
 #include "markdown/utils/markdown_marco.h"
+#include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
 #include "markdown/view/markdown_view_gesture.h"
 namespace serval::markdown {
+class IHarmonyResourceLoader;
 class NativeMarkdownMeasurer;
 class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
                                           public MarkdownViewContainerHandle,
@@ -25,8 +28,13 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
 
  public:
   NativeServalMarkdownView();
+  explicit NativeServalMarkdownView(bool create_measurer);
   ~NativeServalMarkdownView() override;
   bool SetMeasurer(NativeMarkdownMeasurer* measurer);
+  void SetContent(const std::string& content) const;
+  void SetStyle(const ValueMap& style) const;
+  void SetConfig(const ValueMap& config);
+  void SetResourceLoader(IHarmonyResourceLoader* loader);
   MarkdownView* GetMarkdownView() const {
     return static_cast<MarkdownView*>(drawable_.get());
   }
@@ -92,6 +100,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   ArkUI_GestureRecognizer* pan_{nullptr};
   bool pan_tracking_{false};
   std::atomic_bool destroyed_{false};
+  std::unique_ptr<NativeMarkdownMeasurer> owned_measurer_;
   NativeMarkdownMeasurer* measurer_{nullptr};
 };
 }  // namespace serval::markdown
