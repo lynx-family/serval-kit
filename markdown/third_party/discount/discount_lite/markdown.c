@@ -154,38 +154,6 @@ void ___mkd_tidy(Cstring* t) {
     --S(*t);
 }
 
-typedef struct _flo {
-  Line* t;
-  int i;
-} FLO;
-
-static unsigned int flogetc(FLO* f) {
-  if (f && f->t) {
-    if (f->i < S(f->t->text))
-      return (unsigned char)T(f->t->text)[f->i++];
-    f->t = f->t->next;
-    f->i = 0;
-    return flogetc(f);
-  }
-  return EOF;
-}
-
-static void splitline(Line* t, int cutpoint) {
-  if (t && (cutpoint < S(t->text))) {
-    Line* tmp = (Line*)(calloc(1, sizeof *tmp));
-
-    tmp->next = t->next;
-    t->next = tmp;
-
-    SUFFIX(tmp->text, T(t->text) + cutpoint, S(t->text) - cutpoint);
-    tmp->markdown_offset = t->markdown_offset + cutpoint;
-    EXPAND(tmp->text) = 0;
-    S(tmp->text)
-    --;
-    S(t->text) = cutpoint;
-  }
-}
-
 #define UNCHECK(t) ((t)->is_checked = 0)
 
 /*
@@ -194,8 +162,8 @@ static void splitline(Line* t, int cutpoint) {
  */
 static void checkline(Line* l, mkd_flag_t* flags) {
   int eol, i;
-  int dashes = 0, spaces = 0, equals = 0, underscores = 0, stars = 0,
-      tildes = 0, other = 0, backticks = 0;
+  int dashes = 0, equals = 0, underscores = 0, stars = 0, tildes = 0, other = 0,
+      backticks = 0;
   int c, first;
 
   l->is_checked = 1;
@@ -240,7 +208,6 @@ static void checkline(Line* l, mkd_flag_t* flags) {
         dashes = 1;
         break;
       case ' ':
-        spaces = 1;
         break;
       case '=':
         equals = 1;
@@ -275,28 +242,6 @@ static void checkline(Line* l, mkd_flag_t* flags) {
   } else if (backticks) {
     l->kind = chk_backtick;
   }
-}
-
-/* markdown only does special handling of comments if the comment end
- * is at the end of a line
- */
-static Line* commentblock(Line* t, int* unclosed) {
-  Line* ret;
-  char* end;
-
-  for (; t; t = t->next) {
-    if ((end = strstr(T(t->text), "-->"))) {
-      if (nextnonblank(t, 3 + (end - T(t->text))) < S(t->text))
-        continue;
-      /*splitline(t, 3 + (end - T(t->text)) );*/
-      ret = t->next;
-      t->next = 0;
-      return ret;
-    }
-  }
-
-  *unclosed = 1;
-  return t;
 }
 
 /* footnotes look like ^<whitespace>{0,3}[stuff]: <content>$
@@ -359,26 +304,7 @@ static inline int ishr(Line* t, mkd_flag_t* flags) {
   return 0;
 }
 
-static int issetext(Line* t, int* htyp, mkd_flag_t* flags) {
-  Line* n;
-
-  /* check for setext-style HEADER
-   *                        ======
-   */
-
-  if ((n = t->next)) {
-    if (!(n->is_checked))
-      checkline(n, flags);
-
-    if (n->kind == chk_dash || n->kind == chk_equal) {
-      *htyp = SETEXT;
-      return 1;
-    }
-  }
-  return 0;
-}
-
-static int ishdr(Line* t, int* htyp, mkd_flag_t* flags) {
+static int ishdr(Line* t, int* htyp) {
   /* ANY leading `#`'s make this into an ETX header
    */
   if ((S(t->text) > t->dle + 1) && (T(t->text)[t->dle] == '#')) {
@@ -411,42 +337,7 @@ static inline int end_of_block(Line* t, mkd_flag_t* flags) {
   if (!t)
     return 0;
 
-  return ((S(t->text) <= t->dle) || ishr(t, flags) || ishdr(t, &dummy, flags));
-}
-
-static Line* is_discount_dt(Line* t, int* clip, mkd_flag_t* flags) {
-  if (t && t->next && (S(t->text) > 2) && (t->dle == 0) &&
-      (T(t->text)[0] == '=') && (T(t->text)[S(t->text) - 1] == '=')) {
-    if (t->next->dle >= 4) {
-      *clip = 4;
-      return t;
-    } else
-      return is_discount_dt(t->next, clip, flags);
-  }
-  return 0;
-}
-
-static int is_extra_dd(Line* t) {
-  return (t->dle < 4) && (T(t->text)[t->dle] == ':') &&
-         isspace(T(t->text)[t->dle + 1]);
-}
-
-static Line* is_extra_dt(Line* t, int* clip, mkd_flag_t* flags) {
-  if (t && t->next && S(t->text)) {
-    Line* x;
-
-    if (iscode(t) || end_of_block(t, flags))
-      return 0;
-
-    if ((x = skipempty(t->next)) && is_extra_dd(x)) {
-      *clip = x->dle + 2;
-      return t;
-    }
-
-    if ((x = is_extra_dt(t->next, clip, flags)))
-      return x;
-  }
-  return 0;
+  return ((S(t->text) <= t->dle) || ishr(t, flags) || ishdr(t, &dummy));
 }
 
 static int list_level(int white_space) {
@@ -553,21 +444,6 @@ static Line* headerblock(Line* p, int htyp, MMIOT* f) {
   return ret;
 }
 
-static Line* codeblock(Line* t) {
-  Line *o = t, *r;
-
-  for (; t; t = r) {
-    __mkd_trim_line(t, 4);
-    if (!((r = skipempty(t->next)) && iscode(r))) {
-      ___mkd_freeLineRange(t, r);
-      t->next = 0;
-      return r;
-    }
-  }
-
-  return t;
-}
-
 static Line* fencecodeblock(Line* t, Line* end, int indent) {
   Line* r = skipempty(end->next);
   ___mkd_freeLineRange(end, r);
@@ -598,16 +474,6 @@ static int centered(Line* first, Line* last) {
   return 0;
 }
 
-/* length of the id: or class: kind in a special div-not-quote block
- */
-static int szmarkerclass(char* p) {
-  if (strncasecmp(p, "id:", 3) == 0)
-    return 3;
-  if (strncasecmp(p, "class:", 6) == 0)
-    return 6;
-  return 0;
-}
-
 /*
  * check if the first line of a quoted block is the special div-not-quote
  * marker %[kind:]name%
@@ -626,7 +492,7 @@ static int szmarkerclass(char* p) {
  * way the markdown sample web form at Daring Fireball works.
  */
 static Line* quoteblock(Line* t, mkd_flag_t* flags) {
-  Line *o = t, *q;
+  Line* q;
   int qp;
   int tmp1;
 
@@ -923,9 +789,7 @@ static void compile_document(Line* ptr, MMIOT* f) {
   //  ParagraphRoot d = {0, 0};
   Cache source = {0, 0};
   //  Paragraph *p = 0;
-  struct kw* tag;
-  int eaten, unclosed;
-  int previous_was_break = 1;
+  int eaten;
 
   while (ptr) {
     checkline(ptr, &(f->flags));
@@ -935,13 +799,11 @@ static void compile_document(Line* ptr, MMIOT* f) {
        * later processing
        */
       ptr = consume(addfootnote(ptr, f), &eaten);
-      previous_was_break = 1;
     } else {
       /* source; cache it up to wait for eof or the
        * next html/style block
        */
       ATTACH(source, ptr);
-      previous_was_break = blankline(ptr);
       ptr = ptr->next;
     }
   }
@@ -1010,7 +872,7 @@ static int actually_a_table(MMIOT* f, Line* pp, Line** end) {
   return 1;
 }
 
-static int endoftextblock(Line* t, int toplevelblock, mkd_flag_t* flags) {
+static int endoftextblock(Line* t, mkd_flag_t* flags) {
   int z;
 
   if (end_of_block(t, flags) || isquote(t))
@@ -1026,16 +888,14 @@ static int endoftextblock(Line* t, int toplevelblock, mkd_flag_t* flags) {
    */
   Line* end;
   return (iscode(t) || isfencecode(t, &end, &z) || ishr(t, flags) ||
-          islist(t, &z, flags, &z, &z, &z) || isquote(t) ||
-          ishdr(t, &z, flags));
+          islist(t, &z, flags, &z, &z, &z) || isquote(t) || ishdr(t, &z));
 }
 
-static Line* textblock(Line* t, int toplevel, mkd_flag_t* flags) {
+static Line* textblock(Line* t, mkd_flag_t* flags) {
   Line *o = t, *next;
-  int align;
   for (; t; t = next) {
-    if (((next = t->next) == 0) || endoftextblock(next, toplevel, flags)) {
-      align = centered(o, t);
+    if (((next = t->next) == 0) || endoftextblock(next, flags)) {
+      centered(o, t);
       t->next = 0;
       return next;
     }
@@ -1089,14 +949,14 @@ static void compile(Line* ptr, int toplevel, MMIOT* f) {
       ptr = quoteblock(p, &(f->flags));
       compile(p, 1, f);
       p = 0;
-    } else if (ishdr(ptr, &hdr_type, &(f->flags))) {
+    } else if (ishdr(ptr, &hdr_type)) {
       p = ptr;
       ptr = headerblock(p, hdr_type, f);
       f->cb->paragraph_start(HDR, f->cb->ud);
       f->cb->paragraph_text(p, f->cb->ud);
     } else {
       p = ptr;
-      ptr = textblock(p, toplevel, &(f->flags));
+      ptr = textblock(p, &(f->flags));
       Line* start = p;
       Line* tmp = p;
       Line* end = NULL;
@@ -1251,10 +1111,8 @@ Document* mkd_string(const char* buf, int len, mkd_flag_t* flags) {
 void __mkd_enqueue(Document* a, Cstring* line, int line_offset) {
   Line* p = (Line*)calloc(sizeof *p, 1);
   unsigned char c;
-  int xp = 0;
   int size = S(*line);
   unsigned char* str = (unsigned char*)T(*line);
-  unsigned char* str_start = (unsigned char*)T(*line);
 
   CREATE(p->text);
   ATTACH(a->content, p);

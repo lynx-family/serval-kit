@@ -299,7 +299,7 @@ class RoundRectImageWrapper : public MarkdownDrawable {
   RoundRectImageWrapper(MarkdownContext* context,
                         std::shared_ptr<MarkdownDrawable> delegate,
                         float radius)
-      : context_(context), delegate_(std::move(delegate)), radius_(radius) {}
+      : context_(context), radius_(radius), delegate_(std::move(delegate)) {}
   ~RoundRectImageWrapper() override = default;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 

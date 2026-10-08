@@ -67,7 +67,7 @@ std::unique_ptr<Value> MarkdownValueConvert::ConvertArray(NSArray* array) {
     return Value::MakeArray(std::move(result));
   }
   result.reserve(array.count);
-  for (int i = 0; i < array.count; i++) {
+  for (NSUInteger i = 0; i < array.count; i++) {
     result.emplace_back(ConvertObject(array[i]));
   }
   return Value::MakeArray(std::move(result));

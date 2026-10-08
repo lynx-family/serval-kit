@@ -487,10 +487,11 @@ MarkdownTouchState MarkdownDocument::OnTouchEvent(
 void MarkdownDocument::ApplyStyleInRange(const MarkdownBaseStylePart& style,
                                          Range range) {
   for (const auto& para : para_vec_) {
-    if (para->GetCharStart() > range.end_) {
+    if (para->GetCharStart() > static_cast<uint32_t>(range.end_)) {
       break;
     }
-    if (para->GetCharStart() + para->GetCharCount() < range.start_) {
+    if (para->GetCharStart() + para->GetCharCount() <
+        static_cast<uint32_t>(range.start_)) {
       continue;
     }
     if (para->GetType() != MarkdownElementType::kParagraph) {
