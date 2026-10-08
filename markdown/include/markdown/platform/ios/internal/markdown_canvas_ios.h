@@ -28,9 +28,9 @@ class MarkdownRunDelegate : public MarkdownDrawable {
  public:
   MarkdownRunDelegate(float desire_width, float desire_height,
                       MarkdownRunDelegateType type)
-      : desire_width_(desire_width),
-        desire_height_(desire_height),
-        delegate_type_(type) {}
+      : delegate_type_(type),
+        desire_width_(desire_width),
+        desire_height_(desire_height) {}
   ~MarkdownRunDelegate() override = default;
   MarkdownRunDelegateType GetMarkdownRunDelegateType() const {
     return delegate_type_;
@@ -60,9 +60,9 @@ class MarkdownImageRunDelegate : public MarkdownRunDelegate {
   MarkdownImageRunDelegate(UIImage* _Nullable image, float desire_width,
                            float desire_height, float max_width,
                            float max_height, float border_radius)
-      : image_(nullptr),
-        border_radius_(border_radius > 0 ? border_radius : 0),
-        MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kImage) {
+      : MarkdownRunDelegate(0, 0, MarkdownRunDelegateType::kImage),
+        image_(nullptr),
+        border_radius_(border_radius > 0 ? border_radius : 0) {
     if (image != nullptr && image.size.width != 0 && image.size.height != 0) {
       float img_w = image.size.width;
       float img_h = image.size.height;

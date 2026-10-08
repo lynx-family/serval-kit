@@ -274,7 +274,7 @@ std::vector<int32_t> MarkdownSelection::GetLineEndCharIndices(
         continue;
       }
       auto* layout_region = para_region->region_.get();
-      for (int line_index = 0; line_index < layout_region->GetLineCount();
+      for (uint32_t line_index = 0; line_index < layout_region->GetLineCount();
            ++line_index) {
         auto* line = layout_region->GetLine(line_index);
         line_end_char_indices.emplace_back(

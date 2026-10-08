@@ -67,7 +67,6 @@ class MarkdownViewMeasurer {
   std::shared_ptr<MarkdownDocument> document_;
   std::string content_;
   std::string content_id_;
-  bool content_complete_{true};
   MarkdownStyle style_{};
   int32_t text_max_lines_{-1};
   float max_height_{0};
