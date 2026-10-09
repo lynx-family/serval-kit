@@ -782,7 +782,8 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     MarkdownParserEmbed::SetTTStyleByMarkdownBaseStyle(
         document_, style.ordered_list_number_.base_, &new_style);
     para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
-    para->AddTextRun(&new_style, number_str.c_str(), number_str.length());
+    para->AddTextRun(&new_style, number_str.c_str(),
+                     static_cast<uint32_t>(number_str.length()));
     auto delegate = std::make_shared<MarkdownTextDelegate>(
         document_->GetContextPtr(), std::move(para),
         style.ordered_list_number_.block_, 0, 0);
@@ -1037,7 +1038,7 @@ void MarkdownConverter::MakeElementPlain(
     }
     if (element->GetMarkdownSourceType() == MarkdownSyntaxType::kQuote &&
         element->GetBorderType() == MarkdownBorder::kLeft) {
-      para_start = target->GetParagraphs().size();
+      para_start = static_cast<uint32_t>(target->GetParagraphs().size());
     }
     auto* block = static_cast<MarkdownBlockElement*>(element.get());
     for (auto& child : block->GetChildren()) {
@@ -1050,7 +1051,7 @@ void MarkdownConverter::MakeElementPlain(
     }
     if (element->GetMarkdownSourceType() == MarkdownSyntaxType::kQuote &&
         element->GetBorderType() == MarkdownBorder::kLeft) {
-      uint32_t para_end = target->GetParagraphs().size();
+      uint32_t para_end = static_cast<uint32_t>(target->GetParagraphs().size());
       target->AddQuoteRange(Range{static_cast<int32_t>(para_start),
                                   static_cast<int32_t>(para_end)});
       if (para_start < para_end) {

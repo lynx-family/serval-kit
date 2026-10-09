@@ -9,7 +9,7 @@
 #include "markdown/platform/harmony/internal/harmony_value_ref.h"
 #include "napi/native_api.h"
 namespace serval::markdown {
-class HarmonyResourceLoaderImpl : public IHarmonyResourceLoader {
+class HarmonyResourceLoaderImpl final : public IHarmonyResourceLoader {
  public:
   explicit HarmonyResourceLoaderImpl(napi_env env);
   ~HarmonyResourceLoaderImpl() = default;

@@ -55,13 +55,17 @@ class L_EXPORT MarkdownPage {
     }
     return region->rect_;
   }
-  uint32_t GetRegionCount() const { return regions_.size(); }
+  uint32_t GetRegionCount() const {
+    return static_cast<uint32_t>(regions_.size());
+  }
   MarkdownQuoteBorder* GetExtraBorder(uint32_t index) const {
     if (index >= quote_borders_.size())
       return nullptr;
     return quote_borders_[index].get();
   }
-  uint32_t GetExtraBorderCount() const { return quote_borders_.size(); }
+  uint32_t GetExtraBorderCount() const {
+    return static_cast<uint32_t>(quote_borders_.size());
+  }
 
   void ClearAttachments() { attachments_.clear(); }
   void AddTextAttachments(

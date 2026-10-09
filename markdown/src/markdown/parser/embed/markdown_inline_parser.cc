@@ -49,7 +49,7 @@ int32_t SameCharCount(const char* current, const char* end, char c) {
   while (next != end && *next == c) {
     next++;
   }
-  return next - current;
+  return static_cast<int32_t>(next - current);
 }
 
 bool IsValidHtmlChar(const char c) {
@@ -377,7 +377,8 @@ class MarkdownInlineSyntaxParserImpl {
     }
     auto result = std::make_unique<MarkdownInlineNode>();
     result->SetText(content);
-    ProcessDelimiters(tokens_, 0, tokens_.size(), result.get());
+    ProcessDelimiters(tokens_, 0, static_cast<int32_t>(tokens_.size()),
+                      result.get());
     return result;
   }
 
@@ -449,7 +450,7 @@ class MarkdownInlineSyntaxParserImpl {
       if (*p == '`') {
         const auto c = SameCharCount(p, end, '`');
         if (c == count) {
-          return p - start;
+          return static_cast<int32_t>(p - start);
         } else {
           p += c;
         }
@@ -505,7 +506,8 @@ class MarkdownInlineSyntaxParserImpl {
         new_tokens.emplace_back(std::move(token));
       }
     }
-    MergePiecesToNode(new_tokens, 0, new_tokens.size(), node);
+    MergePiecesToNode(new_tokens, 0, static_cast<int32_t>(new_tokens.size()),
+                      node);
   }
 
   static void MergePiecesToNode(std::vector<Token>& tokens, const int32_t start,
@@ -575,12 +577,13 @@ class MarkdownInlineSyntaxParserImpl {
                                    std::string_view stars,
                                    bool delimiter_processed, bool can_start,
                                    bool can_end) {
-    int32_t rest_stars_count = stars.size();
+    int32_t rest_stars_count = static_cast<int32_t>(stars.size());
     if (can_end) {
-      for (int32_t i = tokens.size() - 1; i >= 0; i--) {
+      for (int32_t i = static_cast<int32_t>(tokens.size()) - 1; i >= 0; i--) {
         if (tokens[i].type_ == match_type && tokens[i].can_start_) {
           auto piece_start_content = tokens[i].content_;
-          int32_t piece_star_count = tokens[i].content_.size();
+          int32_t piece_star_count =
+              static_cast<int32_t>(tokens[i].content_.size());
           int32_t keyword_count = std::min(piece_star_count, rest_stars_count);
           auto [node_syntax, eat] = Generate(keyword_count);
           if (node_syntax == MarkdownInlineSyntax::kNone)
@@ -593,9 +596,13 @@ class MarkdownInlineSyntaxParserImpl {
               stars.substr(0, keyword_count));
           new_node->SetText(text);
           if (delimiter_processed) {
-            MergePiecesToNode(tokens, i + 1, tokens.size(), new_node.get());
+            MergePiecesToNode(tokens, i + 1,
+                              static_cast<int32_t>(tokens.size()),
+                              new_node.get());
           } else {
-            ProcessDelimiters(tokens, i + 1, tokens.size(), new_node.get());
+            ProcessDelimiters(tokens, i + 1,
+                              static_cast<int32_t>(tokens.size()),
+                              new_node.get());
           }
           if (eat == piece_star_count) {
             tokens.resize(i);
@@ -612,7 +619,7 @@ class MarkdownInlineSyntaxParserImpl {
             break;
           }
           stars = stars.substr(keyword_count);
-          rest_stars_count = stars.size();
+          rest_stars_count = static_cast<int32_t>(stars.size());
         }
       }
     }
@@ -732,7 +739,7 @@ class MarkdownInlineSyntaxParserImpl {
   }
 
   void PushRoundBracketEnd(std::string_view brackets) {
-    for (int32_t i = tokens_.size() - 1; i > 0; i--) {
+    for (int32_t i = static_cast<int32_t>(tokens_.size()) - 1; i > 0; i--) {
       // find: ](...)
       if (tokens_[i].type_ == TokenType::kKeywordLeftRoundBrackets &&
           tokens_[i - 1].type_ == TokenType::kKeywordRightSquareBrackets) {
@@ -806,7 +813,7 @@ class MarkdownInlineSyntaxParserImpl {
     tokens_.emplace_back(Token{.type_ = TokenType::kKeywordHtmlClose,
                                .content_ = content,
                                .tag_ = tag});
-    MatchHtmlTag(tokens_.size() - 1, tag);
+    MatchHtmlTag(static_cast<int32_t>(tokens_.size()) - 1, tag);
   }
 
   void MatchHtmlTag(int32_t end_index, std::string_view tag) {

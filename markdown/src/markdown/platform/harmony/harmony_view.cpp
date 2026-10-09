@@ -261,7 +261,7 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
       size.height_ == 0) {
     OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
                  "custom view measure error, size:(%{public}f, %{public}f), "
-                 "constraint:(%{public}f,%{public}f)",
+                 "constraint:(%{public}d,%{public}d)",
                  size.width_, size.height_, max_width, max_height);
   }
   SetMeasuredSize(static_cast<int32_t>(

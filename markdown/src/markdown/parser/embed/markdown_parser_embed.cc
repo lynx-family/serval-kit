@@ -55,8 +55,10 @@ void MarkdownParserEmbed::Parse(const char* src, int size,
                                 float width) {
   if (document_ == nullptr)
     return;
-  markdown_start = UTF8IndexToCIndex(src, size, markdown_start);
-  markdown_end = UTF8IndexToCIndex(src, size, markdown_end);
+  markdown_start =
+      static_cast<int32_t>(UTF8IndexToCIndex(src, size, markdown_start));
+  markdown_end =
+      static_cast<int32_t>(UTF8IndexToCIndex(src, size, markdown_end));
   auto* doc = mkd_string(src, size, 0);
   doc->cb.ud = this;
   doc->cb.paragraph_start = &MarkdownParserEmbed::OnParagraphStart;
@@ -208,7 +210,8 @@ void MarkdownParserEmbed::OnParagraphStart(int type) {
     // TODO(zhouchaoying): temporarily fix quote border, will be removed next
     // commit
     if (context_.quote_level_ == 1) {
-      context_.quote_start_para_ = document_->GetParagraphs().size();
+      context_.quote_start_para_ =
+          static_cast<int>(document_->GetParagraphs().size());
     }
   }
 }
@@ -810,14 +813,16 @@ void MarkdownParserEmbed::AppendOrderedListNumber() {
         nullptr, std::make_unique<MarkdownEmptySpaceDelegate>(
                      style_.ordered_list_number_.block_.margin_left_));
   }
-  context_.current_paragraph_->AddTextRun(&number_style, number_str.c_str(),
-                                          number_str.length());
+  context_.current_paragraph_->AddTextRun(
+      &number_style, number_str.c_str(),
+      static_cast<uint32_t>(number_str.length()));
   if (style_.ordered_list_number_.block_.margin_right_ > 0) {
     context_.current_paragraph_->AddGhostShapeRun(
         nullptr, std::make_unique<MarkdownEmptySpaceDelegate>(
                      style_.ordered_list_number_.block_.margin_right_));
   }
-  tmp_para->AddTextRun(&number_style, number_str.c_str(), number_str.length());
+  tmp_para->AddTextRun(&number_style, number_str.c_str(),
+                       static_cast<uint32_t>(number_str.length()));
   auto [width, _] = MarkdownLayout::MeasureParagraph(
       document_->GetContextPtr(), tmp_para.get(),
       std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), -1);
@@ -851,10 +856,10 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
   auto header_string =
       TrimSpace({text_line->text.text, (size_t)(text_line->text.size)});
   auto split = Split(header_string, '|');
+  int col_count = static_cast<int>(split.size());
   if (line_count > 0 && !split.empty()) {
-    context_.current_table_->Resize(line_count, split.size());
+    context_.current_table_->Resize(line_count, col_count);
   }
-  size_t col_count = split.size();
   text_line = text_line->next;
   // align
   auto align =
@@ -865,7 +870,7 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
   text_line = text_line->next;
   // content
   uint32_t char_offset = 0;
-  for (size_t col = 0; col < col_count; col++) {
+  for (int col = 0; col < col_count; col++) {
     auto str = TrimSpace(split[col]);
     MarkdownTableCell cell{
         .paragraph_ = nullptr,
@@ -885,7 +890,8 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
       ParseInlineSyntax(
           std::string(str), para.get(), header_style, nullptr,
           char_offset + context_.char_offset_,
-          str.data() - header_line->text.text + header_line->markdown_offset,
+          static_cast<uint32_t>(str.data() - header_line->text.text) +
+              header_line->markdown_offset,
           false);
       cell.paragraph_ = std::move(para);
       cell.char_count_ = cell.paragraph_->GetCharCount();
@@ -898,8 +904,8 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
     auto line_string =
         TrimSpace({text_line->text.text, (size_t)(text_line->text.size)});
     split = Split(line_string, '|');
-    for (size_t col = 0; col < col_count; col++) {
-      if (col >= split.size())
+    for (int col = 0; col < col_count; col++) {
+      if (col >= static_cast<int>(split.size()))
         continue;
       auto str = TrimSpace(split[col]);
       MarkdownTableCell cell{
@@ -916,7 +922,8 @@ void MarkdownParserEmbed::HandleTableLines(line* text_line) {
         ParseInlineSyntax(
             std::string(str), para.get(), run_style, nullptr,
             char_offset + context_.char_offset_,
-            str.data() - text_line->text.text + text_line->markdown_offset,
+            static_cast<uint32_t>(str.data() - text_line->text.text) +
+                text_line->markdown_offset,
             false);
         cell.paragraph_ = std::move(para);
         cell.char_count_ = cell.paragraph_->GetCharCount();
@@ -1009,7 +1016,7 @@ std::string_view MarkdownParserEmbed::TrimLeadingSpace(
 
 std::string_view MarkdownParserEmbed::TrimTrailingSpace(
     std::string_view origin) {
-  int end = origin.size() - 1;
+  int end = static_cast<int>(origin.size()) - 1;
   for (; end >= 0; end--) {
     if (origin[end] != ' ' && origin[end] != '\t') {
       break;
@@ -1163,7 +1170,7 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
             para->GetParagraphStyle().GetLineHeightInPx());
         AddMarkdownIndexToCharIndexMap(
             char_offset, char_start, para->GetCharCount(), markdown_offset,
-            markdown_offset + node->GetText().length());
+            static_cast<int32_t>(markdown_offset + node->GetText().length()));
       }
     }
   } else {
@@ -1199,8 +1206,9 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
           SetTTStyleByMarkdownBaseStyle(style_.image_caption_.base_, &style);
           SetParagraphStyle(style_.image_caption_.base_,
                             &(caption->GetParagraphStyle()), nullptr);
-          caption->AddTextRun(&style, node->GetCaption().data(),
-                              node->GetCaption().length());
+          caption->AddTextRun(
+              &style, node->GetCaption().data(),
+              static_cast<uint32_t>(node->GetCaption().length()));
           delegate = std::make_shared<ImageWithCaption>(
               document_->GetContextPtr(),
               std::static_pointer_cast<MarkdownDrawable>(std::move(delegate)),
@@ -1216,7 +1224,7 @@ void MarkdownParserEmbed::AppendImgToParagraph(MarkdownImageNode* node,
             para->GetParagraphStyle().GetLineHeightInPx());
         AddMarkdownIndexToCharIndexMap(
             char_offset, char_start, para->GetCharCount(), markdown_offset,
-            markdown_offset + node->GetText().length());
+            static_cast<int32_t>(markdown_offset + node->GetText().length()));
       } else {
         need_alt_text = style_.image_.image_.enable_alt_text_;
       }
@@ -1355,7 +1363,7 @@ void MarkdownParserEmbed::AppendRawText(MarkdownInlineNode* node,
     return;
   }
   int32_t piece_start = 0;
-  int32_t piece_end = node->GetText().length();
+  int32_t piece_end = static_cast<int32_t>(node->GetText().length());
   if (context_.enable_split_render_) {
     auto range = GetTextLineByteRangeByMarkdownRange(
         markdown_offset + piece_start, piece_end - piece_start);
@@ -1552,7 +1560,8 @@ void MarkdownParserEmbed::AppendChildrenToParagraph(
   for (auto& child : node->Children()) {
     AppendNodeToParagraph(
         child.get(), para, base_style, char_offset,
-        markdown_offset + child->GetText().data() - node->GetText().data());
+        markdown_offset + static_cast<uint32_t>(child->GetText().data() -
+                                                node->GetText().data()));
   }
 }
 
@@ -1582,7 +1591,7 @@ std::vector<int32_t> MarkdownParserEmbed::CalculateByteIndexToCharIndexMap(
 }
 std::vector<std::string_view> SplitLines(std::string_view content) {
   std::vector<std::string_view> result;
-  uint32_t last_index = 0;
+  size_t last_index = 0;
   auto find = content.find('\n', last_index);
   while (find != std::string_view::npos) {
     result.emplace_back(content.substr(last_index, find - last_index + 1));
@@ -1610,7 +1619,8 @@ void MarkdownParserEmbed::ParsePlainText(const char* src, int size) {
     SetTTStyleByMarkdownBaseStyle(style.base_, &run_style);
     paragraph_style.SetDefaultStyle(run_style);
     para->SetParagraphStyle(&paragraph_style);
-    para->AddTextRun(&run_style, line.data(), line.length());
+    para->AddTextRun(&run_style, line.data(),
+                     static_cast<uint32_t>(line.length()));
     auto para_element = std::make_unique<MarkdownParagraphElement>();
     para_element->SetBlockStyle(style.block_);
     para_element->SetCharStart(char_count);

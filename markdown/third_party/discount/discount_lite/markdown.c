@@ -381,7 +381,7 @@ static int islist(Line* t, int* clip, mkd_flag_t* flags, int* list_type,
         return AL;
       }
 
-      *ol_index = strtoul(T(t->text) + t->dle, &q, 10);
+      *ol_index = (int)strtoul(T(t->text) + t->dle, &q, 10);
       if ((q > T(t->text) + t->dle) && (q == T(t->text) + (j - 1))) {
         j = nextnonblank(t, j);
         *clip = j;
