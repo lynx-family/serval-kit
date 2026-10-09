@@ -1,0 +1,189 @@
+[
+  {
+    "type": "action",
+    "timestamp": 0,
+    "step_time": 0,
+    "action_count": 2
+  },
+  {
+    "type": "render",
+    "timestamp": 100,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ]
+    ]
+  },
+  {
+    "type": "render",
+    "timestamp": 200,
+    "result": [
+      [
+        {
+          "id": 0,
+          "name": "main"
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 114.0,
+            "right": 320.0,
+            "bottom": 206.0
+          }
+        },
+        {
+          "op": "round rect",
+          "radius": 7.0,
+          "rect": {
+            "left": 0.5,
+            "top": 114.5,
+            "right": 319.5,
+            "bottom": 205.5
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "\\textbf{加粗文字} \\",
+          "font": "",
+          "origin": {
+            "x": 13.0,
+            "y": 144.3000030517578
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 3205896227,
+            "stroke_color": 0,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "textit{斜体文字} \\",
+          "font": "",
+          "origin": {
+            "x": 13.0,
+            "y": 166.3000030517578
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 3205896227,
+            "stroke_color": 0,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "underline{下划线文字}",
+          "font": "",
+          "origin": {
+            "x": 13.0,
+            "y": 188.3000030517578
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 3205896227,
+            "stroke_color": 0,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 66.0,
+            "right": 106.0,
+            "bottom": 96.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "1.",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 88.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "字体样式",
+          "font": "",
+          "origin": {
+            "x": 38.0,
+            "y": 88.6500015258789
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": true,
+            "italic": false
+          }
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 244.80001831054688,
+            "bottom": 54.0
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "三、文本排版语法",
+          "font": "",
+          "origin": {
+            "x": 0.0,
+            "y": 40.769996643066406
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 30.599998474121094,
+            "bold": true,
+            "italic": false
+          }
+        }
+      ]
+    ]
+  }
+]

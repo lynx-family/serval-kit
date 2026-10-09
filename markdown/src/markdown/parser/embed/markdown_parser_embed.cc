@@ -576,18 +576,26 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
   }
   if (context_.para_stack_.back() == CODE) {
     context_.have_normal_text_ = true;
+    tttext::Style run_style;
+    SetTTStyleByMarkdownBaseStyle(style_.code_block_.base_, &run_style);
     while (text_line != text_end) {
       auto [line_start, line_end] = GetTextLineByteRangeByMarkdownRange(
           static_cast<uint32_t>(text_line->markdown_offset),
           static_cast<uint32_t>(text_line->text.size));
       if (line_end <= line_start) {
+        if (text_line->text.size == 0 &&
+            static_cast<uint32_t>(text_line->markdown_offset) >=
+                context_.markdown_start_ &&
+            static_cast<uint32_t>(text_line->markdown_offset) <
+                context_.markdown_end_ &&
+            text_line->next != text_end) {
+          context_.current_paragraph_->AddTextRun(&run_style, "\n");
+        }
         text_line = text_line->next;
         continue;
       }
       char* content = text_line->text.text + line_start;
       int len = line_end - line_start;
-      tttext::Style run_style;
-      SetTTStyleByMarkdownBaseStyle(style_.code_block_.base_, &run_style);
       int32_t char_start =
           context_.current_paragraph_->GetCharCount() + context_.char_offset_;
       context_.current_paragraph_->AddTextRun(&run_style, content, len);

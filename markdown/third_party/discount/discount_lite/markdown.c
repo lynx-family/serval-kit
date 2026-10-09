@@ -594,7 +594,7 @@ static Line* listitem(Line* p, int indent, mkd_flag_t* flags, linefn check,
     }
 
     if ((q->white_space < indent) &&
-        (ishr(q, flags) || islist(q, &z, flags, &z, &z, &z) ||
+        (ishr(q, flags) || codefence(q) || islist(q, &z, flags, &z, &z, &z) ||
          (check && (*check)(q)))) {
       q = t->next;
       t->next = 0;
