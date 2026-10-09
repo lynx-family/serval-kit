@@ -36,7 +36,7 @@ add_library(
 )
 
 target_compile_options(serval_markdown PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall -Werror -fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
 )
 set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS
              " -Wl,--gc-sections")

@@ -24,7 +24,7 @@ target_include_directories(markdown PUBLIC
 )
 
 target_compile_options(markdown PRIVATE
-        $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Werror -fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
 )
 
 target_link_libraries(markdown PUBLIC discount lynx_base)

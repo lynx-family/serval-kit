@@ -98,11 +98,11 @@ int32_t Value::GetInt() {
     case ValueType::kInt:
       return AsInt();
     case ValueType::kLong:
-      return AsLong();
+      return static_cast<int32_t>(AsLong());
     case ValueType::kDouble:
       return AsDouble();
     case ValueType::kString:
-      return std::strtol(AsString().c_str(), nullptr, 10);
+      return static_cast<int32_t>(std::strtol(AsString().c_str(), nullptr, 10));
     case ValueType::kNull:
     case ValueType::kMap:
     case ValueType::kArray:

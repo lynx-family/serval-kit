@@ -48,10 +48,10 @@ class MarkdownTableMatrix {
     }
   }
 
-  int GetRowCount() const { return cells_.size(); }
+  int GetRowCount() const { return static_cast<int>(cells_.size()); }
 
   int GetColumnCount() const {
-    return cells_.empty() ? 0 : cells_.front().size();
+    return cells_.empty() ? 0 : static_cast<int>(cells_.front().size());
   }
 
   const Value& GetCell(int row, int column) const {

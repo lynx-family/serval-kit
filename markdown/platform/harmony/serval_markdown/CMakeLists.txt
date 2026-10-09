@@ -2,6 +2,10 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(serval_markdown_harmony)
 
+# The OHOS SDK uses Clang, so its LLVM directory is not a GCC toolchain.
+set(CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN "")
+set(CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN "")
+
 set(CMAKE_CXX_STANDARD 17)
 set(SOURCE_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
 set(NATIVERENDER_ROOT_PATH ${SOURCE_ROOT_PATH}/src/markdown/platform/harmony)
@@ -51,7 +55,7 @@ file(GLOB NATIVE_SOURCES
 add_library(serval_markdown SHARED ${NATIVE_SOURCES} src/main/cpp/napi_init.cpp)
 
 target_compile_options(serval_markdown PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall -Werror -fno-exceptions -fno-rtti -fvisibility=hidden -ffunction-sections -fdata-sections>
 )
 set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS
              " -Wl,--gc-sections")

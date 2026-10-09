@@ -100,7 +100,7 @@ int MarkdownSelection::FindClosestRegionIndex(
       [](const std::unique_ptr<MarkdownPageRegion>& region, float y) -> bool {
         return region->rect_.GetTop() < y;
       });
-  int index = lower_iter - page->regions_.begin();
+  int index = static_cast<int>(lower_iter - page->regions_.begin());
   index = (index == 0 ? 0 : index - 1);
   while (index < (static_cast<int32_t>(page->regions_.size()) - 1) &&
          page->regions_[index]->element_->GetType() !=
@@ -171,7 +171,7 @@ int MarkdownSelection::FindTableRowIndex(
       [](const std::vector<MarkdownTableRegionCell>& var, float y) -> bool {
         return var.front().cell_rect_.GetTop() < y;
       });
-  auto index = iter - table->cells_.begin();
+  auto index = static_cast<int>(iter - table->cells_.begin());
   return index == 0 ? 0 : index - 1;
 }
 
@@ -182,7 +182,7 @@ int MarkdownSelection::FindTableColumnIndex(MarkdownTableRegion* table,
       [](const MarkdownTableRegionCell& var, float x) -> bool {
         return var.cell_rect_.GetLeft() < x;
       });
-  auto index = iter - table->cells_.front().begin();
+  auto index = static_cast<int>(iter - table->cells_.front().begin());
   return index == 0 ? 0 : index - 1;
 }
 

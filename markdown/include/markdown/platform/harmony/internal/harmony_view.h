@@ -55,6 +55,7 @@ class HarmonyView : public MarkdownPlatformView {
   void SetMeasuredSize(int32_t width, int32_t height) {
     api_->setMeasuredSize(handle_, width, height);
   }
+  using MarkdownPlatformView::Layout;
   void Layout(float x_offset, float y_offset) {
     api_->layoutNode(handle_, static_cast<int32_t>(x_offset),
                      static_cast<int32_t>(y_offset));
