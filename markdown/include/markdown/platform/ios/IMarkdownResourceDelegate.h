@@ -17,6 +17,10 @@ NS_ASSUME_NONNULL_BEGIN
                                    Style:(int)style;
 - (nullable id<IMarkdownPlatformViewHandle>)loadInlineView:
     (nonnull NSString*)idSelector;
+
+@optional
+// Return a distinct image view for each call. Its image provides the natural size.
+- (nullable UIImageView*)loadGifByURL:(nonnull NSString*)url;
 @end
 
 NS_ASSUME_NONNULL_END

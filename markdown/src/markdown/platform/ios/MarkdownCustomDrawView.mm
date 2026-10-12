@@ -11,8 +11,10 @@
 
 @interface MarkdownCustomDrawView () {
   serval::markdown::MarkdownDrawable* _drawable;
+  NSSet<UIView*>* _gifViews;
 }
 - (void)alignDrawable:(CGFloat)left top:(CGFloat)top;
+- (void)updateGifViews:(NSSet<UIView*>*)gifViews;
 @end
 
 const float kServalMarkdownMaxSize = 1e8;
@@ -23,11 +25,24 @@ const float kServalMarkdownMaxSize = 1e8;
   self = [super init];
   _drawable = nullptr;
   self.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
+  _gifViews = [NSSet set];
   return self;
 }
 
 - (void)attachDrawable:(serval::markdown::MarkdownDrawable*)drawable {
   _drawable = drawable;
+  if (drawable == nullptr) {
+    [self updateGifViews:[NSSet set]];
+  }
+}
+
+- (void)updateGifViews:(NSSet<UIView*>*)gifViews {
+  for (UIView* gifView in _gifViews) {
+    if (![gifViews containsObject:gifView] && gifView.superview == self) {
+      [gifView removeFromSuperview];
+    }
+  }
+  _gifViews = gifViews;
 }
 
 - (void)layoutSubviews {
@@ -124,8 +139,9 @@ const float kServalMarkdownMaxSize = 1e8;
     return;
   }
   CGContextRef context = UIGraphicsGetCurrentContext();
-  serval::markdown::MarkdownCanvasIOS canvas(context);
+  serval::markdown::MarkdownCanvasIOS canvas(context, self);
   _drawable->Draw(&canvas, 0, 0);
+  [self updateGifViews:canvas.GetGifViews()];
 }
 
 @end

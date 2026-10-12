@@ -4,7 +4,7 @@
 
 #include "markdown/platform/ios/internal/markdown_resource_loader_ios.h"
 
-#include "markdown/platform/ios/internal/markdown_canvas_ios.h"
+#include "markdown/platform/ios/internal/markdown_run_delegate_ios.h"
 
 namespace serval::markdown {
 namespace {
@@ -45,8 +45,18 @@ std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadImage(
   if (delegate_ == nil || src == nullptr) {
     return nullptr;
   }
-  UIImage* image =
-      [delegate_ loadImageByURL:[NSString stringWithUTF8String:src]];
+  NSString* url = [NSString stringWithUTF8String:src];
+  if ([delegate_ respondsToSelector:@selector(loadGifByURL:)] &&
+      [url hasSuffix:@".gif"]) {
+    UIImageView* gif_view = [delegate_ loadGifByURL:url];
+    if (gif_view == nil) {
+      return nullptr;
+    }
+    return std::make_shared<MarkdownImageRunDelegate>(
+        gif_view, desire_width, desire_height, max_width, max_height,
+        border_radius);
+  }
+  UIImage* image = [delegate_ loadImageByURL:url];
   if (image == nil) {
     return nullptr;
   }

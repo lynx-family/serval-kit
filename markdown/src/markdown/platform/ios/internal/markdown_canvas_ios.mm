@@ -4,6 +4,7 @@
 
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 #include "markdown/draw/markdown_path.h"
+#include "markdown/platform/ios/internal/markdown_run_delegate_ios.h"
 #import "textra/platform/ios/typeface_coretext.h"
 
 namespace serval::markdown {
@@ -98,8 +99,8 @@ void DrawLinearGradientInPath(
 
 }  // namespace
 
-MarkdownCanvasIOS::MarkdownCanvasIOS(CGContextRef context)
-    : IOSCanvasBase(context) {}
+MarkdownCanvasIOS::MarkdownCanvasIOS(CGContextRef context, UIView* view)
+    : IOSCanvasBase(context), view_(view), gif_views_([NSMutableSet set]) {}
 
 void MarkdownCanvasIOS::Save() {
   if (context_ == nullptr)
@@ -142,15 +143,29 @@ void MarkdownCanvasIOS::DrawRunDelegate(const tttext::RunDelegate* run_delegate,
              MarkdownRunDelegateType::kImage) {
     auto* m_image =
         reinterpret_cast<const MarkdownImageRunDelegate*>(markdown_delegate);
+    CGFloat radius = static_cast<CGFloat>(m_image->GetBorderRadius());
+    radius =
+        std::min(radius, std::min(rect.size.width, rect.size.height) * 0.5f);
+    UIView* gif_view = m_image->GetGifView();
+    if (gif_view != nil) {
+      gif_view.frame =
+          CGRectOffset(rect, translate_point_.x_, translate_point_.y_);
+      gif_view.layer.cornerRadius = radius;
+      gif_view.layer.masksToBounds = radius > 0;
+      gif_view.userInteractionEnabled = NO;
+      gif_view.hidden = NO;
+      if (gif_view.superview != view_) {
+        [view_ addSubview:gif_view];
+      }
+      [gif_views_ addObject:gif_view];
+      return;
+    }
     UIImage* image = m_image->GetImage();
     if (image == nil || image.CGImage == nil || rect.size.width <= 0 ||
         rect.size.height <= 0) {
       return;
     }
     CGContextSaveGState(context_);
-    CGFloat radius = static_cast<CGFloat>(m_image->GetBorderRadius());
-    radius =
-        std::min(radius, std::min(rect.size.width, rect.size.height) * 0.5f);
     if (radius > 0) {
       UIBezierPath* clip_path = [UIBezierPath bezierPathWithRoundedRect:rect
                                                            cornerRadius:radius];
