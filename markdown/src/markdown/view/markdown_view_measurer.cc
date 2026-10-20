@@ -203,6 +203,10 @@ void MarkdownViewMeasurer::Align() {
     auto pos = document_->GetElementOrigin(image.char_index_);
     static_cast<MarkdownDrawable*>(image.image_)->Align(pos.x_, pos.y_);
   }
+  if (auto truncation = document_->GetTruncationDelegate()) {
+    const auto pos = document_->GetTruncationOrigin();
+    truncation->Align(pos.x_, pos.y_);
+  }
 }
 
 std::shared_ptr<MarkdownDocument> MarkdownViewMeasurer::GetDocument() {

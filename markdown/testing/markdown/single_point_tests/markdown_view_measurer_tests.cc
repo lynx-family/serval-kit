@@ -8,8 +8,10 @@
 #include <vector>
 
 #include "../mock_platform/markdown_tests_platform.h"
+#include "../mock_platform/mock_markdown_resource_loader.h"
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/layout/markdown_selection.h"
+#include "markdown/style/markdown_style_reader.h"
 #include "markdown/utils/markdown_string_utils.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "testing/markdown/frame_driven_tests/markdown_case_builder.h"
@@ -49,6 +51,41 @@ TEST(MarkdownViewMeasurerTest, ContentRangeAffectsHeight) {
   EXPECT_GT(full.height_, 0);
   EXPECT_GT(partial.height_, 0);
   EXPECT_LE(partial.height_, full.height_);
+}
+
+TEST(MarkdownViewMeasurerTest, AlignCustomTruncationViewAtLastLineEnd) {
+  auto context = testing::CreateTestMarkdownSharedContext();
+  testing::MockMarkdownMainView main_view(context);
+  testing::MockMarkdownResourceLoader loader;
+  loader.SetMainView(&main_view);
+  MarkdownViewMeasurer measurer(context, &loader);
+  auto style = MarkdownStyleReader::ReadStyle({}, &loader, context.get());
+  style.truncation_.truncation_.truncation_type_ =
+      MarkdownTruncationType::kView;
+  style.truncation_.truncation_.content_ = "truncation";
+  measurer.SetStyle(style);
+  measurer.SetContent("first paragraph\n\nsecond paragraph\n\nthird paragraph");
+  measurer.SetTextMaxLines(2);
+  MeasureSpec spec;
+  spec.width_ = 300;
+  spec.width_mode_ = tttext::LayoutMode::kDefinite;
+  spec.height_ = MeasureSpec::LAYOUT_MAX_SIZE;
+  spec.height_mode_ = tttext::LayoutMode::kIndefinite;
+  measurer.Measure(spec);
+
+  const auto document = measurer.GetDocument();
+  ASSERT_NE(document, nullptr);
+  const auto truncation = std::static_pointer_cast<testing::MockInlineView>(
+      document->GetTruncationDelegate());
+  ASSERT_NE(truncation, nullptr);
+  const auto expected = document->GetInlineViewOrigin("truncation");
+  ASSERT_GT(expected.first, 0);
+  ASSERT_GT(expected.second, 0);
+
+  measurer.Align();
+
+  EXPECT_FLOAT_EQ(truncation->GetAlignedPosition().x_, expected.first);
+  EXPECT_FLOAT_EQ(truncation->GetAlignedPosition().y_, expected.second);
 }
 
 TEST(MarkdownViewMeasurerTest, ReportsLineEndIndicesAndContents) {

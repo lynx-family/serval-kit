@@ -141,6 +141,7 @@ class L_EXPORT MarkdownDocument {
   std::shared_ptr<MarkdownDrawable> GetTruncationDelegate() const {
     return truncation_delegate_;
   }
+  PointF GetTruncationOrigin();
   MarkdownTouchState OnTouchEvent(MarkdownTouchEventType type, PointF point);
   bool TouchPointCanScroll(PointF point, float safe_offset);
   bool GetScrollXRegionOffset(uint32_t region_index, float* scroll_offset);
@@ -190,8 +191,6 @@ class L_EXPORT MarkdownDocument {
  private:
   void SetShapeRunAltString(uint32_t char_offset, std::string_view content);
   void RemoveLastShapeRunAltString(uint32_t char_offset);
-  PointF GetTruncationOrigin();
-
   Range GetCharRangeByViewRect(RectF view_rect);
 
  private:

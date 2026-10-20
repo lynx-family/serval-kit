@@ -27,6 +27,8 @@ To package the Harmony markdown HAR, use the Harmony example app project: run `c
 c++ unittests are all in `markdown/testing/markdown/` folder.
 run `markdown/tools/run_unittests.sh` script to execute unittests for markdown.
 
+Custom truncation views are stored separately from ordinary inline views. When changing child-view alignment, cover `GetTruncationDelegate()` and `GetTruncationOrigin()` as well as `GetInlineViews()`. The `MarkdownViewMeasurerTest.AlignCustomTruncationViewAtLastLineEnd` regression checks the truncated last-line position.
+
 ### props
 
 props defined in `markdown/tools/markdown_props.json`.
