@@ -85,6 +85,7 @@ TEST(MarkdownViewRendererTest, RemovesBorderViewAfterViewportJump) {
 
   MockMarkdownMainView main_view(context);
   MarkdownViewRenderer renderer;
+  renderer.SetEnableRegionView(true);
   renderer.SetViewContainerHandle(&main_view);
   renderer.SetDocument(document);
 
@@ -115,6 +116,10 @@ TEST(MarkdownViewRendererTest, EnableRegionViewControlsSubviewRendering) {
   renderer.SetViewContainerHandle(&main_view);
   renderer.SetDocument(document);
   renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+
+  renderer.SetEnableRegionView(true);
+  renderer.OnNextFrame();
   EXPECT_GT(main_view.GetSubviewCount(), 0u);
 
   renderer.SetEnableRegionView(false);
@@ -133,7 +138,6 @@ TEST(MarkdownViewRendererTest,
   MockMarkdownMainView main_view(context);
   MarkdownViewRenderer renderer(&main_view);
   renderer.SetViewContainerHandle(&main_view);
-  renderer.SetEnableRegionView(false);
   main_view.needs_draw_ = false;
 
   renderer.RequestDrawRegion(0);
@@ -150,6 +154,7 @@ TEST(MarkdownViewRendererTest, RebindsRegionViewsWhenDocumentChanges) {
 
   MockMarkdownMainView main_view(context);
   MarkdownViewRenderer renderer;
+  renderer.SetEnableRegionView(true);
   renderer.SetViewContainerHandle(&main_view);
   renderer.SetDocument(first_document);
   renderer.OnNextFrame();

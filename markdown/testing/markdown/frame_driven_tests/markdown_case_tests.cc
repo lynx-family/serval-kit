@@ -91,6 +91,7 @@ void RunSingleCase(MarkdownCaseEntry& single_case) {
   MockMarkdownResourceLoader resource_loader;
   MockMarkdownCanvas canvas(&resource_loader);
   MockMarkdownMainView main_view(context);
+  main_view.GetMarkdownView()->SetEnableRegionView(true);
   MarkdownCaseBuilder::ApplyAttributes(single_case.attributes,
                                        main_view.GetMarkdownView());
   main_view.GetMarkdownView()->SetResourceLoader(&resource_loader);

@@ -127,6 +127,7 @@ TEST(MarkdownViewTest, DetachRemovesSubviewsAndStopsDrawingToOldView) {
   CountingMarkdownViewMeasureHost measure_host;
   auto view = std::make_shared<MarkdownView>(nullptr, &measure_host, context);
   view->SetContent("> first paragraph\n\nsecond paragraph");
+  view->SetEnableRegionView(true);
   view->SetEnableSelection(true);
   view->Measure(MakeMeasureSpec());
 
@@ -266,6 +267,7 @@ TEST(MarkdownViewTest, AnimationRedrawsOnlyChangedRegionAfterRendererFrame) {
       testing::CreateTestMarkdownSharedContext());
   auto* view = main_view.GetMarkdownView();
   view->SetContent("first\n\nsecond");
+  view->SetEnableRegionView(true);
   view->SetAnimationType(MarkdownAnimationType::kTypewriter);
   view->SetTypewriterDynamicHeight(false);
   view->SetAnimationStep(1);

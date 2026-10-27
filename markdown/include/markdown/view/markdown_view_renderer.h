@@ -67,7 +67,7 @@ class MarkdownViewRenderer {
   bool full_redraw_required_{true};
   bool has_last_view_rect_{false};
   bool content_complete_{true};
-  bool enable_region_view_{true};
+  bool enable_region_view_{false};
   RectF last_view_rect_{};
 };
 }  // namespace serval::markdown
