@@ -14,8 +14,6 @@ import android.graphics.drawable.Drawable;
 import com.lynx.textra.BBufferInputStream;
 import com.lynx.textra.JavaCanvasHelper;
 import com.lynx.textra.TTText;
-import com.lynx.textra.TTTextDefinition;
-import com.lynx.textra.TTTextUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -49,20 +47,14 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
 
   public void setCanvas(Canvas canvas) { canvas_ = canvas; }
 
-  public void drawBuffer(byte[] input) {
-    BBufferInputStream inputStream = new BBufferInputStream(input);
-    try {
-      while (inputStream.available() > 0) {
-        byte op_value = inputStream.readByte();
-        if (op_value == CANVAS_OP_EXTEND) {
-          drawExtendOp(inputStream);
-        } else {
-          TTTextDefinition.CanvasOp op = TTTextDefinition.GetCanvasOp(op_value);
-          drawOp(op, inputStream);
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
+  public void drawBuffer(byte[] input) { super.drawBuffer(canvas_, input); }
+
+  @Override
+  protected void drawOp(int op, BBufferInputStream stream) throws IOException {
+    if (op == CANVAS_OP_EXTEND) {
+      drawExtendOp(stream);
+    } else {
+      super.drawOp(op, stream);
     }
   }
 
@@ -83,8 +75,8 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
 
   @Override
   protected void translate(BBufferInputStream stream) throws IOException {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     canvas_.translate(x, y);
     mTranslateX += x;
     mTranslateY += y;
@@ -150,10 +142,10 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   protected void drawLinearGradientOnRect(BBufferInputStream stream)
       throws IOException {
     Shader shader = readLinearGradient(stream);
-    float left = TTTextUtils.Dp2Px(stream.readFloat());
-    float top = TTTextUtils.Dp2Px(stream.readFloat());
-    float right = TTTextUtils.Dp2Px(stream.readFloat());
-    float bottom = TTTextUtils.Dp2Px(stream.readFloat());
+    float left = stream.readFloat();
+    float top = stream.readFloat();
+    float right = stream.readFloat();
+    float bottom = stream.readFloat();
     Paint p = readPaint(stream, paint_);
     applyLinearGradient(p, shader);
     if (shader == null) {
@@ -205,10 +197,10 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
 
   protected Shader readLinearGradient(BBufferInputStream stream)
       throws IOException {
-    float startX = TTTextUtils.Dp2Px(stream.readFloat());
-    float startY = TTTextUtils.Dp2Px(stream.readFloat());
-    float endX = TTTextUtils.Dp2Px(stream.readFloat());
-    float endY = TTTextUtils.Dp2Px(stream.readFloat());
+    float startX = stream.readFloat();
+    float startY = stream.readFloat();
+    float endX = stream.readFloat();
+    float endY = stream.readFloat();
 
     int colorCount = stream.readInt();
     int[] colors = new int[colorCount];
@@ -269,72 +261,72 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
   }
 
   protected void addArc(Path path, BBufferInputStream stream) {
-    float cx = TTTextUtils.Dp2Px(stream.readFloat());
-    float cy = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
+    float cx = stream.readFloat();
+    float cy = stream.readFloat();
+    float r = stream.readFloat();
     float start = stream.readFloat();
     float end = stream.readFloat();
     path.addArc(cx - r, cy - r, cx + r, cy + r, start, end - start);
   }
   protected void addOval(Path path, BBufferInputStream stream) {
-    float left = TTTextUtils.Dp2Px(stream.readFloat());
-    float top = TTTextUtils.Dp2Px(stream.readFloat());
-    float right = TTTextUtils.Dp2Px(stream.readFloat());
-    float bottom = TTTextUtils.Dp2Px(stream.readFloat());
+    float left = stream.readFloat();
+    float top = stream.readFloat();
+    float right = stream.readFloat();
+    float bottom = stream.readFloat();
     path.addOval(left, top, right, bottom, Path.Direction.CW);
   }
   protected void addRect(Path path, BBufferInputStream stream) {
-    float left = TTTextUtils.Dp2Px(stream.readFloat());
-    float top = TTTextUtils.Dp2Px(stream.readFloat());
-    float right = TTTextUtils.Dp2Px(stream.readFloat());
-    float bottom = TTTextUtils.Dp2Px(stream.readFloat());
+    float left = stream.readFloat();
+    float top = stream.readFloat();
+    float right = stream.readFloat();
+    float bottom = stream.readFloat();
     path.addRect(left, top, right, bottom, Path.Direction.CW);
   }
   protected void addRoundRect(Path path, BBufferInputStream stream) {
-    float left = TTTextUtils.Dp2Px(stream.readFloat());
-    float top = TTTextUtils.Dp2Px(stream.readFloat());
-    float right = TTTextUtils.Dp2Px(stream.readFloat());
-    float bottom = TTTextUtils.Dp2Px(stream.readFloat());
-    float radiusX = TTTextUtils.Dp2Px(stream.readFloat());
-    float radiusY = TTTextUtils.Dp2Px(stream.readFloat());
+    float left = stream.readFloat();
+    float top = stream.readFloat();
+    float right = stream.readFloat();
+    float bottom = stream.readFloat();
+    float radiusX = stream.readFloat();
+    float radiusY = stream.readFloat();
     path.addRoundRect(left, top, right, bottom, radiusX, radiusY,
                       Path.Direction.CW);
   }
   protected void moveTo(Path path, BBufferInputStream stream) {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     path.moveTo(x, y);
   }
   protected void lineTo(Path path, BBufferInputStream stream) {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     path.lineTo(x, y);
   }
   protected void cubicTo(Path path, BBufferInputStream stream) {
-    float c1x = TTTextUtils.Dp2Px(stream.readFloat());
-    float c1y = TTTextUtils.Dp2Px(stream.readFloat());
-    float c2x = TTTextUtils.Dp2Px(stream.readFloat());
-    float c2y = TTTextUtils.Dp2Px(stream.readFloat());
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float c1x = stream.readFloat();
+    float c1y = stream.readFloat();
+    float c2x = stream.readFloat();
+    float c2y = stream.readFloat();
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     path.cubicTo(c1x, c1y, c2x, c2y, x, y);
   }
   protected void quadTo(Path path, BBufferInputStream stream) {
-    float cx = TTTextUtils.Dp2Px(stream.readFloat());
-    float cy = TTTextUtils.Dp2Px(stream.readFloat());
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float cx = stream.readFloat();
+    float cy = stream.readFloat();
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     path.quadTo(cx, cy, x, y);
   }
 
   @Override
   protected void drawRunDelegate(BBufferInputStream stream) {
     int id = stream.readInt();
-    float dl = TTTextUtils.Dp2Px(stream.readFloat());
-    float dt = TTTextUtils.Dp2Px(stream.readFloat());
-    float dr = TTTextUtils.Dp2Px(stream.readFloat());
-    float db = TTTextUtils.Dp2Px(stream.readFloat());
-    float radius = TTTextUtils.Dp2Px(stream.readFloat());
+    float dl = stream.readFloat();
+    float dt = stream.readFloat();
+    float dr = stream.readFloat();
+    float db = stream.readFloat();
+    float radius = stream.readFloat();
     if (radius > 0) {
       canvas_.save();
       Path path = new Path();
@@ -362,10 +354,10 @@ public class MarkdownAndroidCanvasHelper extends JavaCanvasHelper {
       throws IOException {
     painter.setAntiAlias(true);
     painter.setShader(null);
-    painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
+    painter.setStrokeWidth(stream.readFloat());
     color_ = stream.readInt();
     stroke_color_ = stream.readInt();
-    text_size_ = TTTextUtils.Dp2Px(stream.readFloat());
+    text_size_ = stream.readFloat();
     painter.setTextSize(text_size_);
     int flag = stream.readByte();
     is_bold_ = (flag & (1 << 2)) > 0;
