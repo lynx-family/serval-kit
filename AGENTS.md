@@ -1,4 +1,8 @@
-## Markdown
+## Sheet
+
+`sheet/platform/` contains native Sheet behavior without Lynx or navigation dependencies. Runtime content hosting belongs in `sheet/lynx/ios` and `sheet/platform/android/serval_sheet_lynx`. Keep element registration in the consumer repositories. Build and test instructions are in `sheet/README.md`; Markdown environment setup is not required for Sheet-only work.
+
+## Markdown development
 
 ### env prepare
 
