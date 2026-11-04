@@ -54,9 +54,6 @@ add_subdirectory("${TEXTRA_ROOT}/third_party/skity" skity.out)
 add_subdirectory("${TEXTRA_ROOT}/third_party/glfw" glfw.out)
 add_subdirectory("${TEXTRA_ROOT}/platform/mac" lynxtextra.out)
 add_subdirectory("${MARKDOWN_ROOT}/third_party/discount" discount.out)
-add_subdirectory("${MARKDOWN_ROOT}/third_party/base" lynx_base.out)
-target_include_directories(lynx_base PUBLIC "${MARKDOWN_ROOT}/third_party")
-target_include_directories(lynx_trace PUBLIC "${MARKDOWN_ROOT}/third_party")
 add_subdirectory("${MARKDOWN_ROOT}/src" markdown.out)
 target_include_directories(markdown PUBLIC
         "${TEXTRA_ROOT}"

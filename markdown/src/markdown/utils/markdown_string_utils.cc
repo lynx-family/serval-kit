@@ -195,6 +195,27 @@ std::u16string U8StringToU16(std::string_view u8_string) {
   return U32StringToU16(U8StringToU32(u8_string));
 }
 
+std::string U16StringToU8(std::u16string_view u16_string) {
+  std::u32string codepoints;
+  codepoints.reserve(u16_string.size());
+  for (size_t i = 0; i < u16_string.size(); ++i) {
+    uint32_t codepoint = u16_string[i];
+    if (codepoint >= 0xD800 && codepoint <= 0xDBFF) {
+      if (i + 1 == u16_string.size()) {
+        continue;
+      }
+      const uint32_t low = u16_string[i + 1];
+      if (low < 0xDC00 || low > 0xDFFF) {
+        continue;
+      }
+      codepoint = ((codepoint - 0xD800) << 10) + (low - 0xDC00) + 0x10000;
+      ++i;
+    }
+    codepoints.push_back(static_cast<char32_t>(codepoint));
+  }
+  return U32StringToU8(codepoints);
+}
+
 std::string U32StringToU8(std::u32string_view u32_string) {
   std::string utf8;
   utf8.reserve(u32_string.size());

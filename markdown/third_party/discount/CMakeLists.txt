@@ -13,6 +13,9 @@ set(DISCOUNT_SOURCES
 
 add_library(discount STATIC ${DISCOUNT_SOURCES})
 
-target_compile_options(discount PRIVATE -Wall -Werror)
+target_compile_options(discount PRIVATE -Wall -Werror -fvisibility=hidden)
 
-target_include_directories(discount PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(discount PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)

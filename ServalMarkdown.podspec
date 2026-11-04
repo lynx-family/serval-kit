@@ -46,6 +46,8 @@ Pod::Spec.new do |s|
 
   s.pod_target_xcconfig = {
     "GCC_PREPROCESSOR_DEFINITIONS" => "OS_IOS=1",
+    'GCC_OPTIMIZATION_LEVEL[config=Release]' => 'z',
+    'LLVM_LTO[config=Release]' => 'YES',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
     'CLANG_CXX_LIBRARY' => 'libc++',
     'GCC_ENABLE_CPP_EXCEPTIONS' => 'NO',

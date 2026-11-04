@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree.
 #include "mock_markdown_canvas.h"
 #include <utility>
-#include "base/include/string/string_utils.h"
 #include "markdown/draw/markdown_path.h"
 #include "markdown/element/markdown_document.h"
+#include "markdown/utils/markdown_string_utils.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -202,7 +202,7 @@ void MockMarkdownCanvas::DrawGlyphs(const tttext::ITypefaceHelper* font,
   rapidjson::Value op;
   op.SetObject();
   op.AddMember("op", "glyphs", result_.GetAllocator());
-  const auto t = lynx::base::U16StringToU8(std::u16string_view(
+  const auto t = U16StringToU8(std::u16string_view(
       reinterpret_cast<const char16_t*>(glyphs), glyph_count));
   op.AddMember("text", t, result_.GetAllocator());
   op.AddMember("font", MakeFont(font->GetUniqueId()), result_.GetAllocator());

@@ -10,7 +10,7 @@
 #include <list>
 #include <memory>
 
-#include "base/include/platform/android/scoped_java_ref.h"
+#include "markdown/platform/android/internal/scoped_java_ref.h"
 #include "markdown/view/markdown_platform_view.h"
 
 namespace serval::markdown {
@@ -81,7 +81,7 @@ class AndroidMarkdownView : public MarkdownPlatformView {
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
-  lynx::base::android::ScopedWeakGlobalJavaRef<jobject> ref_;
+  android::ScopedWeakGlobalJavaRef<jobject> ref_;
 
  protected:
   static struct Methods {
@@ -164,17 +164,11 @@ class MarkdownClassCache {
   JavaVM* GetJavaVm() const { return java_vm_; }
   jclass GetStringClass() const { return string_class_.Get(); }
 
-  JNIEnv* GetCurrentJNIEnv() const {
-    thread_local JNIEnv* env = nullptr;
-    if (env == nullptr) {
-      java_vm_->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-    }
-    return env;
-  }
+  JNIEnv* GetCurrentJNIEnv() const { return android::GetJNIEnv(); }
 
  public:
   JavaVM* java_vm_{nullptr};
-  lynx::base::android::ScopedGlobalJavaRef<jclass> string_class_;
+  android::ScopedGlobalJavaRef<jclass> string_class_;
 };
 
 }  // namespace serval::markdown

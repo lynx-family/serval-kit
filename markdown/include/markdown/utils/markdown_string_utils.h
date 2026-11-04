@@ -72,6 +72,7 @@ size_t FindMatchingParenthesis(std::string_view value, size_t open_index);
 std::vector<std::string_view> SplitTopLevel(std::string_view value, char split);
 
 std::u16string U8StringToU16(std::string_view u8_string);
+std::string U16StringToU8(std::u16string_view u16_string);
 std::string U32StringToU8(std::u32string_view u32_string);
 
 }  // namespace serval::markdown

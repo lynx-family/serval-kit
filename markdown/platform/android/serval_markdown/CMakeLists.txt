@@ -6,13 +6,10 @@ set(SOURCE_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 set(SRC_ROOT_PATH "${SOURCE_ROOT_PATH}/src")
 set(HEADERS_PATH "${SOURCE_ROOT_PATH}/include")
 set(DISCOUNT_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/discount")
-set(BASE_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/base")
-set(IS_ANDROID true)
 include_directories(${SOURCE_ROOT_PATH}
                     ${DISCOUNT_ROOT_PATH}
                     ${SRC_ROOT_PATH}
                     ${SOURCE_ROOT_PATH}/third_party
-                    ${BASE_ROOT_PATH}
                     ${HEADERS_PATH}
 )
 
@@ -28,6 +25,7 @@ add_library(
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/android_serval_markdown_view.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/buffer_output_stream.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_class_cache.cc
+    ${SOURCE_ROOT_PATH}/src/markdown/platform/android/jni_utils.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_buffer_reader.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_native.cc
     ${SOURCE_ROOT_PATH}/src/markdown/platform/android/markdown_platform_android.cc
@@ -49,18 +47,23 @@ if (${${LYNX_TEXTRA_ARTIFACT}_FOUND})
   target_link_libraries(serval_markdown ${LYNX_TEXTRA_ARTIFACT}::lynxtextra)
 endif ()
 
-find_library(
-    log-lib
-    log
-)
-
 add_subdirectory(${SRC_ROOT_PATH} markdown_dir)
 add_subdirectory(${DISCOUNT_ROOT_PATH} discount_dir)
-add_subdirectory(${BASE_ROOT_PATH} base_dir)
 
 target_link_libraries(serval_markdown
-    ${log-lib}
-    markdown lynx_base lynx_trace
+    markdown
 )
 
-target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
+
+set(MARKDOWN_RELEASE_COMPILE_OPTIONS -Oz -flto=full)
+# NDK 21's LTO plugin does not accept the -plugin-opt=Oz emitted by the
+# link driver. Use -O2 for linking while compiling all sources with -Oz.
+set(MARKDOWN_RELEASE_LINK_FLAGS " -O2 -flto=full -fuse-ld=lld -Wl,--icf=safe")
+
+foreach (target serval_markdown markdown discount)
+  target_compile_options(${target} PRIVATE
+      "$<$<CONFIG:Release>:${MARKDOWN_RELEASE_COMPILE_OPTIONS}>")
+endforeach ()
+
+set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS_RELEASE
+             "${MARKDOWN_RELEASE_LINK_FLAGS}")

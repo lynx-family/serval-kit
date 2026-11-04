@@ -6,10 +6,10 @@
 #define MARKDOWN_TESTING_MARKDOWN_MOCK_PLATFORM_MOCK_MARKDOWN_RESOURCE_LOADER_H_
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
-#include "base/include/string/string_utils.h"
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/style/markdown_gradient.h"
 #include "testing/markdown/mock_platform/mock_markdown_platform_view.h"
@@ -26,7 +26,7 @@ class MockMarkdownResourceLoader : public MarkdownResourceLoader {
                                               float desire_height,
                                               float max_width, float max_height,
                                               float radius) override {
-    if (lynx::base::StringEqual(src, "invalid")) {
+    if (std::string_view(src) == "invalid") {
       return nullptr;
     }
     return std::make_shared<MockImage>(src, desire_width, desire_height,

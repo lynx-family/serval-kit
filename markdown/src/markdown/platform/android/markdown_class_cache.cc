@@ -6,15 +6,16 @@
 #include <memory>
 #include <utility>
 
-#include "base/include/platform/android/jni_utils.h"
 #include "markdown/platform/android/android_markdown_measurer.h"
 #include "markdown/platform/android/android_serval_markdown_view.h"
+#include "markdown/platform/android/internal/jni_utils.h"
 #include "markdown/view/markdown_selection_view.h"
 
 namespace serval::markdown {
 
 void MarkdownClassCache::Initial(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
+  android::InitJavaVM(java_vm_);
   auto* string_class = env->FindClass("java/lang/String");
   if (string_class != nullptr) {
     string_class_.Reset(env, string_class);
@@ -24,7 +25,6 @@ void MarkdownClassCache::Initial(JNIEnv* env) {
   AndroidCustomView::Initialize(env);
   AndroidMainView::Initialize(env);
   AndroidMarkdownMeasurer::Initialize(env);
-  lynx::base::android::InitVM(java_vm_);
 }
 AndroidMarkdownView::Methods AndroidMarkdownView::methods_{};
 void AndroidMarkdownView::Initialize(JNIEnv* env) {
