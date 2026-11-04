@@ -3,33 +3,22 @@
 // LICENSE file in the root directory of this source tree.
 #include "markdown/platform/harmony/internal/harmony_utils.h"
 
+#include <memory>
 #include <utility>
 
-#include "base/include/fml/message_loop.h"
+#include "markdown/platform/harmony/internal/harmony_task_runner.h"
 
 namespace serval::markdown {
 namespace {
-fml::RefPtr<fml::TaskRunner>& GetUITaskRunner() {
-  static fml::RefPtr<fml::TaskRunner> ui_task_runner;
-  return ui_task_runner;
-}
+std::shared_ptr<HarmonyTaskRunner> ui_task_runner;
 
-bool EnsureUITaskRunner() {
-  auto& runner = GetUITaskRunner();
-  if (runner != nullptr) {
-    return true;
-  }
-  auto env = HarmonyEnv::GetEnv();
-  if (env == nullptr) {
-    return false;
-  }
-  uv_loop_s* loop = nullptr;
-  if (napi_get_uv_event_loop(env, &loop) != napi_ok || loop == nullptr) {
-    return false;
-  }
-  runner = lynx::fml::MessageLoop::EnsureInitializedForCurrentThread(loop)
-               .GetTaskRunner();
-  return runner != nullptr;
+void CloseUITaskRunner(napi_async_cleanup_hook_handle handle, void* data) {
+  auto* runner = static_cast<std::shared_ptr<HarmonyTaskRunner>*>(data);
+  std::atomic_store(&ui_task_runner, std::shared_ptr<HarmonyTaskRunner>{});
+  (*runner)->Close([runner, handle]() {
+    delete runner;
+    napi_remove_async_cleanup_hook(handle);
+  });
 }
 }  // namespace
 
@@ -42,21 +31,32 @@ void HarmonyEnv::SetEnv(napi_env env) {
 }
 
 void HarmonyUIThread::Init(napi_env env) {
-  (void)env;
-  RunOnUIThread([]() {});
+  if (std::atomic_load(&ui_task_runner)) {
+    return;
+  }
+  uv_loop_t* loop = nullptr;
+  if (napi_get_uv_event_loop(env, &loop) != napi_ok || loop == nullptr) {
+    return;
+  }
+  auto runner = HarmonyTaskRunner::Create(loop);
+  if (!runner) {
+    return;
+  }
+  auto* cleanup = new std::shared_ptr<HarmonyTaskRunner>(runner);
+  if (napi_add_async_cleanup_hook(env, CloseUITaskRunner, cleanup, nullptr) !=
+      napi_ok) {
+    delete cleanup;
+    runner->Close();
+    return;
+  }
+  std::atomic_store(&ui_task_runner, std::move(runner));
 }
 void HarmonyUIThread::RunOnUIThread(std::function<void()> task,
                                     int64_t micro_seconds) {
-  if (!task || !EnsureUITaskRunner()) {
+  auto runner = std::atomic_load(&ui_task_runner);
+  if (!task || !runner) {
     return;
   }
-  auto& runner = GetUITaskRunner();
-  if (micro_seconds <= 0) {
-    fml::TaskRunner::RunNowOrPostTask(runner,
-                                      lynx::base::closure(std::move(task)));
-    return;
-  }
-  runner->PostDelayedTask(lynx::base::closure(std::move(task)),
-                          fml::TimeDelta::FromMicroseconds(micro_seconds));
+  runner->PostTask(std::move(task), micro_seconds);
 }
 }  // namespace serval::markdown

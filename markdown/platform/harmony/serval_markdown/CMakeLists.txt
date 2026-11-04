@@ -13,9 +13,7 @@ set(SRC_ROOT_PATH "${SOURCE_ROOT_PATH}/src")
 set(HEADERS_PATH "${SOURCE_ROOT_PATH}/include")
 set(MARKDOWN_ROOT_PATH "${SOURCE_ROOT_PATH}/src/markdown")
 set(DISCOUNT_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/discount")
-set(BASE_ROOT_PATH "${SOURCE_ROOT_PATH}/third_party/base")
 set(DEPENDENCY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/oh_modules)
-set(IS_HARMONY true)
 if(DEFINED PACKAGE_FIND_FILE)
     include(${PACKAGE_FIND_FILE})
 endif()
@@ -37,13 +35,11 @@ include_directories(${SOURCE_ROOT_PATH}
                     ${DISCOUNT_ROOT_PATH}
                      ${SRC_ROOT_PATH}
                      ${SOURCE_ROOT_PATH}/third_party
-                     ${BASE_ROOT_PATH}
                      ${HEADERS_PATH}
                      )
 
 add_subdirectory(${SRC_ROOT_PATH} markdown_dir)
 add_subdirectory(${DISCOUNT_ROOT_PATH} discount_dir)
-add_subdirectory(${BASE_ROOT_PATH} base_dir)
 
 target_compile_definitions(markdown PRIVATE
     MARKDOWN_ENABLE_PARSER_PROVIDER=1
@@ -66,7 +62,17 @@ endif()
 
 target_link_libraries(serval_markdown PUBLIC
     libace_napi.z.so libace_ndk.z.so libnative_display_manager.so libnative_vsync.so libnative_drawing.so uv
-    -Wl,--whole-archive markdown -Wl,--no-whole-archive lynx_base lynx_trace libhitrace_ndk.z.so libhilog_ndk.z.so
+    -Wl,--whole-archive markdown -Wl,--no-whole-archive libhilog_ndk.z.so
 )
 
-target_compile_definitions(serval_markdown PUBLIC ENABLE_TRACE_SYSTRACE=1)
+
+set(MARKDOWN_RELEASE_COMPILE_OPTIONS -Oz -flto=full)
+set(MARKDOWN_RELEASE_LINK_FLAGS " -flto=full")
+
+foreach (target serval_markdown markdown discount)
+  target_compile_options(${target} PRIVATE
+      "$<$<CONFIG:Release>:${MARKDOWN_RELEASE_COMPILE_OPTIONS}>")
+endforeach ()
+
+set_property(TARGET serval_markdown APPEND_STRING PROPERTY LINK_FLAGS_RELEASE
+             "${MARKDOWN_RELEASE_LINK_FLAGS}")

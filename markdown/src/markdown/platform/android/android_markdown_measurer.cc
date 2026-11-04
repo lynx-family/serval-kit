@@ -9,9 +9,9 @@
 #include <cstring>
 #include <memory>
 
-#include "base/include/platform/android/jni_convert_helper.h"
 #include "markdown/element/markdown_context.h"
 #include "markdown/platform/android/android_serval_markdown_view.h"
+#include "markdown/platform/android/internal/scoped_java_ref.h"
 #include "markdown/platform/android/markdown_platform_android.h"
 #include "markdown/platform/android/markdown_run_delegate.h"
 #include "markdown/utils/markdown_screen_metrics.h"
@@ -134,8 +134,7 @@ int AndroidMarkdownMeasurer::LoadImage(const char* source) {
   if (env == nullptr || measurer_ref_.Get() == nullptr || source == nullptr) {
     return 0;
   }
-  auto jstr =
-      lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, source);
+  auto jstr = android::NewJavaString(env, source);
   return env->CallIntMethod(measurer_ref_.Get(), methods_.load_image_,
                             jstr.Get());
 }
@@ -161,8 +160,7 @@ std::shared_ptr<AndroidMarkdownView> AndroidMarkdownMeasurer::LoadInlineView(
   if (env == nullptr || measurer_ref_.Get() == nullptr || id == nullptr) {
     return nullptr;
   }
-  auto jstr =
-      lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, id);
+  auto jstr = android::NewJavaString(env, id);
   auto object = env->CallObjectMethod(measurer_ref_.Get(),
                                       methods_.load_inline_view_, jstr.Get());
   if (object == nullptr) {
@@ -179,8 +177,7 @@ int64_t AndroidMarkdownMeasurer::LoadFont(const char* family, int32_t weight,
   if (env == nullptr || measurer_ref_.Get() == nullptr || family == nullptr) {
     return 0;
   }
-  auto jstr =
-      lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, family);
+  auto jstr = android::NewJavaString(env, family);
   return env->CallLongMethod(measurer_ref_.Get(), methods_.load_font_,
                              jstr.Get(), static_cast<jint>(weight),
                              static_cast<jint>(style));
@@ -261,15 +258,13 @@ void AndroidMarkdownMeasurer::OnLinkClicked(const char* url,
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_content;
+  android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_content;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   if (content != nullptr) {
-    j_content = lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(
-        env, content);
+    j_content = android::NewJavaString(env, content);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_link_clicked_,
                       j_url.Get(), j_content.Get());
@@ -280,10 +275,9 @@ void AndroidMarkdownMeasurer::OnImageClicked(const char* url) {
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_url;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_image_clicked_,
                       j_url.Get());
@@ -295,8 +289,7 @@ void AndroidMarkdownMeasurer::OnTextClicked(const char* id) {
     return;
   }
   const auto length = static_cast<jsize>(std::strlen(id));
-  lynx::base::android::ScopedLocalJavaRef<jbyteArray> bytes(
-      env, env->NewByteArray(length));
+  android::ScopedLocalJavaRef<jbyteArray> bytes(env, env->NewByteArray(length));
   env->SetByteArrayRegion(bytes.Get(), 0, length,
                           reinterpret_cast<const jbyte*>(id));
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_text_clicked_,
@@ -322,15 +315,13 @@ void AndroidMarkdownMeasurer::OnLinkAppear(const char* url,
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_content;
+  android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_content;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   if (content != nullptr) {
-    j_content = lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(
-        env, content);
+    j_content = android::NewJavaString(env, content);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_link_appear_,
                       j_url.Get(), j_content.Get());
@@ -342,15 +333,13 @@ void AndroidMarkdownMeasurer::OnLinkDisappear(const char* url,
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_content;
+  android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_content;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   if (content != nullptr) {
-    j_content = lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(
-        env, content);
+    j_content = android::NewJavaString(env, content);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_link_disappear_,
                       j_url.Get(), j_content.Get());
@@ -361,10 +350,9 @@ void AndroidMarkdownMeasurer::OnImageAppear(const char* url) {
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_url;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_image_appear_,
                       j_url.Get());
@@ -375,10 +363,9 @@ void AndroidMarkdownMeasurer::OnImageDisappear(const char* url) {
   if (env == nullptr || measurer_ref_.Get() == nullptr) {
     return;
   }
-  lynx::base::android::ScopedLocalJavaRef<jstring> j_url;
+  android::ScopedLocalJavaRef<jstring> j_url;
   if (url != nullptr) {
-    j_url =
-        lynx::base::android::JNIConvertHelper::ConvertToJNIStringUTF(env, url);
+    j_url = android::NewJavaString(env, url);
   }
   env->CallVoidMethod(measurer_ref_.Get(), methods_.on_image_disappear_,
                       j_url.Get());

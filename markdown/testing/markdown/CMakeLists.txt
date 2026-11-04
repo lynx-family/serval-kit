@@ -27,4 +27,4 @@ add_subdirectory(mock_textra)
 add_subdirectory(../../third_party/googletest googletest)
 add_executable(markdown_tests ${MARKDOWN_TESTS_SOURCES})
 
-target_link_libraries(markdown_tests PUBLIC markdown mock_textra gtest_main lynx_base)
+target_link_libraries(markdown_tests PUBLIC markdown mock_textra gtest_main)

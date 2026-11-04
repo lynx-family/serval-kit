@@ -10,10 +10,10 @@
 #include <memory>
 #include <string_view>
 
-#include "base/include/platform/android/scoped_java_ref.h"
 #include "markdown/markdown_event_listener.h"
 #include "markdown/markdown_exposure_listener.h"
 #include "markdown/parser/markdown_resource_loader.h"
+#include "markdown/platform/android/internal/scoped_java_ref.h"
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/view/markdown_view.h"
 
@@ -77,7 +77,7 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
   int64_t LoadFont(const char* family, int32_t weight, int32_t style);
 
   std::shared_ptr<MarkdownView> view_;
-  lynx::base::android::ScopedWeakGlobalJavaRef<jobject> measurer_ref_;
+  android::ScopedWeakGlobalJavaRef<jobject> measurer_ref_;
 
   static struct Methods {
     jmethodID load_image_{};

@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/include/platform/android/jni_convert_helper.h"
 #include "markdown/element/markdown_context.h"
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/platform/android/android_markdown_measurer.h"
