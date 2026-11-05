@@ -8,18 +8,115 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.graphics.RectF;
+import android.os.Looper;
 import android.view.View;
 import androidx.test.annotation.UiThreadTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class ServalMarkdownViewTest {
+  private static final class ThreadCheckingMarkdownView
+      extends ServalMarkdownView {
+    int requestLayoutCount;
+
+    ThreadCheckingMarkdownView(Context context) { super(context); }
+
+    @Override
+    protected CustomDrawView createCustomView() {
+      assertEquals(Looper.getMainLooper(), Looper.myLooper());
+      return super.createCustomView();
+    }
+
+    @Override
+    protected CustomDrawView createRegionView() {
+      assertEquals(Looper.getMainLooper(), Looper.myLooper());
+      return super.createRegionView();
+    }
+
+    @Override
+    protected void removeSubView(View view) {
+      assertEquals(Looper.getMainLooper(), Looper.myLooper());
+      super.removeSubView(view);
+    }
+
+    @Override
+    public void requestLayout() {
+      assertEquals(Looper.getMainLooper(), Looper.myLooper());
+      ++requestLayoutCount;
+      super.requestLayout();
+    }
+  }
+
   private Context getContext() {
     return InstrumentationRegistry.getInstrumentation().getTargetContext();
+  }
+
+  private void runOnLayoutThread(Runnable action) throws InterruptedException {
+    AtomicReference<Throwable> error = new AtomicReference<>();
+    Thread thread = new Thread(() -> {
+      try {
+        action.run();
+      } catch (Throwable exception) {
+        error.set(exception);
+      }
+    }, "Lynx_Layout0");
+    thread.start();
+    thread.join();
+    if (error.get() != null) {
+      throw new AssertionError(error.get());
+    }
+  }
+
+  @Test
+  @UiThreadTest
+  public void updatesRegionViewsOnUIThread() throws InterruptedException {
+    ThreadCheckingMarkdownView view =
+        new ThreadCheckingMarkdownView(getContext());
+    view.disableInternalVSync(true);
+    MarkdownMeasurer measurer = view.getMarkdownMeasurer();
+    measurer.setRequestMeasureCallback(() -> {});
+    runOnLayoutThread(() -> {
+      measurer.setContent("first\n\nsecond");
+      measurer.measure(
+          View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY), 0);
+    });
+
+    assertEquals(0, view.getChildCount());
+    view.setEnableRegionView(true);
+    view.setExternalRenderRegion(true);
+    view.setRenderRegion(new RectF(0, 0, 300, 200));
+    view.onRendererFrame(0);
+    assertTrue(view.getChildCount() > 0);
+    view.setEnableRegionView(false);
+    assertEquals(0, view.getChildCount());
+    view.destroy();
+  }
+
+  @Test
+  public void postsLayoutRequestsFromLayoutThread()
+      throws InterruptedException {
+    AtomicReference<ThreadCheckingMarkdownView> reference =
+        new AtomicReference<>();
+    InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+      ThreadCheckingMarkdownView view =
+          new ThreadCheckingMarkdownView(getContext());
+      view.disableInternalVSync(true);
+      view.requestLayoutCount = 0;
+      reference.set(view);
+    });
+    ThreadCheckingMarkdownView view = reference.get();
+    runOnLayoutThread(() -> view.getMarkdownMeasurer().markDirty());
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+    InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+      assertTrue(view.requestLayoutCount > 0);
+      view.destroy();
+    });
   }
 
   @Test

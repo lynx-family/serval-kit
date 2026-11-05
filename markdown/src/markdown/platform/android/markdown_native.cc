@@ -546,6 +546,14 @@ Java_com_lynx_markdown_ServalMarkdownView_nativePauseRenderUpdate(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_markdown_ServalMarkdownView_nativeSetEnableRegionView(
+    JNIEnv* env, jobject thiz, jlong instance, jboolean enable) {
+  if (auto* view = GetPlatformMarkdownView(instance); view != nullptr) {
+    view->SetEnableRegionView(enable == JNI_TRUE);
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_markdown_ServalMarkdownView_nativeResumeRenderUpdate(
     JNIEnv* env, jobject thiz, jlong instance) {
   if (auto* view = GetPlatformMarkdownView(instance); view != nullptr) {
