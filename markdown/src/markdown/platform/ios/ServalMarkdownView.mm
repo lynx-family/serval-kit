@@ -325,6 +325,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 
 - (void)requestMeasure {
+  if (![NSThread isMainThread]) {
+    dispatch_async(dispatch_get_main_queue(), ^{ [self requestMeasure]; });
+    return;
+  }
   [self invalidateIntrinsicContentSize];
   [self setNeedsLayout];
   [self setNeedsDisplay];
@@ -369,6 +373,12 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
              ? nullptr
              : static_cast<serval::markdown::MarkdownView*>(
                    markdown_view_handle_->GetDrawable());
+}
+
+- (void)setEnableRegionView:(BOOL)enable {
+  if (auto* view = [self getMarkdownView]; view != nullptr) {
+    view->SetEnableRegionView(enable);
+  }
 }
 
 - (void)setResourceDelegate:(id<IMarkdownResourceDelegate>)resourceDelegate {

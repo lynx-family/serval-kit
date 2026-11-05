@@ -7,14 +7,19 @@ import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Choreographer;
 import android.view.View;
 import androidx.annotation.Keep;
+import androidx.annotation.UiThread;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 @Keep
 public class ServalMarkdownView extends MarkdownGestureView {
+  private static final Handler UI_THREAD_HANDLER =
+      new Handler(Looper.getMainLooper());
   protected long mInstance = 0;
   protected MarkdownMeasurer mMeasurer = null;
   private boolean mOwnsMeasurer = false;
@@ -123,7 +128,13 @@ public class ServalMarkdownView extends MarkdownGestureView {
     if (mMeasurer != null)
       mMeasurer.setExposureListener(listener);
   }
-  public void requestMeasure() { requestLayout(); }
+  public void requestMeasure() {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      requestLayout();
+    } else {
+      UI_THREAD_HANDLER.post(this::requestLayout);
+    }
+  }
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     if (mExternalMeasure) {
@@ -259,6 +270,14 @@ public class ServalMarkdownView extends MarkdownGestureView {
         ? MarkdownValuePack.packIntPair(-1, -1)
         : nativeGetCharRangeByPoint(mInstance, x, y, indexType, rangeType);
   }
+  /** UI-thread API. Enables rendering the document using region subviews. */
+  @UiThread
+  public void setEnableRegionView(boolean enable) {
+    if (mInstance != 0) {
+      nativeSetEnableRegionView(mInstance, enable);
+    }
+  }
+
   public void setTextSelection(int start, int end) {
     if (mMeasurer != null)
       mMeasurer.setTextSelection(start, end);
@@ -412,6 +431,7 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private native int nativeGetRenderedAnimationStep(long instance);
   private native void nativePauseRenderUpdate(long instance);
   private native void nativeResumeRenderUpdate(long instance);
+  private native void nativeSetEnableRegionView(long instance, boolean enable);
   private native void nativeOnRendererFrame(long instance, long time);
   private native void nativeSetExternalRenderRegion(long instance,
                                                     boolean external);

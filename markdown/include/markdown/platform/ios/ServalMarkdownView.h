@@ -45,6 +45,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Supply the visible rectangle in view-local points before rendering a frame
 // with external render-region control enabled. Retained until replaced.
 - (void)setRenderRegion:(CGRect)region;
+// UI-thread API. Enables rendering the document using region subviews.
+- (void)setEnableRegionView:(BOOL)enable;
 
 - (NSString*)getContent:(int)start
                     end:(int)end

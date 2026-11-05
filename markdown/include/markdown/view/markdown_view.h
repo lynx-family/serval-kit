@@ -69,6 +69,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   // Non-positive values remove the additional height constraint.
   void SetMaxHeight(float max_height);
   void SetEnableBreakAroundPunctuation(bool allow);
+  // Renderer-thread API; may create or remove platform subviews.
   void SetEnableRegionView(bool enable);
   void SetTextAttachments(std::unique_ptr<Value> attachments);
   void SetMarkdownEffect(std::unique_ptr<Value> effect);
@@ -87,6 +88,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void SetHeightTransitionDuration(float duration);
   void SetTypewriterHeightTransitionPrefetch(bool enable);
 
+  // Renderer-thread properties; selection updates may mutate platform views.
   void SetEnableSelection(bool enable_selection);
   bool IsSelectionEnabled() const { return gesture_.IsSelectionEnabled(); }
   void SetSelectionHandleSize(float size);
