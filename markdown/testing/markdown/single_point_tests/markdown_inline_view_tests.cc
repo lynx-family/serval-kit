@@ -5,7 +5,9 @@
 #include <memory>
 
 #include "gtest/gtest.h"
+#include "markdown/style/markdown_style_reader.h"
 #include "markdown/view/markdown_view_measurer.h"
+#include "markdown/view/markdown_view_renderer.h"
 #include "testing/markdown/mock_platform/markdown_tests_platform.h"
 #include "testing/markdown/mock_platform/mock_markdown_resource_loader.h"
 
@@ -19,7 +21,10 @@ class AlignedInlineView final : public MarkdownDrawable {
   }
   float GetVerticalAlignLength() const override { return length_; }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {}
-  void Align(float x, float y) override { position_ = {x, y}; }
+  void Align(float x, float y) override {
+    ++align_count_;
+    position_ = {x, y};
+  }
   void SetBounds(RectF bounds) override { bounds_ = bounds; }
 
   MarkdownVerticalAlign vertical_align_{MarkdownVerticalAlign::kBaseline};
@@ -27,9 +32,12 @@ class AlignedInlineView final : public MarkdownDrawable {
   PointF position_{};
   RectF bounds_{};
   MeasureSpec last_spec_{};
+  int measure_count_{0};
+  int align_count_{0};
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override {
+    ++measure_count_;
     last_spec_ = spec;
     return {.width_ = 20, .height_ = 30, .baseline_ = 11};
   }
@@ -53,6 +61,45 @@ struct InlineViewAlignmentCase {
   float normal_baseline;
   float heading_baseline;
 };
+
+TEST(MarkdownInlineViewRenderTest, TableScrollUpdatesBoundsWithoutLayout) {
+  InlineViewResourceLoader loader;
+  auto context = CreateTestMarkdownSharedContext();
+  MarkdownViewMeasurer measurer(context, &loader);
+  auto style = MarkdownStyleReader::ReadStyle({}, &loader, context.get());
+  style.table_.scroll_.scroll_x_ = true;
+  style.table_cell_.block_.min_width_ = 150;
+  measurer.SetStyle(style);
+  measurer.SetContent(
+      "| first | second | third |\n| --- | --- | --- |\n"
+      "| ![](inlineview://view) | content | content |\n");
+  measurer.Measure(
+      {.width_ = 200, .width_mode_ = tttext::LayoutMode::kDefinite});
+  measurer.Align();
+  auto document = measurer.GetDocument();
+  ASSERT_EQ(document->GetInlineViews().size(), 1u);
+  ASSERT_TRUE(document->GetPage()->GetRegion(0)->scroll_x_);
+  const auto layout_position = loader.view_->position_;
+  const auto measure_count = loader.view_->measure_count_;
+  const auto align_count = loader.view_->align_count_;
+
+  MarkdownViewRenderer renderer;
+  renderer.SetDocument(document);
+  const auto before = loader.view_->bounds_;
+  EXPECT_FLOAT_EQ(before.GetLeft(), layout_position.x_);
+  EXPECT_FLOAT_EQ(before.GetTop(), layout_position.y_);
+  ASSERT_TRUE(document->SetScrollXRegionOffset(0, -30));
+  document->UpdateInlineViewBoundsInRegion(0);
+
+  EXPECT_FLOAT_EQ(loader.view_->bounds_.GetLeft(), before.GetLeft() - 30);
+  EXPECT_FLOAT_EQ(loader.view_->bounds_.GetTop(), before.GetTop());
+  EXPECT_FLOAT_EQ(loader.view_->bounds_.GetWidth(), 20);
+  EXPECT_FLOAT_EQ(loader.view_->bounds_.GetHeight(), 30);
+  EXPECT_FLOAT_EQ(loader.view_->position_.x_, layout_position.x_);
+  EXPECT_FLOAT_EQ(loader.view_->position_.y_, layout_position.y_);
+  EXPECT_EQ(loader.view_->measure_count_, measure_count);
+  EXPECT_EQ(loader.view_->align_count_, align_count);
+}
 
 class MarkdownInlineViewTest
     : public ::testing::TestWithParam<InlineViewAlignmentCase> {};

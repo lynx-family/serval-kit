@@ -21,7 +21,6 @@ void SkityDemoPlatformView::AttachDrawable(
 void SkityDemoPlatformView::RequestDraw() {}
 
 void SkityDemoPlatformView::Align(float left, float top) {
-  align_position_ = {left, top};
   if (drawable_ != nullptr) {
     drawable_->Align(left, top);
   }
@@ -32,30 +31,14 @@ void SkityDemoPlatformView::Draw(tttext::ICanvasHelper* canvas, float x,
   if (visible_ && drawable_ != nullptr) {
     canvas->Save();
     canvas->Translate(x, y);
-    if (measured_size_.width_ > 0 && measured_size_.height_ > 0) {
-      canvas->ClipRect(0, 0, measured_size_.width_, measured_size_.height_,
-                       true);
-    }
+    const auto& bounds = GetBounds();
+    canvas->ClipRect(0, 0, bounds.GetWidth(), bounds.GetHeight(), true);
     drawable_->Draw(canvas, 0, 0);
     canvas->Restore();
   }
 }
 
-PointF SkityDemoPlatformView::GetAlignedPosition() {
-  return align_position_;
-}
-
-SizeF SkityDemoPlatformView::GetMeasuredSize() {
-  return measured_size_;
-}
-
-void SkityDemoPlatformView::SetMeasuredSize(SizeF size) {
-  measured_size_ = size;
-}
-
-void SkityDemoPlatformView::SetAlignPosition(PointF position) {
-  align_position_ = position;
-}
+void SkityDemoPlatformView::OnSetBounds(RectF bounds) {}
 
 void SkityDemoPlatformView::SetVisibility(bool visible) {
   visible_ = visible;
@@ -69,9 +52,7 @@ MeasureResult SkityDemoPlatformView::OnMeasure(MeasureSpec spec) {
   if (drawable_ == nullptr) {
     return {};
   }
-  const auto result = drawable_->Measure(spec);
-  measured_size_ = {result.width_, result.height_};
-  return result;
+  return drawable_->Measure(spec);
 }
 
 SkityDemoMainView::SkityDemoMainView()
@@ -178,8 +159,8 @@ void SkityDemoMainView::DrawSubViews(
     float y) {
   for (const auto& subview : views) {
     if (subview != nullptr) {
-      const auto position = subview->GetAlignedPosition();
-      subview->Draw(canvas, x + position.x_, y + position.y_);
+      const auto& bounds = subview->GetBounds();
+      subview->Draw(canvas, x + bounds.GetLeft(), y + bounds.GetTop());
     }
   }
 }

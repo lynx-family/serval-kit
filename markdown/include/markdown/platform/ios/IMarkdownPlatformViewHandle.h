@@ -26,11 +26,8 @@ typedef struct {
         HeightMode:(ServalMarkdownLayoutMode)heightMode;
 - (void)align:(CGFloat)left top:(CGFloat)top;
 
-- (CGSize)getSize;
-- (CGPoint)getPosition;
-
-- (void)setSize:(CGFloat)width height:(CGFloat)height;
-- (void)setPosition:(CGFloat)left top:(CGFloat)top;
+// Runtime geometry update on the render/UI thread.
+- (void)setRenderBounds:(CGRect)bounds;
 - (void)setVisibility:(BOOL)visible;
 
 @optional

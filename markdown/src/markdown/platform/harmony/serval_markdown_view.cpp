@@ -37,21 +37,6 @@ void UnregisterRecognizer(ArkUI_GestureRecognizer* recognizer) {
   g_recognizer_to_view.erase(recognizer);
 }
 
-class MarkdownLayoutSubView : public HarmonyCustomView {
- public:
-  ~MarkdownLayoutSubView() override = default;
-
-  void SetMeasuredSize(SizeF size) override {
-    MarkNeedsMeasure();
-    MarkdownDrawable::Measure(MeasureSpec{});
-    HarmonyView::SetMeasuredSize(size);
-  }
-
-  void SetAlignPosition(PointF position) override {
-    HarmonyView::Align(position.x_, position.y_);
-    HarmonyView::SetAlignPosition(position);
-  }
-};
 }  // namespace
 
 void NativeServalMarkdownView::InitEnv(napi_env env) {
@@ -173,14 +158,15 @@ RectF NativeServalMarkdownView::CalculateViewRectInScreen() {
   OH_ArkUI_NodeUtils_GetLayoutPositionInScreen(handle_, &offset);
   offset.x = -offset.x;
   offset.y = -offset.y;
-  auto size = GetMeasuredSize();
+  const auto size = GetMeasuredIntSize();
   float screen_w = static_cast<float>(MarkdownScreenMetrics::GetScreenWidth());
   float screen_h = static_cast<float>(MarkdownScreenMetrics::GetScreenHeight());
   float left = static_cast<float>(std::max(0, offset.x));
   float top = static_cast<float>(std::max(0, offset.y));
-  float right = std::min(static_cast<float>(offset.x) + screen_w, size.width_);
-  float bottom =
-      std::min(static_cast<float>(offset.y) + screen_h, size.height_);
+  float right = std::min(static_cast<float>(offset.x) + screen_w,
+                         static_cast<float>(size.width));
+  float bottom = std::min(static_cast<float>(offset.y) + screen_h,
+                          static_cast<float>(size.height));
   return RectF::MakeLTRB(left, top, right, bottom);
 }
 void NativeServalMarkdownView::RemoveSubView(MarkdownPlatformView* view) {
@@ -243,7 +229,7 @@ NativeServalMarkdownView::CreateCustomSubView() {
 
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateRegionSubView() {
-  auto custom_view = std::make_shared<MarkdownLayoutSubView>();
+  auto custom_view = std::make_shared<HarmonyCustomView>();
   InsertChild(custom_view, 0);
   return std::static_pointer_cast<MarkdownPlatformView>(custom_view);
 }
@@ -256,7 +242,7 @@ NativeServalMarkdownView::CreateScrollXRegionView() {
 std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateSelectionHighlightSubView(
     const uint32_t color) {
-  const auto view = std::make_shared<MarkdownLayoutSubView>();
+  const auto view = std::make_shared<HarmonyCustomView>();
   AddChild(view);
   auto highlight = std::make_shared<MarkdownSelectionHighlight>();
   highlight->SetColor(color);
@@ -268,7 +254,7 @@ std::shared_ptr<MarkdownPlatformView>
 NativeServalMarkdownView::CreateSelectionHandleSubView(SelectionHandleType type,
                                                        float size,
                                                        uint32_t color) {
-  const auto view = std::make_shared<MarkdownLayoutSubView>();
+  const auto view = std::make_shared<HarmonyCustomView>();
   AddChild(view);
   auto selection_handle = std::make_shared<MarkdownSelectionHandle>(
       size, type, color, SelectionHandleShape::kWaterDrop);

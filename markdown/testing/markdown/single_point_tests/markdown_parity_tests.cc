@@ -162,4 +162,39 @@ TEST_F(ParityViewTest, ExposureTagsFilterAndUpdateExistingExposure) {
   EXPECT_EQ(listener.images_, 0);
   view_->SetExposureListener(nullptr);
 }
+
+TEST_F(ParityViewTest, ExposureEndsWhenHostClipMissesRenderedContent) {
+  ExposureListener listener;
+  view_->SetExposureListener(&listener);
+  ValueArray tags;
+  tags.emplace_back(Value::MakeString("link"));
+  tags.emplace_back(Value::MakeString("image"));
+  view_->SetArrayProp(MarkdownProps::kExposureTags, tags);
+  Render("[link](url) ![image](image)");
+  ASSERT_EQ(listener.links_, 1);
+  ASSERT_EQ(listener.images_, 1);
+
+  main_view_.SetViewRectInScreen(RectF::MakeLTRB(1000, 0, 1200, 1000));
+  for (int frame = 1; frame <= 30; ++frame) {
+    view_->OnRendererFrame(frame);
+  }
+  EXPECT_EQ(listener.links_, 0);
+  EXPECT_EQ(listener.images_, 0);
+
+  main_view_.SetViewRectInScreen(
+      testing::MockMarkdownMainView::MakeDefaultViewRectInScreen());
+  for (int frame = 31; frame <= 60; ++frame) {
+    view_->OnRendererFrame(frame);
+  }
+  EXPECT_EQ(listener.links_, 1);
+  EXPECT_EQ(listener.images_, 1);
+
+  main_view_.SetViewRectInScreen(RectF::MakeEmpty());
+  for (int frame = 61; frame <= 90; ++frame) {
+    view_->OnRendererFrame(frame);
+  }
+  EXPECT_EQ(listener.links_, 0);
+  EXPECT_EQ(listener.images_, 0);
+  view_->SetExposureListener(nullptr);
+}
 }  // namespace serval::markdown

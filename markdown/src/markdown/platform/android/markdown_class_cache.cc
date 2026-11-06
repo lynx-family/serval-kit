@@ -32,14 +32,11 @@ void AndroidMarkdownView::Initialize(JNIEnv* env) {
   methods_.request_draw_ = env->GetMethodID(clazz, "requestDraw", "()V");
   methods_.measure_ = env->GetMethodID(clazz, "measure", "(IIII)J");
   methods_.align_ = env->GetMethodID(clazz, "align", "(II)V");
-  methods_.get_position_ = env->GetMethodID(clazz, "getPosition", "()J");
-  methods_.get_size_ = env->GetMethodID(clazz, "getSize", "()J");
   methods_.get_vertical_align_ =
       env->GetMethodID(clazz, "getVerticalAlign", "()I");
   methods_.get_vertical_align_length_ =
       env->GetMethodID(clazz, "getVerticalAlignLength", "()F");
-  methods_.set_size_ = env->GetMethodID(clazz, "setSize", "(II)V");
-  methods_.set_position_ = env->GetMethodID(clazz, "setPosition", "(II)V");
+  methods_.set_bounds_ = env->GetMethodID(clazz, "setBounds", "(IIII)V");
   methods_.set_visibility_ = env->GetMethodID(clazz, "setVisibility", "(Z)V");
 }
 AndroidMarkdownView::AndroidMarkdownView() = default;
@@ -72,37 +69,17 @@ void AndroidMarkdownView::Align(float left, float top) {
   env->CallVoidMethod(ref_.Get(), methods_.align_, static_cast<jint>(left),
                       static_cast<jint>(top));
 }
-serval::markdown::PointF AndroidMarkdownView::GetAlignedPosition() {
-  auto* env = MarkdownClassCache::GetEnv();
-  jlong result = env->CallLongMethod(ref_.Get(), methods_.get_position_);
-  return {
-      .x_ = static_cast<float>(MarkdownJNIUtils::GetIntPackFirst(result)),
-      .y_ = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(result)),
-  };
-}
-serval::markdown::SizeF AndroidMarkdownView::GetMeasuredSize() {
-  auto* env = MarkdownClassCache::GetEnv();
-  jlong result = env->CallLongMethod(ref_.Get(), methods_.get_size_);
-  return {
-      .width_ = static_cast<float>(MarkdownJNIUtils::GetIntPackFirst(result)),
-      .height_ = static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(result)),
-  };
-}
-void AndroidMarkdownView::SetMeasuredSize(serval::markdown::SizeF size) {
-  auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.set_size_,
-                      static_cast<jint>(size.width_),
-                      static_cast<jint>(size.height_));
-}
-void AndroidMarkdownView::SetAlignPosition(serval::markdown::PointF position) {
-  auto* env = MarkdownClassCache::GetEnv();
-  env->CallVoidMethod(ref_.Get(), methods_.set_position_,
-                      static_cast<jint>(position.x_),
-                      static_cast<jint>(position.y_));
-}
 void AndroidMarkdownView::SetVisibility(bool visible) {
   auto* env = MarkdownClassCache::GetEnv();
   env->CallVoidMethod(ref_.Get(), methods_.set_visibility_, visible);
+}
+
+void AndroidMarkdownView::OnSetBounds(RectF bounds) {
+  auto* env = MarkdownClassCache::GetEnv();
+  env->CallVoidMethod(
+      ref_.Get(), methods_.set_bounds_, static_cast<jint>(bounds.GetLeft()),
+      static_cast<jint>(bounds.GetTop()), static_cast<jint>(bounds.GetWidth()),
+      static_cast<jint>(bounds.GetHeight()));
 }
 
 MarkdownVerticalAlign AndroidMarkdownView::GetVerticalAlign() const {
@@ -154,13 +131,7 @@ serval::markdown::MeasureResult AndroidCustomView::OnMeasure(
   if (drawable_ == nullptr) {
     return {};
   }
-  const auto result = drawable_->Measure(spec);
-  SetMeasuredSize({.width_ = result.width_, .height_ = result.height_});
-  return result;
-}
-serval::markdown::SizeF AndroidCustomView::GetMeasuredSize() {
-  return {drawable_->GetAdvance(),
-          drawable_->GetDescent() - drawable_->GetAscent()};
+  return drawable_->Measure(spec);
 }
 void AndroidMainView::Initialize(JNIEnv* env) {
   auto clazz = env->FindClass("com/lynx/markdown/ServalMarkdownView");
@@ -177,8 +148,6 @@ void AndroidMainView::Initialize(JNIEnv* env) {
       env->GetMethodID(clazz, "removeSubView", "(Landroid/view/View;)V");
   methods_.remove_all_subviews_ =
       env->GetMethodID(clazz, "removeAllSubviews", "()V");
-  methods_.get_view_rect_in_screen_ =
-      env->GetMethodID(clazz, "getVisibleVerticalRangeInScreen", "()J");
 }
 AndroidMainView::Methods AndroidMainView::methods_{};
 AndroidMainView::AndroidMainView(JNIEnv* env, jobject ref)
@@ -266,22 +235,6 @@ void AndroidMainView::RemoveAllSubViews() {
   env->CallVoidMethod(ref_.Get(), methods_.remove_all_subviews_);
   subviews_.clear();
 }
-serval::markdown::RectF AndroidMainView::CalculateViewRectInScreen() {
-  auto* env = MarkdownClassCache::GetEnv();
-  jlong packed =
-      env->CallLongMethod(ref_.Get(), methods_.get_view_rect_in_screen_);
-  const float top =
-      static_cast<float>(MarkdownJNIUtils::GetIntPackFirst(packed));
-  const float bottom =
-      static_cast<float>(MarkdownJNIUtils::GetIntPackSecond(packed));
-  const auto size = AndroidMarkdownView::GetMeasuredSize();
-  return serval::markdown::RectF::MakeLTRB(0.0f, top, size.width_, bottom);
-}
-
-void AndroidMainView::UpdateCachedViewRectInScreen() {
-  cached_view_rect_in_screen_ = CalculateViewRectInScreen();
-}
-
 serval::markdown::RectF AndroidMainView::GetViewRectInScreen() {
   return cached_view_rect_in_screen_;
 }

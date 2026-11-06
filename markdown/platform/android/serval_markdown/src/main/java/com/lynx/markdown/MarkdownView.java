@@ -4,6 +4,7 @@
 package com.lynx.markdown;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,30 +54,17 @@ public class MarkdownView extends ViewGroup implements IMarkdownViewHandle {
     layout(left, top, left + width, top + height);
   }
 
-  public long getSize() {
-    int width = getWidth();
-    int height = getHeight();
-    return MarkdownValuePack.packIntPair(width, height);
-  }
-
-  public long getPosition() {
-    int left = getLeft();
-    int top = getTop();
-    return MarkdownValuePack.packIntPair(left, top);
-  }
-
-  public void setSize(int width, int height) {
-    setRight(getLeft() + width);
-    setBottom(getTop() + height);
-  }
-
-  public void setPosition(int left, int top) {
-    int width = getWidth();
-    int height = getHeight();
-    setLeft(left);
-    setTop(top);
-    setRight(left + width);
-    setBottom(top + height);
+  public void setBounds(int left, int top, int width, int height) {
+    // Apply runtime bounds without entering View.layout() callbacks.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      setLeftTopRightBottom(left, top, left + width, top + height);
+    } else {
+      // Preserve the current size while moving; only resize at the final edges.
+      offsetLeftAndRight(left - getLeft());
+      offsetTopAndBottom(top - getTop());
+      setRight(left + width);
+      setBottom(top + height);
+    }
   }
 
   public void setVisibility(boolean visible) {

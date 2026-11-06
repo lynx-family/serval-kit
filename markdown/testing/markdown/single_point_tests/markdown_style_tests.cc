@@ -469,22 +469,24 @@ TEST(MarkdownSelectionViewTest, HandleSizeExcludesLineAndPositionFollowsShape) {
   MockMarkdownPlatformView view(nullptr, nullptr);
 
   left_circle.UpdateViewRect({40, 50}, &view);
-  EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 10);
-  EXPECT_FLOAT_EQ(view.GetMeasuredSize().height_, 10);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 35);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 20);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetWidth(), 10);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetHeight(), 10);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetLeft(), 35);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetTop(), 20);
 
   right_circle.UpdateViewRect({40, 50}, &view);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 35);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetLeft(), 35);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetTop(), 50);
 
   left_waterdrop.UpdateViewRect({40, 50}, &view);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 30);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetLeft(), 30);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetTop(), 50);
 
   right_waterdrop.UpdateViewRect({40, 50}, &view);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 40);
-  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 50);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetLeft(), 40);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetTop(), 50);
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 0);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 0);
 }
 
 TEST(MarkdownGradientTest, ParseBackgroundImageUrl) {

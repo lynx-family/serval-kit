@@ -35,12 +35,9 @@ MeasureResult MarkdownCustomViewIOS::OnMeasure(MeasureSpec spec) {
   if (drawable_ == nullptr) {
     return {};
   }
-  const auto result = drawable_->Measure(spec);
-  SetMeasuredSize({.width_ = result.width_, .height_ = result.height_});
-  return result;
+  return drawable_->Measure(spec);
 }
 void MarkdownCustomViewIOS::Align(float left, float top) {
-  SetAlignPosition({left, top});
   if (drawable_ != nullptr) {
     drawable_->Align(left, top);
   }

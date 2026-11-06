@@ -426,9 +426,9 @@ void MarkdownView::UpdateExposure() {
   if (exposure_skip_counter_++ % kExposureSkipInterval != 0) {
     return;
   }
-  auto rect_in_screen = handle_->GetViewRectInScreen();
+  const auto rect_in_screen = renderer_.GetVisibleRenderRect();
   auto images =
-      renderer_data_.expose_images_
+      renderer_data_.expose_images_ && !rect_in_screen.IsEmpty()
           ? renderer_data_.document_->GetImageByViewRect(rect_in_screen)
           : std::vector<MarkdownImage*>{};
   std::unordered_set<ExposureKey, ExposureKey::Hash> current_images;
@@ -453,7 +453,7 @@ void MarkdownView::UpdateExposure() {
   renderer_data_.exposure_images_ = std::move(current_images);
 
   auto links =
-      renderer_data_.expose_links_
+      renderer_data_.expose_links_ && !rect_in_screen.IsEmpty()
           ? renderer_data_.document_->GetLinksByViewRect(rect_in_screen)
           : std::vector<MarkdownLink*>{};
   std::unordered_set<ExposureKey, ExposureKey::Hash> current_links;

@@ -27,6 +27,8 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private boolean mInternalVSyncPosted = false;
   private boolean mExternalMeasure = false;
   private long mExternalMeasuredSize = 0;
+  private boolean mExternalRenderRegion = false;
+  private final RectF mRenderRegion = new RectF();
   private final Choreographer.FrameCallback mInternalVSyncCallback =
       this::onVSync;
 
@@ -101,21 +103,14 @@ public class ServalMarkdownView extends MarkdownGestureView {
    * default. Disabling restores automatic calculation on the next frame.
    */
   public void setExternalRenderRegion(boolean external) {
-    if (mInstance != 0) {
-      nativeSetExternalRenderRegion(mInstance, external);
-    }
+    mExternalRenderRegion = external;
   }
   /**
    * UI-thread API. Supplies the visible rectangle in view-local physical pixels
    * before rendering a frame with external render-region control enabled. The
    * rectangle is copied and retained across frames until replaced.
    */
-  public void setRenderRegion(RectF region) {
-    if (mInstance != 0) {
-      nativeSetRenderRegion(mInstance, region.left, region.top, region.right,
-                            region.bottom);
-    }
-  }
+  public void setRenderRegion(RectF region) { mRenderRegion.set(region); }
   public void setResourceLoader(IResourceLoader loader) {
     if (mMeasurer != null)
       mMeasurer.setResourceLoader(loader);
@@ -178,25 +173,19 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
   protected void removeSubView(View view) { removeView(view); }
   protected void removeAllSubviews() { removeAllViews(); }
-  protected long getVisibleVerticalRangeInScreen() {
-    if (getWidth() <= 0 || getHeight() <= 0) {
-      return MarkdownValuePack.packIntPair(0, 0);
-    }
-
+  protected void getVisibleRectInScreen(RectF result) {
     Rect globalVisible = new Rect();
     Point globalOffset = new Point();
     if (!getGlobalVisibleRect(globalVisible, globalOffset)) {
-      return MarkdownValuePack.packIntPair(0, 0);
+      result.setEmpty();
+      return;
     }
-
-    int top = globalVisible.top - globalOffset.y;
-    int bottom = globalVisible.bottom - globalOffset.y;
-    top = Math.max(0, top);
-    bottom = Math.min(getHeight(), bottom);
-    if (bottom <= top) {
-      return MarkdownValuePack.packIntPair(0, 0);
+    globalVisible.offset(-globalOffset.x, -globalOffset.y);
+    if (!globalVisible.intersect(0, 0, getWidth(), getHeight())) {
+      result.setEmpty();
+      return;
     }
-    return MarkdownValuePack.packIntPair(top, bottom);
+    result.set(globalVisible);
   }
 
   public void setContent(String content) {
@@ -365,8 +354,13 @@ public class ServalMarkdownView extends MarkdownGestureView {
 
   public void onRendererFrame(long frameTimeNanos) {
     if (mInstance != 0) {
+      if (!mExternalRenderRegion) {
+        getVisibleRectInScreen(mRenderRegion);
+      }
       long adjustedTimeMs = frameTimeNanos / 1000000;
-      nativeOnRendererFrame(mInstance, adjustedTimeMs);
+      nativeOnRendererFrame(mInstance, adjustedTimeMs, mRenderRegion.left,
+                            mRenderRegion.top, mRenderRegion.right,
+                            mRenderRegion.bottom);
     }
   }
 
@@ -432,10 +426,7 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private native void nativePauseRenderUpdate(long instance);
   private native void nativeResumeRenderUpdate(long instance);
   private native void nativeSetEnableRegionView(long instance, boolean enable);
-  private native void nativeOnRendererFrame(long instance, long time);
-  private native void nativeSetExternalRenderRegion(long instance,
-                                                    boolean external);
-  private native void nativeSetRenderRegion(long instance, float left,
-                                            float top, float right,
+  private native void nativeOnRendererFrame(long instance, long time,
+                                            float left, float top, float right,
                                             float bottom);
 }

@@ -27,19 +27,14 @@ class SkityDemoPlatformView : public MarkdownPlatformView,
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
-  PointF GetAlignedPosition() override;
-  SizeF GetMeasuredSize() override;
-  void SetMeasuredSize(SizeF size) override;
-  void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
   MarkdownCustomViewHandle* GetCustomViewHandle() override;
 
  protected:
+  void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
  private:
-  PointF align_position_;
-  SizeF measured_size_;
   bool visible_{true};
 };
 

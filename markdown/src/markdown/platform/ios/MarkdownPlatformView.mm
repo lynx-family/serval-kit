@@ -89,28 +89,12 @@ static const CGFloat kMarkdownMaxMeasureSize = 1e8;
   self.frame = newFrame;
 }
 
-- (CGSize)getSize {
-  return self.frame.size;
-}
-
-- (CGPoint)getPosition {
-  return self.frame.origin;
-}
-
-- (void)setSize:(CGFloat)width height:(CGFloat)height {
-  CGRect newFrame = self.frame;
-  newFrame.size = CGSizeMake(width, height);
-  self.frame = newFrame;
-}
-
-- (void)setPosition:(CGFloat)left top:(CGFloat)top {
-  CGRect newFrame = self.frame;
-  newFrame.origin = CGPointMake(left, top);
-  self.frame = newFrame;
-}
-
 - (void)setVisibility:(BOOL)visible {
   self.hidden = !visible;
+}
+
+- (void)setRenderBounds:(CGRect)bounds {
+  self.frame = bounds;
 }
 
 - (ServalMarkdownVerticalAlign)getVerticalAlign {

@@ -10,10 +10,8 @@ public interface IMarkdownViewHandle {
   void requestDraw();
   long measure(int width, int widthMode, int height, int heightMode);
   void align(int left, int top);
-  long getSize();
-  long getPosition();
-  void setSize(int width, int height);
-  void setPosition(int left, int top);
+  // Runtime geometry update on the render/UI thread.
+  void setBounds(int left, int top, int width, int height);
   void setVisibility(boolean visible);
   int getVerticalAlign();
   // Offset in pixels for VERTICAL_ALIGN_LENGTH; positive values move the view upward.
