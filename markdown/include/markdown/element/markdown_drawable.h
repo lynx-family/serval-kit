@@ -32,6 +32,7 @@ class MarkdownDrawable : public tttext::RunDelegate {
   }
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override = 0;
 
+  // Measure and Align run during layout; Draw and SetBounds run during render.
   MeasureResult Measure(MeasureSpec spec) {
     measure_result_ = OnMeasure(spec);
     return measure_result_;

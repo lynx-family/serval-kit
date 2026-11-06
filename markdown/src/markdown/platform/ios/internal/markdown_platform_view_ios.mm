@@ -65,40 +65,17 @@ MeasureResult MarkdownPlatformViewIOS::OnMeasure(MeasureSpec spec) {
   };
   return measure_result;
 }
-PointF MarkdownPlatformViewIOS::GetAlignedPosition() {
-  if (handle_ != nil) {
-    const auto point = [handle_ getPosition];
-    return {static_cast<float>(point.x), static_cast<float>(point.y)};
-  }
-  return {0, 0};
-}
-SizeF MarkdownPlatformViewIOS::GetMeasuredSize() {
-  if (handle_ != nil) {
-    const auto size = [handle_ getSize];
-    return {static_cast<float>(size.width), static_cast<float>(size.height)};
-  }
-  return {0, 0};
-}
 
-void MarkdownPlatformViewIOS::SetMeasuredSize(SizeF size) {
-  if (handle_ != nil) {
-    [handle_ setSize:static_cast<CGFloat>(size.width_)
-              height:static_cast<CGFloat>(size.height_)];
-    return;
-  }
-}
-void MarkdownPlatformViewIOS::SetAlignPosition(PointF position) {
-  if (handle_ != nil) {
-    [handle_ setPosition:static_cast<CGFloat>(position.x_)
-                     top:static_cast<CGFloat>(position.y_)];
-    return;
-  }
-}
 void MarkdownPlatformViewIOS::SetVisibility(bool visible) {
   if (handle_ != nil) {
     [handle_ setVisibility:visible];
     return;
   }
+}
+
+void MarkdownPlatformViewIOS::OnSetBounds(RectF bounds) {
+  [handle_ setRenderBounds:CGRectMake(bounds.GetLeft(), bounds.GetTop(),
+                                      bounds.GetWidth(), bounds.GetHeight())];
 }
 
 MarkdownVerticalAlign MarkdownPlatformViewIOS::GetVerticalAlign() const {

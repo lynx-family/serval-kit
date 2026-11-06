@@ -18,11 +18,7 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   void RequestDraw() override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  PointF GetAlignedPosition() override;
-  SizeF GetMeasuredSize() override;
 
-  void SetMeasuredSize(SizeF size) override;
-  void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
   MarkdownVerticalAlign GetVerticalAlign() const override;
   float GetVerticalAlignLength() const override;
@@ -30,6 +26,7 @@ class MarkdownPlatformViewIOS : public MarkdownPlatformView {
   id<IMarkdownPlatformViewHandle> _Nullable GetHandle() { return handle_; }
 
  protected:
+  void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
   __weak id<IMarkdownPlatformViewHandle> _Nullable handle_;

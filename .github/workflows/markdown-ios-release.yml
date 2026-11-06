@@ -40,7 +40,7 @@ jobs:
   release-ios:
     name: Release iOS
     needs: get-version
-    runs-on: lynx-darwin-14-medium
+    runs-on: lynx-darwin-15.6.1-medium
     permissions:
       contents: write
     steps:
@@ -52,7 +52,8 @@ jobs:
       - name: Install Cocoapods Generate
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-          bundle install --path .bundle
+          bundle config set --local path .bundle
+          bundle install
       - name: Publish to CocoaPods Repo
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_SERVAL_KIT_COCOAPODS_TRUNK_TOKEN }}

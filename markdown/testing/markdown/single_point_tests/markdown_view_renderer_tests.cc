@@ -7,10 +7,12 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "markdown/style/markdown_style_reader.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "markdown/view/markdown_view_renderer.h"
 #include "testing/markdown/mock_platform/markdown_tests_platform.h"
 #include "testing/markdown/mock_platform/mock_markdown_platform_view.h"
+#include "testing/markdown/mock_platform/mock_markdown_resource_loader.h"
 
 namespace serval::markdown::testing {
 namespace {
@@ -34,13 +36,11 @@ std::shared_ptr<MarkdownDocument> CreateDocumentWithQuoteBorder(
 MockMarkdownPlatformView* FindSubviewForRect(MockMarkdownMainView* main_view,
                                              const RectF& rect) {
   for (auto* view : main_view->GetSubviews()) {
-    const auto position = view->GetAlignedPosition();
-    if (std::fabs(position.x_ - rect.GetLeft()) < kFloatTolerance &&
-        std::fabs(position.y_ - rect.GetTop()) < kFloatTolerance &&
-        std::fabs(view->measured_size_.width_ - rect.GetWidth()) <
-            kFloatTolerance &&
-        std::fabs(view->measured_size_.height_ - rect.GetHeight()) <
-            kFloatTolerance) {
+    const auto& bounds = view->GetBounds();
+    if (std::fabs(bounds.GetLeft() - rect.GetLeft()) < kFloatTolerance &&
+        std::fabs(bounds.GetTop() - rect.GetTop()) < kFloatTolerance &&
+        std::fabs(bounds.GetWidth() - rect.GetWidth()) < kFloatTolerance &&
+        std::fabs(bounds.GetHeight() - rect.GetHeight()) < kFloatTolerance) {
       return view;
     }
   }
@@ -48,6 +48,197 @@ MockMarkdownPlatformView* FindSubviewForRect(MockMarkdownMainView* main_view,
 }
 
 }  // namespace
+
+TEST(MarkdownPlatformViewTest, RenderBoundsPreserveLayoutResults) {
+  MockMarkdownPlatformView view(nullptr, nullptr);
+  view.measured_size_ = {20, 30};
+  view.Measure({});
+  view.Align(1, 2);
+  view.SetBounds(RectF::MakeLTWH(40, 50, 60, 70));
+
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 20);
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().height_, 30);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 1);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().y_, 2);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetLeft(), 40);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetTop(), 50);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetWidth(), 60);
+  EXPECT_FLOAT_EQ(view.GetBounds().GetHeight(), 70);
+
+  view.SetBounds(RectF::MakeEmpty());
+  EXPECT_FALSE(view.IsVisible());
+  EXPECT_TRUE(view.GetBounds().IsEmpty());
+  view.SetBounds(RectF::MakeLTWH(10, 15, 25, 35));
+  EXPECT_TRUE(view.IsVisible());
+  EXPECT_FLOAT_EQ(view.GetBounds().GetWidth(), 25);
+  EXPECT_FLOAT_EQ(view.GetMeasuredSize().width_, 20);
+  EXPECT_FLOAT_EQ(view.GetAlignedPosition().x_, 1);
+}
+
+TEST(MarkdownViewRendererTest, RegionBoundsDoNotMeasureOrAlignViews) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetEnableRegionView(true);
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+  renderer.OnNextFrame();
+
+  ASSERT_GT(main_view.GetSubviewCount(), 0u);
+  for (auto* view : main_view.GetSubviews()) {
+    EXPECT_FALSE(view->GetBounds().IsEmpty());
+    EXPECT_FLOAT_EQ(view->measured_size_.width_, 0);
+    EXPECT_FLOAT_EQ(view->measured_size_.height_, 0);
+    EXPECT_FLOAT_EQ(view->align_position_.x_, 0);
+    EXPECT_FLOAT_EQ(view->align_position_.y_, 0);
+  }
+}
+
+TEST(MarkdownViewRendererTest, VisibleRenderRectIntersectsPageAndHostClip) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+  const auto& page = document->GetPage();
+  const auto page_bounds =
+      RectF::MakeWH(page->GetLayoutWidth(), page->GetLayoutHeight());
+
+  // The native view can be larger than the rendered content.
+  main_view.SetViewRectInScreen(RectF::MakeLTRB(
+      -20, -30, page_bounds.GetRight() + 50, page_bounds.GetBottom() + 60));
+  EXPECT_EQ(renderer.GetVisibleRenderRect(), page_bounds);
+
+  const auto host_clip = RectF::MakeLTRB(10, 5, page_bounds.GetRight() - 10,
+                                         page_bounds.GetBottom() - 5);
+  main_view.SetViewRectInScreen(host_clip);
+  EXPECT_EQ(renderer.GetVisibleRenderRect(), host_clip);
+
+  // Clipping at the bottom still retains the host's horizontal clipping.
+  main_view.SetViewRectInScreen(RectF::MakeLTRB(
+      10, 5, page_bounds.GetRight() + 50, page_bounds.GetBottom() + 60));
+  EXPECT_EQ(
+      renderer.GetVisibleRenderRect(),
+      RectF::MakeLTRB(10, 5, page_bounds.GetRight(), page_bounds.GetBottom()));
+}
+
+TEST(MarkdownViewRendererTest, VisibleRenderRectUsesTableViewportWidth) {
+  auto context = CreateTestMarkdownSharedContext();
+  MarkdownViewMeasurer measurer(context);
+  auto style = MarkdownStyleReader::ReadStyle({}, nullptr, context.get());
+  style.table_.scroll_.scroll_x_ = true;
+  style.table_cell_.block_.min_width_ = 150;
+  measurer.SetStyle(style);
+  measurer.SetContent(
+      "| first | second | third |\n| --- | --- | --- |\n"
+      "| content | content | content |\n");
+  measurer.Measure(
+      {.width_ = 200, .width_mode_ = tttext::LayoutMode::kDefinite});
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(measurer.GetDocument());
+  const auto& page = measurer.GetDocument()->GetPage();
+
+  ASSERT_TRUE(page->GetRegion(0)->scroll_x_);
+  ASSERT_GT(page->GetRegionRect(0).GetWidth(), 200);
+  EXPECT_FLOAT_EQ(renderer.GetVisibleRenderRect().GetWidth(), 200);
+
+  measurer.GetDocument()->SetScrollXRegionOffset(0, -30);
+  EXPECT_FLOAT_EQ(renderer.GetVisibleRenderRect().GetWidth(), 200);
+}
+
+TEST(MarkdownViewRendererTest, VisibleRenderRectUsesRenderedDocument) {
+  auto context = CreateTestMarkdownSharedContext();
+  MarkdownViewMeasurer measurer(context);
+  measurer.SetContent("first paragraph\n\nsecond paragraph");
+  measurer.Measure(
+      {.width_ = 240, .width_mode_ = tttext::LayoutMode::kDefinite});
+  auto rendered_document = measurer.GetDocument();
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(rendered_document);
+  const auto rendered_rect = renderer.GetVisibleRenderRect();
+
+  measurer.Measure(
+      {.width_ = 120, .width_mode_ = tttext::LayoutMode::kDefinite});
+  ASSERT_NE(rendered_document, measurer.GetDocument());
+  EXPECT_EQ(renderer.GetVisibleRenderRect(), rendered_rect);
+
+  renderer.SetDocument(measurer.GetDocument());
+  EXPECT_FLOAT_EQ(renderer.GetVisibleRenderRect().GetWidth(),
+                  measurer.GetDocument()->GetPage()->GetLayoutWidth());
+  EXPECT_LT(renderer.GetVisibleRenderRect().GetWidth(),
+            rendered_rect.GetWidth());
+}
+
+TEST(MarkdownViewRendererTest, RemovesRegionViewsWhenHostClipMissesPage) {
+  auto context = CreateTestMarkdownSharedContext();
+  auto document = CreateDocumentWithQuoteBorder(context);
+  MockMarkdownMainView main_view(context);
+  MarkdownViewRenderer renderer;
+  renderer.SetEnableRegionView(true);
+  renderer.SetViewContainerHandle(&main_view);
+  renderer.SetDocument(document);
+  renderer.OnNextFrame();
+  ASSERT_GT(main_view.GetSubviewCount(), 0u);
+
+  const auto& page = document->GetPage();
+  main_view.SetViewRectInScreen(RectF::MakeLTWH(page->GetLayoutWidth() + 10, 0,
+                                                50, page->GetLayoutHeight()));
+  EXPECT_TRUE(renderer.GetVisibleRenderRect().IsEmpty());
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+
+  main_view.SetViewRectInScreen(RectF::MakeWH(240, 1));
+  renderer.OnNextFrame();
+  ASSERT_GT(main_view.GetSubviewCount(), 0u);
+  main_view.SetViewRectInScreen(RectF::MakeEmpty());
+  renderer.OnNextFrame();
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+
+  main_view.SetViewRectInScreen(
+      MockMarkdownMainView::MakeDefaultViewRectInScreen());
+  renderer.OnNextFrame();
+  EXPECT_GT(main_view.GetSubviewCount(), 0u);
+}
+
+TEST(MarkdownViewRendererTest, PublishesCustomTruncationBoundsWithoutAlign) {
+  auto context = CreateTestMarkdownSharedContext();
+  MockMarkdownMainView main_view(context);
+  MockMarkdownResourceLoader loader;
+  loader.SetMainView(&main_view);
+  MarkdownViewMeasurer measurer(context, &loader);
+  auto style = MarkdownStyleReader::ReadStyle({}, &loader, context.get());
+  style.truncation_.truncation_.truncation_type_ =
+      MarkdownTruncationType::kView;
+  style.truncation_.truncation_.content_ = "truncation";
+  measurer.SetStyle(style);
+  measurer.SetContent("first paragraph\n\nsecond paragraph\n\nthird paragraph");
+  measurer.SetTextMaxLines(2);
+  measurer.Measure(
+      {.width_ = 300, .width_mode_ = tttext::LayoutMode::kDefinite});
+
+  auto document = measurer.GetDocument();
+  auto truncation = std::static_pointer_cast<MockInlineView>(
+      document->GetTruncationDelegate());
+  ASSERT_NE(truncation, nullptr);
+  const auto origin = document->GetTruncationOrigin();
+  ASSERT_GT(origin.x_, 0);
+  ASSERT_GT(origin.y_, 0);
+
+  MarkdownViewRenderer renderer;
+  renderer.SetDocument(document);
+
+  EXPECT_FLOAT_EQ(truncation->GetBounds().GetLeft(), origin.x_);
+  EXPECT_FLOAT_EQ(truncation->GetBounds().GetTop(), origin.y_);
+  EXPECT_FLOAT_EQ(truncation->GetBounds().GetWidth(), truncation->GetAdvance());
+  EXPECT_FLOAT_EQ(truncation->GetAlignedPosition().x_, 0);
+  EXPECT_FLOAT_EQ(truncation->GetAlignedPosition().y_, 0);
+}
 
 TEST(MarkdownViewRendererTest, ExtraBorderRangeOutsideViewportIsEmpty) {
   auto document =

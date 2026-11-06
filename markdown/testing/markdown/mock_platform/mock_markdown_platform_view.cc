@@ -58,13 +58,7 @@ SizeF MockMarkdownPlatformView::GetMeasuredSize() {
   return measured_size_;
 }
 
-void MockMarkdownPlatformView::SetMeasuredSize(SizeF size) {
-  measured_size_ = size;
-}
-
-void MockMarkdownPlatformView::SetAlignPosition(PointF position) {
-  align_position_ = position;
-}
+void MockMarkdownPlatformView::OnSetBounds(RectF bounds) {}
 
 void MockMarkdownPlatformView::SetVisibility(bool visible) {
   if (!visible_ && visible) {
@@ -103,21 +97,13 @@ void MockMarkdownCustomView::Draw(tttext::ICanvasHelper* canvas, float x,
   reinterpret_cast<MockMarkdownCanvas*>(canvas)->EndViewDraw();
 }
 
-SizeF MockMarkdownCustomView::GetMeasuredSize() {
-  if (drawable_ == nullptr) {
-    return {0, 0};
-  }
-  return {drawable_->GetAdvance(),
-          drawable_->GetDescent() - drawable_->GetAscent()};
-}
-
 MeasureResult MockMarkdownCustomView::OnMeasure(MeasureSpec spec) {
   needs_measure_ = false;
   if (drawable_ == nullptr) {
     return {};
   }
   const auto result = drawable_->Measure(spec);
-  SetMeasuredSize({.width_ = result.width_, .height_ = result.height_});
+  measured_size_ = {.width_ = result.width_, .height_ = result.height_};
   return result;
 }
 
@@ -221,7 +207,7 @@ void MockMarkdownMainView::OnVSync(int64_t timestamp) const {
 MockMarkdownPlatformView* MockMarkdownMainView::FindSubviewByTop(
     float top) const {
   for (const auto& view : subviews_) {
-    if (std::fabs(view->GetAlignedPosition().y_ - top) < 0.001f) {
+    if (std::fabs(view->GetBounds().GetTop() - top) < 0.001f) {
       return view.get();
     }
   }
@@ -265,9 +251,10 @@ void MockMarkdownMainView::Draw(tttext::ICanvasHelper* canvas, float x,
   MockMarkdownCustomView::Draw(canvas, x, y);
   for (auto& sub : subviews_) {
     if (sub->needs_draw_) {
-      canvas->Translate(sub->align_position_.x_, sub->align_position_.y_);
+      const auto& bounds = sub->GetBounds();
+      canvas->Translate(bounds.GetLeft(), bounds.GetTop());
       sub->Draw(canvas, x, y);
-      canvas->Translate(-sub->align_position_.x_, -sub->align_position_.y_);
+      canvas->Translate(-bounds.GetLeft(), -bounds.GetTop());
     }
   }
 }

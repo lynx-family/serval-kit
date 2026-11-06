@@ -37,11 +37,10 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
 
-  PointF GetAlignedPosition() override;
-  SizeF GetMeasuredSize() override;
+  // Recorded layout results for test assertions.
+  PointF GetAlignedPosition();
+  SizeF GetMeasuredSize();
 
-  void SetMeasuredSize(SizeF size) override;
-  void SetAlignPosition(PointF position) override;
   void SetVisibility(bool visible) override;
 
   bool IsVisible() const { return visible_; }
@@ -51,6 +50,7 @@ class MockMarkdownPlatformView : public MarkdownPlatformView {
   }
 
  protected:
+  void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
 
  public:
@@ -80,7 +80,6 @@ class MockMarkdownCustomView : public MockMarkdownPlatformView,
   void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) override;
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  SizeF GetMeasuredSize() override;
 
   MarkdownCustomViewHandle* GetCustomViewHandle() override { return this; }
 
