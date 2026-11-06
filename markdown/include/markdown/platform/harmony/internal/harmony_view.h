@@ -27,16 +27,6 @@ class HarmonyView : public MarkdownPlatformView {
 
   void Align(float left, float top) override;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
-  SizeF GetMeasuredSize() final;
-  PointF GetAlignedPosition() final;
-  void SetMeasuredSize(SizeF size) override {
-    SetMeasuredSize(static_cast<int32_t>(size.width_),
-                    static_cast<int32_t>(size.height_));
-  }
-  void SetAlignPosition(PointF position) override {
-    SetLayoutPosition(static_cast<int32_t>(position.x_),
-                      static_cast<int32_t>(position.y_));
-  }
   void SetVisibility(bool visible) final;
   void SetPadding(float padding);
   void SetPaddings(float left, float top, float right, float bottom);
@@ -46,9 +36,6 @@ class HarmonyView : public MarkdownPlatformView {
   MarginPadding GetMargins();
 
   ArkUI_IntSize GetMeasuredIntSize() { return api_->getMeasuredSize(handle_); }
-  ArkUI_IntOffset GetAlignedIntPos() {
-    return api_->getLayoutPosition(handle_);
-  }
   void Measure(ArkUI_LayoutConstraint* constraint) {
     api_->measureNode(handle_, constraint);
   }
@@ -133,6 +120,7 @@ class HarmonyView : public MarkdownPlatformView {
   void SetZIndex(int index);
 
  protected:
+  void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
   static void CustomEventDispatcher(ArkUI_NodeCustomEvent* event);
   static void NodeEventDispatcher(ArkUI_NodeEvent* event);

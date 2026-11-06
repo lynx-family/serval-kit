@@ -426,7 +426,9 @@ TEST(MarkdownViewTest, SelectionChangeRequestsSubviewDrawWithoutMeasure) {
   main_view.needs_measure_ = false;
   main_view.needs_align_ = false;
   main_view.needs_draw_ = false;
+  std::vector<SizeF> measured_sizes;
   for (auto* subview : main_view.GetSubviews()) {
+    measured_sizes.push_back(subview->measured_size_);
     subview->needs_measure_ = false;
     subview->needs_align_ = false;
     subview->needs_draw_ = false;
@@ -437,15 +439,19 @@ TEST(MarkdownViewTest, SelectionChangeRequestsSubviewDrawWithoutMeasure) {
   EXPECT_FALSE(main_view.needs_measure_);
   EXPECT_FALSE(main_view.needs_align_);
   EXPECT_TRUE(main_view.needs_draw_);
-  for (auto* subview : main_view.GetSubviews()) {
+  const auto subviews = main_view.GetSubviews();
+  for (size_t i = 0; i < subviews.size(); ++i) {
+    auto* subview = subviews[i];
     if (subview->view_name_.find("selection") != 0) {
       continue;
     }
     EXPECT_FALSE(subview->needs_measure_);
     EXPECT_FALSE(subview->needs_align_);
     EXPECT_TRUE(subview->needs_draw_);
-    EXPECT_GT(subview->measured_size_.width_, 0);
-    EXPECT_GT(subview->measured_size_.height_, 0);
+    EXPECT_GT(subview->GetBounds().GetWidth(), 0);
+    EXPECT_GT(subview->GetBounds().GetHeight(), 0);
+    EXPECT_FLOAT_EQ(subview->measured_size_.width_, measured_sizes[i].width_);
+    EXPECT_FLOAT_EQ(subview->measured_size_.height_, measured_sizes[i].height_);
   }
 }
 

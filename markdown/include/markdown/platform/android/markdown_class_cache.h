@@ -70,16 +70,13 @@ class AndroidMarkdownView : public MarkdownPlatformView {
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override {
     SetVisibility(true);
   }
-  PointF GetAlignedPosition() final;
-  SizeF GetMeasuredSize() override;
-  void SetMeasuredSize(SizeF size) final;
-  void SetAlignPosition(PointF position) final;
   void SetVisibility(bool visible) final;
   MarkdownVerticalAlign GetVerticalAlign() const override;
   float GetVerticalAlignLength() const override;
   jobject GetObject() const { return ref_.Get(); }
 
  protected:
+  void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
   android::ScopedWeakGlobalJavaRef<jobject> ref_;
 
@@ -88,12 +85,9 @@ class AndroidMarkdownView : public MarkdownPlatformView {
     jmethodID request_draw_{};
     jmethodID measure_{};
     jmethodID align_{};
-    jmethodID get_size_{};
-    jmethodID get_position_{};
     jmethodID get_vertical_align_{};
     jmethodID get_vertical_align_length_{};
-    jmethodID set_size_{};
-    jmethodID set_position_{};
+    jmethodID set_bounds_{};
     jmethodID set_visibility_{};
   } methods_;
 };
@@ -106,7 +100,6 @@ class AndroidCustomView : public AndroidMarkdownView,
   AndroidCustomView(JNIEnv* env, jobject ref);
   void AttachDrawable(std::shared_ptr<MarkdownDrawable> drawable) final;
   MarkdownCustomViewHandle* GetCustomViewHandle() final { return this; }
-  SizeF GetMeasuredSize() override;
 
  protected:
   MeasureResult OnMeasure(MeasureSpec spec) override;
@@ -130,11 +123,9 @@ class AndroidMainView : public AndroidCustomView,
   void RemoveSubView(MarkdownPlatformView* subview) final;
   void RemoveAllSubViews() final;
   RectF GetViewRectInScreen() final;
-  void UpdateCachedViewRectInScreen();
   MarkdownViewContainerHandle* GetViewContainerHandle() final { return this; }
 
  protected:
-  RectF CalculateViewRectInScreen();
   RectF cached_view_rect_in_screen_{};
 
   static struct Methods {
@@ -144,7 +135,6 @@ class AndroidMainView : public AndroidCustomView,
     jmethodID create_selection_handle_subview_{};
     jmethodID remove_subview_{};
     jmethodID remove_all_subviews_{};
-    jmethodID get_view_rect_in_screen_{};
   } methods_;
 
  private:

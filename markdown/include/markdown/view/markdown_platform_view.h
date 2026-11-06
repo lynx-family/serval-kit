@@ -31,6 +31,9 @@ class MarkdownViewContainerHandle {
       uint32_t color) = 0;
   virtual void RemoveSubView(MarkdownPlatformView* subview) = 0;
   virtual void RemoveAllSubViews() = 0;
+  // Host-visible clip in view-local layout units (points on iOS, physical pixels
+  // on Android/Harmony). The renderer intersects this rectangle with the bounds
+  // of its current document snapshot.
   virtual RectF GetViewRectInScreen() = 0;
 };
 
@@ -55,18 +58,15 @@ class MarkdownPlatformView : public MarkdownDrawable {
   void Align(float left, float top) override = 0;
   void Draw(tttext::ICanvasHelper* canvas, float x, float y) override = 0;
 
-  virtual PointF GetAlignedPosition() = 0;
-  virtual SizeF GetMeasuredSize() = 0;
-
-  virtual void SetMeasuredSize(SizeF size) = 0;
-  virtual void SetAlignPosition(PointF position) = 0;
-  void SetBounds(RectF bounds) override {
+  // Render-thread API. Updating a native view must not re-enter measure/align.
+  void SetBounds(RectF bounds) final {
+    bounds_ = bounds;
     if (!CheckValidBounds(bounds)) {
       return;
     }
-    SetMeasuredSize({bounds.GetWidth(), bounds.GetHeight()});
-    SetAlignPosition({bounds.GetLeft(), bounds.GetTop()});
+    OnSetBounds(bounds);
   }
+  const RectF& GetBounds() const { return bounds_; }
 
   virtual void SetVisibility(bool visible) = 0;
 
@@ -76,6 +76,7 @@ class MarkdownPlatformView : public MarkdownDrawable {
   virtual MarkdownCustomViewHandle* GetCustomViewHandle() { return nullptr; }
 
  protected:
+  virtual void OnSetBounds(RectF bounds) = 0;
   bool CheckValidBounds(RectF bounds) {
     const auto valid = !bounds.IsEmpty();
     if (valid != valid_bounds_) {
@@ -86,6 +87,9 @@ class MarkdownPlatformView : public MarkdownDrawable {
   }
   MeasureResult OnMeasure(MeasureSpec spec) override = 0;
   bool valid_bounds_ = true;
+
+ private:
+  RectF bounds_{};
 };
 
 }  // namespace serval::markdown

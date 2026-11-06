@@ -24,6 +24,9 @@ class MarkdownViewRenderer {
   void Draw(tttext::ICanvasHelper* canvas, float left, float top) const;
   void SetDocument(std::shared_ptr<MarkdownDocument> document);
   const std::shared_ptr<MarkdownDocument>& GetDocument() const;
+  // Render-thread viewport: the rendered page bounds intersected with the
+  // host's visible rectangle, in view-local layout units.
+  RectF GetVisibleRenderRect() const;
   void SetMainView(MarkdownPlatformView* main_view) { main_view_ = main_view; }
   void SetViewContainerHandle(MarkdownViewContainerHandle* handle);
   void SetMarkdownAnimationType(MarkdownAnimationType type);

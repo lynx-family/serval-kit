@@ -193,22 +193,25 @@ MeasureResult HarmonyView::OnMeasure(MeasureSpec spec) {
   OH_ArkUI_LayoutConstraint_SetMinHeight(constraint, 0);
   Measure(constraint);
   OH_ArkUI_LayoutConstraint_Dispose(constraint);
-  const auto size = GetMeasuredSize();
-  return {.width_ = size.width_,
-          .height_ = size.height_,
-          .baseline_ = size.height_ / 2};
+  const auto size = GetMeasuredIntSize();
+  const auto width = static_cast<float>(size.width);
+  const auto height = static_cast<float>(size.height);
+  return {.width_ = width, .height_ = height, .baseline_ = height / 2};
 }
 void HarmonyView::Align(float left, float top) {
   Layout(left, top);
 }
 void HarmonyView::Draw(tttext::ICanvasHelper* canvas, float x, float y) {}
-SizeF HarmonyView::GetMeasuredSize() {
-  auto size = GetMeasuredIntSize();
-  return SizeF{static_cast<float>(size.width), static_cast<float>(size.height)};
-}
-PointF HarmonyView::GetAlignedPosition() {
-  auto pos = GetAlignedIntPos();
-  return PointF{static_cast<float>(pos.x), static_cast<float>(pos.y)};
+void HarmonyView::OnSetBounds(RectF bounds) {
+  // Apply actual geometry in px, including custom nodes created after layout.
+  // NODE_SIZE only sets a layout property and requires another measure pass.
+  ArkUI_NumberValue values[] = {
+      {.i32 = static_cast<int32_t>(bounds.GetLeft())},
+      {.i32 = static_cast<int32_t>(bounds.GetTop())},
+      {.i32 = static_cast<int32_t>(bounds.GetWidth())},
+      {.i32 = static_cast<int32_t>(bounds.GetHeight())}};
+  ArkUI_AttributeItem item = {values, 4};
+  api_->setAttribute(handle_, NODE_LAYOUT_RECT, &item);
 }
 void HarmonyView::SetVisibility(bool visible) {
   SetVisibility(visible ? ARKUI_VISIBILITY_VISIBLE : ARKUI_VISIBILITY_HIDDEN);

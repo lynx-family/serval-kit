@@ -22,16 +22,8 @@ class AndroidServalMarkdownView : public AndroidMainView {
   void SetMeasurer(AndroidMarkdownMeasurer* measurer);
   MarkdownView* GetMarkdownView();
 
-  void OnRendererFrame(int64_t time);
-  // UI-thread API. When enabled, frames retain the host-supplied render region.
-  // Disabling restores automatic region calculation on the next frame.
-  void SetExternalRenderRegion(bool external);
-  // Supply the visible rectangle in view-local physical pixels before rendering
-  // a frame with external render-region control enabled.
-  void SetRenderRegion(RectF region);
-
- private:
-  bool external_render_region_{false};
+  // UI-thread API. The host supplies its visible clip with each frame.
+  void OnRendererFrame(int64_t time, RectF host_visible_rect);
 };
 
 }  // namespace serval::markdown

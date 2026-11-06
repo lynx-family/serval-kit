@@ -112,8 +112,8 @@ void MarkdownInlineViewRunDelegate::SetBounds(RectF bounds) {
   if (!visible_) {
     return;
   }
-  [handle_ setSize:bounds.GetWidth() height:bounds.GetHeight()];
-  [handle_ setPosition:bounds.GetLeft() top:bounds.GetTop()];
+  [handle_ setRenderBounds:CGRectMake(bounds.GetLeft(), bounds.GetTop(),
+                                      bounds.GetWidth(), bounds.GetHeight())];
 }
 
 MarkdownVerticalAlign MarkdownInlineViewRunDelegate::GetVerticalAlign() const {

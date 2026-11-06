@@ -504,29 +504,15 @@ Java_com_lynx_markdown_MarkdownMeasurer_nativeOnLayoutFrame(JNIEnv* env,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(JNIEnv* env,
-                                                                jobject thiz,
-                                                                jlong instance,
-                                                                jlong time) {
+Java_com_lynx_markdown_ServalMarkdownView_nativeOnRendererFrame(
+    JNIEnv* env, jobject thiz, jlong instance, jlong time, jfloat left,
+    jfloat top, jfloat right, jfloat bottom) {
   if (instance == 0) {
     return;
   }
   auto* view = ConvertPlatformView(instance);
-  view->OnRendererFrame(time);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetExternalRenderRegion(
-    JNIEnv* env, jobject thiz, jlong instance, jboolean external) {
-  ConvertPlatformView(instance)->SetExternalRenderRegion(external);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_lynx_markdown_ServalMarkdownView_nativeSetRenderRegion(
-    JNIEnv* env, jobject thiz, jlong instance, jfloat left, jfloat top,
-    jfloat right, jfloat bottom) {
-  ConvertPlatformView(instance)->SetRenderRegion(
-      serval::markdown::RectF::MakeLTRB(left, top, right, bottom));
+  view->OnRendererFrame(
+      time, serval::markdown::RectF::MakeLTRB(left, top, right, bottom));
 }
 
 extern "C" JNIEXPORT jint JNICALL

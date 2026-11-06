@@ -182,6 +182,7 @@ void SkityDemo::Render(skity::Canvas* canvas, int64_t now_ms) {
 
   MeasureAndAlignIfNeeded();
   SyncViewportState();
+  root_view_.SetBounds(RectF::MakeLTWH(0, 0, LayoutWidth(), content_height_));
 
   SkityMarkdownCanvas markdown_canvas(canvas);
   const auto content_left = ContentLeft();
@@ -504,7 +505,6 @@ void SkityDemo::MeasureAndAlignIfNeeded() {
                                  .height_ = kSkityDemoHeight,
                                  .height_mode_ = tttext::LayoutMode::kAtMost});
     content_height_ = std::max(result.height_, ViewportHeight());
-    root_view_.SetMeasuredSize({layout_width, content_height_});
     ClampScrollY();
     root_view_.Align(0, 0);
   }

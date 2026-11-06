@@ -147,6 +147,29 @@ void MarkdownViewRenderer::SetDocument(
   if (document_changed) {
     RebindRegionViews();
   }
+  if (document_ != nullptr) {
+    // Publish child geometry on the render thread, independently of Align().
+    const auto update_bounds = [](MarkdownDrawable* drawable, PointF origin) {
+      drawable->SetBounds(
+          RectF::MakeLTWH(origin.x_, origin.y_, drawable->GetAdvance(),
+                          drawable->GetDescent() - drawable->GetAscent()));
+    };
+    for (const auto& view : document_->GetInlineViews()) {
+      if (view.view_ != nullptr) {
+        update_bounds(view.view_, document_->GetElementOrigin(
+                                      view.char_index_, view.is_block_view_));
+      }
+    }
+    for (const auto& image : document_->GetImages()) {
+      if (image.image_ != nullptr) {
+        update_bounds(image.image_,
+                      document_->GetElementOrigin(image.char_index_));
+      }
+    }
+    if (const auto truncation = document_->GetTruncationDelegate()) {
+      update_bounds(truncation.get(), document_->GetTruncationOrigin());
+    }
+  }
   region_views_dirty_ = true;
   full_redraw_required_ = true;
   has_last_view_rect_ = false;
@@ -154,6 +177,29 @@ void MarkdownViewRenderer::SetDocument(
 const std::shared_ptr<MarkdownDocument>& MarkdownViewRenderer::GetDocument()
     const {
   return document_;
+}
+
+RectF MarkdownViewRenderer::GetVisibleRenderRect() const {
+  if (document_ == nullptr || handle_ == nullptr) {
+    return RectF::MakeEmpty();
+  }
+  const auto& page = document_->GetPage();
+  if (page == nullptr) {
+    return RectF::MakeEmpty();
+  }
+  const auto host_rect = handle_->GetViewRectInScreen();
+  const float left = std::max(0.0f, host_rect.GetLeft());
+  const float top = std::max(0.0f, host_rect.GetTop());
+  const float right =
+      std::min(std::min(page->GetLayoutWidth(), page->GetMaxWidth()),
+               host_rect.GetRight());
+  const float bottom =
+      std::min(std::min(page->GetLayoutHeight(), page->GetMaxHeight()),
+               host_rect.GetBottom());
+  if (right <= left || bottom <= top) {
+    return RectF::MakeEmpty();
+  }
+  return RectF::MakeLTRB(left, top, right, bottom);
 }
 
 void MarkdownViewRenderer::SetViewContainerHandle(
@@ -231,8 +277,7 @@ void MarkdownViewRenderer::UpdateSubViewRect(MarkdownPlatformView* view,
   if (view == nullptr) {
     return;
   }
-  view->SetMeasuredSize({rect.GetWidth(), rect.GetHeight()});
-  view->SetAlignPosition({rect.GetLeft(), rect.GetTop()});
+  view->SetBounds(rect);
 }
 std::shared_ptr<MarkdownPlatformView> MarkdownViewRenderer::CreateRegionView(
     bool scroll_x) {
@@ -368,7 +413,8 @@ bool MarkdownViewRenderer::NeedUseRegionView() const {
 }
 bool MarkdownViewRenderer::NeedUpdateVisibleRegionViews(
     const RectF& view_rect) const {
-  if (region_views_dirty_ || !has_last_view_rect_) {
+  if (region_views_dirty_ || !has_last_view_rect_ ||
+      view_rect.IsEmpty() != last_view_rect_.IsEmpty()) {
     return true;
   }
   const float top_diff = view_rect.GetTop() - last_view_rect_.GetTop();
@@ -396,7 +442,7 @@ void MarkdownViewRenderer::UpdateVisibleRegionViews(RectF view_rect) {
     return;
   }
   auto page = document_->GetPage();
-  if (page == nullptr) {
+  if (page == nullptr || view_rect.IsEmpty()) {
     RemoveAllRegionViews();
     return;
   }
@@ -514,7 +560,7 @@ void MarkdownViewRenderer::UpdateRegionViewsByViewRect() {
     RemoveAllRegionViews();
     return;
   }
-  const auto view_rect = handle_->GetViewRectInScreen();
+  const auto view_rect = GetVisibleRenderRect();
   if (NeedUpdateVisibleRegionViews(view_rect)) {
     UpdateVisibleRegionViews(view_rect);
     last_view_rect_ = view_rect;

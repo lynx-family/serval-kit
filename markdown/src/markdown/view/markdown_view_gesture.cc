@@ -83,10 +83,9 @@ void MarkdownViewGesture::SetSelectionHandleSize(float size) {
   if (selection_handles_.left_ != nullptr) {
     GetSelectionHandle(selection_handles_.left_)
         ->SetSize(selection_handle_size_);
-    selection_handles_.left_->Measure(MeasureSpec{});
     GetSelectionHandle(selection_handles_.right_)
         ->SetSize(selection_handle_size_);
-    selection_handles_.right_->Measure(MeasureSpec{});
+    UpdateSelectionViews();
   }
 }
 
@@ -275,10 +274,10 @@ bool MarkdownViewGesture::HitTestSelectionHandle(
     if (view == nullptr) {
       return false;
     }
-    const auto origin = view->GetAlignedPosition();
-    const auto size = view->GetMeasuredSize();
-    return RectF::MakeLTWH(origin.x_ - margin, origin.y_ - margin,
-                           size.width_ + 2 * margin, size.height_ + 2 * margin)
+    const auto& bounds = view->GetBounds();
+    return RectF::MakeLTWH(bounds.GetLeft() - margin, bounds.GetTop() - margin,
+                           bounds.GetWidth() + 2 * margin,
+                           bounds.GetHeight() + 2 * margin)
         .Contains(point.x_, point.y_);
   };
   if (hit_handle(selection_handles_.left_, position,
@@ -679,13 +678,11 @@ void MarkdownViewGesture::CreateSelectionHandles() {
       SelectionHandleType::kLeftHandle, selection_handle_size_,
       selection_handle_color_);
   GetSelectionHandle(selection_handles_.left_)->SetMarkdownContext(context_);
-  selection_handles_.left_->Measure(MeasureSpec{});
   selection_handles_.left_->SetVisibility(false);
   selection_handles_.right_ = handle_->CreateSelectionHandleSubView(
       SelectionHandleType::kRightHandle, selection_handle_size_,
       selection_handle_color_);
   GetSelectionHandle(selection_handles_.right_)->SetMarkdownContext(context_);
-  selection_handles_.right_->Measure(MeasureSpec{});
   selection_handles_.right_->SetVisibility(false);
 }
 

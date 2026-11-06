@@ -26,21 +26,12 @@ MarkdownView* AndroidServalMarkdownView::GetMarkdownView() {
   return static_cast<MarkdownView*>(drawable_.get());
 }
 
-void AndroidServalMarkdownView::OnRendererFrame(int64_t time) {
-  if (!external_render_region_) {
-    UpdateCachedViewRectInScreen();
-  }
+void AndroidServalMarkdownView::OnRendererFrame(int64_t time,
+                                                RectF host_visible_rect) {
+  cached_view_rect_in_screen_ = host_visible_rect;
   if (auto* markdown_view = GetMarkdownView(); markdown_view != nullptr) {
     markdown_view->OnRendererFrame(time);
   }
-}
-
-void AndroidServalMarkdownView::SetExternalRenderRegion(bool external) {
-  external_render_region_ = external;
-}
-
-void AndroidServalMarkdownView::SetRenderRegion(RectF region) {
-  cached_view_rect_in_screen_ = region;
 }
 
 }  // namespace serval::markdown
