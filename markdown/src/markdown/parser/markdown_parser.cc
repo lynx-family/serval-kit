@@ -368,6 +368,8 @@ void MarkdownConverter::ConvertTableCell(MarkdownDomNode* node) {
   PushInlineState(type);
   auto para = tttext::Paragraph::Create();
   para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
+  para->GetParagraphStyle().SetHorizontalAlign(
+      ConvertHorizontalAlignment(alignment));
   context_.GetTable()->SetCell(
       context_.row_index_, context_.col_index_,
       MarkdownTableCell{
