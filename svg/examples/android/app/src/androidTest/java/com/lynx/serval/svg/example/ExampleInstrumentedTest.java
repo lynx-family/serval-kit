@@ -52,6 +52,47 @@ public class ExampleInstrumentedTest {
   }
 
   @Test
+  public void svgTextY_isAlignedToTheFirstLineBaseline() {
+    String content =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" " +
+        "height=\"100\"><text x=\"10\" y=\"60\" font-size=\"40\" " +
+        "fill=\"#000000\">Hx</text></svg>";
+    Rect viewPort = new Rect(0, 0, 200, 100);
+    SVGRender.SVGRenderResult result =
+        new SVGRender().renderPictureWithResult(content, viewPort);
+    assertTrue("render diagnostics should be empty",
+               result.diagnostics.isEmpty());
+
+    Bitmap bitmap = Bitmap.createBitmap(200, 100, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+    canvas.drawColor(Color.WHITE);
+    result.picture.draw(canvas);
+
+    boolean hasTextAboveBaseline = false;
+    for (int y = 0; y < 60 && !hasTextAboveBaseline; y++) {
+      for (int x = 0; x < bitmap.getWidth(); x++) {
+        int pixel = bitmap.getPixel(x, y);
+        if (Color.red(pixel) < 128 && Color.green(pixel) < 128 &&
+            Color.blue(pixel) < 128) {
+          hasTextAboveBaseline = true;
+          break;
+        }
+      }
+    }
+    assertTrue("text should be visible above y=60", hasTextAboveBaseline);
+
+    for (int y = 64; y < bitmap.getHeight(); y++) {
+      for (int x = 0; x < bitmap.getWidth(); x++) {
+        int pixel = bitmap.getPixel(x, y);
+        assertTrue("glyphs should not extend below y=60 (x=" + x + ", y=" +
+                       y + ")",
+                   Color.red(pixel) >= 128 || Color.green(pixel) >= 128 ||
+                       Color.blue(pixel) >= 128);
+      }
+    }
+  }
+
+  @Test
   public void maskExampleAsset_isPackagedInAssets() throws IOException {
     Context appContext =
         InstrumentationRegistry.getInstrumentation().getTargetContext();
