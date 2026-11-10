@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -12,6 +13,7 @@
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/element/markdown_run_delegates.h"
 #include "markdown/element/markdown_table.h"
+#include "markdown/layout/markdown_layout.h"
 #include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/parser/markdown_dom_node.h"
 #include "markdown/style/markdown_style_initializer.h"
@@ -230,6 +232,76 @@ TEST(MarkdownConverterTest, UsesPerCellHeaderAndAlignmentMetadata) {
             tttext::ParagraphHorizontalAlignment::kStart);
   EXPECT_EQ(converted_table->GetCell(0, 2).alignment_,
             tttext::ParagraphHorizontalAlignment::kJustify);
+
+  for (const auto& position :
+       {std::pair{0, 0}, std::pair{0, 1}, std::pair{0, 2}, std::pair{1, 0},
+        std::pair{1, 1}}) {
+    const auto& cell =
+        converted_table->GetCell(position.first, position.second);
+    EXPECT_EQ(cell.paragraph_->GetParagraphStyle().GetHorizontalAlign(),
+              cell.alignment_);
+  }
+}
+
+TEST(MarkdownConverterTest, AlignsTableHeaderAndBodyText) {
+  const std::pair<MarkdownTextAlign, float> alignments[] = {
+      {MarkdownTextAlign::kUndefined, 0},
+      {MarkdownTextAlign::kLeft, 0},
+      {MarkdownTextAlign::kCenter, 0.5f},
+      {MarkdownTextAlign::kRight, 1},
+  };
+  for (const auto& [alignment, offset_ratio] : alignments) {
+    for (float width : {200.0f, 60.0f}) {
+      SCOPED_TRACE(static_cast<int>(alignment));
+      SCOPED_TRACE(width);
+      MockMarkdownResourceLoader loader;
+      auto document = MakeDocument(&loader);
+      document->SetMaxSize(width, 400);
+      auto style = document->GetStyle();
+      style.table_.block_.min_width_ = width;
+      document->SetStyle(style);
+
+      MarkdownDomNode root(MarkdownDomType::kSource);
+      MarkdownDomTable table;
+      table.SetAligns({alignment});
+      MarkdownDomNode header_row(MarkdownDomType::kTableRow);
+      MarkdownDomNode body_row(MarkdownDomType::kTableRow);
+      MarkdownDomTableCell header_cell;
+      MarkdownDomTableCell body_cell;
+      MarkdownDomRawText header_text(MarkdownDomType::kRawText);
+      MarkdownDomRawText body_text(MarkdownDomType::kRawText);
+      header_cell.SetHeader(true);
+      AppendText(&header_cell, &header_text, "HEADER");
+      AppendText(&body_cell, &body_text, "X");
+      header_row.AppendChild(&header_cell);
+      body_row.AppendChild(&body_cell);
+      table.AppendChild(&header_row);
+      table.AppendChild(&body_row);
+      root.AppendChild(&table);
+
+      TestMarkdownParserImpl::ConvertDomTree(document.get(), &root);
+      MarkdownLayout layout(document.get());
+      layout.Layout(width, 400, -1);
+
+      auto page = document->GetPage();
+      ASSERT_EQ(page->GetRegionCount(), 1u);
+      const auto* table_region =
+          static_cast<MarkdownPageTableRegion*>(page->GetRegion(0));
+      ASSERT_NE(table_region->table_, nullptr);
+      for (int row = 0; row < 2; ++row) {
+        const auto& cell = table_region->table_->GetCell(row, 0);
+        ASSERT_NE(cell.region_, nullptr);
+        EXPECT_EQ(cell.region_->GetLineCount() > 1, row == 0 && width == 60);
+        for (uint32_t line_index = 0; line_index < cell.region_->GetLineCount();
+             ++line_index) {
+          const auto* line = cell.region_->GetLine(line_index);
+          const float available_space =
+              cell.region_->GetPageWidth() - line->GetLineWidth();
+          EXPECT_FLOAT_EQ(line->GetLineLeft(), available_space * offset_ratio);
+        }
+      }
+    }
+  }
 }
 
 TEST(MarkdownConverterTest, AppliesListBlockStyleToEveryListItem) {
