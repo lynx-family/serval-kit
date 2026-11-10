@@ -1,8 +1,10 @@
 # Serval Kit
 
-Serval Kit aims to build a cross‑platform, general‑purpose UI component library for multi‑device scenarios. By providing unified rendering and interaction capabilities, it enables consistent experiences and efficient delivery across platforms. At this stage, the project focuses on SVG and Markdown, delivering reliable solutions for vector graphics and rich‑text rendering in mobile and cross‑platform applications, laying a foundation for future component expansion and ecosystem growth.
+Serval Kit aims to build a cross‑platform, general‑purpose UI component library for multi‑device scenarios. By providing unified rendering and interaction capabilities, it enables consistent experiences and efficient delivery across platforms. At this stage, the project includes SVG, Markdown, and native Sheet presentation, delivering reliable solutions for vector graphics and rich‑text rendering in mobile and cross‑platform applications, laying a foundation for future component expansion and ecosystem growth.
 
 ## Project Structure
+- sheet: Shared native Sheet presentation, interaction, and Lynx content hosting
+  - API, integration, and tests: [Native Sheet](sheet/README.md)
 - markdown: Core Markdown renderer and platform adaptation
   - Headers and core implementation: [include](https://github.com/lynx-family/serval-kit/tree/main/markdown/include) and [src](https://github.com/lynx-family/serval-kit/tree/main/markdown/src)
   - Platform bindings: Android, iOS, HarmonyOS: [platform](https://github.com/lynx-family/serval-kit/tree/main/markdown/platform)
