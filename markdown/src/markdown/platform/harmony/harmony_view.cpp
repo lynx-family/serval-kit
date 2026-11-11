@@ -240,22 +240,37 @@ EtsViewHolder::~EtsViewHolder() {
   }
 }
 MeasureResult EtsViewHolder::OnMeasure(MeasureSpec spec) {
-  // Measure content independently of the holder's render-only layout rect.
-  const auto size = MeasureNode(child_, spec);
-  SetMeasuredSize(static_cast<int32_t>(size.width_),
-                  static_cast<int32_t>(size.height_));
-  return size;
+  // The holder's layout rect can override ArkUI's incoming constraints. Keep
+  // Markdown's constraints separately for the child, but measure the holder
+  // through ArkUI so its geometry is only written in the custom measure callback.
+  child_measure_spec_ = spec;
+  // ArkUI cannot observe changes to the cached spec, and may otherwise skip
+  // the callback when the holder's layout rect has not changed.
+  MarkNeedsMeasure();
+  MeasureNode(handle_, spec);
+  return child_measure_result_;
 }
 void EtsViewHolder::OnMeasure(ArkUI_LayoutConstraint* constraint) {
-  api_->measureNode(child_, constraint);
-  auto child_size = api_->getMeasuredSize(child_);
-  if (child_size.width > 1e5 || child_size.height > 1e5) {
-    OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
-                 "ets view measure too large, width:%d, height:%d",
-                 child_size.width, child_size.height);
+  if (child_measure_spec_) {
+    child_measure_result_ = MeasureNode(child_, *child_measure_spec_);
+  } else {
+    // ArkUI can measure a newly attached holder before Markdown supplies a spec.
+    api_->measureNode(child_, constraint);
+    const auto size = api_->getMeasuredSize(child_);
+    child_measure_result_ = {.width_ = static_cast<float>(size.width),
+                             .height_ = static_cast<float>(size.height)};
   }
-  SetMeasuredSize(std::min(100000, child_size.width),
-                  std::min(100000, child_size.height));
+  if (child_measure_result_.width_ > 1e5f ||
+      child_measure_result_.height_ > 1e5f) {
+    OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",
+                 "ets view measure too large, width:%f, height:%f",
+                 child_measure_result_.width_, child_measure_result_.height_);
+  }
+  child_measure_result_.width_ = std::min(1e5f, child_measure_result_.width_);
+  child_measure_result_.height_ = std::min(1e5f, child_measure_result_.height_);
+  child_measure_result_.baseline_ = child_measure_result_.height_ / 2;
+  SetMeasuredSize(static_cast<int32_t>(child_measure_result_.width_),
+                  static_cast<int32_t>(child_measure_result_.height_));
 }
 void EtsViewHolder::OnLayout(int32_t offset_x, int32_t offset_y) {
   SetLayoutPosition(offset_x, offset_y);
