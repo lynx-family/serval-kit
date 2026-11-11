@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <list>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "arkui/native_type.h"
@@ -156,6 +157,8 @@ class EtsViewHolder : public HarmonyView {
 
  private:
   ArkUI_NodeHandle child_;
+  std::optional<MeasureSpec> child_measure_spec_;
+  MeasureResult child_measure_result_{};
 };
 
 class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
