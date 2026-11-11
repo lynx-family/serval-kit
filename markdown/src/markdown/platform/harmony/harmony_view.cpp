@@ -180,6 +180,10 @@ void HarmonyView::SetFloatsAttribute(ArkUI_NodeAttributeType type, float* v,
 }
 
 MeasureResult HarmonyView::OnMeasure(MeasureSpec spec) {
+  return MeasureNode(handle_, spec);
+}
+MeasureResult HarmonyView::MeasureNode(ArkUI_NodeHandle node,
+                                       MeasureSpec spec) {
   auto* constraint = OH_ArkUI_LayoutConstraint_Create();
   OH_ArkUI_LayoutConstraint_SetPercentReferenceWidth(
       constraint, static_cast<int32_t>(std::min(1e5f, spec.width_)));
@@ -191,9 +195,9 @@ MeasureResult HarmonyView::OnMeasure(MeasureSpec spec) {
                                          static_cast<int32_t>(1e5f));
   OH_ArkUI_LayoutConstraint_SetMinWidth(constraint, 0);
   OH_ArkUI_LayoutConstraint_SetMinHeight(constraint, 0);
-  Measure(constraint);
+  api_->measureNode(node, constraint);
   OH_ArkUI_LayoutConstraint_Dispose(constraint);
-  const auto size = GetMeasuredIntSize();
+  const auto size = api_->getMeasuredSize(node);
   const auto width = static_cast<float>(size.width);
   const auto height = static_cast<float>(size.height);
   return {.width_ = width, .height_ = height, .baseline_ = height / 2};
@@ -222,12 +226,25 @@ void HarmonyView::SetZIndex(int index) {
 }
 
 EtsViewHolder::EtsViewHolder(ArkUI_NodeHandle child) : child_(child) {
+  if (const auto parent = api_->getParent(child_); parent != nullptr) {
+    api_->removeChild(parent, child_);
+  }
   api_->addChild(handle_, child_);
   RequestCustomLayout();
   RequestCustomMeasure();
 }
 EtsViewHolder::~EtsViewHolder() {
-  api_->removeChild(handle_, child_);
+  // A new document may already have reparented the same ArkTS content.
+  if (api_->getParent(child_) == handle_) {
+    api_->removeChild(handle_, child_);
+  }
+}
+MeasureResult EtsViewHolder::OnMeasure(MeasureSpec spec) {
+  // Measure content independently of the holder's render-only layout rect.
+  const auto size = MeasureNode(child_, spec);
+  SetMeasuredSize(static_cast<int32_t>(size.width_),
+                  static_cast<int32_t>(size.height_));
+  return size;
 }
 void EtsViewHolder::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   api_->measureNode(child_, constraint);

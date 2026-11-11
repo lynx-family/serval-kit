@@ -122,6 +122,7 @@ class HarmonyView : public MarkdownPlatformView {
  protected:
   void OnSetBounds(RectF bounds) override;
   MeasureResult OnMeasure(MeasureSpec spec) override;
+  MeasureResult MeasureNode(ArkUI_NodeHandle node, MeasureSpec spec);
   static void CustomEventDispatcher(ArkUI_NodeCustomEvent* event);
   static void NodeEventDispatcher(ArkUI_NodeEvent* event);
   void RequestCustomMeasure();
@@ -149,6 +150,9 @@ class EtsViewHolder : public HarmonyView {
   ~EtsViewHolder() override;
   void OnMeasure(ArkUI_LayoutConstraint* constraint) override;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override;
 
  private:
   ArkUI_NodeHandle child_;
