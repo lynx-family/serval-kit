@@ -41,11 +41,10 @@ struct NativeMarkdownMeasurerHolder {
   std::unique_ptr<NativeMarkdownMeasurer> measurer_;
 };
 struct NativeMarkdownViewHolder {
-  NativeMarkdownViewHolder()
-      : view_(std::make_unique<NativeServalMarkdownView>(false)) {
+  NativeMarkdownViewHolder() : view_(NativeServalMarkdownView::Create(false)) {
     view_->SetClipByParent(false);
   }
-  std::unique_ptr<NativeServalMarkdownView> view_;
+  std::shared_ptr<NativeServalMarkdownView> view_;
 };
 
 NativeMarkdownMeasurerHolder* UnwrapMeasurer(napi_env env, napi_value value) {

@@ -4,7 +4,6 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -20,15 +19,15 @@
 namespace serval::markdown {
 class IHarmonyResourceLoader;
 class NativeMarkdownMeasurer;
-class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
-                                          public MarkdownViewContainerHandle,
-                                          public HarmonyVSyncCallback {
+class L_EXPORT NativeServalMarkdownView
+    : public HarmonyCustomView,
+      public MarkdownViewContainerHandle,
+      public HarmonyVSyncCallback,
+      public std::enable_shared_from_this<NativeServalMarkdownView> {
  public:
   static void InitEnv(napi_env env);
-
- public:
-  NativeServalMarkdownView();
-  explicit NativeServalMarkdownView(bool create_measurer);
+  static std::shared_ptr<NativeServalMarkdownView> Create(
+      bool create_measurer = true);
   ~NativeServalMarkdownView() override;
   bool SetMeasurer(NativeMarkdownMeasurer* measurer);
   void DetachMeasurer();
@@ -85,6 +84,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
  protected:
   friend class NativeMarkdownMeasurer;
 
+  explicit NativeServalMarkdownView(bool create_measurer);
   MeasureResult MeasureDrawable(MeasureSpec spec) override;
 
   RectF CalculateViewRectInScreen();
@@ -96,6 +96,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   static ArkUI_GestureInterruptResult GestureInterruptDispatcher(
       ArkUI_GestureInterruptInfo* info);
 
+  // Call from the factory once the view has a shared owner.
   void SetupGestures();
   void DisposeGestures();
   virtual bool OnTapGesture(PointF position, GestureEventType event);
@@ -110,12 +111,12 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
       view_cache_;
   std::unordered_map<MarkdownPlatformView*, ArkUI_NodeHandle> handle_cache_;
   RectF cached_view_rect_in_screen_{};
+  void* gesture_token_{nullptr};
   ArkUI_GestureRecognizer* long_press_pan_group_{nullptr};
   ArkUI_GestureRecognizer* long_press_{nullptr};
   ArkUI_GestureRecognizer* tap_{nullptr};
   ArkUI_GestureRecognizer* pan_{nullptr};
   bool pan_tracking_{false};
-  std::atomic_bool destroyed_{false};
   std::unique_ptr<NativeMarkdownMeasurer> owned_measurer_;
   NativeMarkdownMeasurer* measurer_{nullptr};
   bool internal_vsync_disabled_{false};

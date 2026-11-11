@@ -32,9 +32,10 @@ A host that owns layout and rendering on separate threads should:
 1. Create and update the measurer on the layout thread. Install native resource
    and event adapters before measuring. Resource adapters used off the UI thread
    must avoid creating or measuring ArkUI nodes there.
-2. Create `NativeServalMarkdownView(false)` on the UI thread and attach the
+2. Call `NativeServalMarkdownView::Create(false)` on the UI thread and attach the
    measurer with `SetMeasurer()`. One measurer can be attached to one view at a
-   time. Keep it alive until the view has detached.
+   time. Keep it alive until the view has detached. Each gesture callback holds
+   the view until it returns. The view unregisters its gestures on destruction.
 3. Call `DisableInternalVSync(true)` and `SetExternalMeasure(true)` on the UI
    thread. Both options are explicit; standalone views retain their existing
    automatic layout and frame handling by default.
