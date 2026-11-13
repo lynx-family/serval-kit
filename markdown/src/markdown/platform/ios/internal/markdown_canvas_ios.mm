@@ -373,25 +373,26 @@ CGPathDrawingMode MarkdownCanvasIOS::ApplyPainterStyle(
   CGPathDrawingMode mode = kCGPathFillStroke;
   auto fill_color = painter->GetFillColor();
   auto stroke_color = painter->GetStrokeColor();
-  if (fill_color != TTColor::UNDEFINED && stroke_color != TTColor::UNDEFINED) {
+  if (fill_color != tttext::TTColor::UNDEFINED &&
+      stroke_color != tttext::TTColor::UNDEFINED) {
     mode = kCGPathFillStroke;
     CGContextSetTextDrawingMode(context_, kCGTextFillStroke);
   } else {
-    if (fill_color != TTColor::UNDEFINED) {
+    if (fill_color != tttext::TTColor::UNDEFINED) {
       mode = kCGPathFill;
       CGContextSetTextDrawingMode(context_, kCGTextFill);
     }
-    if (stroke_color != TTColor::UNDEFINED) {
+    if (stroke_color != tttext::TTColor::UNDEFINED) {
       mode = kCGPathStroke;
       CGContextSetTextDrawingMode(context_, kCGTextStroke);
     }
   }
-  if (fill_color != TTColor::UNDEFINED) {
+  if (fill_color != tttext::TTColor::UNDEFINED) {
     CGContextSetRGBFillColor(
         context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
         fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
   }
-  if (stroke_color != TTColor::UNDEFINED) {
+  if (stroke_color != tttext::TTColor::UNDEFINED) {
     CGContextSetRGBStrokeColor(
         context_, stroke_color.GetRedRatio(), stroke_color.GetGreenRatio(),
         stroke_color.GetBlueRatio(), stroke_color.GetAlphaRatio());
