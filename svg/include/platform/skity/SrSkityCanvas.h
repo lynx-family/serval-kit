@@ -16,6 +16,7 @@
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGPatternResolver.h"
+#include "platform/skity/SrSkityFilterGraph.h"
 #include "skity/effect/image_filter.hpp"
 #include "skity/render/canvas.hpp"
 
@@ -78,7 +79,11 @@ class SrSkityCanvas : public canvas::SrCanvas {
  public:
   using ImageCallback =
       std::function<std::shared_ptr<::skity::Image>(std::string)>;
-  explicit SrSkityCanvas(::skity::Canvas* canvas, ImageCallback callback);
+  // Pass the destination surface's content scale, including for recorded
+  // canvases. The default is for surfaces rasterized at one physical pixel
+  // per logical unit; the canvas matrix scale is accounted for separately.
+  explicit SrSkityCanvas(::skity::Canvas* canvas, ImageCallback callback,
+                         float content_scale = 1.f);
 
   void SetRenderContext(const SrSVGRenderContext* context) override {
     current_render_context_ = context;
@@ -163,7 +168,11 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void PopTransformState();
 
  private:
+  struct FilterCapture;
+  std::vector<std::unique_ptr<FilterCapture>> filter_captures_;
+  std::vector<SrSkityFilterGraph::Cost> filter_costs_;
   ::skity::Canvas* canvas_{nullptr};
+  float content_scale_{1.f};
   ImageCallback image_callback_;
   std::unique_ptr<SrPathFactorySkity> path_factory_;
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;

@@ -977,7 +977,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "partial"),
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
                 supported_attributes=[
                     "id",
                     "x",
@@ -999,7 +999,8 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 notes=[
                     "The shared SVG layer resolves the W3C filter region and builds a FilterModel for filter primitives.",
                     "Filter execution only happens when the canvas backend supports the generated FilterModel.",
-                    "At present only Skity exposes a runtime filter executor, and it is limited to single-input linear chains.",
+                    "Skity Metal executes bounded filter graphs; Android, iOS and Harmony retain supported linear SourceGraphic chains.",
+                    "Skity graph admission uses affine transform basis lengths and the destination surface content scale for physical workspace estimates.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1008,6 +1009,9 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "svg/include/canvas/SrCanvas.h",
                     "svg/include/platform/skity/SrSkityCanvas.h",
                     "svg/platform/skity/SrSkityCanvas.cc",
+                    "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+                    "svg/platform/iOS/SrIOSCanvas.mm",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
                 ],
             ),
         ),
@@ -1020,7 +1024,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "partial"),
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
                 supported_attributes=[
                     "stdDeviation",
                     "in",
@@ -1034,38 +1038,42 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     [
                         (
                             "in",
-                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                            "Skity Metal accepts SourceGraphic, SourceAlpha, the previous result and named earlier results within the bounded graph contract; other backends require linear SourceGraphic chains.",
                         ),
                         (
                             "result",
-                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                            "Skity Metal executes named intermediate results within bounded filter graphs; other backends require linear chains.",
                         ),
                         (
                             "x",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "y",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "width",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "height",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                     ]
                 ),
                 parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity can execute feGaussianBlur in supported single-input linear chains.",
+                    "Skity can execute feGaussianBlur in bounded Metal filter graphs; other backends retain supported linear chains.",
+                    "Skity clips blur output after sampling its input; finite negative deviations disable the blur primitive while preserving the remaining chain.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
                     "svg/platform/skity/SrSkityCanvas.cc",
+                    "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+                    "svg/platform/iOS/SrIOSCanvas.mm",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
                 ],
             ),
         ),
@@ -1078,7 +1086,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "partial"),
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
                 supported_attributes=[
                     "dx",
                     "dy",
@@ -1093,38 +1101,42 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     [
                         (
                             "in",
-                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                            "Skity Metal accepts SourceGraphic, SourceAlpha, the previous result and named earlier results within the bounded graph contract; other backends require linear SourceGraphic chains.",
                         ),
                         (
                             "result",
-                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                            "Skity Metal executes named intermediate results within bounded filter graphs; other backends require linear chains.",
                         ),
                         (
                             "x",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "y",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "width",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "height",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                     ]
                 ),
                 parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity can execute feOffset in supported single-input linear chains.",
+                    "Skity can execute feOffset in bounded Metal filter graphs; other backends retain supported linear chains.",
+                    "Harmony requires native offset image-filter availability for non-zero feOffset.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
                     "svg/platform/skity/SrSkityCanvas.cc",
+                    "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+                    "svg/platform/iOS/SrIOSCanvas.mm",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
                 ],
             ),
         ),
@@ -1137,7 +1149,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "partial"),
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
                 supported_attributes=[
                     "type",
                     "values",
@@ -1152,42 +1164,45 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     [
                         (
                             "type",
-                            "Skity executes matrix and luminanceToAlpha color matrices in supported linear chains; other color matrix types are parsed but not executed.",
+                            "Matrix and luminanceToAlpha are supported in linear chains; Skity Metal additionally accepts bounded graphs. Other matrix types are not executed.",
                         ),
                         (
                             "in",
-                            "Filter graph input is resolved in the shared FilterModel, but Skity currently executes only SourceGraphic-rooted single-input linear chains.",
+                            "Skity Metal accepts SourceGraphic, SourceAlpha, the previous result and named earlier results within the bounded graph contract; other backends require linear SourceGraphic chains.",
                         ),
                         (
                             "result",
-                            "Filter result chaining is resolved in the shared FilterModel, but backend execution is still limited to supported linear chains.",
+                            "Skity Metal executes named intermediate results within bounded filter graphs; other backends require linear chains.",
                         ),
                         (
                             "x",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "y",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "width",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                         (
                             "height",
-                            "Primitive subregions are resolved in the shared FilterModel, but Skity currently executes only primitives whose subregion equals the filter region.",
+                            "Skity Metal clips primitive output to its resolved subregion; other backends require the subregion to match the filter region.",
                         ),
                     ]
                 ),
                 parsed_but_not_rendered_attributes=OrderedDict(),
                 notes=[
-                    "Skity can execute feColorMatrix in supported single-input linear chains.",
+                    "Skity can execute feColorMatrix in bounded Metal filter graphs; other backends retain supported linear chains.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
                     "svg/platform/skity/SrSkityCanvas.cc",
+                    "svg/platform/android/src/main/cpp/SrAndroidCanvas.cc",
+                    "svg/platform/iOS/SrIOSCanvas.mm",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc",
                 ],
             ),
         ),
@@ -1198,31 +1213,35 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 category="filter-primitive",
                 recognized="yes",
                 parsed="yes",
-                rendered="no",
+                rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "none"),
+                platform_ready=tag_platform("none", "none", "none", "partial"),
                 supported_attributes=[],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                partial_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("in2", "Composite inputs are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("operator", "Composite operator is captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("k1", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("k2", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("k3", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("k4", "Arithmetic coefficients are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
-                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feComposite yet."),
+                        ("in", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("in2", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("operator", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("k1", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("k2", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("k3", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("k4", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("result", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("x", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("y", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("width", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
+                        ("height", "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0."),
                     ]
                 ),
-                notes=[],
+                parsed_but_not_rendered_attributes=OrderedDict(),
+                notes=[
+                    "Metal supports over, in, out, atop, xor; arithmetic only for alpha-only max(in2 - in, 0), with k1=0, k2=-1, k3=1, k4=0.",
+                    "Qualified for bounded sRGB graphs on Metal; software rendering and other GPU backends are not qualified. General linearRGB filter color interpolation is not implemented.",
+                ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
+                    "svg/platform/skity/SrSkityFilterGraph.cc",
                 ],
             ),
         ),
@@ -1233,27 +1252,31 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 category="filter-primitive",
                 recognized="yes",
                 parsed="yes",
-                rendered="no",
+                rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "none"),
+                platform_ready=tag_platform("none", "none", "none", "partial"),
                 supported_attributes=[],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                partial_attributes=OrderedDict(
                     [
-                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("in2", "Blend inputs are captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("mode", "Blend mode is captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
-                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feBlend yet."),
+                        ("in", "Metal supports normal blending only."),
+                        ("in2", "Metal supports normal blending only."),
+                        ("mode", "Metal supports normal blending only."),
+                        ("result", "Metal supports normal blending only."),
+                        ("x", "Metal supports normal blending only."),
+                        ("y", "Metal supports normal blending only."),
+                        ("width", "Metal supports normal blending only."),
+                        ("height", "Metal supports normal blending only."),
                     ]
                 ),
-                notes=[],
+                parsed_but_not_rendered_attributes=OrderedDict(),
+                notes=[
+                    "Metal supports normal blending only.",
+                    "Qualified for bounded sRGB graphs on Metal; software rendering and other GPU backends are not qualified. General linearRGB filter color interpolation is not implemented.",
+                ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
+                    "svg/platform/skity/SrSkityFilterGraph.cc",
                 ],
             ),
         ),
@@ -1264,27 +1287,30 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 category="filter-primitive",
                 recognized="yes",
                 parsed="yes",
-                rendered="no",
+                rendered="partial",
                 render_mode="definition",
-                platform_ready=tag_platform("none", "none", "none", "none"),
+                platform_ready=tag_platform("none", "none", "none", "partial"),
                 supported_attributes=[],
-                partial_attributes=OrderedDict(),
-                parsed_but_not_rendered_attributes=OrderedDict(
+                partial_attributes=OrderedDict(
                     [
-                        ("flood-color", "Flood color is captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("flood-opacity", "Flood opacity is captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("in", "Filter input graph selection is captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("result", "Filter result chaining is captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("x", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("y", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("width", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
-                        ("height", "Primitive subregions are captured in the shared FilterModel but no backend executes feFlood yet."),
+                        ("flood-color", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("flood-opacity", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("result", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("x", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("y", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("width", "Metal supports flood color and opacity within the resolved primitive subregion."),
+                        ("height", "Metal supports flood color and opacity within the resolved primitive subregion."),
                     ]
                 ),
-                notes=[],
+                parsed_but_not_rendered_attributes=OrderedDict(),
+                notes=[
+                    "Metal supports flood color and opacity within the resolved primitive subregion.",
+                    "Qualified for bounded sRGB graphs on Metal; software rendering and other GPU backends are not qualified. General linearRGB filter color interpolation is not implemented.",
+                ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
                     "svg/src/element/SrSVGFilterPrimitives.cc",
+                    "svg/platform/skity/SrSkityFilterGraph.cc",
                 ],
             ),
         ),
@@ -1448,7 +1474,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             "android",
                             [
                                 "Core shapes, gradients, masks, clip paths, and text have dedicated bridges.",
-                                "Filters are not executed because the Android canvas backend does not override SupportsFilters().",
+                                "Filters execute supported single-input linear SourceGraphic chains.",
                                 "Image rendering depends on a ResourceManager callback.",
                             ],
                         ),
@@ -1456,7 +1482,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             "ios",
                             [
                                 "Core shapes, gradients, masks, clip paths, and text have Quartz/TextKit implementations.",
-                                "Filters are not executed because the iOS canvas backend does not override SupportsFilters().",
+                                "Filters execute supported single-input linear SourceGraphic chains.",
                                 "Image rendering depends on an image callback.",
                             ],
                         ),
@@ -1465,7 +1491,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             [
                                 "Core shapes, gradients, masks, and clip paths are implemented.",
                                 "Text and image backends are currently incomplete.",
-                                "Filters are not executed because the Harmony canvas backend does not override SupportsFilters().",
+                                "Filters execute supported single-input linear SourceGraphic chains. Non-zero offsets require native offset image-filter availability.",
                             ],
                         ),
                         (
@@ -1473,7 +1499,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             [
                                 "Core shapes, gradients, masks, clip paths, and image rendering are implemented.",
                                 "Text paragraphs are currently stubbed.",
-                                "Filter execution consumes the shared FilterModel but is limited to supported single-input linear chains.",
+                                "Skity Metal supports bounded SVG filter graphs in sRGB; general colored arithmetic, other blend modes and software parity remain unsupported.",
                             ],
                         ),
                     ]

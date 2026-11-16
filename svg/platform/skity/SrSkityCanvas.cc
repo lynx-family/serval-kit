@@ -8,8 +8,11 @@
 #include <vector>
 #include "element/SrSVGNode.h"
 #include "element/SrSVGPattern.h"
+#include "platform/skity/SrSkityFilterGraph.h"
+#include "platform/skity/SrSkityMatrixCanvas.h"
 #include "skity/effect/path_effect.hpp"
 #include "skity/geometry/stroke.hpp"
+#include "skity/recorder/picture_recorder.hpp"
 #include "skity/skity.hpp"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGPatternUtils.h"
@@ -66,8 +69,10 @@ std::shared_ptr<::skity::ImageFilter> BuildSkityImageFilter(
     std::shared_ptr<::skity::ImageFilter> next_filter;
     switch (primitive.type) {
       case canvas::SrFilterPrimitiveType::kGaussianBlur: {
-        if (primitive.std_deviation_x <= 0.f &&
-            primitive.std_deviation_y <= 0.f) {
+        if (primitive.std_deviation_x < 0.f ||
+            primitive.std_deviation_y < 0.f ||
+            (primitive.std_deviation_x == 0.f &&
+             primitive.std_deviation_y == 0.f)) {
           continue;
         }
         next_filter = ::skity::ImageFilters::Blur(primitive.std_deviation_x,
@@ -501,8 +506,30 @@ std::unique_ptr<canvas::Path> SrPathFactorySkity::CreateStrokePath(
 
 /// sr canvas
 
-SrSkityCanvas::SrSkityCanvas(::skity::Canvas* canvas, ImageCallback callback)
+struct SrSkityCanvas::FilterCapture {
+  ::skity::Canvas* parent;
+  std::unique_ptr<SrSkityFilterGraph> graph;
+  ::skity::PictureRecorder recorder;
+  std::unique_ptr<SrSkityMatrixCanvas> capture;
+
+  FilterCapture(::skity::Canvas* target,
+                std::unique_ptr<SrSkityFilterGraph> compiled,
+                const SrSVGBox& region)
+      : parent(target), graph(std::move(compiled)) {
+    const auto matrix = parent->GetTotalMatrix();
+    ::skity::Matrix inverse;
+    matrix.Invert(&inverse);  // Compile checked this before capture began.
+    recorder.BeginRecording(::skity::Rect::MakeXYWH(
+        region.left, region.top, region.width, region.height));
+    capture = std::make_unique<SrSkityMatrixCanvas>(
+        recorder.GetRecordingCanvas(), inverse, matrix, ::skity::Matrix());
+  }
+};
+
+SrSkityCanvas::SrSkityCanvas(::skity::Canvas* canvas, ImageCallback callback,
+                             float content_scale)
     : canvas_(canvas),
+      content_scale_(content_scale),
       image_callback_(std::move(callback)),
       path_factory_(std::make_unique<SrPathFactorySkity>()) {}
 
@@ -568,12 +595,38 @@ void SrSkityCanvas::EndOpacityLayer() {
 
 bool SrSkityCanvas::SupportsFilterModel(
     const canvas::SrFilterModel& filter) const {
-  return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
+  auto graph = SrSkityFilterGraph::Compile(filter, canvas_->GetTotalMatrix(),
+                                           content_scale_);
+  SrSkityFilterGraph::Cost combined;
+  const auto outer =
+      filter_costs_.empty() ? SrSkityFilterGraph::Cost{} : filter_costs_.back();
+  return graph &&
+         SrSkityFilterGraph::CombineCosts(outer, graph->cost(), &combined);
 }
 
 void SrSkityCanvas::BeginFilterLayer(const SrSVGBox* bounds,
                                      const canvas::SrFilterModel& filter) {
-  auto image_filter = BuildSkityImageFilter(filter);
+  auto graph = SrSkityFilterGraph::Compile(filter, canvas_->GetTotalMatrix(),
+                                           content_scale_);
+  auto combined =
+      filter_costs_.empty() ? SrSkityFilterGraph::Cost{} : filter_costs_.back();
+  if (graph &&
+      !SrSkityFilterGraph::CombineCosts(combined, graph->cost(), &combined)) {
+    graph.reset();
+  }
+  filter_costs_.push_back(combined);
+  if (!canvas::SrSupportsLinearSourceGraphicFilterModel(filter)) {
+    if (graph) {
+      auto frame = std::make_unique<FilterCapture>(canvas_, std::move(graph),
+                                                   filter.region);
+      canvas_ = frame->capture.get();
+      filter_captures_.push_back(std::move(frame));
+      PushTransformState();
+      return;
+    }
+  }
+  filter_captures_.emplace_back();
+  auto image_filter = graph ? BuildSkityImageFilter(filter) : nullptr;
   ::skity::Paint paint;
   if (image_filter) {
     paint.SetImageFilter(image_filter);
@@ -590,7 +643,20 @@ void SrSkityCanvas::BeginFilterLayer(const SrSVGBox* bounds,
 }
 
 void SrSkityCanvas::EndFilterLayer() {
-  RestoreLayer();
+  if (filter_captures_.empty())
+    return;
+  filter_costs_.pop_back();
+  auto capture = std::move(filter_captures_.back());
+  filter_captures_.pop_back();
+  if (!capture) {
+    RestoreLayer();
+    return;
+  }
+  auto source = capture->recorder.FinishRecording();
+  canvas_ = capture->parent;
+  PopTransformState();
+  if (source)
+    capture->graph->Draw(canvas_, *source);
 }
 
 void SrSkityCanvas::BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {

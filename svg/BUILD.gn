@@ -49,6 +49,8 @@ source_set("serval-svg") {
 
     # skity
     "include/platform/skity/SrSkityCanvas.h",
+    "include/platform/skity/SrSkityFilterGraph.h",
+    "include/platform/skity/SrSkityMatrixCanvas.h",
     "include/platform/skity/SrSkityParagraph.h",
     "include/utils/SrFloatComparison.h",
     "include/utils/SrSVGLog.h",
@@ -57,6 +59,7 @@ source_set("serval-svg") {
   sources += [
     # skity
     "platform/skity/SrSkityCanvas.cc",
+    "platform/skity/SrSkityFilterGraph.cc",
     "platform/skity/SrSkityParagraph.cc",
     "src/element/SrSVGAnimation.cc",
     "src/element/SrSVGCircle.cc",

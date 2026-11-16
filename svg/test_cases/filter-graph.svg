@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs><filter id="shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="128" height="128" color-interpolation-filters="sRGB">
+<feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+<feOffset in="blur" dx="6" dy="6" result="offset"/>
+<feFlood flood-color="#cc0000" flood-opacity="0.7" result="paint"/>
+<feComposite in="paint" in2="offset" operator="in" result="shadow"/>
+<feBlend in="SourceGraphic" in2="shadow" mode="normal"/>
+</filter></defs><rect x="40" y="40" width="32" height="32" fill="#0000ff" filter="url(#shadow)"/>
+</svg>
