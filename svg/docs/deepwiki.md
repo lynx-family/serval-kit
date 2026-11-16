@@ -30,7 +30,7 @@ platform split, and how the public `svg/docs/support-matrix.json` is derived.
 - `svg/platform/harmony/servalsvg/`
   Harmony drawing backend.
 - `svg/platform/skity/`
-  Skity backend, including the only current filter-capable canvas.
+  Skity backend, including the bounded multi-input filter graph executor.
 - `svg/test_cases/`
   Small reference SVG samples.
 - `svg/examples/`
@@ -162,20 +162,21 @@ The main partial-support areas are:
   stubbed.
 - `filter`, `feGaussianBlur`, `feOffset`, `feColorMatrix`
   The parser and node model recognize them, but actual filter execution is
-  gated behind `SrCanvas::SupportsFilters()`, and only Skity enables that.
-  Even on Skity, the implementation is closer to targeted heuristics than a
-  full SVG filter graph.
+  gated behind `SrCanvas::SupportsFilters()` and `SupportsFilterModel()`.
+  Android, iOS and Harmony retain their linear SourceGraphic implementations.
+  Skity Metal additionally supports the bounded graph subset documented below.
 
-### Parsed-Only Surface
+### Backend-Dependent Filter Primitives
 
-These tags are currently parser-visible but not actually rendered:
+These tags execute in bounded Skity Metal graphs, but remain parsed-only on
+Android, iOS and Harmony:
 
 - `feComposite`
 - `feBlend`
 - `feFlood`
 
-Their attributes are parsed into node state, but the backends do not consume
-them.
+Their attributes are resolved into the shared filter model. Skity consumes the
+qualified subset; other backends reject these graphs and keep source fallback.
 
 ## Platform Snapshot
 
@@ -187,8 +188,7 @@ Strengths:
 
 Caveats:
 
-- filters are disabled because the Android backend does not override
-  `SupportsFilters()`
+- filters are limited to supported linear SourceGraphic chains
 - images depend on an app-provided resource manager
 
 Key files:
@@ -205,8 +205,7 @@ Strengths:
 
 Caveats:
 
-- filters are disabled because the iOS backend does not override
-  `SupportsFilters()`
+- filters are limited to supported linear SourceGraphic chains
 - images depend on an image callback
 
 Key files:
@@ -224,8 +223,8 @@ Current gaps:
 
 - image backend methods are empty
 - text paragraph implementation is incomplete
-- filters are disabled because the Harmony backend does not override
-  `SupportsFilters()`
+- filters are limited to supported linear SourceGraphic chains; non-zero
+  offsets require native offset image-filter availability
 
 Key files:
 
@@ -237,7 +236,7 @@ Key files:
 Strengths:
 
 - shapes, gradients, masks, clip paths, images
-- the only backend with `SupportsFilters() == true`
+- bounded multi-input filter graphs on Metal, alongside the linear fast path
 
 ## Host Color Contract
 
@@ -276,7 +275,7 @@ Harmony API note:
 Current gaps:
 
 - text paragraphs are stubbed
-- filter support is partial and heuristic-based
+- bounded filter graphs are qualified on Metal in sRGB; software parity is not available
 
 Key files:
 
@@ -339,17 +338,40 @@ The most important filter fact in the repository is this:
 
 Right now that means:
 
-- Android: no runtime filters
-- iOS: no runtime filters
-- Harmony: no runtime filters
-- Skity: partial runtime filters
+- Android: supported linear SourceGraphic chains
+- iOS: supported linear SourceGraphic chains
+- Harmony: supported linear SourceGraphic chains, with native offset availability
+- Skity: supported linear chains and bounded multi-input graphs on Metal
 
-Inside Skity, the implementation focuses on:
+Skity preserves the linear SourceGraphic fast path and captures a display
+list for multi-input graphs. Immutable indices resolve SourceGraphic,
+SourceAlpha and earlier named results before playback. Flood, Gaussian blur,
+offset, matrix/luminanceToAlpha, normal blend and Porter-Duff over/in/out/atop/xor
+are supported on Metal. Arithmetic is restricted to alpha-only
+`max(in2 - in, 0)` (k1=0, k2=-1, k3=1, k4=0); it is not approximated as out.
 
-- pure blur
-- blur + offset + color-matrix style shadow patterns
+Admission limits bound primitive count, source replays, traversal visits, layer
+depth and estimated RGBA8 workspace, including Gaussian outsets. Absolute
+matrix operations are translated through layer origins during captured replay.
+Texture dimensions use the affine transform's basis lengths and the destination
+surface's content scale, matching Skity's physical layer sizing. Pass
+`GPUSurface::ContentScale()` as the third `SrSkityCanvas` constructor argument,
+also when recording for later playback on that surface. The default scale of
+one applies to 1x surfaces; perspective transforms use the source fallback.
+Costs are also combined across active nested filters, including linear layers
+and flood-only captures, so nested source replay cannot grow exponentially.
+Primitive subregions mask completed outputs instead of clipping dependency
+sampling. Blur inputs retain the full filter input domain, and flood paints its
+explicit local region. Finite negative blur deviations disable that primitive
+without dropping the remaining chain; non-finite deviations remain rejected.
+The implementation is qualified in sRGB on Metal; general colored arithmetic,
+linearRGB interpolation, other blend modes, software and other GPU backend
+parity are not claimed. Unsupported graphs keep the existing unfiltered-source
+fallback and report through the SVG model diagnostics.
 
-It is not a general-purpose SVG filter graph evaluator.
+`svg/tests` provides standalone Metal regression tests against a separately
+built, matching Skity source/library pair. `svg/test_cases/filter-graph.svg`
+exercises source alpha, named inputs, flood, blur and normal blending.
 
 ## Testing Reality
 
@@ -365,10 +387,13 @@ Observed coverage:
   larger manual samples, especially for masking
 - Android example-side tests:
   `svg/examples/android/app/src/test/java/.../ExampleUnitTest.java`
+- `svg/tests/`:
+  Metal pixel checks, graph admission checks and nested recording-cost
+  regressions; see its README for the standalone CMake invocation
 
 What is missing:
 
-- C++ engine-level SVG unit tests comparable to the markdown subproject
+- broad C++ engine-level SVG coverage beyond the Skity filter regressions
 - backend parity tests for the same SVG fixture set
 - golden-image style regression tests
 
@@ -421,7 +446,8 @@ This repository already shows why step-by-step support accounting matters:
 - parser registration exists
 - primitive attribute parsing exists
 - the generic filter tag exists
-- only the Skity backend actually executes blur-like behavior
+- current backends execute supported linear blur chains; Skity Metal also
+  executes bounded multi-input graphs
 - filter graph semantics such as `in` / `result` chaining are still not
   general-purpose
 

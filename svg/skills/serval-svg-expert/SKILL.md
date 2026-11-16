@@ -105,3 +105,14 @@ Always evaluate all layers:
 Do not use this as the first tool for a simple consumer-facing support question
 if the public contract already answers it cleanly. In that case, prefer
 `serval-svg`.
+
+## Skity filter scope
+
+Bounded sRGB filter graphs are qualified on Metal, including SourceAlpha,
+named inputs, flood, normal blend and selected composite operators. Arithmetic
+is limited to alpha-only max(in2 - in, 0). Do not infer general arithmetic,
+linearRGB or software/GPU backend parity from parser recognition.
+
+The graph budget assumes affine transforms and an explicit destination surface
+content scale. Primitive subregions clip completed outputs, including blur
+halos; finite negative deviations disable only that blur primitive.

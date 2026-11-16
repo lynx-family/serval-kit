@@ -120,12 +120,19 @@ flush:
 auto* canvas = gpu_surface->LockCanvas();
 canvas->DrawColor(skity::Color_WHITE);
 
-serval::svg::skity::SrSkityCanvas svg_canvas(canvas, image_callback);
+serval::svg::skity::SrSkityCanvas svg_canvas(
+    canvas, image_callback, gpu_surface->ContentScale());
 svg_dom->Render(&svg_canvas, SrSVGBox{0.f, 0.f, width, height});
 
 canvas->Flush();
 gpu_surface->Flush();
 ```
+
+Pass the destination surface's content scale separately from canvas transforms
+so filter admission accounts for physical Retina texture dimensions. When
+recording commands for later playback, pass the eventual destination surface's
+scale to the recording adapter as well. The constructor defaults to 1 for 1x
+surfaces.
 
 The current `SVGMetalView` uses an offscreen hardware path first, then draws
 the snapshot image onto the layer-backed canvas:

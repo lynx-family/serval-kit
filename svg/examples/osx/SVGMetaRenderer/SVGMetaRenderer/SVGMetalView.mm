@@ -202,9 +202,11 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
     }
 
     SrSkityCanvas sr_canvas(
-        canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
+        canvas,
+        [](std::string url) -> std::shared_ptr<skity::Image> {
           return nullptr;
-        });
+        },
+        _gpuSurface->ContentScale());
 
     SrSVGBox view_port{0.f, 0.f, width, height};
     //canvas->ClipRect(skity::Rect::MakeXYWH(0.f, 0.f, width, height));

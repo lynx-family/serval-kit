@@ -57,3 +57,14 @@ Escalate to `serval-svg-expert` when the user wants:
 - refreshed support artifacts
 - feature-development guidance
 - implementation planning or code changes
+
+## Skity filter scope
+
+Bounded sRGB filter graphs are qualified on Metal, including SourceAlpha,
+named inputs, flood, normal blend and selected composite operators. Arithmetic
+is limited to alpha-only max(in2 - in, 0). Do not infer general arithmetic,
+linearRGB or software/GPU backend parity from parser recognition.
+
+Graph admission requires affine transforms and the destination surface's
+content scale. The backend clips primitive outputs after sampling inputs and
+treats finite negative blur deviations as a disabled blur.
