@@ -18,6 +18,7 @@
 #include <string.h>
 
 #define SR_SVG_INVALID_COLOR_FALLBACK NSVG_RGB(128, 128, 128)
+#define SR_SVG_MAX_NUMBER_TOKEN_LENGTH 4096
 
 SRSVGNamedColor sr_svg__colors[] = {
     {"red", NSVG_RGB(255, 0, 0)},
@@ -614,7 +615,7 @@ static bool add_point_to_polygon(SrPolygon* path, float x, float y) {
 
 static float next_number(const char** s) {
   const char* start = *s;
-  uint32_t len = 0;
+  size_t len = 0;
   // sign
   if (**s == '-' || **s == '+') {
     len++;
@@ -651,11 +652,27 @@ static float next_number(const char** s) {
     (*s)++;
     len++;
   }
-  char number[len + 1];
-  strncpy(number, start, len);
+
+  if (len > SR_SVG_MAX_NUMBER_TOKEN_LENGTH) {
+    return 0.f;
+  }
+
+  char stack_number[128];
+  char* number = stack_number;
+  if (len >= sizeof(stack_number)) {
+    number = malloc(len + 1);
+    if (!number) {
+      return 0.f;
+    }
+  }
+  memcpy(number, start, len);
   number[len] = 0;
   char* error;
-  return strtof(number, &error);
+  float result = strtof(number, &error);
+  if (number != stack_number) {
+    free(number);
+  }
+  return result;
 }
 
 static void extract_path_args(const char** s, float args[], int n_args) {
@@ -697,6 +714,9 @@ static void add_args_to_path(SrPathData* path, float args[], size_t len) {
 SrPathData* make_serval_path(const char* value,
                              const SrSVGDiagnosticSink* diagnostic_sink) {
   SrPathData* path = malloc(sizeof(SrPathData));
+  if (!path) {
+    return NULL;
+  }
   memset(path, 0, sizeof(SrPathData));
   const char* s = value;
   float args[6] = {0};
@@ -862,9 +882,17 @@ SrPathData* make_serval_path(const char* value,
         case 'A':
           extract_path_args(&s, args, 3);
           skip_sep(&s);
-          float f_large_flag = *s++ == '1' ? 1.f : 0.f;
+          float f_large_flag = 0.f;
+          if (*s) {
+            f_large_flag = *s == '1' ? 1.f : 0.f;
+            s++;
+          }
           skip_sep(&s);
-          float f_sweep_flag = *s++ == '1' ? 1.f : 0.f;
+          float f_sweep_flag = 0.f;
+          if (*s) {
+            f_sweep_flag = *s == '1' ? 1.f : 0.f;
+            s++;
+          }
           extract_path_args(&s, args + 3, 2);
           if (cmd == 'a') {
             args[3] += current_point_x;
@@ -917,6 +945,9 @@ void release_serval_polygon_path(SrPolygon* path) {
 SrPolygon* make_serval_polygon(const char* value,
                                const SrSVGDiagnosticSink* diagnostic_sink) {
   SrPolygon* polygon = malloc(sizeof(SrPolygon));
+  if (!polygon) {
+    return NULL;
+  }
   *polygon = (SrPolygon){0};
   const char* s = value;
   while (*s) {
