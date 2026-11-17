@@ -60,7 +60,6 @@ static SrXMLParseResult SrXMLParseElementInternal(
   size_t name_len = 0;
   SrXMLAttrView attr[SR_XML_MAX_ATTR];
   size_t n_attr = 0;
-  bool start = false;
   bool end_tag = false;
 
   cursor = SrXMLSkipSpaces(cursor, end);
@@ -71,8 +70,6 @@ static SrXMLParseResult SrXMLParseElementInternal(
   if (*cursor == '/') {
     end_tag = true;
     cursor = SrXMLSkipSpaces(cursor + 1, end);
-  } else {
-    start = true;
   }
 
   if (cursor == end) {
