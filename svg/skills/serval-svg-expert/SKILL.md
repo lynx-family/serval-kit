@@ -99,6 +99,11 @@ Always evaluate all layers:
 - Be explicit when a tag is parsed but not rendered.
 - Be explicit when something only works on one backend.
 - If you infer behavior from code rather than from a sample, say so.
+- For pattern images, check the host image loader as well as tile transforms,
+  clipping, and referenced pattern content in each target backend.
+- Keep pattern content transforms separate from the referencing SVG viewport
+  used by percentages. Validate numeric bbox fractions and percentages against
+  Chrome; a pattern tile or pattern viewBox does not establish a new viewport.
 
 ## Boundary
 
