@@ -289,11 +289,13 @@ void pre_parse_inherit_color(const element::SrSVGNodeBase* parent_node,
   }
 }
 
-element::SrSVGNodeBase* construct_svg_node(
+namespace {
+
+element::SrSVGNodeBase* ConstructSvgNode(
     const SrDOM& dom, const element::SrSVGNodeBase* parentNode,
     const SrDOM::Node* curNode, element::IDMapper* id_mapper,
     std::list<element::SrSVGNodeBase*>& holder,
-    const SrSVGDiagnosticSink* diagnostic_sink) {
+    const SrSVGDiagnosticSink* diagnostic_sink, bool& has_animation_elements) {
   const char* el = dom.GetName(curNode);
   const auto type = dom.GetType(curNode);
 
@@ -387,9 +389,11 @@ element::SrSVGNodeBase* construct_svg_node(
   parse_node_attribute(dom, curNode, node, id_mapper, diagnostic_sink);
   for (auto* child = dom.GetFirstChild(curNode, nullptr); child;
        child = dom.GetNextSibling(child)) {
-    element::SrSVGNodeBase* childNode = construct_svg_node(
-        dom, node, child, id_mapper, holder, diagnostic_sink);
+    element::SrSVGNodeBase* childNode =
+        ConstructSvgNode(dom, node, child, id_mapper, holder, diagnostic_sink,
+                         has_animation_elements);
     if (childNode && IsAnimationTag(childNode->Tag())) {
+      has_animation_elements = true;
       BindAnimation(node, static_cast<element::SrSVGAnimation*>(childNode),
                     id_mapper);
     }
@@ -398,6 +402,19 @@ element::SrSVGNodeBase* construct_svg_node(
     }
   }
   return node;
+}
+
+}  // namespace
+
+// Keep the original symbol for existing native callers.
+element::SrSVGNodeBase* construct_svg_node(
+    const SrDOM& dom, const element::SrSVGNodeBase* parentNode,
+    const SrDOM::Node* curNode, element::IDMapper* id_mapper,
+    std::list<element::SrSVGNodeBase*>& holder,
+    const SrSVGDiagnosticSink* diagnostic_sink) {
+  bool has_animation_elements = false;
+  return ConstructSvgNode(dom, parentNode, curNode, id_mapper, holder,
+                          diagnostic_sink, has_animation_elements);
 }
 
 std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
@@ -427,8 +444,9 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
     }
     return nullptr;
   }
-  auto* root = construct_svg_node(*xml_dom, nullptr, root_node, id_mapper.get(),
-                                  holder, &build_sink);
+  bool has_animation_elements = false;
+  auto* root = ConstructSvgNode(*xml_dom, nullptr, root_node, id_mapper.get(),
+                                holder, &build_sink, has_animation_elements);
   if (!root) {
     for (auto* node : holder) {
       delete node;
@@ -442,7 +460,12 @@ std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
     auto svg_dom = std::make_unique<SrSVGDOM>(
         static_cast<element::SrSVGSVG*>(root), id_mapper.release(),
         std::move(holder), xml_dom);
-    svg_dom->BindTargetAnimations();
+    if (has_animation_elements) {
+      svg_dom->BindTargetAnimations();
+      svg_dom->AnimatedNodes();
+    } else {
+      svg_dom->animated_nodes_valid_ = true;
+    }
     svg_dom->SetBuildDiagnostics(std::move(build_state.diagnostics));
     if (diagnostics) {
       *diagnostics = svg_dom->diagnostics();
