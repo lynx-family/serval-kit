@@ -3,7 +3,10 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 
 export default class EntryAbility extends UIAbility {
+  private patternRegression: boolean = false;
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    this.patternRegression = want.parameters?.['patternRegression'] === true;
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -15,7 +18,7 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent(this.patternRegression ? 'pages/PatternRegression' : 'pages/Index', (err) => {
       if (err.code) {
         hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
         return;

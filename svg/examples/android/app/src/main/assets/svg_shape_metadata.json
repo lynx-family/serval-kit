@@ -473,6 +473,80 @@
         "椭圆化和旋转一致",
         "边界过渡一致"
       ]
+    },
+    {
+      "fileName": "pattern-image-remote-whitelist.svg",
+      "title": "Pattern Image Remote Whitelist Case",
+      "tags": [
+        "pattern",
+        "image",
+        "remote"
+      ],
+      "descriptions": [
+        "保留原用例的百分比 pattern、image 尺寸和圆形 path",
+        "图片加载成功后填充圆形区域，圆形边界外保持透明",
+        "白名单分类沿用原 Lynx 用例，具体域名放行规则由宿主配置决定"
+      ]
+    },
+    {
+      "fileName": "pattern-image-remote-non-whitelist.svg",
+      "title": "Pattern Image Remote Non-Whitelist Case",
+      "tags": [
+        "pattern",
+        "image",
+        "remote"
+      ],
+      "descriptions": [
+        "保留原用例的百分比 pattern、image 尺寸和圆形 path",
+        "图片加载成功后填充圆形区域，圆形边界外保持透明",
+        "使用外部域名 www.w3.org 作对照，是否拦截以宿主白名单配置为准"
+      ]
+    },
+    {
+      "fileName": "shape-image-remote-whitelist.svg",
+      "title": "Image Remote Whitelist Control",
+      "tags": [
+        "image",
+        "remote",
+        "percentage",
+        "preserveAspectRatio"
+      ],
+      "descriptions": [
+        "图片直接位于 SVG 根节点，加载成功后覆盖整个视口",
+        "图片网络请求、缓存和域名放行取决于宿主加载器",
+        "白名单分类沿用原 Lynx 用例，可与对应图片 pattern 用例比较"
+      ]
+    },
+    {
+      "fileName": "shape-image-remote-non-whitelist.svg",
+      "title": "Image Remote Non-Whitelist Control",
+      "tags": [
+        "image",
+        "remote",
+        "percentage",
+        "preserveAspectRatio"
+      ],
+      "descriptions": [
+        "图片直接位于 SVG 根节点，加载成功后覆盖整个视口",
+        "图片网络请求、缓存和域名放行取决于宿主加载器",
+        "使用外部域名 www.w3.org 作对照，是否拦截以宿主白名单配置为准"
+      ]
+    },
+    {
+      "fileName": "pattern-vector-circle-control.svg",
+      "title": "Pattern Vector Circle Control",
+      "tags": [
+        "pattern",
+        "rect",
+        "circle",
+        "path",
+        "percentage"
+      ],
+      "descriptions": [
+        "圆形 path 内显示绿色矩形底色和橙色圆形",
+        "圆形边界外保持透明",
+        "可离线验证相同百分比 pattern 尺寸和圆形填充区域"
+      ]
     }
   ]
 }

@@ -2,6 +2,7 @@ import { SvgData, SvgImageFetcher, SvgRenderNodeController } from '@lynx/servals
 import { image } from '@kit.ImageKit';
 import { http } from '@kit.NetworkKit';
 import { display } from '@kit.ArkUI';
+import util from '@ohos.util';
 
 interface SvgRenderNodeImageController {
   dispose(): void;
@@ -15,6 +16,20 @@ export struct ExampleSvgView {
 
   private readonly svgNodeController: SvgRenderNodeController = new SvgRenderNodeController();
   private readonly imageFetcher: SvgImageFetcher = async (url: string): Promise<image.PixelMap | undefined> => {
+    if (url.startsWith('data:image/')) {
+      const separator = url.indexOf(';base64,');
+      if (separator < 0) {
+        return undefined;
+      }
+      try {
+        const bytes = new util.Base64Helper().decodeSync(url.substring(separator + 8));
+        const content = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+        return await this.decodePixelMap(content, 'embedded image');
+      } catch (error) {
+        console.error(`decode embedded image failed: ${JSON.stringify(error)}`);
+        return undefined;
+      }
+    }
     if (!this.isNetworkUrl(url)) {
       console.error(`unsupported image url: ${url}`);
       return undefined;

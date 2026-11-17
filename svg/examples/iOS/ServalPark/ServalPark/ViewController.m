@@ -3,7 +3,9 @@
 // LICENSE file in the root directory of this source tree.
 
 #import "ViewController.h"
+#import <ServalSVG/SrSVG.h>
 #import <ServalSVG/SrSVGView.h>
+#import "SvgImageLoader.h"
 
 @interface ViewController () <UIPickerViewDelegate, UIPickerViewDataSource>
 
@@ -13,6 +15,7 @@
 @property(nonatomic, strong)
     NSDictionary<NSString*, NSArray<NSString*>*>* categorizedFiles;
 @property(nonatomic, copy) NSString* selectedCategory;
+@property(nonatomic, strong) SvgImageLoader* imageLoader;
 
 @end
 
@@ -23,6 +26,112 @@
 @end
 
 @implementation SrSVGPreviewMetadata
+@end
+
+@interface SvgPreviewImageDetector : NSObject <NSXMLParserDelegate>
+@property(nonatomic, assign) BOOL hasImage;
+@end
+
+@implementation SvgPreviewImageDetector
+
+- (void)parser:(NSXMLParser*)parser
+    didStartElement:(NSString*)elementName
+       namespaceURI:(NSString*)namespaceURI
+      qualifiedName:(NSString*)qualifiedName
+         attributes:(NSDictionary<NSString*, NSString*>*)attributeDict {
+  if ([elementName isEqualToString:@"image"]) {
+    self.hasImage = YES;
+    [parser abortParsing];
+  }
+}
+
+@end
+
+static BOOL SvgPreviewContainsImage(NSString* content) {
+  if (content.length == 0) {
+    return NO;
+  }
+  NSXMLParser* parser = [[NSXMLParser alloc]
+      initWithData:[content dataUsingEncoding:NSUTF8StringEncoding]];
+  SvgPreviewImageDetector* detector = [[SvgPreviewImageDetector alloc] init];
+  parser.delegate = detector;
+  parser.shouldProcessNamespaces = YES;
+  parser.shouldResolveExternalEntities = NO;
+  [parser parse];
+  return detector.hasImage;
+}
+
+static void SvgPreviewLogDiagnostic(NSString* fileName,
+                                    SrSVGRenderResult* result) {
+  if (result.hasError) {
+    const char* errorMessage = result.errorMessage.UTF8String ?: "";
+    fprintf(stderr, "SVGDiagnostic file=%s errorMessage=%s\n",
+            fileName.UTF8String ?: "", errorMessage);
+  }
+}
+
+// The demo renders image-bearing examples as a static frame through SrSVG's
+// existing bitmap API. Other examples keep SrSVGView's animation scheduling.
+@interface SvgImagePreviewView : UIView
+
+- (instancetype)initWithFrame:(CGRect)frame
+                      content:(NSString*)content
+                        color:(NSString*)color
+                  imageLoader:(SvgImageLoader*)imageLoader
+                     fileName:(NSString*)fileName;
+
+@end
+
+@implementation SvgImagePreviewView {
+  SrSVG* _renderer;
+  NSData* _svgData;
+  NSString* _color;
+  SvgImageLoader* _imageLoader;
+  NSString* _fileName;
+  BOOL _loggedDiagnostic;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+                      content:(NSString*)content
+                        color:(NSString*)color
+                  imageLoader:(SvgImageLoader*)imageLoader
+                     fileName:(NSString*)fileName {
+  self = [super initWithFrame:frame];
+  if (self) {
+    _renderer = [[SrSVG alloc] init];
+    _svgData = [content dataUsingEncoding:NSUTF8StringEncoding];
+    _color = [color copy];
+    _imageLoader = imageLoader;
+    _fileName = [fileName copy];
+    self.contentMode = UIViewContentModeRedraw;
+  }
+  return self;
+}
+
+- (void)drawRect:(CGRect)rect {
+  if (CGRectIsEmpty(self.bounds) || _svgData.length == 0) {
+    return;
+  }
+  CGFloat scale = MAX(self.layer.contentsScale, 1.0);
+  CGSize pixelSize = CGSizeMake(ceil(self.bounds.size.width * scale),
+                                ceil(self.bounds.size.height * scale));
+  SrSVGRenderResult* result = nil;
+  UIImage* image = [_renderer
+      getSrSvgDrawImageWithData:_svgData
+                        andSize:pixelSize
+                       andColor:_color
+                         atTime:0
+                    andCallback:^UIImage*(NSString* href) {
+                      return [self->_imageLoader imageForHref:href view:self];
+                    }
+                         result:&result];
+  [image drawInRect:self.bounds];
+  if (result.hasError && !_loggedDiagnostic) {
+    SvgPreviewLogDiagnostic(_fileName, result);
+    _loggedDiagnostic = YES;
+  }
+}
+
 @end
 
 @implementation ViewController
@@ -243,6 +352,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 }
 
 - (void)reloadPreviewRows {
+  [self.imageLoader clearCallbacks];
   const CGFloat cardGap = 12.0;
   const CGFloat cardPadding = 12.0;
   const CGFloat cardRadius = 8.0;
@@ -373,24 +483,31 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
     }
 
     CGFloat previewX = (rowWidth - previewWidth) / 2.0;
-    SrSVGView* previewView = [[SrSVGView alloc]
-        initWithFrame:CGRectMake(previewX, metadataBottom + 12.0, previewWidth,
-                                 previewHeight)];
-    previewView.color = [self hostColorForFile:fileName];
+    CGRect previewFrame = CGRectMake(previewX, metadataBottom + 12.0,
+                                     previewWidth, previewHeight);
+    NSString* content = [self svgContentForFile:fileName];
+    UIView* previewView;
+    if (SvgPreviewContainsImage(content)) {
+      previewView = [[SvgImagePreviewView alloc]
+          initWithFrame:previewFrame
+                content:content
+                  color:[self hostColorForFile:fileName]
+            imageLoader:self.imageLoader
+               fileName:fileName];
+    } else {
+      SrSVGView* svgView = [[SrSVGView alloc] initWithFrame:previewFrame];
+      svgView.color = [self hostColorForFile:fileName];
+      if (content.length > 0) {
+        SvgPreviewLogDiagnostic(fileName,
+                                [svgView parseContentWithResult:content]);
+      }
+      previewView = svgView;
+    }
     previewView.opaque = NO;
     previewView.layer.borderWidth = 1.0;
     previewView.layer.borderColor = previewBorderColor.CGColor;
     previewView.backgroundColor = [UIColor clearColor];
 
-    NSString* content = [self svgContentForFile:fileName];
-    if (content.length > 0) {
-      SrSVGRenderResult* result = [previewView parseContentWithResult:content];
-      if (result.hasError) {
-        const char* errorMessage = result.errorMessage.UTF8String ?: "";
-        fprintf(stderr, "SVGDiagnostic file=%s errorMessage=%s\n",
-                fileName.UTF8String ?: "", errorMessage);
-      }
-    }
     [row addSubview:previewView];
     [self.scrollView addSubview:row];
     yOffset += rowHeight + cardGap;
@@ -410,6 +527,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 
 - (void)viewDidLoad {
   [super viewDidLoad];
+  self.imageLoader = [[SvgImageLoader alloc] init];
   self.view.backgroundColor = [UIColor colorWithWhite:0.96 alpha:1.0];
 
   NSMutableArray<NSString*>* svgFiles = [NSMutableArray array];
