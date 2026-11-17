@@ -218,18 +218,17 @@ Key files:
 
 Strengths:
 
-- shapes, gradients, masks, clip paths
+- shapes, gradients, masks, clip paths, and images through a host fetcher
 
 Current gaps:
 
-- image backend methods are empty
 - text paragraph implementation is incomplete
 - filters are disabled because the Harmony backend does not override
   `SupportsFilters()`
 
 Key files:
 
-- `svg/platform/harmony/servalsvg/sr_harmony_canvas.cc`
+- `svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc`
 - `svg/include/platform/harmony/sr_harmony_paragraph.h`
 
 ### Skity
@@ -317,8 +316,44 @@ Current backend status:
 
 - Android, iOS, Harmony, and Skity use resolver-driven tile rendering for
   vector pattern fill and stroke.
+- Image content in pattern fills and strokes reaches each backend's existing
+  `DrawImage()` implementation, with the pattern tile transforms and clipping.
+  The host must supply the image callback, resource manager, or image fetcher.
+  Remote requests, caching, and domain policies follow that loader.
+- A pattern does not establish an SVG viewport. Its child content keeps the
+  referencing context's viewport and viewBox for percentage lengths. The pattern's
+  `viewBox` or `patternContentUnits="objectBoundingBox"` changes the canvas
+  transform independently; it must not replace that percentage reference with
+  the tile dimensions or a normalized 1x1 box. A child's `50%` is therefore not
+  generally equivalent to the numeric bbox fraction `0.5`.
+  See SVG 2 [viewport establishment](https://www.w3.org/TR/SVG2/coords.html#EstablishingANewSVGViewport)
+  and [object bounding box units](https://www.w3.org/TR/SVG2/coords.html#ObjectBoundingBoxUnits).
+- iOS and Skity image callbacks return an available image during tile drawing.
+  The iOS demo uses the existing `SrSVG` bitmap callback in a demo-local view
+  for image previews. Its `SvgImageLoader` decodes embedded base64 images,
+  loads remote images asynchronously, returns cached images during drawing,
+  and calls `setNeedsDisplay` on the main thread after loading. Pending requests
+  share weak view listeners, so repeated pattern tiles do not duplicate requests
+  or retain removed previews. Other previews keep the `SrSVGView` animation path.
+  Android's `SVGRender.ResourceManager` must invoke its bitmap callback during
+  the current draw, such as from a cache hit, while the tile canvas state is
+  active. Harmony's `SvgDrawable` supports asynchronous fetching through its
+  image cache and invalidate callback.
+- The Android demo's `SvgImageLoader` downloads images off the main thread,
+  supplies cached bitmaps through the existing `SVGRender.setResourceManager()`
+  interface, and re-records image previews with `renderPictureWithResult()` when
+  loading completes. The demo displays those pictures with `SVGDrawable(Picture)`;
+  other previews keep the content-based drawable's session and animation path.
+- Harmony's example image fetcher decodes embedded base64 images as well as
+  remote images. Its optional `patternRegression` launch parameter opens a
+  regression page that snapshots the existing render node and compares the
+  shared Chrome probes; ordinary launches open the example browser.
 - Skity stroke patterns depend on `SrPathFactorySkity::CreateStrokePath()`,
   which converts the stroked outline to a fill path via `skity::Stroke`.
+- Skity maps intrinsic image coordinates to the destination once and clips to
+  the image viewport. Oversized pattern fills are intersected with the device
+  clip before drawing to avoid software rasterizer fixed-point overflow; paint
+  resolution continues to use the original geometry bounds.
 - `pattern stroke` under `vector-effect="non-scaling-stroke"` uses
   device-space stroke clipping before rendering pattern tiles under the original
   CTM.

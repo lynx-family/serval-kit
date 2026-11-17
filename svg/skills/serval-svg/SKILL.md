@@ -45,6 +45,10 @@ This skill should answer:
   contract says otherwise.
 - If support is partial, say so plainly.
 - If platform support differs, say so plainly.
+- For patterns containing images, explain the host app's image loading
+  requirement and its control over remote requests and domain policies.
+- Percentages inside pattern content use the referencing SVG viewport; do not
+  describe them as interchangeable with numeric object-bounding-box fractions.
 - Keep the answer direct and product-facing.
 
 ## Escalation

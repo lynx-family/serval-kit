@@ -44,20 +44,20 @@ PUBLIC_TEXT_REPLACEMENTS = OrderedDict(
             "Height is currently not applied when rendering a referenced node.",
         ),
         (
-            "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
-            "Image geometry is reliable for common cases, but percentage and non-px units are not fully covered.",
+            "Image geometry uses shared length conversion; numeric and percentage cases have Chrome coverage, while other length units need broader coverage.",
+            "Numeric and percentage image geometry has regression coverage; other length units need broader coverage.",
         ),
         (
             "Image drawing bypasses shape fill and stroke state and calls DrawImage() directly.",
             "Image rendering does not use shape fill or stroke painting.",
         ),
         (
-            "Image drawing does not consume SrSVGShape render_state opacity.",
-            "Image rendering does not fully participate in the generic opacity pipeline.",
+            "Image opacity reaches DrawImage(), but compositing combinations need broader runtime coverage.",
+            "Image opacity is implemented; combinations with other compositing effects need broader coverage.",
         ),
         (
-            "Image does not provide a real AsPath() implementation, so clip-path geometry is unreliable.",
-            "clip-path behavior on image is unreliable in the current renderer.",
+            "Image supplies rectangular bounds through AsPath(); transformed clipping combinations need broader coverage.",
+            "Images supply rectangular clipping bounds; transformed clipping combinations need broader coverage.",
         ),
         (
             "Current text rendering uses paragraph backends and only consumes fill color and font size.",
@@ -575,19 +575,27 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     [
                         (
                             "x",
-                            "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+                            "Image geometry uses shared length conversion; numeric and percentage cases have Chrome coverage, while other length units need broader coverage.",
                         ),
                         (
                             "y",
-                            "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+                            "Image geometry uses shared length conversion; numeric and percentage cases have Chrome coverage, while other length units need broader coverage.",
                         ),
                         (
                             "width",
-                            "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+                            "Image geometry uses shared length conversion; numeric and percentage cases have Chrome coverage, while other length units need broader coverage.",
                         ),
                         (
                             "height",
-                            "Image geometry uses raw length values in onDraw(), so percentage and non-px units are not fully audited.",
+                            "Image geometry uses shared length conversion; numeric and percentage cases have Chrome coverage, while other length units need broader coverage.",
+                        ),
+                        (
+                            "opacity",
+                            "Image opacity reaches DrawImage(), but compositing combinations need broader runtime coverage.",
+                        ),
+                        (
+                            "clip-path",
+                            "Image supplies rectangular bounds through AsPath(); transformed clipping combinations need broader coverage.",
                         ),
                     ]
                 ),
@@ -602,20 +610,12 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                             "Image drawing bypasses shape fill and stroke state and calls DrawImage() directly.",
                         ),
                         (
-                            "opacity",
-                            "Image drawing does not consume SrSVGShape render_state opacity.",
-                        ),
-                        (
                             "fill-opacity",
-                            "Image drawing does not consume SrSVGShape render_state opacity.",
+                            "Image drawing does not consume fill or stroke opacity.",
                         ),
                         (
                             "stroke-opacity",
-                            "Image drawing does not consume SrSVGShape render_state opacity.",
-                        ),
-                        (
-                            "clip-path",
-                            "Image does not provide a real AsPath() implementation, so clip-path geometry is unreliable.",
+                            "Image drawing does not consume fill or stroke opacity.",
                         ),
                     ]
                 ),
@@ -866,6 +866,8 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 notes=[
                     "Pattern definitions are resolved lazily when shapes reference url(#pattern-id).",
                     "All current backends support vector pattern fill and stroke through resolver-driven tile rendering.",
+                    "Percentages in pattern content use the referencing SVG viewport, independently of patternContentUnits and the pattern's viewBox transform.",
+                    "Images in pattern fills and strokes use the host app's image loading support, including its remote resource and domain policies.",
                     "Pattern stroke participates in vector-effect=\"non-scaling-stroke\" through device-space stroke clipping.",
                 ],
                 source_files=[
@@ -1464,7 +1466,8 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             "harmony",
                             [
                                 "Core shapes, gradients, masks, and clip paths are implemented.",
-                                "Text and image backends are currently incomplete.",
+                                "Image rendering depends on the host image fetcher and PixelMap cache.",
+                                "Text paragraphs are currently incomplete.",
                                 "Filters are not executed because the Harmony canvas backend does not override SupportsFilters().",
                             ],
                         ),
