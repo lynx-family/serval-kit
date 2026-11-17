@@ -1,11 +1,13 @@
+// Copyright 2026 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 #include "element/SrSVGPatternResolver.h"
 
 #include <algorithm>
 #include <optional>
 
-#include "element/SrSVGContainer.h"
 #include "element/SrSVGNode.h"
-#include "element/SrSVGUse.h"
 
 namespace serval {
 namespace svg {
@@ -33,49 +35,6 @@ struct PatternCascadeState {
   bool has_view_box{false};
   bool has_preserve_aspect_ratio{false};
 };
-
-bool PatternContainsUnsupportedNode(
-    SrSVGNodeBase* node, IDMapper* mapper,
-    std::unordered_set<std::string>* visited_use_ids) {
-  if (!node) {
-    return false;
-  }
-
-  if (node->Tag() == SrSVGTag::kImage) {
-    return true;
-  }
-
-  if (node->Tag() == SrSVGTag::kUse) {
-    auto* use = static_cast<SrSVGUse*>(node);
-    if (use->href().empty() || !mapper || !visited_use_ids) {
-      return false;
-    }
-    if (!visited_use_ids->insert(use->href()).second) {
-      return false;
-    }
-    auto it = mapper->find(use->href());
-    if (it == mapper->end() || !it->second) {
-      return false;
-    }
-    return PatternContainsUnsupportedNode(it->second, mapper, visited_use_ids);
-  }
-
-  switch (node->Tag()) {
-    case SrSVGTag::kG:
-    case SrSVGTag::kPattern:
-    case SrSVGTag::kSvg: {
-      auto* container = static_cast<SrSVGContainer*>(node);
-      for (auto* child : container->children()) {
-        if (PatternContainsUnsupportedNode(child, mapper, visited_use_ids)) {
-          return true;
-        }
-      }
-      return false;
-    }
-    default:
-      return false;
-  }
-}
 
 bool ResolvePatternCascade(const SrSVGPattern* pattern, const std::string& id,
                            IDMapper* mapper,
@@ -185,13 +144,6 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
   if (!cascade.content_pattern) {
     return false;
   }
-  std::unordered_set<std::string> visited_use_ids;
-  if (PatternContainsUnsupportedNode(
-          const_cast<SrSVGPattern*>(cascade.content_pattern), mapper,
-          &visited_use_ids)) {
-    return false;
-  }
-
   resolved_pattern->id = id;
   resolved_pattern->content_pattern = cascade.content_pattern;
   resolved_pattern->pattern_units = cascade.pattern_units;

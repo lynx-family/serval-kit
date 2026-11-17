@@ -8,6 +8,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+// Called synchronously on the rendering caller's thread. Return an available
+// image or nil; if loading asynchronously, the host must render again when ready.
 typedef UIImage* _Nullable (^SrSvgImageCallback)(NSString* _Nullable href);
 
 @interface SrSVG : NSObject

@@ -599,6 +599,8 @@ void SrIOSCanvas::RenderPatternTiles(
       resolved_pattern.pattern_content_units ==
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
   SrSVGRenderContext base_tile_context = *current_render_context_;
+  // A pattern changes the content transform, but does not establish an SVG
+  // viewport. Keep the caller's viewport/viewBox for percentage lengths.
 
   for (float step_y = origin_y; step_y < bottom;
        step_y += resolved_pattern.height) {
@@ -613,8 +615,6 @@ void SrIOSCanvas::RenderPatternTiles(
       if (has_resolved_view_box) {
         SrSVGBox tile_view_port{step_x, step_y, resolved_pattern.width,
                                 resolved_pattern.height};
-        tile_context.view_port = tile_view_port;
-        tile_context.view_box = resolved_pattern.view_box;
         float view_box_xform[6];
         calculate_view_box_transform(
             &tile_view_port, &resolved_pattern.view_box,
@@ -622,16 +622,12 @@ void SrIOSCanvas::RenderPatternTiles(
         Transform(view_box_xform);
       } else {
         if (uses_object_bounding_box_content_units) {
-          tile_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
-          tile_context.view_box = SrSVGBox{0.f, 0.f, 0.f, 0.f};
           Translate(step_x, step_y);
           float scale_xform[6];
           xform_set_scale(scale_xform, target_bounds.width,
                           target_bounds.height);
           Transform(scale_xform);
         } else {
-          tile_context.view_port = resolved_pattern.view_port;
-          tile_context.view_box = resolved_pattern.view_port;
           Translate(step_x, step_y);
         }
       }

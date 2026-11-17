@@ -4,12 +4,14 @@
 
 #include "platform/skity/SrSkityCanvas.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <vector>
 #include "element/SrSVGNode.h"
 #include "element/SrSVGPattern.h"
 #include "skity/effect/path_effect.hpp"
 #include "skity/geometry/stroke.hpp"
+#include "skity/graphic/path_op.hpp"
 #include "skity/skity.hpp"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGPatternUtils.h"
@@ -29,6 +31,36 @@ namespace skity {
 ::skity::Matrix CreateAffineMatrix(const float* xform) {
   return {xform[0], xform[2], xform[4], xform[1], xform[3],
           xform[5], 0.f,      0.f,      1.f};
+}
+
+static bool ClipOversizedPatternFill(::skity::Canvas* canvas,
+                                     const ::skity::Path& path,
+                                     ::skity::Path* clipped_path) {
+  const auto matrix = canvas->GetTotalMatrix();
+  const auto bounds = matrix.MapRect(path.GetBounds());
+  // The software rasterizer converts supersampled edges to signed 16.16
+  // coordinates before clipping. Bound large pattern geometry first.
+  constexpr float kSafeDeviceCoordinate = 4096.f;
+  if (std::abs(bounds.Left()) < kSafeDeviceCoordinate &&
+      std::abs(bounds.Top()) < kSafeDeviceCoordinate &&
+      std::abs(bounds.Right()) < kSafeDeviceCoordinate &&
+      std::abs(bounds.Bottom()) < kSafeDeviceCoordinate) {
+    return false;
+  }
+  ::skity::Matrix inverse;
+  if (!matrix.Invert(&inverse)) {
+    return false;
+  }
+  ::skity::Path clip;
+  // Keep new boolean-operation edges outside the antialiased canvas clip.
+  clip.AddRect(canvas->GetGlobalClipBounds().MakeOutset(1.f, 1.f));
+  ::skity::Path result;
+  if (!::skity::PathOp::Execute(path.CopyWithMatrix(matrix), clip,
+                                ::skity::PathOp::Op::kIntersect, &result)) {
+    return false;
+  }
+  *clipped_path = result.CopyWithMatrix(inverse);
+  return true;
 }
 
 static inline void MultiplyTransformArray(const float (&lhs)[6],
@@ -666,6 +698,8 @@ void SrSkityCanvas::RenderPatternTiles(
       resolved_pattern.pattern_content_units ==
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX;
   SrSVGRenderContext base_tile_context = *current_render_context_;
+  // A pattern changes the content transform, but does not establish an SVG
+  // viewport. Keep the caller's viewport/viewBox for percentage lengths.
 
   for (float step_y = origin_y; step_y < bottom;
        step_y += resolved_pattern.height) {
@@ -679,8 +713,6 @@ void SrSkityCanvas::RenderPatternTiles(
       if (has_resolved_view_box) {
         SrSVGBox tile_view_port{step_x, step_y, resolved_pattern.width,
                                 resolved_pattern.height};
-        tile_context.view_port = tile_view_port;
-        tile_context.view_box = resolved_pattern.view_box;
         float view_box_xform[6];
         calculate_view_box_transform(
             &tile_view_port, &resolved_pattern.view_box,
@@ -688,16 +720,12 @@ void SrSkityCanvas::RenderPatternTiles(
         Transform(view_box_xform);
       } else {
         if (uses_object_bounding_box_content_units) {
-          tile_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
-          tile_context.view_box = SrSVGBox{0.f, 0.f, 0.f, 0.f};
           Translate(step_x, step_y);
           float scale_xform[6];
           xform_set_scale(scale_xform, target_bounds.width,
                           target_bounds.height);
           Transform(scale_xform);
         } else {
-          tile_context.view_port = resolved_pattern.view_port;
-          tile_context.view_box = resolved_pattern.view_port;
           Translate(step_x, step_y);
         }
       }
@@ -890,8 +918,14 @@ void SrSkityCanvas::DrawPathWithRenderState(
     if (!rendered_pattern_fill) {
       if (render_state.fill->type != SrSVGPaintType::SERVAL_PAINT_IRI ||
           has_gradient_fill) {
+        ::skity::Path clipped_path;
+        const auto& fill_path =
+            !active_pattern_ids_.empty() &&
+                    ClipOversizedPatternFill(canvas_, path, &clipped_path)
+                ? clipped_path
+                : path;
         canvas_->DrawPath(
-            path, ConvertToPaint(render_state, path.GetBounds(), false));
+            fill_path, ConvertToPaint(render_state, path.GetBounds(), false));
       }
     }
   }
@@ -1061,18 +1095,20 @@ void SrSkityCanvas::DrawImage(
         calculate_view_box_transform(&view_port, &view_box,
                                      preserve_aspect_radio, form);
         canvas_->Save();
+        canvas_->ClipRect(::skity::Rect::MakeXYWH(x, y, width, height));
         ::skity::Matrix box_transform{
             form[0], form[2], form[4], form[1], form[3], form[5], 0, 0, 1};
         canvas_->Concat(box_transform);
-        ::skity::Matrix flipY;
-        flipY.Scale(1, -1);
-        canvas_->Concat(flipY);
         ::skity::SamplingOptions options{};
         options.filter = ::skity::FilterMode::kLinear;
         ::skity::Paint paint;
         paint.SetAlpha(static_cast<uint8_t>(ClampUnitFloat(opacity) * 255.f));
-        canvas_->DrawImage(image, ::skity::Rect::MakeXYWH(x, y, width, height),
-                           options, &paint);
+        ::skity::Rect source = ::skity::Rect::MakeWH(image_width, image_height);
+        if (source.Intersect(canvas_->GetLocalClipBounds())) {
+          // The aspect-ratio transform already maps intrinsic image space to
+          // its destination. Trim before software rasterization.
+          canvas_->DrawImageRect(image, source, source, options, &paint);
+        }
         canvas_->Restore();
       }
     }
