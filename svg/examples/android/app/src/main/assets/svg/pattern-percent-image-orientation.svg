@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
+  <defs>
+    <pattern id="p" x="120" y="20" width="100" height="100" patternUnits="userSpaceOnUse">
+      <image x="5%" y="6.25%" width="33.333333333%" height="50%" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJUlEQVR4nGP4z8DwHx8mIP2foIpRA4aEAQz/8cP/BPCoAcPCAABX6D3f7ShDqgAAAABJRU5ErkJggg=="/>
+    </pattern>
+  </defs>
+  <image x="20" y="20" width="80" height="100" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJUlEQVR4nGP4z8DwHx8mIP2foIpRA4aEAQz/8cP/BPCoAcPCAABX6D3f7ShDqgAAAABJRU5ErkJggg=="/>
+  <rect x="120" y="20" width="100" height="100" fill="url(#p)"/>
+</svg>

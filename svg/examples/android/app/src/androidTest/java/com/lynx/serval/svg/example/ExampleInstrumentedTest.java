@@ -8,9 +8,12 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.Base64;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.lynx.serval.svg.SVGRender;
@@ -19,7 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -49,6 +56,117 @@ public class ExampleInstrumentedTest {
     Context appContext =
         InstrumentationRegistry.getInstrumentation().getTargetContext();
     assertEquals("com.lynx.serval.svg.example", appContext.getPackageName());
+  }
+
+  @Test
+  public void imagePattern_userSpaceRendersLoadedImageWithinCircle()
+      throws IOException {
+    Context appContext =
+        InstrumentationRegistry.getInstrumentation().getTargetContext();
+    String content =
+        readAssetFile(appContext, "svg/pattern-image-remote-whitelist.svg");
+    assertImagePatternRendersWithinCircle(content, Color.BLUE);
+  }
+
+  @Test
+  public void imagePattern_objectBoundingBoxPercentagesUseOuterViewport()
+      throws IOException {
+    Context appContext =
+        InstrumentationRegistry.getInstrumentation().getTargetContext();
+    String content =
+        readAssetFile(appContext, "svg/pattern-image-remote-whitelist.svg");
+    content =
+        content.replace("patternUnits=\"userSpaceOnUse\"",
+                        "patternUnits=\"objectBoundingBox\" "
+                            + "patternContentUnits=\"objectBoundingBox\"");
+    assertTrue(content.contains("patternContentUnits=\"objectBoundingBox\""));
+    assertImagePatternRendersWithinCircle(content, Color.RED);
+  }
+
+  private static void assertImagePatternRendersWithinCircle(String content,
+                                                            int rightColor) {
+    String expectedUrl =
+        "https://tosv.byted.org/obj/iOSPackageBackUp/uploadRocketBug/"
+        + "2161343/1630292959_tool-off.png";
+    Bitmap source = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888);
+    source.eraseColor(Color.RED);
+    Paint blue = new Paint();
+    blue.setColor(Color.BLUE);
+    new Canvas(source).drawRect(8, 0, 16, 16, blue);
+
+    int[] requestCount = {0};
+    SVGRender render = new SVGRender();
+    render.setResourceManager((url, callback) -> {
+      assertEquals(expectedUrl, url);
+      ++requestCount[0];
+      callback.onSuccess(source);
+    });
+    SVGRender.SVGRenderResult result =
+        render.renderPictureWithResult(content, new Rect(0, 0, 200, 200));
+    Bitmap output = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
+    new Canvas(output).drawPicture(result.picture);
+
+    assertTrue("image pattern should render without diagnostics",
+               result.diagnostics.isEmpty());
+    assertTrue("image pattern should request its source", requestCount[0] > 0);
+    assertEquals(Color.RED, output.getPixel(50, 100));
+    assertEquals(rightColor, output.getPixel(150, 100));
+    assertEquals("pattern should be clipped to the circle", Color.TRANSPARENT,
+                 output.getPixel(10, 10));
+  }
+
+  @Test
+  public void patternChildPercentages_matchChromeReferenceProbes()
+      throws Exception {
+    Context context =
+        InstrumentationRegistry.getInstrumentation().getTargetContext();
+    JSONObject manifest =
+        new JSONObject(readAssetFile(context, "pattern_percent_cases.json"));
+    JSONArray cases = manifest.getJSONArray("cases");
+    Map<String, Bitmap> images = new HashMap<>();
+    for (int i = 0; i < cases.length(); i++) {
+      JSONObject fixture = cases.getJSONObject(i);
+      String file = fixture.getString("file");
+      int width = fixture.getInt("width");
+      int height = fixture.getInt("height");
+      SVGRender render = new SVGRender();
+      render.setResourceManager((url, callback) -> {
+        Bitmap image = images.get(url);
+        if (image == null) {
+          int separator = url.indexOf(";base64,");
+          assertTrue("shared image fixtures must be self-contained",
+                     url.startsWith("data:image/") && separator >= 0);
+          byte[] data =
+              Base64.decode(url.substring(separator + 8), Base64.DEFAULT);
+          image = BitmapFactory.decodeByteArray(data, 0, data.length);
+          images.put(url, image);
+        }
+        callback.onSuccess(image);
+      });
+      SVGRender.SVGRenderResult result = render.renderPictureWithResult(
+          readAssetFile(context, "svg/" + file), new Rect(0, 0, width, height));
+      assertTrue(file + " diagnostics: " + result.errorMessage,
+                 result.diagnostics.isEmpty());
+      Bitmap output =
+          Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+      new Canvas(output).drawPicture(result.picture);
+      JSONArray samples = fixture.getJSONArray("samples");
+      for (int j = 0; j < samples.length(); j++) {
+        JSONObject sample = samples.getJSONObject(j);
+        int x = sample.getInt("x");
+        int y = sample.getInt("y");
+        int pixel = output.getPixel(x, y);
+        int[] actual = {Color.red(pixel), Color.green(pixel), Color.blue(pixel),
+                        Color.alpha(pixel)};
+        JSONArray expected = sample.getJSONArray("rgba");
+        for (int channel = 0; channel < actual.length; channel++) {
+          assertTrue(file + " (" + x + "," + y + ") channel=" + channel +
+                         " actual=" + actual[channel] +
+                         " expected=" + expected.getInt(channel),
+                     Math.abs(actual[channel] - expected.getInt(channel)) <= 3);
+        }
+      }
+    }
   }
 
   @Test

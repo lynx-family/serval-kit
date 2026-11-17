@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
+  <defs>
+    <pattern id="p" x="20" y="20" width="80" height="40" patternUnits="userSpaceOnUse" viewBox="0 0 40 40" preserveAspectRatio="none">
+      <image x="10%" y="10%" width="10%" height="10%" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAHklEQVR4nGP4z8DwHx8mIP2foIpRA0YNGDVgqBgAADG1/hAAQOfMAAAAAElFTkSuQmCC"/>
+    </pattern>
+  </defs>
+  <rect x="20" y="20" width="160" height="80" fill="url(#p)"/>
+</svg>

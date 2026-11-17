@@ -19,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.lynx.serval.svg.SVGDrawable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,7 +78,8 @@ public class MainActivity extends AppCompatActivity {
       new LinkedHashMap<>();
   private final Map<String, SvgPreviewMetadata> previewMetadataByFile =
       new HashMap<>();
-  private final List<SVGDrawable> previewDrawables = new ArrayList<>();
+  private final List<SvgPreview> previews = new ArrayList<>();
+  private final SvgImageLoader imageLoader = new SvgImageLoader();
 
   private void loadPreviewMetadata() {
     previewMetadataByFile.clear();
@@ -364,23 +364,23 @@ public class MainActivity extends AppCompatActivity {
                                  HOST_COLOR_OVERRIDE_FILE.equals(fileName);
     targetView.setMinimumWidth(Math.max(targetWidth, 1));
     targetView.setMinimumHeight(Math.max(targetHeight, 1));
-    SVGDrawable drawable = new SVGDrawable(
-        svgContent, shouldSetHostColor ? HOST_DEFAULT_COLOR : null);
-    previewDrawables.add(drawable);
-    targetView.setImageDrawable(drawable);
-    targetView.invalidate();
+    previews.add(new SvgPreview(
+        svgContent, shouldSetHostColor ? HOST_DEFAULT_COLOR : null, targetView,
+        targetWidth, targetHeight, imageLoader));
   }
 
   private void closePreviewDrawables() {
-    for (SVGDrawable drawable : previewDrawables) {
-      drawable.close();
+    imageLoader.clearCallbacks();
+    for (SvgPreview preview : previews) {
+      preview.close();
     }
-    previewDrawables.clear();
+    previews.clear();
   }
 
   @Override
   protected void onDestroy() {
     closePreviewDrawables();
+    imageLoader.close();
     super.onDestroy();
   }
 }

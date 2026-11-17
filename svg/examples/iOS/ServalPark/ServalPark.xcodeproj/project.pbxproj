@@ -21,6 +21,7 @@
 		7F84C4B52E0C1001000C0DE1 /* svg_use_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B42E0C1001000C0DE1 /* svg_use_metadata.json */; };
 		7F84C4B72E0C1001000C0DE1 /* svg_gradient_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B62E0C1001000C0DE1 /* svg_gradient_metadata.json */; };
 		7F84C4B92E0C1001000C0DE1 /* svg_smil_animation_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F84C4B82E0C1001000C0DE1 /* svg_smil_animation_metadata.json */; };
+		7F84C4BC2E0C1001000C0DE1 /* SvgImageLoader.m in Sources */ = {isa = PBXBuildFile; fileRef = 7F84C4BB2E0C1001000C0DE1 /* SvgImageLoader.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,8 @@
 		7F84C4B42E0C1001000C0DE1 /* svg_use_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_use_metadata.json; sourceTree = "<group>"; };
 		7F84C4B62E0C1001000C0DE1 /* svg_gradient_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_gradient_metadata.json; sourceTree = "<group>"; };
 		7F84C4B82E0C1001000C0DE1 /* svg_smil_animation_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_smil_animation_metadata.json; sourceTree = "<group>"; };
+		7F84C4BA2E0C1001000C0DE1 /* SvgImageLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SvgImageLoader.h; sourceTree = "<group>"; };
+		7F84C4BB2E0C1001000C0DE1 /* SvgImageLoader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SvgImageLoader.m; sourceTree = "<group>"; };
 		A9292406E0026CF9B8363858 /* Pods-ServalPark.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ServalPark.debug.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.debug.xcconfig"; sourceTree = "<group>"; };
 		C8BAC7AE53F5174D90F13E16 /* libPods-ServalPark.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ServalPark.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D486801AC58F2DE31E995495 /* Pods-ServalPark.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = Text.xcconfig; name = "Pods-ServalPark.release.xcconfig"; path = "Target Support Files/Pods-ServalPark/Pods-ServalPark.release.xcconfig"; sourceTree = "<group>"; };
@@ -95,6 +98,8 @@
 				2B50A9282A3AE770006CAE6B /* SceneDelegate.m */,
 				2B50A92A2A3AE770006CAE6B /* ViewController.h */,
 				2B50A92B2A3AE770006CAE6B /* ViewController.m */,
+				7F84C4BA2E0C1001000C0DE1 /* SvgImageLoader.h */,
+				7F84C4BB2E0C1001000C0DE1 /* SvgImageLoader.m */,
 				2B50A92D2A3AE770006CAE6B /* Main.storyboard */,
 				2B50A9302A3AE771006CAE6B /* Assets.xcassets */,
 				2B50A9322A3AE771006CAE6B /* LaunchScreen.storyboard */,
@@ -221,6 +226,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B50A92C2A3AE770006CAE6B /* ViewController.m in Sources */,
+				7F84C4BC2E0C1001000C0DE1 /* SvgImageLoader.m in Sources */,
 				2B50A9262A3AE770006CAE6B /* AppDelegate.m in Sources */,
 				2B50A9372A3AE771006CAE6B /* main.m in Sources */,
 				2B50A9292A3AE770006CAE6B /* SceneDelegate.m in Sources */,
