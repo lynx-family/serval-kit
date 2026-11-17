@@ -815,6 +815,9 @@ bool SrIOSCanvas::RenderPatternStroke(CGPathRef cgPath,
 
 void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
                              const SrSVGRenderState& renderState) {
+  if (!renderState.stroke || renderState.stroke->type == SERVAL_PAINT_NONE) {
+    return;
+  }
   CGContextSaveGState(_context);
   CGContextSetAlpha(_context, renderState.stroke_opacity);
   if (renderState.stroke_width > 0) {
@@ -860,7 +863,7 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
       CGContextSetLineDash(_context, dash_offset, dash_array, dash_count);
     }
   }
-  if (renderState.stroke && renderState.stroke->type == SERVAL_PAINT_COLOR) {
+  if (renderState.stroke->type == SERVAL_PAINT_COLOR) {
     CGPathRef stroke_path = cgPath;
     CGPathRef transformed_path = nullptr;
     if (renderState.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
@@ -878,8 +881,7 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
     if (transformed_path) {
       CGPathRelease(transformed_path);
     }
-  } else if (renderState.stroke &&
-             renderState.stroke->type == SERVAL_PAINT_IRI) {
+  } else if (renderState.stroke->type == SERVAL_PAINT_IRI) {
     const char* iri = renderState.stroke->content.iri;
     if (!iri || iri[0] == '\0') {
       CGContextRestoreGState(_context);
@@ -946,7 +948,6 @@ void SrIOSCanvas::DrawLine(const char* id, float x1, float y1, float x2,
 void SrIOSCanvas::DrawRect(const char* id, float x, float y, float rx, float ry,
                            float width, float height,
                            const SrSVGRenderState& render_state) {
-  CGContextSaveGState(_context);
   CGMutablePathRef path = CGPathCreateMutable();
   if (rx < 0.00001f || ry < 0.0001f) {
     CGRect rect = (CGRect){x, y, width, height};
@@ -974,7 +975,6 @@ void SrIOSCanvas::DrawRect(const char* id, float x, float y, float rx, float ry,
   FillPath(path, render_state);
   StrokePath(path, render_state);
   CGPathRelease(path);
-  CGContextRestoreGState(_context);
 }
 
 void SrIOSCanvas::DrawCircle(const char* id, float cx, float cy, float r,

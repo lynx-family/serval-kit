@@ -6,7 +6,7 @@
 
 #import <Foundation/Foundation.h>
 #include <memory>
-#include <sstream>
+#include <string>
 #include <vector>
 
 #include "element/SrSVGTypes.h"
@@ -17,21 +17,15 @@ using serval::svg::ios::SrIOSCanvas;
 using serval::svg::parser::SrSVGDiagnostic;
 using serval::svg::parser::SrSVGDOM;
 
-static bool SrSVGParseSVGStringDoc(std::unique_ptr<SrSVGDOM>& svgDom,
-                                   NSString* svgDoc,
-                                   std::vector<SrSVGDiagnostic>* diagnostics) {
-  std::string svgCppString([svgDoc UTF8String]);
-  svgDom =
-      SrSVGDOM::make(svgCppString.c_str(), svgCppString.length(), diagnostics);
-  return svgDom != nullptr;
-}
-
-static bool SrSVGParseSVGDataDoc(std::unique_ptr<SrSVGDOM>& svgDom,
-                                 NSData* svgDoc,
-                                 std::vector<SrSVGDiagnostic>* diagnostics) {
-  NSString* svgString = [[NSString alloc] initWithData:svgDoc
-                                              encoding:NSUTF8StringEncoding];
-  return SrSVGParseSVGStringDoc(svgDom, svgString, diagnostics);
+static std::unique_ptr<SrSVGDOM> SrSVGParseSVGStringDoc(
+    NSString* svgDoc, std::vector<SrSVGDiagnostic>* diagnostics) {
+  const char* contents = [svgDoc UTF8String];
+  if (!contents) {
+    return nullptr;
+  }
+  const std::string svgCppString(contents);
+  return SrSVGDOM::make(svgCppString.c_str(), svgCppString.length(),
+                        diagnostics);
 }
 
 static SrSVGRenderResult* SrSVGMakeRenderResult(
@@ -44,11 +38,7 @@ static SrSVGRenderResult* SrSVGMakeRenderResult(
                                      errorMessage:errorMessage];
 }
 
-static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
-                                   NSString* color) {
-  if (!svgDom) {
-    return;
-  }
+static void SrSVGApplyDefaultColor(SrSVGDOM& svgDom, NSString* color) {
   NSString* normalized = nil;
   if (color.length > 0) {
     normalized = [color
@@ -58,14 +48,16 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
   if (normalized.length > 0) {
     uint32_t default_color = 0;
     if (parse_svg_color(normalized.UTF8String, &default_color)) {
-      svgDom->SetDefaultColor(default_color);
+      svgDom.SetDefaultColor(default_color);
       return;
     }
   }
-  svgDom->ResetDefaultColor();
+  svgDom.ResetDefaultColor();
 }
 
 @interface SrSVG ()
+@property(atomic, assign) BOOL parsedDocumentHasAnimations;
+
 - (UIImage*)getSrSvgDrawImageWithData:(NSData*)data
                               andSize:(CGSize)size
                              andColor:(NSString*)color
@@ -78,14 +70,16 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
 
 @implementation SrSVG {
   NSData* _svgDoc;
-  std::unique_ptr<SrSVGDOM> _svgDom;
 }
 
 - (instancetype)initWithData:(NSData*)data {
   self = [super init];
   if (self) {
     self->_svgDoc = data;
-    SrSVGParseSVGDataDoc(self->_svgDom, data, nil);
+    NSString* svgDoc = [[NSString alloc] initWithData:data
+                                             encoding:NSUTF8StringEncoding];
+    auto svgDom = SrSVGParseSVGStringDoc(svgDoc, nullptr);
+    self.parsedDocumentHasAnimations = svgDom && svgDom->HasAnimations();
   }
   return self;
 }
@@ -93,7 +87,8 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
 - (instancetype)initWithString:(NSString*)svgDoc {
   self = [super init];
   if (self) {
-    SrSVGParseSVGStringDoc(self->_svgDom, svgDoc, nil);
+    auto svgDom = SrSVGParseSVGStringDoc(svgDoc, nullptr);
+    self.parsedDocumentHasAnimations = svgDom && svgDom->HasAnimations();
   }
   return self;
 }
@@ -177,16 +172,18 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
   CGContextTranslateCTM(cgContext, 0, size.height);
   CGContextScaleCTM(cgContext, 1, -1);
   std::vector<SrSVGDiagnostic> diagnostics;
-  SrSVGParseSVGStringDoc(_svgDom, dataString, &diagnostics);
-  if (_svgDom) {
-    SrSVGApplyDefaultColor(_svgDom, color);
+  // Keep this draw's DOM alive across concurrent or reentrant draws.
+  auto svgDom = SrSVGParseSVGStringDoc(dataString, &diagnostics);
+  self.parsedDocumentHasAnimations = svgDom && svgDom->HasAnimations();
+  if (svgDom) {
+    SrSVGApplyDefaultColor(*svgDom, color);
     SrIOSCanvas canvas(cgContext, imageCb);
     SrSVGBox viewPort{0.f, 0.f, static_cast<float>(size.width),
                       static_cast<float>(size.height)};
     if (renderAtTime) {
-      _svgDom.get()->RenderAtTime(&canvas, viewPort, seconds);
+      svgDom->RenderAtTime(&canvas, viewPort, seconds);
     } else {
-      _svgDom.get()->Render(&canvas, viewPort);
+      svgDom->Render(&canvas, viewPort);
     }
   }
   CGImageRef cgImage = CGBitmapContextCreateImage(cgContext);
@@ -201,7 +198,7 @@ static void SrSVGApplyDefaultColor(std::unique_ptr<SrSVGDOM>& svgDom,
 }
 
 - (BOOL)hasAnimations {
-  return _svgDom && _svgDom->HasAnimations();
+  return self.parsedDocumentHasAnimations;
 }
 
 @end
