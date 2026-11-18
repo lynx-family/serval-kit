@@ -1573,13 +1573,19 @@ std::unique_ptr<canvas::Path> PathFactoryQuartz2D::CreateStrokePath(
   CGPathRef strokedPath = CGPathCreateCopyByStrokingPath(
       path_q2d->GetPath(), NULL, width, cgCap, cgJoin, miter_limit);
 
-  if (strokedPath) {
-    auto ret =
-        std::make_unique<PathQuartz2D>(CGPathCreateMutableCopy(strokedPath));
-    CGPathRelease(strokedPath);
-    return std::move(ret);
+  if (!strokedPath) {
+    return nullptr;
   }
-  return nullptr;
+
+  CGMutablePathRef mutable_path = CGPathCreateMutableCopy(strokedPath);
+  CGPathRelease(strokedPath);
+  if (!mutable_path) {
+    return nullptr;
+  }
+
+  auto ret = std::make_unique<PathQuartz2D>(mutable_path);
+  CGPathRelease(mutable_path);
+  return ret;
 }
 
 }  // namespace ios

@@ -79,7 +79,7 @@ void ParagraphTK::Layout(float max_width) {
 
 void ParagraphTK::Draw(SrCanvas* canvas, float x, float y) {
   ios::SrIOSCanvas* canvas_q2d = reinterpret_cast<ios::SrIOSCanvas*>(canvas);
-  CGContextRef ctx = CGContextRetain(canvas_q2d->Context());
+  CGContextRef ctx = canvas_q2d->Context();
   NSRange range = [layout_manager_ glyphRangeForTextContainer:text_container_];
   [layout_manager_ ensureLayoutForTextContainer:text_container_];
   CGRect rect = [layout_manager_ boundingRectForGlyphRange:range
