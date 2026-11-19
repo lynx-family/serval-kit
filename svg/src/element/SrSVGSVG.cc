@@ -4,8 +4,12 @@
 
 #include "element/SrSVGSVG.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "element/SrSVGContainer.h"
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGTraversalState.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGLog.h"
 
@@ -23,7 +27,12 @@ void ApplyOriginWrappedTransform(canvas::SrCanvas* canvas,
   xform_pre_translate(centered, origin_x, origin_y);
   xform_multiply(centered, transform);
   xform_pre_translate(centered, -origin_x, -origin_y);
-  canvas->Transform(centered);
+  if (std::all_of(centered, centered + 6,
+                  [](float value) { return std::isfinite(value); })) {
+    canvas->Transform(centered);
+  } else {
+    canvas->Transform(transform);
+  }
 }
 
 void ResolveRootCssOrigin(const SrSVGSVG& svg, SrSVGRenderContext& context,
@@ -45,12 +54,22 @@ SrSVGSVG::SrSVGSVG(SrSVGTag tag)
 
 bool SrSVGSVG::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "viewBox") == 0) {
-    view_box_ = make_serval_view_box(value);
+    if (!parse_serval_view_box(value, &view_box_))
+      return false;
+    has_view_box_ = true;
     LOGV("viewBox =[%f, %f, %f, %f]", view_box_.left, view_box_.top,
          view_box_.width, view_box_.height);
     return true;
+  } else if (strcmp(name, "width") == 0 || strcmp(name, "height") == 0) {
+    auto& length = strcmp(name, "width") == 0 ? width_ : height_;
+    if (!ParseLengthAttribute(value, length, LengthRange::kNonNegative))
+      return false;
+    if (parsing_style_)
+      StoreAttribute(name, value);
+    return true;
   } else if (strcmp(name, "preserveAspectRatio") == 0) {
-    preserve_aspect_radio_ = make_preserve_aspect_radio(value);
+    if (!parse_serval_preserve_aspect_ratio(value, &preserve_aspect_radio_))
+      return false;
     LOGV("preserveAspectRatio =[%f, %f, %f]", preserve_aspect_radio_.scale,
          preserve_aspect_radio_.align_x, preserve_aspect_radio_.align_y);
     return true;
@@ -60,7 +79,8 @@ bool SrSVGSVG::ParseAndSetAttribute(const char* name, const char* value) {
     parsing_style_ = false;
     return true;
   } else if (strcmp(name, "transform") == 0 && parsing_style_) {
-    ParseTransform(value, css_transform_);
+    if (!TryParseTransform(value, css_transform_))
+      return false;
     has_css_transform_ = true;
     return true;
   }
@@ -69,32 +89,70 @@ bool SrSVGSVG::ParseAndSetAttribute(const char* name, const char* value) {
 
 SrSVGSVG::~SrSVGSVG() = default;
 
+void SrSVGSVG::ClearAnimatedAttribute(const std::string& name) {
+  if (name == "viewBox") {
+    view_box_ = {};
+    has_view_box_ = false;
+  } else if (name == "width") {
+    width_.reset();
+  } else if (name == "height") {
+    height_.reset();
+  } else {
+    SrSVGContainer::ClearAnimatedAttribute(name);
+  }
+}
+
+SrSVGBox SrSVGSVG::ResolveImplicitViewport(float dpi) const {
+  if (has_view_box_)
+    return view_box_;
+  SrSVGRenderContext context{};
+  context.dpi = dpi;
+  SrSVGBox viewport{};
+  if (!width_ || !height_ ||
+      !resolve_serval_length(&*width_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &viewport.width) ||
+      !resolve_serval_length(&*height_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                             &viewport.height))
+    return {};
+  return viewport;
+}
+
 bool SrSVGSVG::OnPrepareToRender(canvas::SrCanvas* canvas,
                                  SrSVGRenderContext& context) const {
-  if (IsZero(context.view_port.width) || IsZero(context.view_port.height)) {
-    LOGW("skip render due to zero viewport: vp=[%f,%f,%f,%f]",
-         context.view_port.left, context.view_port.top, context.view_port.width,
-         context.view_port.height);
+  if (!serval_svg_valid_box(&context.view_port))
     return false;
+  if (has_view_box_) {
+    if (!serval_svg_valid_box(&view_box_))
+      return false;
+    context.view_box = view_box_;
+  } else {
+    context.view_box = {0.f, 0.f, context.view_port.width,
+                        context.view_port.height};
   }
 
-  if (IsZero(context.view_box.width) || IsZero(context.view_box.height)) {
-    // W3C SVG behavior: if the root <svg> has no valid viewBox, treat the
-    // initial user coordinate system as the viewport coordinate system.
-    context.view_box =
-        SrSVGBox{0.f, 0.f, context.view_port.width, context.view_port.height};
-  }
-
+  float xform[6];
+  if (!resolve_serval_view_box_transform(&context.view_port, &context.view_box,
+                                         preserve_aspect_radio_, xform))
+    return false;
   canvas->SetViewBox(context.view_port.left, context.view_port.top,
                      context.view_port.width, context.view_port.height);
-  float xform[6];
-  calculate_view_box_transform(&(context.view_port), &(context.view_box),
-                               preserve_aspect_radio_, xform);
   canvas->Transform(xform);
   return true;
 }
 
+bool SrSVGSVG::ShouldRender(const SrSVGRenderContext& context) const {
+  if (!serval_svg_valid_box(&context.view_port))
+    return false;
+  if (!has_view_box_)
+    return true;
+  float transform[6];
+  return resolve_serval_view_box_transform(&context.view_port, &view_box_,
+                                           preserve_aspect_radio_, transform);
+}
+
 void SrSVGSVG::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
+  if (!ShouldRender(context))
+    return;
   if (has_css_transform_) {
     float origin_x = 0.f;
     float origin_y = 0.f;
@@ -107,6 +165,7 @@ void SrSVGSVG::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
 
 bool SrSVGSVG::RenderChildAt(canvas::SrCanvas* canvas,
                              SrSVGRenderContext& context, size_t index) {
+  parser::SrSVGViewBoxScope view_box_scope(context);
   canvas->Save();
   canvas->SetRenderContext(&context);
   if (!OnPrepareToRender(canvas, context)) {
@@ -129,6 +188,7 @@ bool SrSVGSVG::RenderChildPathAt(canvas::SrCanvas* canvas,
                                  SrSVGRenderContext& context,
                                  const std::vector<size_t>& path,
                                  size_t depth) {
+  parser::SrSVGViewBoxScope view_box_scope(context);
   canvas->Save();
   canvas->SetRenderContext(&context);
   if (!OnPrepareToRender(canvas, context)) {

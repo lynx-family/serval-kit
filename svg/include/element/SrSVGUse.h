@@ -44,7 +44,6 @@ class SrSVGUse : public SrSVGNode {
   bool has_stroke_cap_{false};
   bool has_stroke_join_{false};
   bool has_stroke_miter_limit_{false};
-  bool has_stroke_dash_offset_{false};
   bool has_stroke_dash_array_{false};
 };
 

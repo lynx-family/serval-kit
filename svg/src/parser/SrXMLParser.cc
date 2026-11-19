@@ -5,9 +5,11 @@
 #include "parser/SrXMLParser.h"
 
 #include <cstring>
+#include <new>
 #include <string>
-#include <vector>
+#include "parser/SrSVGArray.h"
 
+#include "parser/SrSVGParseLimits.h"
 #include "parser/SrXMLExtractor.h"
 
 namespace serval {
@@ -28,22 +30,24 @@ struct ParsingContext {
     return false;
   }
 
-  void appendText(const char* txt, size_t len) {
-    fBufferedText.insert(fBufferedText.end(), txt, txt + len);
+  bool appendText(const char* txt, size_t len) {
+    if (len > kSVGMaxAttributeBytes - fBufferedText.size() ||
+        !fBufferedText.reserve(fBufferedText.size() + len))
+      return false;
+    for (size_t i = 0; i < len; ++i)
+      fBufferedText.push_back(txt[i]);
+    return true;
   }
 
   SrXMLParser* fParser;
 
  private:
-  std::vector<char> fBufferedText;
+  SrSVGArray<char> fBufferedText;
 };
-
-#define HANDLER_CONTEXT(arg, name) \
-  ParsingContext* name = static_cast<ParsingContext*>(arg)
 
 bool start_element_handler(void* data, const char* tag, size_t tag_len,
                            const SrXMLAttrView* attributes, size_t attr_count) {
-  HANDLER_CONTEXT(data, ctx);
+  auto* ctx = static_cast<ParsingContext*>(data);
   if (ctx->flushText()) {
     return true;
   }
@@ -63,7 +67,7 @@ bool start_element_handler(void* data, const char* tag, size_t tag_len,
 }
 
 bool end_element_handler(void* data, const char* tag, size_t tag_len) {
-  HANDLER_CONTEXT(data, ctx);
+  auto* ctx = static_cast<ParsingContext*>(data);
   if (ctx->flushText()) {
     return true;
   }
@@ -72,10 +76,8 @@ bool end_element_handler(void* data, const char* tag, size_t tag_len) {
 }
 
 bool text_handler(void* data, const char* txt, size_t len) {
-  HANDLER_CONTEXT(data, ctx);
-
-  ctx->appendText(txt, len);
-  return false;
+  auto* ctx = static_cast<ParsingContext*>(data);
+  return !ctx->appendText(txt, len);
 }
 
 SrXMLParser::SrXMLParser(SrXMLParserError* parserError)
@@ -84,22 +86,40 @@ SrXMLParser::SrXMLParser(SrXMLParserError* parserError)
 SrXMLParser::~SrXMLParser() = default;
 
 bool SrXMLParser::parse(const char doc[], size_t len) {
-  if (!doc || len == 0) {
-    if (fError) {
-      fError->SetCode(SrXMLParserError::kEmptyFile);
-      fError->SetNoun("");
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  try {
+#endif
+    if (!doc || len == 0) {
+      if (fError) {
+        fError->SetCode(SrXMLParserError::kEmptyFile);
+        fError->SetNoun("");
+      }
+      return false;
     }
+
+    if (len > kSVGMaxDocumentBytes) {
+      if (fError) {
+        fError->SetCode(SrXMLParserError::kUnknownError);
+        fError->SetNoun("XML document exceeds byte limit");
+      }
+      return false;
+    }
+    ParsingContext ctx(this);
+    const bool ok = SrXMLParseXML(doc, len, start_element_handler,
+                                  end_element_handler, text_handler, &ctx);
+    if (!ok && fError && !fError->HasError()) {
+      fError->SetCode(SrXMLParserError::kUnknownError);
+      fError->SetNoun("malformed xml");
+    }
+    return ok;
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  } catch (const std::bad_alloc&) {
+    // Cleanup below this boundary owns all partially built XML data.
+    if (fError)
+      fError->SetCode(SrXMLParserError::kUnknownError);
     return false;
   }
-
-  ParsingContext ctx(this);
-  const bool ok = SrXMLParseXML(doc, len, start_element_handler,
-                                end_element_handler, text_handler, &ctx);
-  if (!ok && fError && !fError->HasError()) {
-    fError->SetCode(SrXMLParserError::kUnknownError);
-    fError->SetNoun("malformed xml");
-  }
-  return ok;
+#endif
 }
 
 void SrXMLParser::GetNativeErrorString(int error, std::string* str) {}

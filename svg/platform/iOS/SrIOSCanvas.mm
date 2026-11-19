@@ -6,115 +6,35 @@
 #import <CoreImage/CoreImage.h>
 
 #include <algorithm>
+#include <cfloat>
+#include <cmath>
 
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGArray.h"
 #include "platform/iOS/SrIOSCanvas.h"
 #include "platform/iOS/SrIOSColorUtils.h"
 #include "utils/SrFloatComparison.h"
+#include "utils/SrSVGArc.h"
 #include "utils/SrSVGPatternUtils.h"
 
-#define LYNX_DEGREE_TO_RADIANS(X) ((M_PI * X) / 180)
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define NSVG_KAPPA90 (0.5522847493f)
-
-static void SRSVGArcToBezier(CGMutablePathRef p, double cx, double cy, double a,
-                             double b, double e1x, double e1y, double theta,
-                             double start, double sweep) {
-  // Maximum of 45 degrees per cubic Bezier segment
-  int numSegments = (int)ceil(fabs(sweep * 4 / M_PI));
-
-  double eta1 = start;
-  double cosTheta = cos(theta);
-  double sinTheta = sin(theta);
-  double cosEta1 = cos(eta1);
-  double sinEta1 = sin(eta1);
-  double ep1x = (-a * cosTheta * sinEta1) - (b * sinTheta * cosEta1);
-  double ep1y = (-a * sinTheta * sinEta1) + (b * cosTheta * cosEta1);
-
-  double anglePerSegment = sweep / numSegments;
-  for (int i = 0; i < numSegments; i++) {
-    double eta2 = eta1 + anglePerSegment;
-    double sinEta2 = sin(eta2);
-    double cosEta2 = cos(eta2);
-    double e2x = cx + (a * cosTheta * cosEta2) - (b * sinTheta * sinEta2);
-    double e2y = cy + (a * sinTheta * cosEta2) + (b * cosTheta * sinEta2);
-    double ep2x = -a * cosTheta * sinEta2 - b * sinTheta * cosEta2;
-    double ep2y = -a * sinTheta * sinEta2 + b * cosTheta * cosEta2;
-    double tanDiff2 = tan((eta2 - eta1) / 2);
-    double alpha =
-        sin(eta2 - eta1) * (sqrt(4 + (3 * tanDiff2 * tanDiff2)) - 1) / 3;
-    double q1x = e1x + alpha * ep1x;
-    double q1y = e1y + alpha * ep1y;
-    double q2x = e2x - alpha * ep2x;
-    double q2y = e2y - alpha * ep2y;
-    CGPathAddCurveToPoint(p, NULL, q1x, q1y, q2x, q2y, e2x, e2y);
-    eta1 = eta2;
-    e1x = e2x;
-    e1y = e2y;
-    ep1x = ep2x;
-    ep1y = ep2y;
-  }
-}
-
 static void SrSVGDrawArc(CGMutablePathRef path, float x, float y, float x1,
                          float y1, float a, float b, float theta,
-                         const bool isMoreThanHalf, const bool isPositiveArc) {
-  float thetaD = LYNX_DEGREE_TO_RADIANS(theta);
-  float cosTheta = cosf(thetaD);
-  float sinTheta = sinf(thetaD);
-  float x0p = (x * cosTheta + y * sinTheta) / a;
-  float y0p = (-x * sinTheta + y * cosTheta) / b;
-  float x1p = (x1 * cosTheta + y1 * sinTheta) / a;
-  float y1p = (-x1 * sinTheta + y1 * cosTheta) / b;
-
-  float dx = x0p - x1p;
-  float dy = y0p - y1p;
-  float xm = (x0p + x1p) / 2;
-  float ym = (y0p + y1p) / 2;
-
-  float dCircle = dx * dx + dy * dy;
-  if (fabsf(dCircle) < 1e-6) {
-    // Path parse error in elliptical arc: all points are coincident
+                         bool large_arc, bool sweep) {
+  const float args[9] = {x,  y, a, b, theta, (float)large_arc, (float)sweep,
+                         x1, y1};
+  SrSVGArc arc;
+  if (!SrSVGArcToCubics(args, &arc))
     return;
+  if (arc.line)
+    CGPathAddLineToPoint(path, nullptr, x1, y1);
+  for (size_t i = 0; i < arc.count; ++i) {
+    const double* c = arc.cubics[i];
+    CGPathAddCurveToPoint(path, nullptr, c[0], c[1], c[2], c[3], c[4], c[5]);
   }
-  float disc = 1.0f / dCircle - 1.0f / 4.0f;
-  if (disc < 0) {
-    float adjust = sqrtf(dCircle) / 1.99999f;
-    SrSVGDrawArc(path, x, y, x1, y1, a * adjust, b * adjust, theta,
-                 isMoreThanHalf, isPositiveArc);
-    return;
-  }
-  float s = sqrtf(disc);
-  float sDx = s * dx;
-  float sDy = s * dy;
-  float cx;
-  float cy;
-  if (isMoreThanHalf == isPositiveArc) {
-    cx = xm - sDy;
-    cy = ym + sDx;
-  } else {
-    cx = xm + sDy;
-    cy = ym - sDx;
-  }
-  float eta0 = atan2((y0p - cy), (x0p - cx));
-  float eta1 = atan2((y1p - cy), (x1p - cx));
-  float sweep = (eta1 - eta0);
-  if (isPositiveArc != (sweep >= 0)) {
-    if (sweep > 0) {
-      sweep -= 2 * M_PI;
-    } else {
-      sweep += 2 * M_PI;
-    }
-  }
-  cx *= a;
-  cy *= b;
-  double tCx = cx;
-  cx = cx * cosTheta - cy * sinTheta;
-  cy = tCx * sinTheta + cy * cosTheta;
-  SRSVGArcToBezier(path, cx, cy, a, b, x, y, thetaD, eta0, sweep);
 }
 
 #ifdef __cplusplus
@@ -124,6 +44,22 @@ static void SrSVGDrawArc(CGMutablePathRef path, float x, float y, float x1,
 namespace serval {
 namespace svg {
 namespace ios {
+
+static bool SetLineDash(CGContextRef context, const float* values, size_t count,
+                        CGFloat offset) {
+  CGFloat local[32];
+  parser::SrSVGArray<CGFloat> storage;
+  CGFloat* dash = local;
+  if (count > 32) {
+    if (!storage.reserve(count))
+      return false;
+    dash = storage.data();
+  }
+  for (size_t i = 0; i < count; ++i)
+    dash[i] = values[i];
+  CGContextSetLineDash(context, offset, dash, count);
+  return true;
+}
 
 static CGFloat SrMapVectorLength(CGAffineTransform transform, CGFloat x,
                                  CGFloat y) {
@@ -455,11 +391,18 @@ static void DrawRadialGradient(
 
 SrIOSCanvas::SrIOSCanvas(CGFloat width, CGFloat height)
     : path_factory_(std::make_unique<PathFactoryQuartz2D>()) {
+  if (width < 1 || height < 1 ||
+      !parser::SrSVGTraversalState::OffscreenPixels(width, height))
+    return;
   CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-  _context = CGBitmapContextCreate(
-      NULL, width, height, 8, width * 4, colorSpace,
+  if (!colorSpace)
+    return;
+  _context = root_context_ = CGBitmapContextCreate(
+      NULL, width, height, 8, static_cast<size_t>(width) * 4, colorSpace,
       kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
   CGColorSpaceRelease(colorSpace);
+  if (!_context)
+    return;
   // initialize the rendering context
   CGContextSetStrokeColorWithColor(_context, [UIColor clearColor].CGColor);
   CGContextSetFillColorWithColor(_context, [UIColor clearColor].CGColor);
@@ -468,7 +411,7 @@ SrIOSCanvas::SrIOSCanvas(CGFloat width, CGFloat height)
 SrIOSCanvas::SrIOSCanvas(CGContextRef context)
     : path_factory_(std::make_unique<PathFactoryQuartz2D>()) {
   CGContextRetain(context);
-  _context = context;
+  _context = root_context_ = context;
   // initialize the fill color
   CGContextSetFillColorWithColor(_context, [UIColor clearColor].CGColor);
   CGContextSetStrokeColorWithColor(_context, [UIColor clearColor].CGColor);
@@ -478,31 +421,24 @@ SrIOSCanvas::SrIOSCanvas(CGContextRef context, ImageCallback image_callback)
     : path_factory_(std::make_unique<PathFactoryQuartz2D>()),
       image_callback_(image_callback) {
   CGContextRetain(context);
-  _context = context;
+  _context = root_context_ = context;
   // initialize the fill color
   CGContextSetFillColorWithColor(_context, [UIColor clearColor].CGColor);
   CGContextSetStrokeColorWithColor(_context, [UIColor clearColor].CGColor);
 }
 
 SrIOSCanvas::~SrIOSCanvas() {
-  if (luminance_mask_context_) {
-    CGContextRelease(luminance_mask_context_);
-    luminance_mask_context_ = nullptr;
+  for (size_t i = 0; i < filter_depth_; ++i) {
+    auto& layer = filter_layers_[i];
+    CGContextRelease(layer.layer_context);
+    CGContextRelease(layer.saved_context);
   }
-  for (auto& state : filter_layer_stack_) {
-    if (_context == state.layer_context) {
-      _context = state.saved_context;
-    }
-    if (state.layer_context) {
-      CGContextRelease(state.layer_context);
-    }
-    if (state.saved_context) {
-      CGContextRelease(state.saved_context);
-    }
+  for (size_t i = 0; i < mask_depth_; ++i) {
+    if (mask_layers_[i].context)
+      CGContextRelease(mask_layers_[i].context);
   }
-  filter_layer_stack_.clear();
-  CGContextRelease(_context);
-  _context = NULL;
+  if (root_context_)
+    CGContextRelease(root_context_);
 }
 
 void SrIOSCanvas::FillPath(CGMutablePathRef cgPath,
@@ -569,16 +505,15 @@ bool SrIOSCanvas::CalculatePathBounds(CGPathRef cgPath, SrSVGBox* bounds) {
 void SrIOSCanvas::RenderPatternTiles(
     const element::ResolvedPattern& resolved_pattern,
     const SrSVGBox& target_bounds) {
-  bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
 
   SrSVGBox pattern_area = target_bounds;
   if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
-    Transform(resolved_pattern.pattern_transform);
     float inverse[6];
-    if (element::InvertAffineTransform(resolved_pattern.pattern_transform,
-                                       inverse)) {
-      pattern_area = element::MapBounds(target_bounds, inverse);
-    }
+    if (!element::InvertAffineTransform(resolved_pattern.pattern_transform,
+                                        inverse) ||
+        !element::TryMapBounds(target_bounds, inverse, &pattern_area))
+      return;
+    Transform(resolved_pattern.pattern_transform);
   }
 
   float origin_x =
@@ -591,6 +526,12 @@ void SrIOSCanvas::RenderPatternTiles(
                                resolved_pattern.height;
   float right = pattern_area.left + pattern_area.width;
   float bottom = pattern_area.top + pattern_area.height;
+  element::PatternTileBudget budget(
+      *current_render_context_, origin_x, origin_y, right, bottom,
+      resolved_pattern.width, resolved_pattern.height);
+  if (!budget.HasRemaining() ||
+      !active_pattern_ids_.insert(resolved_pattern.id).second)
+    return;
   const bool has_resolved_view_box =
       resolved_pattern.has_view_box &&
       FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
@@ -602,10 +543,11 @@ void SrIOSCanvas::RenderPatternTiles(
   // A pattern changes the content transform, but does not establish an SVG
   // viewport. Keep the caller's viewport/viewBox for percentage lengths.
 
-  for (float step_y = origin_y; step_y < bottom;
+  for (float step_y = origin_y; step_y < bottom && budget.HasRemaining();
        step_y += resolved_pattern.height) {
-    for (float step_x = origin_x; step_x < right;
+    for (float step_x = origin_x; step_x < right && budget.HasRemaining();
          step_x += resolved_pattern.width) {
+      budget.Consume();
       Save();
       CGContextClipToRect(_context,
                           CGRectMake(step_x, step_y, resolved_pattern.width,
@@ -639,9 +581,7 @@ void SrIOSCanvas::RenderPatternTiles(
     }
   }
 
-  if (inserted) {
-    active_pattern_ids_.erase(resolved_pattern.id);
-  }
+  active_pattern_ids_.erase(resolved_pattern.id);
 }
 
 bool SrIOSCanvas::RenderPatternFill(CGPathRef cgPath,
@@ -719,13 +659,11 @@ CGPathRef SrIOSCanvas::CreateStrokeClipPath(
     const float* stroke_dash_array = render_state.stroke_state->dash_array;
     size_t dash_count = render_state.stroke_state->dash_array_length;
     if (stroke_dash_array && dash_count > 0) {
-      CGFloat dash_array[dash_count];
-      for (size_t i = 0; i < dash_count; ++i) {
-        dash_array[i] = stroke_dash_array[i];
+      if (!SetLineDash(temp_context, stroke_dash_array, dash_count,
+                       render_state.stroke_state->stroke_dash_offset)) {
+        CGContextRelease(temp_context);
+        return nullptr;
       }
-      CGContextSetLineDash(temp_context,
-                           render_state.stroke_state->stroke_dash_offset,
-                           dash_array, dash_count);
     }
   }
 
@@ -851,12 +789,11 @@ void SrIOSCanvas::StrokePath(CGMutablePathRef cgPath,
     const float* stroke_dash_array = renderState.stroke_state->dash_array;
     size_t dash_count = renderState.stroke_state->dash_array_length;
     if (stroke_dash_array && dash_count > 0) {
-      CGFloat dash_array[dash_count];
-      for (size_t i = 0; i < dash_count; ++i) {
-        dash_array[i] = stroke_dash_array[i];
+      if (!SetLineDash(_context, stroke_dash_array, dash_count,
+                       renderState.stroke_state->stroke_dash_offset)) {
+        CGContextRestoreGState(_context);
+        return;
       }
-      float dash_offset = renderState.stroke_state->stroke_dash_offset;
-      CGContextSetLineDash(_context, dash_offset, dash_array, dash_count);
     }
   }
   if (renderState.stroke->type == SERVAL_PAINT_COLOR) {
@@ -949,23 +886,23 @@ void SrIOSCanvas::DrawRect(const char* id, float x, float y, float rx, float ry,
     CGRect rect = (CGRect){x, y, width, height};
     CGPathAddRect(path, NULL, rect);
   } else {
+    constexpr float kKappa90 = 0.5522847493f;
     CGPathMoveToPoint(path, NULL, x + rx, y);
     CGPathAddLineToPoint(path, NULL, x + width - rx, y);
-    CGPathAddCurveToPoint(path, NULL, x + width - rx * (1 - NSVG_KAPPA90), y,
-                          x + width, y + ry * (1 - NSVG_KAPPA90), x + width,
+    CGPathAddCurveToPoint(path, NULL, x + width - rx * (1 - kKappa90), y,
+                          x + width, y + ry * (1 - kKappa90), x + width,
                           y + ry);
     CGPathAddLineToPoint(path, NULL, x + width, y + height - ry);
     CGPathAddCurveToPoint(path, NULL, x + width,
-                          y + height - ry * (1 - NSVG_KAPPA90),
-                          x + width - rx * (1 - NSVG_KAPPA90), y + height,
+                          y + height - ry * (1 - kKappa90),
+                          x + width - rx * (1 - kKappa90), y + height,
                           x + width - rx, y + height);
     CGPathAddLineToPoint(path, NULL, x + rx, y + height);
-    CGPathAddCurveToPoint(path, NULL, x + rx * (1 - NSVG_KAPPA90), y + height,
-                          x, y + height - ry * (1 - NSVG_KAPPA90), x,
-                          y + height - ry);
+    CGPathAddCurveToPoint(path, NULL, x + rx * (1 - kKappa90), y + height, x,
+                          y + height - ry * (1 - kKappa90), x, y + height - ry);
     CGPathAddLineToPoint(path, NULL, x, y + ry);
-    CGPathAddCurveToPoint(path, NULL, x, y + ry * (1 - NSVG_KAPPA90),
-                          x + rx * (1 - NSVG_KAPPA90), y, x + rx, y);
+    CGPathAddCurveToPoint(path, NULL, x, y + ry * (1 - kKappa90),
+                          x + rx * (1 - kKappa90), y, x + rx, y);
     CGPathCloseSubpath(path);
   }
   FillPath(path, render_state);
@@ -1168,13 +1105,21 @@ void SrIOSCanvas::DrawImage(
 }
 
 void SrIOSCanvas::Translate(float x, float y) {
-  CGContextTranslateCTM(_context, x, y);
+  float translation[6];
+  xform_set_translation(translation, x, y);
+  Transform(translation);
 }
 
 void SrIOSCanvas::Transform(const float (&form)[6]) {
   CGAffineTransform transform = CGAffineTransformMake(
       form[0], form[1], form[2], form[3], form[4], form[5]);
-  // M_new = M_current * transform
+  const auto combined =
+      CGAffineTransformConcat(transform, CGContextGetCTM(_context));
+  for (CGFloat value : {combined.a, combined.b, combined.c, combined.d,
+                        combined.tx, combined.ty}) {
+    if (!std::isfinite(value) || std::fabs(value) > FLT_MAX)
+      return;
+  }
   CGContextConcatCTM(_context, transform);
 }
 
@@ -1218,147 +1163,223 @@ bool SrIOSCanvas::SupportsFilterModel(
   return canvas::SrSupportsLinearSourceGraphicFilterModel(filter);
 }
 
+static bool GetLayerSize(CGContextRef context, size_t* width, size_t* height) {
+  constexpr size_t kMaxLayerPixels =
+      parser::SrSVGTraversalState::kMaxOffscreenPixels;
+  *width = CGBitmapContextGetWidth(context);
+  *height = CGBitmapContextGetHeight(context);
+  if (!*width || !*height) {
+    CGRect bounds = CGContextConvertRectToDeviceSpace(
+        context, CGContextGetClipBoundingBox(context));
+    const CGFloat w = ceil(CGRectGetMaxX(bounds)),
+                  h = ceil(CGRectGetMaxY(bounds));
+    if (!std::isfinite(w) || !std::isfinite(h) || w < 1 || h < 1 ||
+        w > kMaxLayerPixels || h > kMaxLayerPixels)
+      return false;
+    *width = static_cast<size_t>(w);
+    *height = static_cast<size_t>(h);
+  }
+  return *width && *height && *width <= kMaxLayerPixels / *height;
+}
+
+bool SrIOSCanvas::GetOffscreenPixelCount(size_t* out) const {
+  size_t width, height;
+  *out = GetLayerSize(_context, &width, &height) ? width * height : 0;
+  return true;
+}
+
+static bool GetInverseLayerTransform(CGContextRef context,
+                                     CGAffineTransform* inverse) {
+  const auto ctm = CGContextGetCTM(context);
+  const double det = ctm.a * ctm.d - ctm.b * ctm.c;
+  if (det == 0 || !std::isfinite(det))
+    return false;
+  const auto candidate = CGAffineTransformInvert(ctm);
+  for (CGFloat value : {candidate.a, candidate.b, candidate.c, candidate.d,
+                        candidate.tx, candidate.ty}) {
+    if (!std::isfinite(value))
+      return false;
+  }
+  *inverse = candidate;
+  return true;
+}
+
 void SrIOSCanvas::BeginFilterLayer(const SrSVGBox* bounds,
                                    const canvas::SrFilterModel& filter) {
-  (void)bounds;
-  size_t width = CGBitmapContextGetWidth(_context);
-  size_t height = CGBitmapContextGetHeight(_context);
-  if (width == 0 || height == 0) {
-    CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
-        _context, CGContextGetClipBoundingBox(_context));
-    width = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
-    height = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
+  if (filter_fallback_depth_ == 0 && TryBeginFilterLayer(bounds, filter)) {
+    auto& layer = filter_layers_[filter_depth_ - 1];
+    layer.owned_filter = std::make_unique<canvas::SrFilterModel>(filter);
+    layer.filter = layer.owned_filter.get();
+  } else {
+    SaveLayer(bounds);
+    ++filter_fallback_depth_;
   }
-  if (width == 0 || height == 0) {
-    return;
-  }
+}
 
+bool SrIOSCanvas::TryBeginFilterLayer(const SrSVGBox* bounds,
+                                      const canvas::SrFilterModel& filter) {
+  (void)bounds;
+  if (filter_fallback_depth_ || filter_depth_ == filter_layers_.size())
+    return false;
+  FilterLayerState state;
+  if (!GetLayerSize(_context, &state.width, &state.height) ||
+      !GetInverseLayerTransform(_context, &state.inverse_ctm))
+    return false;
+  state.ctm = CGContextGetCTM(_context);
+  state.filter = &filter;
+  for (const auto& primitive : filter.primitives) {
+    if (primitive.type != canvas::SrFilterPrimitiveType::kGaussianBlur)
+      continue;
+    const CGFloat x =
+        SrMapVectorLength(state.ctm, primitive.std_deviation_x, 0);
+    const CGFloat y =
+        SrMapVectorLength(state.ctm, 0, primitive.std_deviation_y);
+    const CGFloat sigma = fmax(x, y);
+    const CGFloat expanded_width =
+        std::ceil(state.width * (x > 0 ? sigma / x : 1) + 6 * sigma);
+    const CGFloat expanded_height =
+        std::ceil(state.height * (y > 0 ? sigma / y : 1) + 6 * sigma);
+    if (!(sigma <= parser::SrSVGTraversalState::kMaxBlurSigma) ||
+        !parser::SrSVGTraversalState::OffscreenPixels(expanded_width,
+                                                      expanded_height))
+      return false;
+  }
   CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-  CGContextRef layer_context = CGBitmapContextCreate(
-      NULL, width, height, 8, width * 4, color_space,
+  if (!color_space)
+    return false;
+  state.layer_context = CGBitmapContextCreate(
+      NULL, state.width, state.height, 8, state.width * 4, color_space,
       kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
   CGColorSpaceRelease(color_space);
-  if (!layer_context) {
-    return;
-  }
-
-  CGAffineTransform ctm = CGContextGetCTM(_context);
-  CGContextConcatCTM(layer_context, ctm);
-  CGContextRetain(_context);
-  filter_layer_stack_.push_back(
-      FilterLayerState{_context, layer_context, width, height, ctm, filter});
-  _context = layer_context;
+  if (!state.layer_context)
+    return false;
+  CGContextConcatCTM(state.layer_context, state.ctm);
+  state.saved_context = CGContextRetain(_context);
+  _context = state.layer_context;
+  filter_layers_[filter_depth_++] = std::move(state);
+  return true;
 }
 
 void SrIOSCanvas::EndFilterLayer() {
-  if (!filter_layer_stack_.empty() &&
-      _context == filter_layer_stack_.back().layer_context) {
-    FilterLayerState state = filter_layer_stack_.back();
-    filter_layer_stack_.pop_back();
-    CGImageRef layer_image = CGBitmapContextCreateImage(state.layer_context);
-    CGImageRef filtered_image =
-        SrCreateFilteredImage(layer_image, state.filter, state.ctm);
-    _context = state.saved_context;
-    if (filtered_image) {
-      CGContextSaveGState(_context);
-      CGAffineTransform ctm = CGContextGetCTM(_context);
-      CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
-      CGContextDrawImage(_context, CGRectMake(0, 0, state.width, state.height),
-                         filtered_image);
-      CGContextRestoreGState(_context);
-      CGImageRelease(filtered_image);
-    }
-    if (layer_image) {
-      CGImageRelease(layer_image);
-    }
-    CGContextRelease(state.layer_context);
-    CGContextRelease(state.saved_context);
+  if (filter_fallback_depth_) {
+    --filter_fallback_depth_;
+    RestoreLayer();
     return;
   }
+  if (!filter_depth_)
+    return;
+  FilterLayerState state = std::move(filter_layers_[--filter_depth_]);
+  _context = state.saved_context;
+  CGImageRef layer_image = CGBitmapContextCreateImage(state.layer_context);
+  CGImageRef filtered_image =
+      SrCreateFilteredImage(layer_image, *state.filter, state.ctm);
+  if (filtered_image) {
+    CGContextSaveGState(_context);
+    CGContextConcatCTM(_context, state.inverse_ctm);
+    CGContextDrawImage(_context, CGRectMake(0, 0, state.width, state.height),
+                       filtered_image);
+    CGContextRestoreGState(_context);
+    CGImageRelease(filtered_image);
+  }
+  if (layer_image)
+    CGImageRelease(layer_image);
+  CGContextRelease(state.layer_context);
+  CGContextRelease(state.saved_context);
 }
 
 void SrIOSCanvas::BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
-  mask_is_luminance_ = is_luminance;
+  if (!TryBeginMaskLayer(bounds, is_luminance)) {
+    ++mask_fallback_depth_;
+    SaveLayer(bounds);
+  }
+}
+
+bool SrIOSCanvas::TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
+  if (mask_fallback_depth_ || mask_depth_ == mask_layers_.size())
+    return false;
+  mask_layers_[mask_depth_++] = {nullptr, nullptr, is_luminance};
   SaveLayer(bounds);
+  return true;
 }
 
 void SrIOSCanvas::BeginMaskContentLayer() {
-  if (dst_in_layer_active_) {
-    return;
-  }
+  TryBeginMaskContentLayer();
+}
 
-  size_t w = CGBitmapContextGetWidth(_context);
-  size_t h = CGBitmapContextGetHeight(_context);
-  if (w == 0 || h == 0) {
-    CGRect deviceBounds = CGContextConvertRectToDeviceSpace(
-        _context, CGContextGetClipBoundingBox(_context));
-    w = static_cast<size_t>(ceil(CGRectGetMaxX(deviceBounds)));
-    h = static_cast<size_t>(ceil(CGRectGetMaxY(deviceBounds)));
-  }
-  if (w > 0 && h > 0) {
-    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-    luminance_mask_context_ = CGBitmapContextCreate(
-        NULL, w, h, 8, w * 4, cs,
-        kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
-    CGColorSpaceRelease(cs);
-  }
-  if (luminance_mask_context_) {
-    // Copy the current CTM so mask geometry aligns with the content.
-    CGAffineTransform ctm = CGContextGetCTM(_context);
-    CGContextConcatCTM(luminance_mask_context_, ctm);
-    saved_context_ = _context;
-    _context = luminance_mask_context_;
-  }
-  dst_in_layer_active_ = luminance_mask_context_ != nullptr;
+bool SrIOSCanvas::TryBeginMaskContentLayer() {
+  if (mask_fallback_depth_ || !mask_depth_)
+    return false;
+  auto& layer = mask_layers_[mask_depth_ - 1];
+  if (layer.context)
+    return false;
+  size_t w, h;
+  CGAffineTransform inverse;
+  if (!GetLayerSize(_context, &w, &h) ||
+      !GetInverseLayerTransform(_context, &inverse))
+    return false;
+  CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+  if (!cs)
+    return false;
+  layer.context = CGBitmapContextCreate(
+      NULL, w, h, 8, w * 4, cs,
+      kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast);
+  CGColorSpaceRelease(cs);
+  if (!layer.context)
+    return false;
+  CGContextConcatCTM(layer.context, CGContextGetCTM(_context));
+  layer.parent = _context;
+  _context = layer.context;
+  return true;
 }
 
 void SrIOSCanvas::EndMaskContentLayer() {
-  if (!dst_in_layer_active_) {
+  if (mask_fallback_depth_ || !mask_depth_)
     return;
-  }
-  if (mask_is_luminance_) {
+  auto& layer = mask_layers_[mask_depth_ - 1];
+  if (!layer.context)
+    return;
+  if (layer.luminance)
     ApplyLuminanceMaskToAlpha();
-  }
-  if (_context == luminance_mask_context_) {
-    _context = saved_context_;
-  }
-  if (luminance_mask_context_ && saved_context_) {
-    CGImageRef maskImage = CGBitmapContextCreateImage(luminance_mask_context_);
-    if (maskImage) {
-      size_t maskWidth = CGImageGetWidth(maskImage);
-      size_t maskHeight = CGImageGetHeight(maskImage);
+  _context = layer.parent;
+  CGAffineTransform inverse;
+  if (GetInverseLayerTransform(_context, &inverse)) {
+    if (CGImageRef image = CGBitmapContextCreateImage(layer.context)) {
       CGContextSaveGState(_context);
-      CGAffineTransform ctm = CGContextGetCTM(_context);
-      CGContextConcatCTM(_context, CGAffineTransformInvert(ctm));
+      CGContextConcatCTM(_context, inverse);
       CGContextSetBlendMode(_context, kCGBlendModeDestinationIn);
-      CGContextDrawImage(_context, CGRectMake(0, 0, maskWidth, maskHeight),
-                         maskImage);
+      CGContextDrawImage(
+          _context,
+          CGRectMake(0, 0, CGImageGetWidth(image), CGImageGetHeight(image)),
+          image);
       CGContextRestoreGState(_context);
-      CGImageRelease(maskImage);
+      CGImageRelease(image);
     }
   }
-  CGContextRelease(luminance_mask_context_);
-  luminance_mask_context_ = nullptr;
-  saved_context_ = nullptr;
-  dst_in_layer_active_ = false;
+  CGContextRelease(layer.context);
+  layer.context = nullptr;
+  layer.parent = nullptr;
 }
 
 void SrIOSCanvas::EndMaskLayer() {
-  if (dst_in_layer_active_) {
+  if (mask_fallback_depth_) {
+    --mask_fallback_depth_;
+  } else {
+    if (!mask_depth_)
+      return;
     EndMaskContentLayer();
+    --mask_depth_;
   }
   RestoreLayer();
-  mask_is_luminance_ = false;
 }
 
 void SrIOSCanvas::ApplyLuminanceMaskToAlpha() {
-  if (!luminance_mask_context_) {
+  CGContextRef mask = mask_layers_[mask_depth_ - 1].context;
+  if (!mask) {
     return;
   }
-  size_t w = CGBitmapContextGetWidth(luminance_mask_context_);
-  size_t h = CGBitmapContextGetHeight(luminance_mask_context_);
-  uint8_t* data =
-      static_cast<uint8_t*>(CGBitmapContextGetData(luminance_mask_context_));
+  size_t w = CGBitmapContextGetWidth(mask);
+  size_t h = CGBitmapContextGetHeight(mask);
+  uint8_t* data = static_cast<uint8_t*>(CGBitmapContextGetData(mask));
   if (!data || w == 0 || h == 0) {
     return;
   }

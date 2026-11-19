@@ -8,6 +8,7 @@
 
 #include "canvas/SrCanvas.h"
 #include "parser/SrSVGTraversalState.h"
+#include "utils/SrSVGPatternUtils.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif  // __ANDROID__
@@ -29,18 +30,36 @@ parser::SrSVGTraversalState* GetTraversalState(
                  : nullptr;
 }
 
-bool TryEnterUseReference(parser::SrSVGTraversalState* state,
-                          const std::string& href) {
-  return state && !href.empty() && state->active_use_ids.insert(href).second;
-}
-
-void LeaveUseReference(parser::SrSVGTraversalState* state,
-                       const std::string& href) {
-  if (!state || href.empty()) {
-    return;
+class UseReferenceScope {
+ public:
+  UseReferenceScope(parser::SrSVGTraversalState& state, const std::string& href)
+      : state_(state) {
+    auto& refs = state_.active_use_ids;
+    for (size_t depth = 0; depth < state_.use_depth; ++depth) {
+      if (*refs[depth] == href) {
+        cycle_ = true;
+        return;
+      }
+    }
+    if (state_.use_depth == refs.size())
+      return;
+    refs[state_.use_depth++] = &href;
+    entered_ = true;
   }
-  state->active_use_ids.erase(href);
-}
+  UseReferenceScope(const UseReferenceScope&) = delete;
+  UseReferenceScope& operator=(const UseReferenceScope&) = delete;
+  ~UseReferenceScope() {
+    if (entered_)
+      --state_.use_depth;
+  }
+  explicit operator bool() const { return entered_; }
+  bool IsCycle() const { return cycle_; }
+
+ private:
+  parser::SrSVGTraversalState& state_;
+  bool entered_{false};
+  bool cycle_{false};
+};
 
 void ReportUseCycle(parser::SrSVGTraversalState* state, const std::string& href,
                     const char* message) {
@@ -49,20 +68,6 @@ void ReportUseCycle(parser::SrSVGTraversalState* state, const std::string& href,
   }
   state->Report(SR_SVG_DIAGNOSTIC_USE_REFERENCE_CYCLE, message, href.c_str(),
                 false);
-}
-
-float ResolveUseLength(const SrSVGLength& length, SrSVGRenderContext* context,
-                       SrSVGLengthType length_type) {
-  if (!context) {
-    return length.value;
-  }
-  return convert_serval_length_to_float(&length, context, length_type);
-}
-
-void BuildUseTransform(float x, float y, const float (&use_transform)[6],
-                       float (&out)[6]) {
-  memcpy(out, use_transform, sizeof(float) * 6);
-  xform_pre_translate(out, x, y);
 }
 
 }  // namespace
@@ -81,27 +86,33 @@ bool SrSVGUse::ParseAndSetAttribute(const char* name, const char* value) {
     }
     return true;
   } else if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, width_, LengthRange::kNonNegative);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, height_, LengthRange::kNonNegative);
   } else if (strcmp(name, "stroke-linecap") == 0) {
+    if (!SrSVGNode::ParseAndSetAttribute(name, value))
+      return false;
     has_stroke_cap_ = true;
+    return true;
   } else if (strcmp(name, "stroke-linejoin") == 0) {
+    if (!SrSVGNode::ParseAndSetAttribute(name, value))
+      return false;
     has_stroke_join_ = true;
+    return true;
   } else if (strcmp(name, "stroke-miterlimit") == 0) {
+    if (!SrSVGNode::ParseAndSetAttribute(name, value))
+      return false;
     has_stroke_miter_limit_ = true;
-  } else if (strcmp(name, "stroke-dashoffset") == 0) {
-    has_stroke_dash_offset_ = true;
+    return true;
   } else if (strcmp(name, "stroke-dasharray") == 0) {
+    if (!SrSVGNode::ParseAndSetAttribute(name, value))
+      return false;
     has_stroke_dash_array_ = true;
+    return true;
   }
   return SrSVGNode::ParseAndSetAttribute(name, value);
 }
@@ -122,9 +133,11 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   if (!id_mapper || href_.empty() || !traversal_state) {
     return;
   }
-  if (!TryEnterUseReference(traversal_state, href_)) {
-    ReportUseCycle(traversal_state, href_,
-                   "Skipped recursive <use> reference.");
+  UseReferenceScope reference(*traversal_state, href_);
+  if (!reference) {
+    if (reference.IsCycle())
+      ReportUseCycle(traversal_state, href_,
+                     "Skipped recursive <use> reference.");
     return;
   }
 
@@ -132,23 +145,24 @@ void SrSVGUse::OnRender(canvas::SrCanvas* canvas, SrSVGRenderContext& context) {
   if (it != id_mapper->end() && it->second) {
     renderRealNode(it->second, canvas, context);
   }
-  LeaveUseReference(traversal_state, href_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context,
     bool include_transform) const {
-  if (!context) {
+  parser::SrSVGRenderScope scope(context);
+  if (!context || !scope)
     return nullptr;
-  }
   IDMapper* id_mapper = static_cast<IDMapper*>(context->id_mapper);
   auto* traversal_state = GetTraversalState(context);
   if (!id_mapper || href_.empty() || !traversal_state) {
     return nullptr;
   }
-  if (!TryEnterUseReference(traversal_state, href_)) {
-    ReportUseCycle(traversal_state, href_,
-                   "Skipped recursive <use> path expansion.");
+  UseReferenceScope reference(*traversal_state, href_);
+  if (!reference) {
+    if (reference.IsCycle())
+      ReportUseCycle(traversal_state, href_,
+                     "Skipped recursive <use> path expansion.");
     return nullptr;
   }
 
@@ -156,27 +170,31 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
   if (it != id_mapper->end() && it->second) {
     SrSVGNodeBase* referenced_node = it->second;
     if (referenced_node->Tag() == SrSVGTag::kSvg) {
-      LeaveUseReference(traversal_state, href_);
       return nullptr;
     }
 
     auto path = referenced_node->AsPath(path_factory, context);
-    LeaveUseReference(traversal_state, href_);
     if (!path) {
       return nullptr;
     }
-    const float x =
-        ResolveUseLength(x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-    const float y = ResolveUseLength(y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
+    float x, y;
+    if (!resolve_serval_length(&x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                               &x) ||
+        !resolve_serval_length(&y_, context, SR_SVG_LENGTH_TYPE_VERTICAL, &y))
+      return nullptr;
     float use_transform[6];
+    xform_set_translation(use_transform, x, y);
     if (include_transform) {
-      BuildUseTransform(x, y, transform_, use_transform);
-    } else {
-      xform_set_translation(use_transform, x, y);
+      float form[6];
+      ResolvedTransform(form, *context, path_factory);
+      if (!ComposeAffineTransform(form, use_transform, use_transform))
+        return nullptr;
     }
+    SrSVGBox bounds;
+    if (!TryMapBounds(path->GetBounds(), use_transform, &bounds))
+      return nullptr;
     return path->CreateTransformCopy(use_transform);
   }
-  LeaveUseReference(traversal_state, href_);
   return nullptr;
 }
 
@@ -188,6 +206,15 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   if (nodeBase->Tag() == SrSVGTag::kSvg) {
     return;
   }
+  float x, y, form[6], translation[6], use_transform[6];
+  if (!resolve_serval_length(&x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &x) ||
+      !resolve_serval_length(&y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL, &y))
+    return;
+  ResolvedTransform(form, context, canvas->PathFactory());
+  xform_set_translation(translation, x, y);
+  if (!ComposeAffineTransform(form, translation, use_transform))
+    return;
   SrSVGNode* node = static_cast<SrSVGNode*>(nodeBase);
   SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
   SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
@@ -200,39 +227,27 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   SrSVGStrokeCap local_stroke_cap = node->stroke_cap_;
   SrSVGStrokeJoin local_stroke_join = node->stroke_join_;
   float local_stroke_miter_limit = node->stoke_miter_limit_;
-  float local_stroke_dash_offset = node->stroke_dash_offset_;
+  const auto local_stroke_dash_offset = node->stroke_dash_offset_;
   std::vector<float> local_stroke_dash_array = node->stroke_dash_array_;
 
-  if (node->fill_) {
-    node->inherit_fill_paint_ = node->fill_;
-  } else if (fill_) {
-    node->inherit_fill_paint_ = fill_;
-  } else if (inherit_fill_paint_) {
-    node->inherit_fill_paint_ = inherit_fill_paint_;
+  if (auto* paint =
+          ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_)) {
+    node->inherit_fill_paint_ = paint;
   }
 
-  if (node->stroke_) {
-    node->inherit_stroke_paint_ = node->stroke_;
-  } else if (stroke_) {
-    node->inherit_stroke_paint_ = stroke_;
-  } else if (inherit_stroke_paint_) {
-    node->inherit_stroke_paint_ = inherit_stroke_paint_;
+  if (auto* paint = ResolvePaint(&SrSVGNode::stroke_,
+                                 &SrSVGNode::inherit_stroke_paint_)) {
+    node->inherit_stroke_paint_ = paint;
   }
 
-  if (node->clip_path_) {
-    node->inherit_clip_path_ = node->clip_path_;
-  } else if (clip_path_) {
-    node->inherit_clip_path_ = clip_path_;
-  } else if (inherit_clip_path_) {
-    node->inherit_clip_path_ = inherit_clip_path_;
+  if (auto* paint = ResolvePaint(&SrSVGNode::clip_path_,
+                                 &SrSVGNode::inherit_clip_path_)) {
+    node->inherit_clip_path_ = paint;
   }
 
-  if (node->mask_) {
-    node->inherit_mask_ = node->mask_;
-  } else if (mask_) {
-    node->inherit_mask_ = mask_;
-  } else if (inherit_mask_) {
-    node->inherit_mask_ = inherit_mask_;
+  if (auto* paint =
+          ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_)) {
+    node->inherit_mask_ = paint;
   }
 
   if (node->stroke_width_) {
@@ -259,12 +274,7 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
   }
 
-  float x = ResolveUseLength(x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float y = ResolveUseLength(y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  float xform[6];
-  ResolvedTransform(xform, context, canvas->PathFactory());
-  canvas->Transform(xform);
-  canvas->Translate(x, y);
+  canvas->Transform(use_transform);
 
   if (node->color_) {
     node->inherit_color_ = node->color_;
@@ -287,13 +297,10 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     node->inherit_color_ = local_color;
     return;
   }
-  const bool has_opacity_layer = opacity_ && use_opacity < 1.f;
-  if (has_opacity_layer) {
-    // TODO: Compute tight layer bounds for use opacity. Correctness requires
-    // whole-use composition; passing nullptr keeps the result correct but may
-    // allocate a larger offscreen layer than necessary.
-    canvas->BeginOpacityLayer(nullptr, use_opacity);
-  }
+  parser::SrSVGOffscreenScope opacity_budget(context);
+  const bool has_opacity_layer =
+      opacity_ && use_opacity < 1.f && opacity_budget.Reserve(*canvas, 1) &&
+      canvas->TryBeginOpacityLayer(nullptr, use_opacity);
 
   if (has_stroke_cap_) {
     node->stroke_cap_ = stroke_cap_;
@@ -304,7 +311,7 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   if (has_stroke_miter_limit_) {
     node->stoke_miter_limit_ = stoke_miter_limit_;
   }
-  if (has_stroke_dash_offset_) {
+  if (stroke_dash_offset_) {
     node->stroke_dash_offset_ = stroke_dash_offset_;
   }
   if (has_stroke_dash_array_) {

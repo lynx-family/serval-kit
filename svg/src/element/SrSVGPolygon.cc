@@ -20,9 +20,11 @@ void SrSVGPolygon::onDraw(canvas::SrCanvas* canvas,
 }
 bool SrSVGPolygon::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "points") == 0) {
+    auto* replacement = value && value[0]
+                            ? make_serval_polygon(value, diagnostic_sink_)
+                            : nullptr;
     release_serval_polygon_path(polygon_);
-    polygon_ = value && value[0] ? make_serval_polygon(value, diagnostic_sink_)
-                                 : nullptr;
+    polygon_ = replacement;
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);

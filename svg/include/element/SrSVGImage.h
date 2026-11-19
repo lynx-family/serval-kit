@@ -20,6 +20,7 @@ class SrSVGImage : public SrSVGShape {
   static SrSVGImage* Make() { return new SrSVGImage(); }
 
  protected:
+  void ClearAnimatedAttribute(const std::string& name) override;
   void onDraw(canvas::SrCanvas* canvas,
               SrSVGRenderContext& context) const override;
 
@@ -30,6 +31,7 @@ class SrSVGImage : public SrSVGShape {
       bool include_transform = true) const override;
 
  private:
+  bool ResolveGeometry(const SrSVGRenderContext& context, SrSVGBox& box) const;
   SrSVGImage()
       : SrSVGShape(SrSVGTag::kImage),
         preserve_aspect_radio_(make_default_preserve_aspect_radio()) {}

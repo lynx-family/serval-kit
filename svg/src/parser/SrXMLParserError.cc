@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "parser/SrXMLParserError.h"
+#include <cstring>
 #include "parser/SrXMLParser.h"
 
 namespace serval {
@@ -19,7 +20,44 @@ SrXMLParserError::SrXMLParserError()
 }
 
 SrXMLParserError::~SrXMLParserError() {
-  // need a virtual destructor for our subclasses
+  SrSVGBufferRelease(&fNounBuffer);
+}
+
+SrXMLParserError::SrXMLParserError(const SrXMLParserError& other)
+    : SrXMLParserError() {
+  *this = other;
+}
+SrXMLParserError& SrXMLParserError::operator=(const SrXMLParserError& other) {
+  if (this != &other) {
+    fCode = other.fCode;
+    fLineNumber = other.fLineNumber;
+    fNativeCode = other.fNativeCode;
+    SetNoun(static_cast<const char*>(other.fNounBuffer.data),
+            other.HasNoun() ? other.fNounBuffer.size - 1 : 0);
+  }
+  return *this;
+}
+void SrXMLParserError::SetNoun(const char* ch) {
+  SetNoun(ch, ch ? strlen(ch) : 0);
+}
+void SrXMLParserError::SetNoun(const char* ch, size_t len) {
+  // Copy before clearing the lazily materialized string: ch may be GetNoun().data().
+  fNounBuffer.size = 0;
+  if (!ch || !len || len > 1024 * 1024 ||
+      !SrSVGBufferReserve(&fNounBuffer, len + 1)) {
+    fNoun.clear();
+    return;
+  }
+  memcpy(fNounBuffer.data, ch, len);
+  static_cast<char*>(fNounBuffer.data)[len] = '\0';
+  fNounBuffer.size = len + 1;
+  fNoun.clear();
+}
+const std::string& SrXMLParserError::GetNoun() const {
+  if (HasNoun() && fNoun.empty())
+    fNoun.assign(static_cast<const char*>(fNounBuffer.data),
+                 fNounBuffer.size - 1);
+  return fNoun;
 }
 
 void SrXMLParserError::GetErrorString(std::string& str) const {
@@ -28,7 +66,9 @@ void SrXMLParserError::GetErrorString(std::string& str) const {
     if ((unsigned)fCode < sizeof(gErrorStrings) / sizeof(char*)) {
       temp = gErrorStrings[fCode - 1];
     }
-    temp.append(fNoun);
+    if (HasNoun())
+      temp.append(static_cast<const char*>(fNounBuffer.data),
+                  fNounBuffer.size - 1);
   } else {
     SrXMLParser::GetNativeErrorString(fNativeCode, &temp);
   }
@@ -39,6 +79,8 @@ void SrXMLParserError::Reset() {
   fCode = kNoError;
   fLineNumber = -1;
   fNativeCode = -1;
+  fNounBuffer.size = 0;
+  fNoun.clear();
 }
 
 }  // namespace parser

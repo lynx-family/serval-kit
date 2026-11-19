@@ -27,6 +27,8 @@ class SrSVGCircle : public SrSVGShape {
       bool include_transform = true) const override;
 
  private:
+  bool ResolveGeometry(const SrSVGRenderContext& context, float& x, float& y,
+                       float& radius) const;
   SrSVGCircle() : SrSVGShape(SrSVGTag::kCircle) {}
   SrSVGLength cx_{0}, cy_{0}, r_{0};
 };

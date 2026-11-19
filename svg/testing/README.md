@@ -84,3 +84,27 @@ Wait for `SVGPATTERN_RESULT`, then export the report with
 `hdc -t "$SERVAL_HARMONY_DEVICE" file recv -b net.lynx.servalsvg /data/storage/el2/base/haps/entry/files/pattern-regression.json ./pattern-regression.json`.
 Force-stop and start the ability without `--pb patternRegression true` to return
 to the ordinary example browser. An NDK build alone does not check pixel parity.
+
+## SVG parser and rendering regressions
+
+Run the shared parser and DOM-to-canvas tests with Clang, ASan and UBSan.
+The second command compiles the parser with C++ exceptions disabled, injects
+persistent allocation failures and runs the optional libFuzzer target.
+
+```sh
+python3 svg/tools/run_parser_regressions.py
+python3 svg/tools/run_parser_core_tests.py --fuzz-seconds 60
+```
+
+Use `--fuzzer-library /path/to/libFuzzer.a` if Clang has no bundled fuzzer.
+No-exception OOM coverage applies to the shared parser and XML DOM. SVG node
+construction, SMIL and platform caches still contain allocating STL calls.
+
+The iOS XCTest command above also checks arc geometry, malformed inputs and
+SMIL path and dash rendering. For macOS image loading, pattern fill and stroke,
+and SMIL path frames on Metal, run the preview regression with a built Skity
+XCFramework.
+
+```sh
+python3 svg/tools/run_macos_skity_regressions.py
+```

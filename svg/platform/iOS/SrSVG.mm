@@ -3,8 +3,10 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "platform/iOS/SrSVG.h"
+#include "parser/SrSVGTraversalState.h"
 
 #import <Foundation/Foundation.h>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,9 +25,7 @@ static std::unique_ptr<SrSVGDOM> SrSVGParseSVGStringDoc(
   if (!contents) {
     return nullptr;
   }
-  const std::string svgCppString(contents);
-  return SrSVGDOM::make(svgCppString.c_str(), svgCppString.length(),
-                        diagnostics);
+  return SrSVGDOM::make(contents, strlen(contents), diagnostics);
 }
 
 static SrSVGRenderResult* SrSVGMakeRenderResult(
@@ -161,10 +161,20 @@ static void SrSVGApplyDefaultColor(SrSVGDOM& svgDom, NSString* color) {
     }
     return nil;
   }
+  if (size.width < 1 || size.height < 1 ||
+      !serval::svg::parser::SrSVGTraversalState::OffscreenPixels(size.width,
+                                                                 size.height))
+    return nil;
   CGColorSpaceRef cgColorSpace = CGColorSpaceCreateDeviceRGB();
+  if (!cgColorSpace)
+    return nil;
   CGContextRef cgContext =
       CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, cgColorSpace,
                             kCGImageAlphaPremultipliedLast);
+  if (!cgContext) {
+    CGColorSpaceRelease(cgColorSpace);
+    return nil;
+  }
   CGContextSetInterpolationQuality(cgContext, kCGInterpolationMedium);
   CGContextSetAllowsAntialiasing(cgContext, YES);
   CGContextSetShouldAntialias(cgContext, YES);
@@ -187,8 +197,10 @@ static void SrSVGApplyDefaultColor(SrSVGDOM& svgDom, NSString* color) {
     }
   }
   CGImageRef cgImage = CGBitmapContextCreateImage(cgContext);
-  UIImage* renderImage = [[UIImage alloc] initWithCGImage:cgImage];
-  CGImageRelease(cgImage);
+  UIImage* renderImage =
+      cgImage ? [[UIImage alloc] initWithCGImage:cgImage] : nil;
+  if (cgImage)
+    CGImageRelease(cgImage);
   CGContextRelease(cgContext);
   CGColorSpaceRelease(cgColorSpace);
   if (result) {

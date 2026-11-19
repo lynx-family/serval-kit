@@ -30,9 +30,6 @@ class PathHarmonyImpl : public canvas::Path {
 
  private:
   OH_Drawing_Path* path_;
-  void SRSVGArcToBezier(OH_Drawing_Path* path, float cx, float cy, float a,
-                        float b, float e1x, float e1y, float theta, float start,
-                        float sweep);
   void SrSVGDrawArc(OH_Drawing_Path* path, float x, float y, float x1, float y1,
                     float a, float b, float theta, bool isMoreThanHalf,
                     bool isPositiveArc);

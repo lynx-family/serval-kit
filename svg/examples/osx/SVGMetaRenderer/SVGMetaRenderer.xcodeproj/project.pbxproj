@@ -15,6 +15,7 @@
 		SVGMETA02 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA12 /* ViewController.mm */; };
 		SVGMETA03 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA13 /* main.m */; };
 		SVGMETA04 /* SVGMetalView.mm in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA14 /* SVGMetalView.mm */; };
+		SVGMETA138 /* SVGPreviewImageLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA234 /* SVGPreviewImageLoader.mm */; };
 		SVGMETA05 /* svg in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA15 /* svg */; };
 		SVGMETA09 /* svg_gradient_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA24 /* svg_gradient_metadata.json */; };
 		SVGMETA131 /* svg_root_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = SVGMETA25 /* svg_root_metadata.json */; };
@@ -26,6 +27,7 @@
 		SVGMETA06 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA21 /* Metal.framework */; };
 		SVGMETA07 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA22 /* QuartzCore.framework */; };
 		SVGMETA08 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA23 /* Cocoa.framework */; };
+		SVGMETA139 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = SVGMETA236 /* libz.tbd */; };
 		SVGMETA100 /* SrSkityCanvas.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA200 /* SrSkityCanvas.cc */; };
 		SVGMETA101 /* SrSkityParagraph.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA201 /* SrSkityParagraph.cc */; };
 		SVGMETA102 /* SrSVGCircle.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA202 /* SrSVGCircle.cc */; };
@@ -54,6 +56,8 @@
 		SVGMETA125 /* SrDOM.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA225 /* SrDOM.cc */; };
 		SVGMETA126 /* SrDOMParser.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA226 /* SrDOMParser.cc */; };
 		SVGMETA127 /* SrSVGDOM.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA227 /* SrSVGDOM.cc */; };
+		SVGMETA136 /* SrSVGMemory.c in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA232 /* SrSVGMemory.c */; };
+		SVGMETA137 /* SrSVGParse.c in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA233 /* SrSVGParse.c */; };
 		SVGMETA128 /* SrXMLExtractor.c in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA228 /* SrXMLExtractor.c */; };
 		SVGMETA129 /* SrXMLParser.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA229 /* SrXMLParser.cc */; };
 		SVGMETA130 /* SrXMLParserError.cc in Sources */ = {isa = PBXBuildFile; fileRef = SVGMETA230 /* SrXMLParserError.cc */; };
@@ -69,10 +73,12 @@
 		SVGMETA12 /* ViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
 		SVGMETA13 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		SVGMETA14 /* SVGMetalView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SVGMetalView.mm; sourceTree = "<group>"; };
+		SVGMETA234 /* SVGPreviewImageLoader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SVGPreviewImageLoader.mm; sourceTree = "<group>"; };
 		SVGMETA15 /* svg */ = {isa = PBXFileReference; lastKnownFileType = folder; path = svg; sourceTree = "<group>"; };
 		SVGMETA16 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		SVGMETA17 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		SVGMETA18 /* SVGMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGMetalView.h; sourceTree = "<group>"; };
+		SVGMETA235 /* SVGPreviewImageLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGPreviewImageLoader.h; sourceTree = "<group>"; };
 		SVGMETA19 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		SVGMETA24 /* svg_gradient_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_gradient_metadata.json; sourceTree = "<group>"; };
 		SVGMETA25 /* svg_root_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = svg_root_metadata.json; sourceTree = "<group>"; };
@@ -111,9 +117,12 @@
 		SVGMETA225 /* SrDOM.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrDOM.cc; path = ../../../../src/parser/SrDOM.cc; sourceTree = "<group>"; };
 		SVGMETA226 /* SrDOMParser.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrDOMParser.cc; path = ../../../../src/parser/SrDOMParser.cc; sourceTree = "<group>"; };
 		SVGMETA227 /* SrSVGDOM.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrSVGDOM.cc; path = ../../../../src/parser/SrSVGDOM.cc; sourceTree = "<group>"; };
+		SVGMETA232 /* SrSVGMemory.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = SrSVGMemory.c; path = ../../../../src/parser/SrSVGMemory.c; sourceTree = "<group>"; };
+		SVGMETA233 /* SrSVGParse.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = SrSVGParse.c; path = ../../../../src/parser/SrSVGParse.c; sourceTree = "<group>"; };
 		SVGMETA228 /* SrXMLExtractor.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = SrXMLExtractor.c; path = ../../../../src/parser/SrXMLExtractor.c; sourceTree = "<group>"; };
 		SVGMETA229 /* SrXMLParser.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrXMLParser.cc; path = ../../../../src/parser/SrXMLParser.cc; sourceTree = "<group>"; };
 		SVGMETA23 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		SVGMETA236 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.text-based-dylib-definition; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		SVGMETA230 /* SrXMLParserError.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SrXMLParserError.cc; path = ../../../../src/parser/SrXMLParserError.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -127,6 +136,7 @@
 				SVGMETA06 /* Metal.framework in Frameworks */,
 				SVGMETA07 /* QuartzCore.framework in Frameworks */,
 				SVGMETA08 /* Cocoa.framework in Frameworks */,
+				SVGMETA139 /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +211,8 @@
 				SVGMETA225 /* SrDOM.cc */,
 				SVGMETA226 /* SrDOMParser.cc */,
 				SVGMETA227 /* SrSVGDOM.cc */,
+				SVGMETA232 /* SrSVGMemory.c */,
+				SVGMETA233 /* SrSVGParse.c */,
 				SVGMETA228 /* SrXMLExtractor.c */,
 				SVGMETA229 /* SrXMLParser.cc */,
 				SVGMETA230 /* SrXMLParserError.cc */,
@@ -225,7 +237,9 @@
 				SVGMETA17 /* ViewController.h */,
 				SVGMETA12 /* ViewController.mm */,
 				SVGMETA18 /* SVGMetalView.h */,
+				SVGMETA235 /* SVGPreviewImageLoader.h */,
 				SVGMETA14 /* SVGMetalView.mm */,
+				SVGMETA234 /* SVGPreviewImageLoader.mm */,
 				SVGMETA13 /* main.m */,
 				SVGMETA15 /* svg */,
 				SVGMETA24 /* svg_gradient_metadata.json */,
@@ -255,6 +269,7 @@
 				SVGMETA21 /* Metal.framework */,
 				SVGMETA22 /* QuartzCore.framework */,
 				SVGMETA23 /* Cocoa.framework */,
+				SVGMETA236 /* libz.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -337,6 +352,7 @@
 				2B946B232FCD876800D56B4C /* SrSVGPatternResolver.cc in Sources */,
 				SVGMETA03 /* main.m in Sources */,
 				SVGMETA04 /* SVGMetalView.mm in Sources */,
+				SVGMETA138 /* SVGPreviewImageLoader.mm in Sources */,
 				SVGMETA100 /* SrSkityCanvas.cc in Sources */,
 				SVGMETA101 /* SrSkityParagraph.cc in Sources */,
 				SVGMETA102 /* SrSVGCircle.cc in Sources */,
@@ -367,6 +383,8 @@
 				SVGMETA125 /* SrDOM.cc in Sources */,
 				SVGMETA126 /* SrDOMParser.cc in Sources */,
 				SVGMETA127 /* SrSVGDOM.cc in Sources */,
+				SVGMETA136 /* SrSVGMemory.c in Sources */,
+				SVGMETA137 /* SrSVGParse.c in Sources */,
 				SVGMETA128 /* SrXMLExtractor.c in Sources */,
 				SVGMETA129 /* SrXMLParser.cc in Sources */,
 				SVGMETA130 /* SrXMLParserError.cc in Sources */,

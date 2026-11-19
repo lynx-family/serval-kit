@@ -8,6 +8,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #import <UIKit/UIKit.h>
 #include <stdint.h>
+#include <array>
 #include <functional>
 #include <memory>
 #include <string>
@@ -18,6 +19,7 @@
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGPatternResolver.h"
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGTraversalState.h"
 
 namespace serval {
 namespace svg {
@@ -152,6 +154,11 @@ class SrIOSCanvas : public canvas::SrCanvas {
   void BeginMaskContentLayer() override;
   void EndMaskContentLayer() override;
   void EndMaskLayer() override;
+  bool TryBeginFilterLayer(const SrSVGBox* bounds,
+                           const canvas::SrFilterModel& filter) override;
+  bool TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  bool TryBeginMaskContentLayer() override;
+  bool GetOffscreenPixelCount(size_t* out) const override;
 
   CGContextRef Context() { return _context; }
 
@@ -172,30 +179,37 @@ class SrIOSCanvas : public canvas::SrCanvas {
 
   // Todo: add more drawing methods as needed
  private:
-  CGContextRef _context;
+  CGContextRef _context{nullptr};
+  CGContextRef root_context_{nullptr};
   ImageCallback image_callback_;
   std::unique_ptr<PathFactoryQuartz2D> path_factory_;
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
-  bool dst_in_layer_active_{false};
-  bool mask_is_luminance_{false};
   const SrSVGRenderContext* current_render_context_{nullptr};
   std::unordered_set<std::string> active_pattern_ids_;
-  // Temporary bitmap context for SVG mask rendering.
-  // Mask content is drawn here with normal Source-Over semantics, then
-  // alpha masks are composited back with DestinationIn and luminance masks
-  // are converted to alpha first via ApplyLuminanceMaskToAlpha().
-  CGContextRef luminance_mask_context_{nullptr};
-  CGContextRef saved_context_{nullptr};
+  struct MaskLayerState {
+    CGContextRef context{nullptr};
+    CGContextRef parent{nullptr};
+    bool luminance{false};
+  };
+  std::array<MaskLayerState, parser::SrSVGTraversalState::kMaxRenderDepth>
+      mask_layers_{};
+  size_t mask_depth_{0};
+  size_t mask_fallback_depth_{0};
   struct FilterLayerState {
     CGContextRef saved_context{nullptr};
     CGContextRef layer_context{nullptr};
     size_t width{0};
     size_t height{0};
     CGAffineTransform ctm{CGAffineTransformIdentity};
-    canvas::SrFilterModel filter;
+    CGAffineTransform inverse_ctm{CGAffineTransformIdentity};
+    const canvas::SrFilterModel* filter{nullptr};
+    std::unique_ptr<canvas::SrFilterModel> owned_filter;
   };
-  std::vector<FilterLayerState> filter_layer_stack_;
+  std::array<FilterLayerState, parser::SrSVGTraversalState::kMaxRenderDepth>
+      filter_layers_{};
+  size_t filter_depth_{0};
+  size_t filter_fallback_depth_{0};
 };
 
 }  // namespace ios

@@ -15,79 +15,72 @@ namespace serval {
 namespace svg {
 namespace element {
 
-namespace {
-
-float ResolveImageLength(const SrSVGLength& length, SrSVGRenderContext* context,
-                         SrSVGLengthType length_type) {
-  if (!context) {
-    return length.value;
-  }
-  return convert_serval_length_to_float(&length, context, length_type);
-}
-
-}  // namespace
-
 bool SrSVGImage::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "href") == 0 || strcmp(name, "xlink:href") == 0) {
     href_ = value;
     return true;
   } else if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, width_, LengthRange::kNonNegative);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, height_, LengthRange::kNonNegative);
   } else if (strcmp(name, "preserveAspectRatio") == 0) {
-    preserve_aspect_radio_ = make_preserve_aspect_radio(value);
+    if (!parse_serval_preserve_aspect_ratio(value, &preserve_aspect_radio_))
+      return false;
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);
 }
 
+void SrSVGImage::ClearAnimatedAttribute(const std::string& name) {
+  if (name == "width")
+    width_.reset();
+  else if (name == "height")
+    height_.reset();
+  else
+    SrSVGShape::ClearAnimatedAttribute(name);
+}
+
+bool SrSVGImage::ResolveGeometry(const SrSVGRenderContext& context,
+                                 SrSVGBox& box) const {
+  return width_ && height_ &&
+         resolve_serval_length(&x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                               &box.left) &&
+         resolve_serval_length(&y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                               &box.top) &&
+         resolve_serval_length(&*width_, &context,
+                               SR_SVG_LENGTH_TYPE_HORIZONTAL, &box.width) &&
+         resolve_serval_length(&*height_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                               &box.height) &&
+         serval_svg_valid_box(&box);
+}
+
 void SrSVGImage::onDraw(canvas::SrCanvas* canvas,
                         SrSVGRenderContext& context) const {
-  const float x =
-      ResolveImageLength(x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  const float y = ResolveImageLength(y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  const float width = width_ ? ResolveImageLength(*width_, &context,
-                                                  SR_SVG_LENGTH_TYPE_HORIZONTAL)
-                             : 0.f;
-  const float height = height_ ? ResolveImageLength(*height_, &context,
-                                                    SR_SVG_LENGTH_TYPE_VERTICAL)
-                               : 0.f;
-  if (!width_ || !height_ || !FloatsLarger(width, 0.f) ||
-      !FloatsLarger(height, 0.f)) {
+  SrSVGBox box;
+  if (!ResolveGeometry(context, box))
     return;
-  }
-
-  canvas->DrawImage(href_.c_str(), x, y, width, height, preserve_aspect_radio_,
-                    render_state_.opacity);
+  canvas->DrawImage(href_.c_str(), box.left, box.top, box.width, box.height,
+                    preserve_aspect_radio_, render_state_.opacity);
 }
 
 std::unique_ptr<canvas::Path> SrSVGImage::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context,
     bool include_transform) const {
-  (void)include_transform;
-  const float x =
-      ResolveImageLength(x_, context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  const float y = ResolveImageLength(y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  const float width = width_ ? ResolveImageLength(*width_, context,
-                                                  SR_SVG_LENGTH_TYPE_HORIZONTAL)
-                             : 0.f;
-  const float height = height_ ? ResolveImageLength(*height_, context,
-                                                    SR_SVG_LENGTH_TYPE_VERTICAL)
-                               : 0.f;
-  if (!width_ || !height_ || !FloatsLarger(width, 0.f) ||
-      !FloatsLarger(height, 0.f)) {
+  SrSVGBox box;
+  if (!path_factory || !context || !ResolveGeometry(*context, box))
     return nullptr;
+  auto path = path_factory->CreateRect(box.left, box.top, 0.f, 0.f, box.width,
+                                       box.height);
+  if (include_transform && path) {
+    float xform[6];
+    ResolvedTransform(xform, *context, path_factory);
+    path->Transform(xform);
   }
-  return path_factory->CreateRect(x, y, 0.f, 0.f, width, height);
+  return path;
 }
 
 }  // namespace element

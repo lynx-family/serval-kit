@@ -6,6 +6,7 @@
 #define SVG_INCLUDE_PARSER_SRXMLPARSERERROR_H_
 
 #include <string>
+#include "parser/SrSVGMemory.h"
 
 namespace serval {
 namespace svg {
@@ -25,19 +26,21 @@ class SrXMLParserError {
 
   SrXMLParserError();
   virtual ~SrXMLParserError();
+  SrXMLParserError(const SrXMLParserError& other);
+  SrXMLParserError& operator=(const SrXMLParserError& other);
 
   ErrorCode GetErrorCode() const { return fCode; }
   virtual void GetErrorString(std::string& str) const;
   int GetLineNumber() const { return fLineNumber; }
   int GetNativeCode() const { return fNativeCode; }
   bool HasError() const { return fCode != kNoError || fNativeCode != -1; }
-  bool HasNoun() const { return fNoun.size() > 0; }
-  const std::string& GetNoun() const { return fNoun; }
+  bool HasNoun() const { return fNounBuffer.size > 1; }
+  const std::string& GetNoun() const;
   void Reset();
   void SetCode(ErrorCode code) { fCode = code; }
-  void SetNoun(const std::string& str) { fNoun = str; }
-  void SetNoun(const char* ch) { fNoun = ch; }
-  void SetNoun(const char* ch, size_t len) { fNoun.assign(ch, len); }
+  void SetNoun(const std::string& str) { SetNoun(str.data(), str.size()); }
+  void SetNoun(const char* ch);
+  void SetNoun(const char* ch, size_t len);
 
  protected:
   ErrorCode fCode;
@@ -45,7 +48,8 @@ class SrXMLParserError {
  private:
   int fLineNumber;
   int fNativeCode;
-  std::string fNoun;
+  SrSVGBuffer fNounBuffer{};
+  mutable std::string fNoun;
   friend class SkXMLParser;
 };
 

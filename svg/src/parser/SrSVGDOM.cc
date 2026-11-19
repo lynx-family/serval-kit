@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "parser/SrSVGDOM.h"
+#include <new>
 
 #include <algorithm>
 #include <cmath>
@@ -44,6 +45,10 @@ namespace svg {
 namespace parser {
 
 namespace {
+
+float RenderDpi(float dpi) {
+  return FloatsLarger(dpi, 0.f) ? dpi : 96.f;
+}
 
 SrSVGDiagnostic MakeParserDiagnostic(const SrXMLParserError& error) {
   std::string message;
@@ -254,21 +259,12 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
     }
     set_string_attribute(svgNode, name, value);
   }
+  svgNode->SetDiagnosticSink(nullptr);
 }
 
 void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  element::SrSVGNode* node) {
-  node->inherit_fill_paint_ = parent_node->fill_
-                                  ? parent_node->fill_
-                                  : parent_node->inherit_fill_paint_;
-  node->inherit_stroke_paint_ = parent_node->stroke_
-                                    ? parent_node->stroke_
-                                    : parent_node->inherit_stroke_paint_;
-  node->inherit_clip_path_ = parent_node->clip_path_
-                                 ? parent_node->clip_path_
-                                 : parent_node->inherit_clip_path_;
-  node->inherit_mask_ =
-      parent_node->mask_ ? parent_node->mask_ : parent_node->inherit_mask_;
+  node->authored_parent_ = parent_node;
   node->inherit_fill_opacity_ = parent_node->fill_opacity_
                                     ? parent_node->fill_opacity_
                                     : parent_node->inherit_fill_opacity_;
@@ -300,10 +296,11 @@ element::SrSVGNodeBase* ConstructSvgNode(
   const auto type = dom.GetType(curNode);
 
   if (type == SrDOM::Type::kText_Type) {
-    auto* text_el = element::SrSVGRawText::Make();
+    std::unique_ptr<element::SrSVGRawText> text_el(
+        element::SrSVGRawText::Make());
     text_el->SetText(el);
-    holder.push_back(text_el);
-    return text_el;
+    holder.push_back(text_el.get());
+    return text_el.release();
   }
 
   element::SrSVGNodeBase* node = nullptr;
@@ -377,7 +374,9 @@ element::SrSVGNodeBase* ConstructSvgNode(
   if (!node) {
     return nullptr;
   }
+  std::unique_ptr<element::SrSVGNodeBase> pending(node);
   holder.push_back(node);
+  pending.release();
   if (parentNode) {
     if (parentNode->IsSVGNode() && node->IsSVGNode()) {
       pre_parse_inherit_attribute(
@@ -419,66 +418,76 @@ element::SrSVGNodeBase* construct_svg_node(
 
 std::unique_ptr<SrSVGDOM> SrSVGDOM::make(
     const char* doc, size_t len, std::vector<SrSVGDiagnostic>* diagnostics) {
-  SrSVGTraversalState build_state;
-  SrSVGDiagnosticSink build_sink = MakeDiagnosticSink(&build_state);
-  auto xml_dom = std::make_shared<SrDOM>();
-  SrXMLParserError parser_error;
-  if (!xml_dom->build(doc, len, &parser_error, &build_sink)) {
-    if (diagnostics && parser_error.HasError()) {
-      diagnostics->push_back(MakeParserDiagnostic(parser_error));
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  try {
+#endif
+    SrSVGTraversalState build_state;
+    SrSVGDiagnosticSink build_sink = MakeDiagnosticSink(&build_state);
+    auto xml_dom = std::make_shared<SrDOM>();
+    SrXMLParserError parser_error;
+    if (!xml_dom->build(doc, len, &parser_error, &build_sink)) {
+      if (diagnostics && parser_error.HasError()) {
+        diagnostics->push_back(MakeParserDiagnostic(parser_error));
+      }
+      return nullptr;
     }
-    return nullptr;
-  }
-  if (parser_error.HasError()) {
-    build_state.diagnostics.push_back(MakeParserDiagnostic(parser_error));
-  }
-  if (gEnableDumpDom) {
-    DumpDomTree(*xml_dom, xml_dom->GetRootNode(), 0);
-  }
-  auto id_mapper = std::make_unique<element::IDMapper>();
-  std::list<element::SrSVGNodeBase*> holder;
-  auto* root_node = xml_dom->GetRootNode();
-  if (!root_node) {
+    if (parser_error.HasError()) {
+      build_state.diagnostics.push_back(MakeParserDiagnostic(parser_error));
+    }
+    if (gEnableDumpDom) {
+      DumpDomTree(*xml_dom, xml_dom->GetRootNode(), 0);
+    }
+    auto id_mapper = std::make_unique<element::IDMapper>();
+    std::list<element::SrSVGNodeBase*> holder;
+    struct CleanupNodes {
+      std::list<element::SrSVGNodeBase*>& nodes;
+      ~CleanupNodes() {
+        for (auto* node : nodes)
+          delete node;
+      }
+    } cleanup{holder};
+    auto* root_node = xml_dom->GetRootNode();
+    if (!root_node) {
+      if (diagnostics && !build_state.diagnostics.empty()) {
+        *diagnostics = build_state.diagnostics;
+      }
+      return nullptr;
+    }
+    bool has_animation_elements = false;
+    auto* root = ConstructSvgNode(*xml_dom, nullptr, root_node, id_mapper.get(),
+                                  holder, &build_sink, has_animation_elements);
+    if (!root) {
+      if (diagnostics && !build_state.diagnostics.empty()) {
+        *diagnostics = build_state.diagnostics;
+      }
+      return nullptr;
+    }
+    if (root->Tag() == element::SrSVGTag::kSvg) {
+      auto svg_dom = std::make_unique<SrSVGDOM>(
+          static_cast<element::SrSVGSVG*>(root), id_mapper.get(),
+          std::move(holder), xml_dom);
+      id_mapper.release();
+      if (has_animation_elements) {
+        svg_dom->BindTargetAnimations();
+        svg_dom->AnimatedNodes();
+      } else {
+        svg_dom->animated_nodes_valid_ = true;
+      }
+      svg_dom->SetBuildDiagnostics(std::move(build_state.diagnostics));
+      if (diagnostics) {
+        *diagnostics = svg_dom->diagnostics();
+      }
+      return svg_dom;
+    }
     if (diagnostics && !build_state.diagnostics.empty()) {
       *diagnostics = build_state.diagnostics;
     }
     return nullptr;
-  }
-  bool has_animation_elements = false;
-  auto* root = ConstructSvgNode(*xml_dom, nullptr, root_node, id_mapper.get(),
-                                holder, &build_sink, has_animation_elements);
-  if (!root) {
-    for (auto* node : holder) {
-      delete node;
-    }
-    if (diagnostics && !build_state.diagnostics.empty()) {
-      *diagnostics = build_state.diagnostics;
-    }
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  } catch (const std::bad_alloc&) {
     return nullptr;
   }
-  if (root->Tag() == element::SrSVGTag::kSvg) {
-    auto svg_dom = std::make_unique<SrSVGDOM>(
-        static_cast<element::SrSVGSVG*>(root), id_mapper.release(),
-        std::move(holder), xml_dom);
-    if (has_animation_elements) {
-      svg_dom->BindTargetAnimations();
-      svg_dom->AnimatedNodes();
-    } else {
-      svg_dom->animated_nodes_valid_ = true;
-    }
-    svg_dom->SetBuildDiagnostics(std::move(build_state.diagnostics));
-    if (diagnostics) {
-      *diagnostics = svg_dom->diagnostics();
-    }
-    return svg_dom;
-  }
-  for (auto* node : holder) {
-    delete node;
-  }
-  if (diagnostics && !build_state.diagnostics.empty()) {
-    *diagnostics = build_state.diagnostics;
-  }
-  return nullptr;
+#endif
 }
 
 void SrSVGDOM::SetDefaultColor(uint32_t color) {
@@ -490,36 +499,18 @@ void SrSVGDOM::ResetDefaultColor() {
 }
 
 void SrSVGDOM::Render(canvas::SrCanvas* canvas) const {
-  if (root_) {
-    SrSVGBox view_box = root_->viewBox();
-    float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
-    SrSVGTraversalState render_state;
-    SrSVGRenderContext context{
-        .width = view_box.width,
-        .height = view_box.height,
-        .dpi = local_dpi,
-        .font_size = 0.f,
-        .id_mapper = id_mapper_,
-        .traversal_state = &render_state,
-        .view_port = view_box,
-        .view_box = view_box,
-        .has_default_color = static_cast<uint8_t>(default_color_.has_value()),
-        .default_color = default_color_.value_or(0),
-    };
-    root_->Render(canvas, context);
-    ReplaceRuntimeDiagnostics(std::move(render_state.diagnostics));
-  }
+  if (root_ && canvas)
+    Render(canvas, root_->ResolveImplicitViewport(RenderDpi(dpi_)));
 }
 
 void SrSVGDOM::Render(canvas::SrCanvas* canvas, SrSVGBox view_port) const {
-  if (root_) {
+  if (root_ && canvas && serval_svg_valid_box(&view_port)) {
     SrSVGBox view_box = root_->viewBox();
-    float local_dpi = FloatsLarger(dpi_, 0.f) ? dpi_ : 96.f;
     SrSVGTraversalState render_state;
     SrSVGRenderContext context{
         .width = view_port.width,
         .height = view_port.height,
-        .dpi = local_dpi,
+        .dpi = RenderDpi(dpi_),
         .font_size = 0.f,
         .id_mapper = id_mapper_,
         .traversal_state = &render_state,

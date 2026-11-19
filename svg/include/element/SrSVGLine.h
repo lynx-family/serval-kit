@@ -28,6 +28,8 @@ class SrSVGLine : public SrSVGShape {
               SrSVGRenderContext& context) const override;
 
  private:
+  bool ResolveGeometry(const SrSVGRenderContext& context, float& x1, float& y1,
+                       float& x2, float& y2) const;
   SrSVGLine() : SrSVGShape(SrSVGTag::kLine) {}
   SrSVGLength x1_{}, y1_{}, x2_{}, y2_{};
 };

@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "SrSVGTypes.h"
@@ -101,6 +102,18 @@ class SrSVGNodeBase {
                                  SrSVGRenderContext& context) const {
     return false;
   }
+  // Attribute setters retain their default or current value if parsing fails.
+  enum class LengthRange { kAny, kNonNegative };
+  template <typename Length>
+  static bool ParseLengthAttribute(const char* value, Length& out,
+                                   LengthRange range = LengthRange::kAny) {
+    SrSVGLength length;
+    if (!parse_serval_length(value, &length) ||
+        (range == LengthRange::kNonNegative && length.value < 0.f))
+      return false;
+    out = length;
+    return true;
+  }
   void ParseStyle(const char* str);
   bool ParseNameValue(const char* start, const char* end);
 
@@ -125,6 +138,8 @@ enum class SrSVGTransformBox {
 
 class SrSVGNode : public SrSVGNodeBase {
  public:
+  // Leave xform unchanged on failure. The legacy wrapper uses identity.
+  static bool TryParseTransform(const char* str, float* xform);
   static void ParseTransform(const char* str, float* xform);
   static int ParseMatrix(float* xform, const char* str);
   static int ParseTranslate(float* xform, const char* str);
@@ -163,14 +178,16 @@ class SrSVGNode : public SrSVGNodeBase {
 
   bool OnPrepareToRender(canvas::SrCanvas* canvas,
                          SrSVGRenderContext& context) const override;
+  virtual void ClearAnimatedAttribute(const std::string& name);
 
  private:
-  void ParseStrokeDashArray(const char* value);
+  using SavedAttribute =
+      std::variant<std::optional<std::string>, std::optional<SrSVGLength>>;
+  bool ParseStrokeDashArray(const char* value);
   void ParseTransformOrigin(const char* value);
   void ParseTransformBox(const char* value);
   void RestoreAnimatedAttribute(const std::string& name,
                                 const std::optional<std::string>& base_value);
-  void ClearAnimatedAttribute(const std::string& name);
 
  public:
   static const float s_stroke_miter_limit;
@@ -191,7 +208,7 @@ class SrSVGNode : public SrSVGNodeBase {
 
   float stoke_miter_limit_{s_stroke_miter_limit};
 
-  float stroke_dash_offset_{0.f};
+  std::optional<SrSVGLength> stroke_dash_offset_;
 
   std::vector<float> stroke_dash_array_{};
 
@@ -202,6 +219,11 @@ class SrSVGNode : public SrSVGNodeBase {
   float transform_origin_x_{0.f};
   float transform_origin_y_{0.f};
   SrSVGTransformBox transform_box_{SrSVGTransformBox::kViewBox};
+
+  // Resolve authored inheritance from the live parent during rendering.
+  const SrSVGNode* authored_parent_{nullptr};
+  SrSVGPaint* ResolvePaint(SrSVGPaint* SrSVGNode::*local,
+                           SrSVGPaint* SrSVGNode::*inherited) const;
 
   //inherit
   SrSVGPaint* inherit_fill_paint_{nullptr};
@@ -215,8 +237,7 @@ class SrSVGNode : public SrSVGNodeBase {
 
  private:
   std::unordered_map<std::string, std::string> base_attributes_;
-  std::unordered_map<std::string, std::optional<std::string>>
-      animated_attributes_;
+  std::unordered_map<std::string, SavedAttribute> animated_attributes_;
   std::vector<SrSVGAnimation*> animations_;
 };
 

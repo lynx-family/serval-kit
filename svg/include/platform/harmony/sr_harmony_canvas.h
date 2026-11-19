@@ -21,7 +21,9 @@
 #include <native_drawing/drawing_pen.h>
 #include <native_drawing/drawing_rect.h>
 #include "canvas/SrCanvas.h"
+#include "canvas/SrCanvasTransformStack.h"
 #include "element/SrSVGPatternResolver.h"
+#include "parser/SrSVGTraversalState.h"
 #include "platform/harmony/path_factory_harmony_impl.h"
 
 namespace serval {
@@ -106,6 +108,12 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   void BeginMaskContentLayer() override;
   void EndMaskContentLayer() override;
   void EndMaskLayer() override;
+  bool TryBeginFilterLayer(const SrSVGBox* bounds,
+                           const canvas::SrFilterModel& filter) override;
+  bool TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  bool TryBeginMaskContentLayer() override;
+  bool TryBeginOpacityLayer(const SrSVGBox* bounds, float opacity) override;
+  bool GetOffscreenPixelCount(size_t* out) const override;
 
  private:
   OH_Drawing_Canvas* context_{nullptr};
@@ -117,11 +125,17 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
   bool anti_alias_{true};
-  bool mask_content_layer_active_{false};
-  bool mask_is_luminance_{false};
+  bool SaveDrawingLayer(const SrSVGBox* bounds, OH_Drawing_Brush* brush);
+  struct MaskState {
+    bool luminance{false};
+    bool content_active{false};
+  };
+  std::array<MaskState, parser::SrSVGTraversalState::kMaxRenderDepth> masks_{};
+  size_t mask_depth_{0};
+  size_t mask_fallback_depth_{0};
   OH_Drawing_SamplingOptions* image_sampling_{nullptr};
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
-  std::vector<std::array<float, 6>> transform_stack_;
+  canvas::SrCanvasTransformStack transform_stack_;
   ImageProvider image_provider_{};
 
   void FillPath(OH_Drawing_Path* path, const SrSVGRenderState& render_state);

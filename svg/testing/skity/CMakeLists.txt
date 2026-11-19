@@ -23,7 +23,8 @@ file(GLOB SERVAL_SOURCES CONFIGURE_DEPENDS
   "${SERVAL_ROOT}/svg/src/parser/*.c"
   "${SERVAL_ROOT}/svg/src/element/*.cc"
   "${SERVAL_ROOT}/svg/src/element/*.c"
-  "${SERVAL_ROOT}/svg/src/utils/*.cc")
+  "${SERVAL_ROOT}/svg/src/utils/*.cc"
+  "${SERVAL_ROOT}/svg/src/utils/*.c")
 add_executable(pattern_percent_runner pattern_percent_runner.mm ${SERVAL_SOURCES}
   "${SERVAL_ROOT}/svg/platform/skity/SrSkityCanvas.cc"
   "${SERVAL_ROOT}/svg/platform/skity/SrSkityParagraph.cc")

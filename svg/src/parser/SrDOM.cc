@@ -6,6 +6,8 @@
 #include "parser/SrDOMParser.h"
 
 #include <cstdlib>
+#include <new>
+#include "parser/SrSVGMemory.h"
 
 namespace serval {
 namespace svg {
@@ -60,7 +62,7 @@ const char* SrDOM::GetName(const Node* node) const {
 
 const char* SrDOM::FindAttr(const Node* node, const char name[]) const {
   const Attr* attr = node->attrs();
-  const Attr* stop = attr + node->fAttrCount;
+  const Attr* stop = attr ? attr + node->fAttrCount : attr;
 
   while (attr < stop) {
     if (!strcmp(attr->fName, name)) {
@@ -73,7 +75,7 @@ const char* SrDOM::FindAttr(const Node* node, const char name[]) const {
 
 SrDOM::AttrIter::AttrIter(const SrDOM::Node* node) {
   fAttr = node->attrs();
-  fStop = fAttr + node->fAttrCount;
+  fStop = fAttr ? fAttr + node->fAttrCount : fAttr;
 }
 
 const char* SrDOM::AttrIter::Next(const char** value) {
@@ -92,75 +94,81 @@ const char* SrDOM::AttrIter::Next(const char** value) {
 const SrDOM::Node* SrDOM::build(const char* data, size_t len,
                                 SrXMLParserError* error,
                                 const SrSVGDiagnosticSink* diagnostic_sink) {
-  SrDOMParser parser(diagnostic_sink);
-  if (error) {
-    *error = parser.fParserError;
-  }
-  if (!parser.parse(data, len)) {
-    if (error) {
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  try {
+#endif
+    SrDOMParser parser(diagnostic_sink);
+    const bool success = parser.parse(data, len) && parser.Finish();
+    if (error)
       *error = parser.fParserError;
-    }
+    if (!success)
+      return nullptr;
+    auto* root = parser.releaseRoot();
+    Destroy_node(fRoot);
+    fRoot = root;
+    return fRoot;
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  } catch (const std::bad_alloc&) {
+    // Reporting OOM must not allocate another error string.
+    if (error)
+      error->SetCode(SrXMLParserError::kUnknownError);
     return nullptr;
   }
-  if (!parser.Finish()) {
-    if (error) {
-      *error = parser.fParserError;
-    }
-    return nullptr;
-  }
-  if (error) {
-    *error = parser.fParserError;
-  }
-  fRoot = parser.releaseRoot();
-  return fRoot;
+#endif
 }
 
-static void Walk_dom(const SrDOM& dom, const SrDOM::Node* node,
+static bool Walk_dom(const SrDOM& dom, const SrDOM::Node* node,
                      SrXMLParser* parser) {
   const char* elem = dom.GetName(node);
-  if (dom.GetType(node) == SrDOM::kText_Type) {
-    parser->Text(elem, static_cast<int>(strlen(elem)));
-    return;
-  }
-
-  parser->StartElement(elem);
-
+  if (dom.GetType(node) == SrDOM::kText_Type)
+    return !parser->Text(elem, strlen(elem));
+  if (parser->StartElement(elem))
+    return false;
   SrDOM::AttrIter iter(node);
   const char* name;
   const char* value;
   while ((name = iter.Next(&value)) != nullptr)
-    parser->AddAttribute(name, value);
-
-  node = dom.GetFirstChild(node, nullptr);
-  while (node) {
-    Walk_dom(dom, node, parser);
-    node = dom.GetNextSibling(node, nullptr);
-  }
-
-  parser->EndElement(elem);
+    if (parser->AddAttribute(name, value))
+      return false;
+  for (auto* child = dom.GetFirstChild(node, nullptr); child;
+       child = dom.GetNextSibling(child, nullptr))
+    if (!Walk_dom(dom, child, parser))
+      return false;
+  return !parser->EndElement(elem);
 }
 
 const SrDOM::Node* SrDOM::Copy(const SrDOM& dom, const SrDOM::Node* node) {
   SrDOMParser parser{};
-
-  Walk_dom(dom, node, &parser);
-
-  fRoot = parser.releaseRoot();
+  if (!node || !Walk_dom(dom, node, &parser) || !parser.Finish())
+    return nullptr;
+  auto* root = parser.releaseRoot();
+  Destroy_node(fRoot);
+  fRoot = root;
   return fRoot;
 }
 
-SrXMLParser* SrDOM::BeginParsing() {
-  fParser = std::make_unique<SrDOMParser>();
+void SrDOM::ParserDeleter::operator()(SrDOMParser* parser) const {
+  if (!parser)
+    return;
+  parser->~SrDOMParser();
+  SrSVGFree(parser);
+}
 
+SrXMLParser* SrDOM::BeginParsing() {
+  fParser.reset();
+  void* storage = SrSVGAlloc(sizeof(SrDOMParser));
+  if (!storage)
+    return nullptr;
+  fParser.reset(new (storage) SrDOMParser());
   return fParser.get();
 }
 
 const SrDOM::Node* SrDOM::FinishParsing() {
-  if (!fParser->Finish()) {
-    fRoot = nullptr;
+  if (!fParser || !fParser->Finish()) {
     fParser.reset();
     return nullptr;
   }
+  Destroy_node(fRoot);
   fRoot = fParser->releaseRoot();
   fParser.reset();
 
@@ -199,26 +207,24 @@ int SrDOM::FindList(const Node* node, const char name[],
 }
 
 static void Destroy_node(SrDOMNode* node) {
-  if (!node) {
-    return;
-  }
-  std::vector<SrDOMNode*> stack;
-  stack.push_back(node);
-  while (!stack.empty()) {
-    SrDOMNode* current = stack.back();
-    stack.pop_back();
-    for (SrDOMNode* child = current->fFirstChild; child != nullptr;
-         child = child->fNextSibling) {
-      stack.push_back(child);
+  // Thread children into the work list. Cleanup must not allocate or throw.
+  while (node) {
+    if (node->fFirstChild) {
+      SrDOMNode* child = node->fFirstChild;
+      node->fFirstChild = child->fNextSibling;
+      child->fNextSibling = node;
+      node = child;
+      continue;
     }
-    for (int i = 0; i < current->fAttrCount; i++) {
-      SrDOMAttr* attr = current->fAttrs + i;
-      free((void*)attr->fName);
-      free((void*)attr->fValue);
+    SrDOMNode* next = node->fNextSibling;
+    for (int i = 0; i < node->fAttrCount; ++i) {
+      SrSVGFree((void*)node->fAttrs[i].fName);
+      SrSVGFree((void*)node->fAttrs[i].fValue);
     }
-    free(current->fAttrs);
-    free((void*)current->fName);
-    free(current);
+    SrSVGFree(node->fAttrs);
+    SrSVGFree((void*)node->fName);
+    SrSVGFree(node);
+    node = next;
   }
 }
 

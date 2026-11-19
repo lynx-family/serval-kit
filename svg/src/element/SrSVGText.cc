@@ -28,8 +28,7 @@ void SrSVGRawText::AppendToParagraph(canvas::ParagraphFactory* paragraph,
 bool SrSVGTextContainer::ParseAndSetAttribute(const char* name,
                                               const char* value) {
   if (strcmp("font-size", name) == 0) {
-    font_size_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, font_size_, LengthRange::kNonNegative);
   }
   return SrSVGBaseText::ParseAndSetAttribute(name, value);
 }
@@ -55,8 +54,12 @@ void SrSVGTextContainer::AppendToParagraph(canvas::ParagraphFactory* paragraph,
       style.color = fill_->content.color.color;
     }
   }
-  style.font_size = convert_serval_length_to_float(&font_size_, &context,
-                                                   SR_SVG_LENGTH_TYPE_NUMERIC);
+  float font_size;
+  if (!resolve_serval_length(&font_size_, &context, SR_SVG_LENGTH_TYPE_NUMERIC,
+                             &font_size) ||
+      font_size <= 0.f)
+    return;
+  style.font_size = font_size;
   paragraph->PushTextStyle(style);
   for (auto& child : children_) {
     child->AppendToParagraph(paragraph, context);
@@ -69,7 +72,14 @@ void SrSVGText::OnRender(canvas::SrCanvas* canvas,
   float xform[6];
   ResolvedTransform(xform, context, canvas->PathFactory());
   canvas->Transform(xform);
+  float x, y;
+  if (!resolve_serval_length(&x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &x) ||
+      !resolve_serval_length(&y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL, &y))
+    return;
   const auto paragraph_builder = canvas::CreateParagraphFactoryFactory(canvas);
+  if (!paragraph_builder)
+    return;
   //TODO(renzhongyue hujing) need separate the paragraph_builder with the factory
   AppendToParagraph(paragraph_builder.get(), context);
 
@@ -81,10 +91,6 @@ void SrSVGText::OnRender(canvas::SrCanvas* canvas,
   // TODO(renzhongyue): Layout the paragraph with the width limits. Now using a unlimited width, all text will display on single line.
   if (paragraph) {
     paragraph->Layout(std::numeric_limits<float>::max());
-    const float x = convert_serval_length_to_float(
-        &x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-    const float y = convert_serval_length_to_float(&y_, &context,
-                                                   SR_SVG_LENGTH_TYPE_VERTICAL);
     paragraph->Draw(canvas, x, y);
   }
 }
@@ -100,9 +106,9 @@ bool SrSVGText::OnPrepareToRender(canvas::SrCanvas* canvas,
 
 bool SrSVGText::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp("x", name) == 0) {
-    x_ = make_serval_length(value);
+    parse_serval_length(value, &x_);
   } else if (strcmp("y", name) == 0) {
-    y_ = make_serval_length(value);
+    parse_serval_length(value, &y_);
   } else if (strcmp("text-anchor", name) == 0) {
     if (strcmp(value, "start") == 0) {
       text_anchor_ = SR_SVG_TEXT_ANCHOR_START;

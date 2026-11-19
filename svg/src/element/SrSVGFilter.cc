@@ -6,11 +6,12 @@
 
 #include <algorithm>
 #include <cstring>
-#include <unordered_map>
+#include <limits>
 #include <utility>
 
 #include "element/SrSVGFilterPrimitives.h"
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGTraversalState.h"
 
 namespace serval {
 namespace svg {
@@ -27,7 +28,10 @@ float ResolveUnitLength(const SrSVGLength& length,
     mutable_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
     mutable_context.view_box = mutable_context.view_port;
   }
-  return convert_serval_length_to_float(&length, &mutable_context, length_type);
+  float resolved;
+  if (!resolve_serval_length(&length, &mutable_context, length_type, &resolved))
+    return std::numeric_limits<float>::quiet_NaN();
+  return resolved;
 }
 
 SrSVGBox UnionBox(const SrSVGBox& a, const SrSVGBox& b) {
@@ -87,9 +91,32 @@ SrSVGBox ResolvePrimitiveRegion(
   return region;
 }
 
-std::string ResolveInputName(const SrSVGFilterPrimitive& primitive,
-                             const std::string& previous_result) {
-  return primitive.input().empty() ? previous_result : primitive.input();
+const SrSVGBox* FindResultRegion(const canvas::SrFilterModel& model,
+                                 const std::string& name) {
+  // A later primitive can reuse a result name. Search the bounded, already
+  // published primitives from newest to oldest.
+  for (auto it = model.primitives.rbegin(); it != model.primitives.rend();
+       ++it) {
+    if (it->result == name)
+      return &it->subregion;
+  }
+  return nullptr;
+}
+
+SrSVGBox DefaultPrimitiveRegion(
+    const canvas::SrFilterModel& model,
+    const canvas::SrFilterPrimitiveModel& primitive) {
+  if (primitive.type == canvas::SrFilterPrimitiveType::kFlood ||
+      IsStandardFilterInput(primitive.input) ||
+      IsStandardFilterInput(primitive.input2))
+    return model.region;
+  const SrSVGBox* first = FindResultRegion(model, primitive.input);
+  const SrSVGBox* second = primitive.input2.empty()
+                               ? nullptr
+                               : FindResultRegion(model, primitive.input2);
+  if (second)
+    return first ? UnionBox(*first, *second) : *second;
+  return first ? *first : model.region;
 }
 
 std::string ResolveResultName(const SrSVGFilterPrimitive& primitive,
@@ -104,13 +131,13 @@ std::string ResolveResultName(const SrSVGFilterPrimitive& primitive,
 
 bool SrSVGFilter::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
+    parse_serval_length(value, &x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
+    parse_serval_length(value, &y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
+    return ParseLengthAttribute(value, width_);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
+    return ParseLengthAttribute(value, height_);
   } else if (strcmp(name, "filterUnits") == 0) {
     if (strcmp(value, "userSpaceOnUse") == 0) {
       filter_units_ = SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
@@ -154,7 +181,8 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
                                    bool has_object_bounds,
                                    const SrSVGRenderContext& context,
                                    canvas::SrFilterModel* model) const {
-  if (!model) {
+  if (!model ||
+      children().size() > parser::SrSVGTraversalState::kMaxFilterPrimitives) {
     return false;
   }
   if (!has_object_bounds &&
@@ -166,19 +194,14 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
   model->region = ResolveFilterRegion(object_bounds, context);
   model->primitives.clear();
   if (model->region.width <= 0.f || model->region.height <= 0.f) {
-    return true;
+    return std::isfinite(model->region.left) &&
+           std::isfinite(model->region.top) &&
+           std::isfinite(model->region.width) &&
+           std::isfinite(model->region.height);
   }
+  if (!serval_svg_valid_box(&model->region))
+    return false;
 
-  std::unordered_map<std::string, SrSVGBox> result_regions;
-  result_regions["SourceGraphic"] = model->region;
-  result_regions["SourceAlpha"] = model->region;
-  result_regions["BackgroundImage"] = model->region;
-  result_regions["BackgroundAlpha"] = model->region;
-  result_regions["FillPaint"] = model->region;
-  result_regions["StrokePaint"] = model->region;
-
-  std::string previous_result = "SourceGraphic";
-  size_t primitive_index = 0;
   for (auto* child : children()) {
     if (!child) {
       continue;
@@ -197,21 +220,15 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
     auto* primitive = static_cast<SrSVGFilterPrimitive*>(child);
 
     canvas::SrFilterPrimitiveModel primitive_model;
-    primitive_model.input = ResolveInputName(*primitive, previous_result);
-    primitive_model.result = ResolveResultName(*primitive, primitive_index);
-
-    bool uses_standard_input =
-        IsStandardFilterInput(primitive_model.input) ||
-        (primitive_model.input2.empty()
-             ? false
-             : IsStandardFilterInput(primitive_model.input2));
-    bool has_referenced_region = false;
-    SrSVGBox default_region = model->region;
-    auto input_region = result_regions.find(primitive_model.input);
-    if (input_region != result_regions.end()) {
-      default_region = input_region->second;
-      has_referenced_region = true;
+    if (!primitive->input().empty()) {
+      primitive_model.input = primitive->input();
+    } else if (model->primitives.empty()) {
+      primitive_model.input = "SourceGraphic";
+    } else {
+      primitive_model.input = model->primitives.back().result;
     }
+    primitive_model.result =
+        ResolveResultName(*primitive, model->primitives.size());
 
     switch (child->Tag()) {
       case SrSVGTag::kFeGaussianBlur: {
@@ -225,6 +242,13 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
             primitive_units_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX
                 ? blur->std_deviation_y() * object_bounds.height
                 : blur->std_deviation_y();
+        if (!std::isfinite(primitive_model.std_deviation_x) ||
+            !std::isfinite(primitive_model.std_deviation_y) ||
+            primitive_model.std_deviation_x >
+                parser::SrSVGTraversalState::kMaxBlurSigma ||
+            primitive_model.std_deviation_y >
+                parser::SrSVGTraversalState::kMaxBlurSigma)
+          return false;
         break;
       }
       case SrSVGTag::kFeOffset: {
@@ -238,6 +262,9 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
             primitive_units_ == SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX
                 ? offset->dy() * object_bounds.height
                 : offset->dy();
+        if (!std::isfinite(primitive_model.dx) ||
+            !std::isfinite(primitive_model.dy))
+          return false;
         break;
       }
       case SrSVGTag::kFeColorMatrix: {
@@ -256,15 +283,6 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
         primitive_model.k2 = composite->k2();
         primitive_model.k3 = composite->k3();
         primitive_model.k4 = composite->k4();
-        auto input2_region = result_regions.find(primitive_model.input2);
-        if (input2_region != result_regions.end()) {
-          default_region = has_referenced_region
-                               ? UnionBox(default_region, input2_region->second)
-                               : input2_region->second;
-          has_referenced_region = true;
-        }
-        uses_standard_input = uses_standard_input ||
-                              IsStandardFilterInput(primitive_model.input2);
         break;
       }
       case SrSVGTag::kFeBlend: {
@@ -272,15 +290,6 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
         primitive_model.type = canvas::SrFilterPrimitiveType::kBlend;
         primitive_model.input2 = blend->input2();
         primitive_model.blend_mode = blend->mode();
-        auto input2_region = result_regions.find(primitive_model.input2);
-        if (input2_region != result_regions.end()) {
-          default_region = has_referenced_region
-                               ? UnionBox(default_region, input2_region->second)
-                               : input2_region->second;
-          has_referenced_region = true;
-        }
-        uses_standard_input = uses_standard_input ||
-                              IsStandardFilterInput(primitive_model.input2);
         break;
       }
       case SrSVGTag::kFeFlood: {
@@ -293,24 +302,22 @@ bool SrSVGFilter::BuildFilterModel(const SrSVGBox& object_bounds,
           primitive_model.flood_color =
               flood->flood_color()->content.color.color;
         }
-        has_referenced_region = false;
-        uses_standard_input = false;
-        default_region = model->region;
         break;
       }
       default:
         continue;
     }
 
-    if (!has_referenced_region || uses_standard_input) {
-      default_region = model->region;
-    }
-    primitive_model.subregion = ResolvePrimitiveRegion(
-        *primitive, object_bounds, default_region, context, primitive_units_);
-    result_regions[primitive_model.result] = primitive_model.subregion;
-    previous_result = primitive_model.result;
+    primitive_model.subregion =
+        ResolvePrimitiveRegion(*primitive, object_bounds,
+                               DefaultPrimitiveRegion(*model, primitive_model),
+                               context, primitive_units_);
+    const auto& region = primitive_model.subregion;
+    if (!std::isfinite(region.left + region.width) ||
+        !std::isfinite(region.top + region.height) || region.width < 0.f ||
+        region.height < 0.f)
+      return false;
     model->primitives.push_back(std::move(primitive_model));
-    primitive_index++;
   }
   return true;
 }
