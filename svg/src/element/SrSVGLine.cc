@@ -4,6 +4,8 @@
 
 #include "element/SrSVGLine.h"
 
+#include <cmath>
+
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGShape.h"
 #include "element/SrSVGTypes.h"
@@ -12,34 +14,36 @@ namespace serval {
 namespace svg {
 namespace element {
 
+bool SrSVGLine::ResolveGeometry(const SrSVGRenderContext& context, float& x1,
+                                float& y1, float& x2, float& y2) const {
+  return resolve_serval_length(&x1_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                               &x1) &&
+         resolve_serval_length(&y1_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                               &y1) &&
+         resolve_serval_length(&x2_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                               &x2) &&
+         resolve_serval_length(&y2_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                               &y2) &&
+         std::isfinite(x2 - x1) && std::isfinite(y2 - y1);
+}
+
 void SrSVGLine::onDraw(canvas::SrCanvas* canvas,
                        SrSVGRenderContext& context) const {
-  float x1 = convert_serval_length_to_float(&x1_, &context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float x2 = convert_serval_length_to_float(&x2_, &context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float y1 = convert_serval_length_to_float(&y1_, &context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  float y2 = convert_serval_length_to_float(&y2_, &context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  if (HasEffectiveStroke()) {
-    canvas->DrawLine(id_.c_str(), x1, y1, x2, y2, render_state_);
-  }
+  float x1, y1, x2, y2;
+  if (!HasEffectiveStroke() || !ResolveGeometry(context, x1, y1, x2, y2))
+    return;
+  canvas->DrawLine(id_.c_str(), x1, y1, x2, y2, render_state_);
 }
 
 bool SrSVGLine::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "x1") == 0) {
-    x1_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x1_);
   } else if (strcmp(name, "y1") == 0) {
-    y1_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y1_);
   } else if (strcmp(name, "x2") == 0) {
-    x2_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x2_);
   } else if (strcmp(name, "y2") == 0) {
-    y2_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y2_);
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);
 }
@@ -47,14 +51,9 @@ bool SrSVGLine::ParseAndSetAttribute(const char* name, const char* value) {
 std::unique_ptr<canvas::Path> SrSVGLine::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context,
     bool include_transform) const {
-  float x1 = convert_serval_length_to_float(&x1_, context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float x2 = convert_serval_length_to_float(&x2_, context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float y1 = convert_serval_length_to_float(&y1_, context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  float y2 = convert_serval_length_to_float(&y2_, context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
+  float x1, y1, x2, y2;
+  if (!path_factory || !context || !ResolveGeometry(*context, x1, y1, x2, y2))
+    return nullptr;
   auto path = path_factory->CreateLine(x1, y1, x2, y2);
   if (include_transform && path) {
     float xform[6];
@@ -62,7 +61,7 @@ std::unique_ptr<canvas::Path> SrSVGLine::AsPath(
     path->Transform(xform);
   }
   return path;
-};
+}
 
 }  // namespace element
 }  // namespace svg

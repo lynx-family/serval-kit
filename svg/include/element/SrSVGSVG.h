@@ -5,6 +5,8 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGSVG_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGSVG_H_
 
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "SrSVGContainer.h"
@@ -23,6 +25,7 @@ class SrSVGSVG : public SrSVGContainer {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   static SrSVGSVG* Make() { return new SrSVGSVG(SrSVGTag::kSvg); }
   inline SrSVGBox viewBox() { return this->view_box_; }
+  SrSVGBox ResolveImplicitViewport(float dpi) const;
   inline SrSVGPreserveAspectRatio preserveAspectRatio() const {
     return preserve_aspect_radio_;
   }
@@ -40,7 +43,11 @@ class SrSVGSVG : public SrSVGContainer {
  private:
   //  void calculateViewBoxTransform(const SrSVGBox& view_port, float* xform) const;
   SrSVGPreserveAspectRatio preserve_aspect_radio_;
+  void ClearAnimatedAttribute(const std::string& name) override;
+  bool ShouldRender(const SrSVGRenderContext& context) const;
+  bool has_view_box_{false};
   SrSVGBox view_box_;
+  std::optional<SrSVGLength> width_, height_;
   bool parsing_style_{false};
   bool has_css_transform_{false};
   float css_transform_[6]{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};

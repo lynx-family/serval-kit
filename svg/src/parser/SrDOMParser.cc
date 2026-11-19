@@ -7,48 +7,50 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include "parser/SrSVGMemory.h"
 
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGParseLimits.h"
 
 namespace serval {
 namespace svg {
 namespace parser {
 
 static char* dupStr(const char src[], size_t srcLen) {
-  char* dst = (char*)malloc(srcLen + 1);
+  char* dst = (char*)SrSVGAlloc(srcLen + 1);
+  if (!dst)
+    return nullptr;
   memcpy(dst, src, srcLen);
   dst[srcLen] = '\0';
   return dst;
 }
 
 static void DestroyNodeTree(SrDOMNode* node) {
-  if (!node) {
-    return;
-  }
-  std::vector<SrDOMNode*> stack;
-  stack.push_back(node);
-  while (!stack.empty()) {
-    SrDOMNode* current = stack.back();
-    stack.pop_back();
-    for (SrDOMNode* child = current->fFirstChild; child != nullptr;
-         child = child->fNextSibling) {
-      stack.push_back(child);
+  // Thread children into the work list. Cleanup must not allocate or throw.
+  while (node) {
+    if (node->fFirstChild) {
+      SrDOMNode* child = node->fFirstChild;
+      node->fFirstChild = child->fNextSibling;
+      child->fNextSibling = node;
+      node = child;
+      continue;
     }
-    for (int i = 0; i < current->fAttrCount; i++) {
-      SrDOMAttr* attr = current->fAttrs + i;
-      free((void*)attr->fName);
-      free((void*)attr->fValue);
+    SrDOMNode* next = node->fNextSibling;
+    for (int i = 0; i < node->fAttrCount; ++i) {
+      SrSVGFree((void*)node->fAttrs[i].fName);
+      SrSVGFree((void*)node->fAttrs[i].fValue);
     }
-    free(current->fAttrs);
-    free((void*)current->fName);
-    free(current);
+    SrSVGFree(node->fAttrs);
+    SrSVGFree((void*)node->fName);
+    SrSVGFree(node);
+    node = next;
   }
 }
 
-static void FreeAttrList(std::vector<SrDOM::Attr>* attrs) {
+static void FreeAttrList(SrSVGArray<SrDOM::Attr>* attrs) {
   for (auto& attr : *attrs) {
-    free((void*)attr.fName);
-    free((void*)attr.fValue);
+    SrSVGFree((void*)attr.fName);
+    SrSVGFree((void*)attr.fValue);
   }
   attrs->clear();
 }
@@ -59,7 +61,7 @@ static bool TagNamesMatch(const char* lhs, const char* rhs, size_t rhs_len) {
 }
 
 static const char* CurrentElementName(
-    const std::vector<SrDOM::Node*>& parent_stack) {
+    const SrSVGArray<SrDOM::Node*>& parent_stack) {
   if (parent_stack.empty()) {
     return "";
   }
@@ -86,12 +88,29 @@ SrDOMParser::SrDOMParser(const SrSVGDiagnosticSink* diagnostic_sink)
 SrDOMParser::~SrDOMParser() {
   if (fNeedToFlush) {
     FreeAttrList(&fAttrs);
-    free(fElemName);
+    SrSVGFree(fElemName);
   }
   DestroyNodeTree(fRoot);
 }
 
+bool SrDOMParser::fail(const char* reason) {
+  fFailed = true;
+  SetMalformedXMLError(fError, reason, std::strlen(reason));
+  SrSVGReportDiagnostic(fDiagnosticSink, SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED,
+                        reason, "", 1);
+  return true;
+}
+
+bool SrDOMParser::reserveBytes(size_t bytes) {
+  if (bytes > kSVGMaxDOMBytes - fDOMBytes)
+    return false;
+  fDOMBytes += bytes;
+  return true;
+}
+
 bool SrDOMParser::Finish() {
+  if (fFailed || fParserError.HasError())
+    return false;
   if (fLevel == 0 && fParentStack.empty() && !fNeedToFlush) {
     return true;
   }
@@ -115,6 +134,10 @@ bool SrDOMParser::Finish() {
 }
 
 bool SrDOMParser::flushAttributes() {
+  if (fFailed)
+    return true;
+  if (!fElemName)
+    return fail("Closing tag has no pending XML element");
   if (fRoot != nullptr && fParentStack.empty()) {
     SetMalformedXMLError(fError, fElemName,
                          fElemName ? std::strlen(fElemName) : 0);
@@ -122,19 +145,31 @@ bool SrDOMParser::flushAttributes() {
                           "Encountered content after the root XML element.",
                           fElemName, 1);
     FreeAttrList(&fAttrs);
-    free(fElemName);
+    SrSVGFree(fElemName);
     fElemName = nullptr;
     fNeedToFlush = false;
     return true;
   }
 
-  int attrCount = (int)fAttrs.size();
-  auto* node = (SrDOM::Node*)malloc(sizeof(SrDOM::Node));
-
+  if (fFailed)
+    return true;
+  // Complete fallible growth before transferring any string ownership.
+  if (!fParentStack.reserve(fParentStack.size() + 1))
+    return fail("Cannot allocate XML parent stack");
+  const int attrCount = (int)fAttrs.size();
+  if (!reserveBytes(sizeof(SrDOM::Node) + attrCount * sizeof(SrDOMAttr)))
+    return fail("XML DOM exceeds byte limit");
+  auto* node = (SrDOM::Node*)SrSVGAlloc(sizeof(SrDOM::Node));
+  if (!node)
+    return fail("Cannot allocate XML node");
   node->fAttrs = nullptr;
 
   if (attrCount > 0) {
-    auto* attrs = (SrDOMAttr*)malloc(attrCount * sizeof(SrDOMAttr));
+    auto* attrs = (SrDOMAttr*)SrSVGAlloc(attrCount * sizeof(SrDOMAttr));
+    if (!attrs) {
+      SrSVGFree(node);
+      return fail("Cannot allocate XML attributes");
+    }
     node->fAttrs = attrs;
     memcpy(node->attrs(), &fAttrs.front(), attrCount * sizeof(SrDOM::Attr));
   }
@@ -154,8 +189,8 @@ bool SrDOMParser::flushAttributes() {
     node->fNextSibling = parent->fFirstChild;
     parent->fFirstChild = node;
   }
-  fParentStack.emplace_back();
-  fParentStack.back() = node;
+  // Capacity is already reserved above; this cannot allocate.
+  fParentStack.push_back(node);
 
   fAttrs.clear();
   return false;
@@ -167,8 +202,21 @@ bool SrDOMParser::OnStartElement(const char elem[], size_t len) {
 
 bool SrDOMParser::OnAddAttribute(const char name[], size_t name_len,
                                  const char value[], size_t value_len) {
-  fAttrs.emplace_back(SrDOM::Attr{.fName = dupStr(name, name_len),
-                                  .fValue = dupStr(value, value_len)});
+  if (fFailed)
+    return true;
+  if (name_len > kSVGMaxAttributeBytes || value_len > kSVGMaxAttributeBytes ||
+      fAttrs.size() >= 256 || !reserveBytes(name_len + value_len + 2))
+    return fail("XML attribute exceeds resource limit");
+  if (!fAttrs.reserve(fAttrs.size() + 1))
+    return fail("Cannot allocate XML attribute list");
+  char* copied_name = dupStr(name, name_len);
+  char* copied_value = dupStr(value, value_len);
+  if (!copied_name || !copied_value) {
+    SrSVGFree(copied_name);
+    SrSVGFree(copied_value);
+    return fail("Cannot allocate XML attribute strings");
+  }
+  fAttrs.push_back(SrDOM::Attr{copied_name, copied_value});
   return false;
 }
 
@@ -186,8 +234,7 @@ bool SrDOMParser::OnEndElement(const char elem[], size_t len) {
     }
     SrSVGReportDiagnostic(
         fDiagnosticSink, SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG,
-        "Encountered unexpected closing tag while XML stack was empty.",
-        std::string(elem, len).c_str(), 1);
+        "Encountered unexpected closing tag while XML stack was empty.", "", 1);
     return true;
   }
 
@@ -199,8 +246,7 @@ bool SrDOMParser::OnEndElement(const char elem[], size_t len) {
     }
     SrSVGReportDiagnostic(fDiagnosticSink,
                           SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG,
-                          "Encountered mismatched closing tag.",
-                          std::string(elem, len).c_str(), 1);
+                          "Encountered mismatched closing tag.", "", 1);
     return true;
   }
 
@@ -231,6 +277,12 @@ bool SrDOMParser::OnText(const char text[], size_t len) {
 
 bool SrDOMParser::startCommon(const char elem[], size_t elemSize,
                               SrDOM::Type type) {
+  if (fFailed)
+    return true;
+  if (fLevel >= kSVGMaxDepth || fNodeCount >= kSVGMaxNodes ||
+      elemSize > kSVGMaxAttributeBytes || !reserveBytes(elemSize + 1))
+    return fail("XML tree exceeds resource limit");
+  ++fNodeCount;
   if (fLevel > 0 && fNeedToFlush) {
     if (this->flushAttributes()) {
       return true;
@@ -239,12 +291,14 @@ bool SrDOMParser::startCommon(const char elem[], size_t elemSize,
   if (fLevel == 0 && fRoot != nullptr) {
     SetMalformedXMLError(fError, elem, elemSize);
     SrSVGReportDiagnostic(fDiagnosticSink, SR_SVG_DIAGNOSTIC_XML_BUILD_FAILED,
-                          "Encountered content after the root XML element.",
-                          std::string(elem, elemSize).c_str(), 1);
+                          "Encountered content after the root XML element.", "",
+                          1);
     return true;
   }
   fNeedToFlush = true;
   fElemName = dupStr(elem, elemSize);
+  if (!fElemName)
+    return fail("Cannot allocate XML element name");
   fElemType = type;
   ++fLevel;
   return false;

@@ -13,10 +13,13 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <new>
 #include <sstream>
 #include <utility>
 
 #include "element/SrSVGPath.h"
+#include "parser/SrSVGMemory.h"
+#include "utils/SrSVGNumber.h"
 
 namespace serval {
 namespace svg {
@@ -79,12 +82,17 @@ std::vector<double> ParseSemicolonNumberList(const char* value) {
   if (!value) {
     return numbers;
   }
-  for (const auto& part : Split(value, ';')) {
-    char* end = nullptr;
-    const double parsed = std::strtod(part.c_str(), &end);
-    if (end != part.c_str()) {
-      numbers.push_back(parsed);
-    }
+  std::stringstream stream(value);
+  std::string part;
+  if (!*value || value[std::strlen(value) - 1] == ';')
+    return {};
+  while (std::getline(stream, part, ';')) {
+    part = Trim(part);
+    const char* cursor = part.c_str();
+    double parsed;
+    if (!SrSVGParseNumber(&cursor, &parsed) || *cursor)
+      return {};
+    numbers.push_back(parsed);
   }
   return numbers;
 }
@@ -99,23 +107,24 @@ double ParsePlainClockValue(const std::string& value) {
     double total = 0.0;
     double scale = 1.0;
     for (auto it = clock_parts.rbegin(); it != clock_parts.rend(); ++it) {
-      char* end = nullptr;
-      const double component = std::strtod(it->c_str(), &end);
-      if (end == it->c_str() || (end && *end != '\0')) {
+      const char* cursor = it->c_str();
+      double component;
+      if (!SrSVGParseNumber(&cursor, &component) || *cursor) {
         return std::numeric_limits<double>::quiet_NaN();
       }
       total += component * scale;
       scale *= 60.0;
     }
-    return total;
+    return std::isfinite(total) ? total
+                                : std::numeric_limits<double>::quiet_NaN();
   }
 
-  char* end = nullptr;
-  const double number = std::strtod(trimmed.c_str(), &end);
-  if (end == trimmed.c_str()) {
+  const char* cursor = trimmed.c_str();
+  double number;
+  if (!SrSVGParseNumber(&cursor, &number)) {
     return std::numeric_limits<double>::quiet_NaN();
   }
-  const std::string suffix = Trim(end ? end : "");
+  const std::string suffix = Trim(cursor);
   if (suffix.empty() || suffix == "s") {
     return number;
   }
@@ -123,10 +132,14 @@ double ParsePlainClockValue(const std::string& value) {
     return number / 1000.0;
   }
   if (suffix == "min") {
-    return number * 60.0;
+    return std::isfinite(number * 60.0)
+               ? number * 60.0
+               : std::numeric_limits<double>::quiet_NaN();
   }
   if (suffix == "h") {
-    return number * 3600.0;
+    return std::isfinite(number * 3600.0)
+               ? number * 3600.0
+               : std::numeric_limits<double>::quiet_NaN();
   }
   return std::numeric_limits<double>::quiet_NaN();
 }
@@ -144,20 +157,9 @@ double ParseClockValue(const char* value) {
   return std::numeric_limits<double>::quiet_NaN();
 }
 
-bool ParseNumberWithSuffix(const std::string& value, double* number,
-                           std::string* suffix) {
-  const char* str = value.c_str();
-  char* end = nullptr;
-  const double parsed = std::strtod(str, &end);
-  if (end == str) {
-    return false;
-  }
-  *number = parsed;
-  *suffix = end ? end : "";
-  return true;
-}
-
 std::string FormatNumber(double value) {
+  if (!std::isfinite(value) || fabs(value) > FLT_MAX)
+    return "";
   std::ostringstream stream;
   stream << value;
   return stream.str();
@@ -237,11 +239,10 @@ std::string InterpolateScalar(const std::string& from, const std::string& to,
   }
   double from_number = 0.0;
   double to_number = 0.0;
-  std::string from_suffix;
-  std::string to_suffix;
-  if (!ParseNumberWithSuffix(from, &from_number, &from_suffix) ||
-      !ParseNumberWithSuffix(to, &to_number, &to_suffix) ||
-      from_suffix != to_suffix) {
+  const char* from_suffix =
+      SrSVGParseNumberWithSuffix(from.c_str(), &from_number, nullptr);
+  if (!from_suffix || from_suffix != SrSVGParseNumberWithSuffix(
+                                         to.c_str(), &to_number, nullptr)) {
     return progress < 1.0 ? from : to;
   }
   return FormatNumber(from_number + (to_number - from_number) * progress) +
@@ -250,16 +251,22 @@ std::string InterpolateScalar(const std::string& from, const std::string& to,
 
 std::vector<double> ParseNumberList(const std::string& value) {
   std::vector<double> numbers;
-  std::string normalized = value;
-  std::replace(normalized.begin(), normalized.end(), ',', ' ');
-  std::replace(normalized.begin(), normalized.end(), ';', ' ');
-  std::stringstream stream(normalized);
-  std::string token;
-  while (stream >> token) {
-    char* end = nullptr;
-    const double parsed = std::strtod(token.c_str(), &end);
-    if (end != token.c_str()) {
-      numbers.push_back(parsed);
+  const char* cursor = value.c_str();
+  SrSVGSkipSpaces(&cursor);
+  while (*cursor) {
+    double number;
+    if (!SrSVGParseNumber(&cursor, &number) || fabs(number) > FLT_MAX)
+      return {};
+    numbers.push_back(number);
+    const char* end = cursor;
+    SrSVGSkipSpaces(&cursor);
+    if (*cursor == ',' || *cursor == ';') {
+      ++cursor;
+      SrSVGSkipSpaces(&cursor);
+      if (!*cursor)
+        return {};
+    } else if (*cursor && cursor == end && *cursor != '+' && *cursor != '-') {
+      return {};
     }
   }
   return numbers;
@@ -271,6 +278,8 @@ std::string FormatNumberList(const std::vector<double>& numbers) {
     if (i != 0) {
       stream << " ";
     }
+    if (!std::isfinite(numbers[i]) || fabs(numbers[i]) > FLT_MAX)
+      return "";
     stream << numbers[i];
   }
   return stream.str();
@@ -343,15 +352,34 @@ bool CompatiblePathData(const SrPathData* from, const SrPathData* to) {
   return arg_index == from->n_args && arg_index == to->n_args;
 }
 
+double InterpolatedPathArg(const SrPathData* from, const SrPathData* to,
+                           uint32_t index, double progress) {
+  const double start = from->args[index];
+  return start + (static_cast<double>(to->args[index]) - start) * progress;
+}
+
+bool FiniteInterpolatedPath(const SrPathData* from, const SrPathData* to,
+                            double progress) {
+  if (!std::isfinite(progress))
+    return false;
+  for (uint32_t i = 0; i < from->n_args; ++i) {
+    const double value = InterpolatedPathArg(from, to, i, progress);
+    if (!std::isfinite(value) || fabs(value) > FLT_MAX)
+      return false;
+  }
+  return true;
+}
+
 std::string SerializeInterpolatedPath(const SrPathData* from,
                                       const SrPathData* to, double progress) {
-  if (!CompatiblePathData(from, to)) {
+  if (!CompatiblePathData(from, to) ||
+      !FiniteInterpolatedPath(from, to, progress)) {
     return "";
   }
   std::ostringstream stream;
   uint32_t arg_index = 0;
   auto value_at = [&](uint32_t index) {
-    return from->args[index] + (to->args[index] - from->args[index]) * progress;
+    return InterpolatedPathArg(from, to, index, progress);
   };
   for (uint32_t i = 0; i < from->n_ops; ++i) {
     if (i != 0) {
@@ -400,7 +428,7 @@ bool EnsurePathDataStorage(SrPathData* path, uint32_t n_ops, uint32_t n_args) {
   }
   if (path->c_ops < n_ops) {
     auto* ops =
-        static_cast<uint8_t*>(std::realloc(path->ops, n_ops * sizeof(uint8_t)));
+        static_cast<uint8_t*>(SrSVGRealloc(path->ops, n_ops * sizeof(uint8_t)));
     if (!ops && n_ops > 0) {
       return false;
     }
@@ -409,7 +437,7 @@ bool EnsurePathDataStorage(SrPathData* path, uint32_t n_ops, uint32_t n_args) {
   }
   if (path->c_args < n_args) {
     auto* args =
-        static_cast<float*>(std::realloc(path->args, n_args * sizeof(float)));
+        static_cast<float*>(SrSVGRealloc(path->args, n_args * sizeof(float)));
     if (!args && n_args > 0) {
       return false;
     }
@@ -422,6 +450,7 @@ bool EnsurePathDataStorage(SrPathData* path, uint32_t n_ops, uint32_t n_args) {
 bool WriteInterpolatedPathData(const SrPathData* from, const SrPathData* to,
                                double progress, SrPathData* out) {
   if (!CompatiblePathData(from, to) ||
+      !FiniteInterpolatedPath(from, to, progress) ||
       !EnsurePathDataStorage(out, from->n_ops, from->n_args)) {
     return false;
   }
@@ -437,11 +466,9 @@ bool WriteInterpolatedPathData(const SrPathData* from, const SrPathData* to,
       const uint32_t index = arg_index + j;
       const bool arc_flag =
           from->ops[i] == SPO_ELLIPTICAL_ARC && (j == 5 || j == 6);
-      out->args[index] =
-          arc_flag ? from->args[index]
-                   : static_cast<float>(from->args[index] +
-                                        (to->args[index] - from->args[index]) *
-                                            progress);
+      out->args[index] = arc_flag ? from->args[index]
+                                  : static_cast<float>(InterpolatedPathArg(
+                                        from, to, index, progress));
     }
     arg_index += count;
   }
@@ -451,12 +478,11 @@ bool WriteInterpolatedPathData(const SrPathData* from, const SrPathData* to,
 std::string InterpolatePathData(const std::string& from, const std::string& to,
                                 double progress,
                                 const SrSVGDiagnosticSink* diagnostic_sink) {
-  SrPathData* from_path = make_serval_path(from.c_str(), diagnostic_sink);
-  SrPathData* to_path = make_serval_path(to.c_str(), diagnostic_sink);
-  std::string value = SerializeInterpolatedPath(from_path, to_path, progress);
-  release_serval_path(from_path);
-  release_serval_path(to_path);
-  return value;
+  std::unique_ptr<SrPathData, decltype(&release_serval_path)> from_path(
+      make_serval_path(from.c_str(), diagnostic_sink), release_serval_path);
+  std::unique_ptr<SrPathData, decltype(&release_serval_path)> to_path(
+      make_serval_path(to.c_str(), diagnostic_sink), release_serval_path);
+  return SerializeInterpolatedPath(from_path.get(), to_path.get(), progress);
 }
 
 bool IsNumberListAttribute(const std::string& attribute) {
@@ -477,11 +503,10 @@ double NumericDistance(const std::string& from, const std::string& to) {
   }
   double from_number = 0.0;
   double to_number = 0.0;
-  std::string from_suffix;
-  std::string to_suffix;
-  if (ParseNumberWithSuffix(from, &from_number, &from_suffix) &&
-      ParseNumberWithSuffix(to, &to_number, &to_suffix) &&
-      from_suffix == to_suffix) {
+  const char* from_suffix =
+      SrSVGParseNumberWithSuffix(from.c_str(), &from_number, nullptr);
+  if (from_suffix && from_suffix == SrSVGParseNumberWithSuffix(
+                                        to.c_str(), &to_number, nullptr)) {
     return std::abs(to_number - from_number);
   }
   return 1.0;
@@ -639,11 +664,11 @@ std::string AddNumericValue(const std::string& base,
   }
   double base_number = 0.0;
   double addition_number = 0.0;
-  std::string base_suffix;
-  std::string addition_suffix;
-  if (ParseNumberWithSuffix(base, &base_number, &base_suffix) &&
-      ParseNumberWithSuffix(addition, &addition_number, &addition_suffix) &&
-      base_suffix == addition_suffix) {
+  const char* base_suffix =
+      SrSVGParseNumberWithSuffix(base.c_str(), &base_number, nullptr);
+  if (base_suffix &&
+      base_suffix == SrSVGParseNumberWithSuffix(addition.c_str(),
+                                                &addition_number, nullptr)) {
     return FormatNumber(base_number + addition_number * scale) + base_suffix;
   }
   return "";
@@ -661,11 +686,10 @@ std::string DeltaNumericValue(const std::string& from, const std::string& to) {
   }
   double from_number = 0.0;
   double to_number = 0.0;
-  std::string from_suffix;
-  std::string to_suffix;
-  if (ParseNumberWithSuffix(from, &from_number, &from_suffix) &&
-      ParseNumberWithSuffix(to, &to_number, &to_suffix) &&
-      from_suffix == to_suffix) {
+  const char* from_suffix =
+      SrSVGParseNumberWithSuffix(from.c_str(), &from_number, nullptr);
+  if (from_suffix && from_suffix == SrSVGParseNumberWithSuffix(
+                                        to.c_str(), &to_number, nullptr)) {
     return FormatNumber(to_number - from_number) + from_suffix;
   }
   return "";
@@ -681,9 +705,9 @@ std::string ZeroValueFor(const std::string& reference) {
     return FormatNumberList(std::vector<double>(numbers.size(), 0.0));
   }
   double number = 0.0;
-  std::string suffix;
-  if (ParseNumberWithSuffix(reference, &number, &suffix)) {
-    return "0" + suffix;
+  if (const char* suffix =
+          SrSVGParseNumberWithSuffix(reference.c_str(), &number, nullptr)) {
+    return std::string("0") + suffix;
   }
   return "";
 }
@@ -1151,7 +1175,7 @@ std::string MotionTransform(const MotionSample& sample,
   } else if (!rotate.empty()) {
     char* end = nullptr;
     const double degrees = std::strtod(rotate.c_str(), &end);
-    if (end != rotate.c_str()) {
+    if (end != rotate.c_str() && !*end && std::isfinite(degrees)) {
       stream << " rotate(" << degrees << ")";
     }
   }
@@ -1266,17 +1290,19 @@ bool SrSVGAnimation::EnsureMotionPathCacheForPathString(
     return !motion_path_cache_.coordinates.empty();
   }
 
-  ResetMotionPathCache();
-  motion_path_cache_.source_key = path;
-  SrPathData* path_data = make_serval_path(path.c_str(), diagnostic_sink_);
-  if (!path_data) {
+  SrSVGMotionPathCache cache;
+  cache.source_key = path;
+  std::unique_ptr<SrPathData, decltype(&release_serval_path)> path_data(
+      make_serval_path(path.c_str(), diagnostic_sink_), release_serval_path);
+  if (!path_data)
     return false;
-  }
-  motion_path_cache_.coordinates =
-      FlattenPolylineCoordinates(BuildPolyline(path_data));
-  release_serval_path(path_data);
-  RebuildMotionPathLengths(&motion_path_cache_);
-  return !motion_path_cache_.coordinates.empty();
+  cache.coordinates =
+      FlattenPolylineCoordinates(BuildPolyline(path_data.get()));
+  RebuildMotionPathLengths(&cache);
+  if (cache.coordinates.empty())
+    return false;
+  motion_path_cache_ = std::move(cache);
+  return true;
 }
 
 bool SrSVGAnimation::EnsureMotionPathCacheForPathData(
@@ -1293,16 +1319,18 @@ bool SrSVGAnimation::EnsureMotionPathCacheForPathData(
     return !motion_path_cache_.coordinates.empty();
   }
 
-  ResetMotionPathCache();
-  motion_path_cache_.source_key = source_key;
-  motion_path_cache_.source_path = path_data;
-  motion_path_cache_.n_ops = path_data->n_ops;
-  motion_path_cache_.n_args = path_data->n_args;
-  motion_path_cache_.hash = hash;
-  motion_path_cache_.coordinates =
-      FlattenPolylineCoordinates(BuildPolyline(path_data));
-  RebuildMotionPathLengths(&motion_path_cache_);
-  return !motion_path_cache_.coordinates.empty();
+  SrSVGMotionPathCache cache;
+  cache.source_key = source_key;
+  cache.source_path = path_data;
+  cache.n_ops = path_data->n_ops;
+  cache.n_args = path_data->n_args;
+  cache.hash = hash;
+  cache.coordinates = FlattenPolylineCoordinates(BuildPolyline(path_data));
+  RebuildMotionPathLengths(&cache);
+  if (cache.coordinates.empty())
+    return false;
+  motion_path_cache_ = std::move(cache);
+  return true;
 }
 
 const SrSVGPathPairCache* SrSVGAnimation::EnsurePathPairCache(
@@ -1316,10 +1344,18 @@ const SrSVGPathPairCache* SrSVGAnimation::EnsurePathPairCache(
   SrSVGPathPairCache cache;
   cache.from = from;
   cache.to = to;
-  cache.from_path = make_serval_path(from.c_str(), diagnostic_sink_);
-  cache.to_path = make_serval_path(to.c_str(), diagnostic_sink_);
+  std::unique_ptr<SrPathData, decltype(&release_serval_path)> from_path(
+      make_serval_path(from.c_str(), diagnostic_sink_), release_serval_path);
+  std::unique_ptr<SrPathData, decltype(&release_serval_path)> to_path(
+      make_serval_path(to.c_str(), diagnostic_sink_), release_serval_path);
+  if (!from_path || !to_path)
+    return nullptr;
+  cache.from_path = from_path.get();
+  cache.to_path = to_path.get();
   cache.compatible = CompatiblePathData(cache.from_path, cache.to_path);
   path_pair_caches_.push_back(std::move(cache));
+  from_path.release();
+  to_path.release();
   return &path_pair_caches_.back();
 }
 
@@ -1331,7 +1367,7 @@ const SrPathData* SrSVGAnimation::InterpolateCachedPathData(
   }
   if (!interpolated_path_cache_) {
     interpolated_path_cache_ =
-        static_cast<SrPathData*>(std::calloc(1, sizeof(SrPathData)));
+        static_cast<SrPathData*>(SrSVGCalloc(1, sizeof(SrPathData)));
     if (!interpolated_path_cache_) {
       return nullptr;
     }
@@ -1407,10 +1443,13 @@ bool SrSVGAnimation::ParseAndSetAttribute(const char* name, const char* value) {
     values_ = Split(value, ';');
   } else if (std::strcmp(name, "keyTimes") == 0) {
     key_times_ = ParseSemicolonNumberList(value);
+    invalid_key_times_ = key_times_.empty();
   } else if (std::strcmp(name, "keySplines") == 0) {
     key_splines_ = ParseNumberList(value);
+    invalid_key_splines_ = key_splines_.empty();
   } else if (std::strcmp(name, "keyPoints") == 0) {
     key_points_ = ParseSemicolonNumberList(value);
+    invalid_key_points_ = key_points_.empty();
   } else if (std::strcmp(name, "calcMode") == 0) {
     calc_mode_ = value;
   } else if (std::strcmp(name, "type") == 0) {
@@ -1448,7 +1487,15 @@ bool SrSVGAnimation::ParseAndSetAttribute(const char* name, const char* value) {
     }
   } else if (std::strcmp(name, "repeatCount") == 0) {
     repeat_indefinite_ = std::strcmp(value, "indefinite") == 0;
-    repeat_count_ = repeat_indefinite_ ? 0.0 : std::strtod(value, nullptr);
+    const char* cursor = value;
+    SrSVGSkipSpaces(&cursor);
+    double count = 0.0;
+    if (!repeat_indefinite_ && SrSVGParseNumber(&cursor, &count)) {
+      SrSVGSkipSpaces(&cursor);
+      if (*cursor || count < 0.0)
+        count = 0.0;
+    }
+    repeat_count_ = count;
   } else if (std::strcmp(name, "fill") == 0) {
     freeze_ = std::strcmp(value, "freeze") == 0;
   } else if (std::strcmp(name, "restart") == 0) {
@@ -1549,7 +1596,31 @@ void SrSVGAnimation::ParseTimeSpecList(const char* value,
 bool SrSVGAnimation::Evaluate(double seconds, const IDMapper* id_mapper,
                               const std::string& underlying,
                               Effect* effect) const {
-  if (!effect || Tag() == SrSVGTag::kMPath) {
+  if (!effect)
+    return false;
+  *effect = Effect{};
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  try {
+#endif
+    Effect result;
+    if (!EvaluateValue(seconds, id_mapper, underlying, &result))
+      return false;
+    *effect = std::move(result);
+    return true;
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  } catch (const std::bad_alloc&) {
+    ResetCaches();
+    return false;
+  }
+#endif
+}
+
+bool SrSVGAnimation::EvaluateValue(double seconds, const IDMapper* id_mapper,
+                                   const std::string& underlying,
+                                   Effect* effect) const {
+  if (!effect || !std::isfinite(seconds) || invalid_key_times_ ||
+      invalid_key_points_ || invalid_key_splines_ ||
+      Tag() == SrSVGTag::kMPath) {
     return false;
   }
   ActiveState state;
@@ -1631,6 +1702,34 @@ bool SrSVGAnimation::Evaluate(double seconds, const IDMapper* id_mapper,
   effect->additive = additive_sum_ || (!by_.empty() && from_.empty());
   effect->transform = Tag() == SrSVGTag::kAnimateTransform;
   effect->motion = false;
+  if (effect->attribute == "d" && !effect->path_data &&
+      !effect->value.empty()) {
+    std::unique_ptr<SrPathData, decltype(&release_serval_path)> path(
+        make_serval_path(effect->value.c_str(), diagnostic_sink_),
+        release_serval_path);
+    if (!path)
+      return false;
+  }
+  if (effect->transform) {
+    float transform[6];
+    if (!SrSVGNode::TryParseTransform(effect->value.c_str(), transform))
+      return false;
+  } else if (effect->attribute == "stroke-dasharray") {
+    if (!serval_svg_valid_dash_array(effect->value.c_str()))
+      return false;
+  } else if (effect->attribute == "stroke-dashoffset") {
+    SrSVGLength offset;
+    if (!parse_serval_length(effect->value.c_str(), &offset))
+      return false;
+  } else if (IsNumberListAttribute(effect->attribute)) {
+    if (ParseNumberList(effect->value).empty())
+      return false;
+    if (effect->attribute == "viewBox") {
+      SrSVGBox box;
+      if (!parse_serval_view_box(effect->value.c_str(), &box))
+        return false;
+    }
+  }
   return effect->path_data || !effect->value.empty();
 }
 
@@ -2020,14 +2119,19 @@ bool SrSVGAnimation::ActiveStateAt(double seconds, const IDMapper* id_mapper,
   }
 
   const double elapsed = seconds - selected_begin;
+  if (!std::isfinite(elapsed))
+    return false;
   const double active_duration = selected_duration;
   if (elapsed >= active_duration) {
     if (!freeze_) {
       return false;
     }
     const double frozen_elapsed = std::max(0.0, active_duration);
-    state->repeat_index = static_cast<uint64_t>(
-        std::max(0.0, std::ceil(frozen_elapsed / dur_) - 1.0));
+    const double repeats =
+        std::max(0.0, std::ceil(frozen_elapsed / dur_) - 1.0);
+    if (!std::isfinite(repeats) || repeats >= std::ldexp(1.0, 64))
+      return false;
+    state->repeat_index = static_cast<uint64_t>(repeats);
     const double iteration_time = std::fmod(frozen_elapsed, dur_);
     state->progress =
         iteration_time == 0.0 ? 1.0 : Clamp01(iteration_time / dur_);
@@ -2035,8 +2139,10 @@ bool SrSVGAnimation::ActiveStateAt(double seconds, const IDMapper* id_mapper,
     return true;
   }
   const double iteration_time = std::fmod(elapsed, dur_);
-  state->repeat_index =
-      static_cast<uint64_t>(std::max(0.0, std::floor(elapsed / dur_)));
+  const double repeats = std::max(0.0, std::floor(elapsed / dur_));
+  if (!std::isfinite(repeats) || repeats >= std::ldexp(1.0, 64))
+    return false;
+  state->repeat_index = static_cast<uint64_t>(repeats);
   state->progress = Clamp01(iteration_time / dur_);
   state->frozen = false;
   return true;

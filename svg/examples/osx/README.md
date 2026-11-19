@@ -97,10 +97,7 @@ std::string svg_text([svgString UTF8String]);
 auto svg_dom = serval::svg::parser::SrSVGDOM::make(
     svg_text.c_str(), svg_text.length(), nullptr);
 
-serval::svg::skity::SrSkityCanvas svg_canvas(
-    skity_canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
-      return nullptr;
-    });
+serval::svg::skity::SrSkityCanvas svg_canvas(skity_canvas, image_callback);
 
 SrSVGBox viewport{0.f, 0.f, width, height};
 svg_dom->Render(&svg_canvas, viewport);
@@ -188,17 +185,20 @@ offscreen hardware path.
 
 ### Image Loading
 
-`SrSkityCanvas` receives an image callback:
+The preview decodes embedded base64 PNGs and fetches HTTP(S) raster images
+asynchronously with NSURLSession under the system transport policy. Hardware
+and Software share the decoded image for each URL in a document. A successful
+download redraws the preview. Replacing the document cancels pending requests.
 
-```objc
-[](std::string url) -> std::shared_ptr<skity::Image> {
-  return nullptr;
-}
-```
+Open `image.svg` to see a four-color PNG inside the red outline.
+`invalid-image-png.svg` keeps the same outline around a failed PNG decode.
 
-Return a Skity image from this callback to support SVG `<image>` elements. The
-macOS example currently returns `nullptr`, so external image resources are not
-loaded by default.
+Run the Metal pixel regressions on a Mac with the example's Skity XCFramework
+installed. From the `oss` directory run
+`python3 svg/tools/run_macos_skity_regressions.py`. The test builds the Release
+target, serves the PNG on loopback, and reads back pixels from the Metal device.
+It checks the shared Chrome pattern reference samples, image tiles clipped to
+a stroke, and redraws after a remote pattern image finishes loading.
 
 ## Compilation and Execution
 
@@ -291,11 +291,10 @@ This project references the following code:
 
 Features that can be further extended:
 
-1. **Image Loading Support**: Implement SrSkityCanvas's ImageCallback to support the `<image>` element in SVG
-2. **SVG Zoom and Pan**: Add gesture support to zoom and pan SVG
-3. **SVG Animation**: Support SVG animation elements
-4. **SVG Editing**: Add simple SVG editing capabilities
-5. **Export Functionality**: Support exporting rendering results as images
+1. **SVG Zoom and Pan**: Add gesture support to zoom and pan SVG
+2. **SVG Animation**: Support SVG animation elements
+3. **SVG Editing**: Add simple SVG editing capabilities
+4. **Export Functionality**: Support exporting rendering results as images
 
 ## License
 

@@ -19,14 +19,11 @@
 #include <cstdint>
 #include <string>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288 /* pi             */
-#endif
-#define LYNX_DEGREE_TO_RADIANS(X) ((M_PI * X) / 180)
-
 namespace serval {
 namespace svg {
 namespace skity {
+
+static constexpr double kPi = 3.14159265358979323846264338327950288;
 
 ::skity::Matrix CreateAffineMatrix(const float* xform) {
   return {xform[0], xform[2], xform[4], xform[1], xform[3],
@@ -185,7 +182,7 @@ static void SRSVGArcToBezier(::skity::Path* path, double cx, double cy,
                              double a, double b, double e1x, double e1y,
                              double theta, double start, double sweep) {
   // Maximum of 45 degrees per cubic Bezier segment
-  int numSegments = (int)ceil(fabs(sweep * 4 / M_PI));
+  int numSegments = (int)ceil(fabs(sweep * 4 / kPi));
 
   double eta1 = start;
   double cosTheta = cos(theta);
@@ -223,7 +220,7 @@ static void SRSVGArcToBezier(::skity::Path* path, double cx, double cy,
 static void SrSVGDrawArc(::skity::Path* path, float x, float y, float x1,
                          float y1, float a, float b, float theta,
                          const bool isMoreThanHalf, const bool isPositiveArc) {
-  float thetaD = LYNX_DEGREE_TO_RADIANS(theta);
+  float thetaD = (kPi * theta) / 180;
   float cosTheta = cosf(thetaD);
   float sinTheta = sinf(thetaD);
   float x0p = (x * cosTheta + y * sinTheta) / a;
@@ -265,9 +262,9 @@ static void SrSVGDrawArc(::skity::Path* path, float x, float y, float x1,
   float sweep = (eta1 - eta0);
   if (isPositiveArc != (sweep >= 0)) {
     if (sweep > 0) {
-      sweep -= 2 * M_PI;
+      sweep -= 2 * kPi;
     } else {
-      sweep += 2 * M_PI;
+      sweep += 2 * kPi;
     }
   }
   cx *= a;
@@ -605,11 +602,17 @@ bool SrSkityCanvas::SupportsFilterModel(
 
 void SrSkityCanvas::BeginFilterLayer(const SrSVGBox* bounds,
                                      const canvas::SrFilterModel& filter) {
+  if (!TryBeginFilterLayer(bounds, filter))
+    Save();
+}
+
+bool SrSkityCanvas::TryBeginFilterLayer(const SrSVGBox* bounds,
+                                        const canvas::SrFilterModel& filter) {
   auto image_filter = BuildSkityImageFilter(filter);
   ::skity::Paint paint;
-  if (image_filter) {
-    paint.SetImageFilter(image_filter);
-  }
+  if (!image_filter)
+    return false;
+  paint.SetImageFilter(image_filter);
 
   ::skity::Rect layer_bounds = canvas_->GetLocalClipBounds();
   if (bounds && bounds->width > 0.f && bounds->height > 0.f) {
@@ -619,6 +622,7 @@ void SrSkityCanvas::BeginFilterLayer(const SrSVGBox* bounds,
   canvas_->SaveLayer(layer_bounds, paint);
   PushTransformState();
   canvas_->DrawColor(0, ::skity::BlendMode::kSrc);
+  return true;
 }
 
 void SrSkityCanvas::EndFilterLayer() {
@@ -626,18 +630,34 @@ void SrSkityCanvas::EndFilterLayer() {
 }
 
 void SrSkityCanvas::BeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
-  mask_is_luminance_ = is_luminance;
+  if (!TryBeginMaskLayer(bounds, is_luminance)) {
+    ++mask_fallback_depth_;
+    Save();
+  }
+}
+
+bool SrSkityCanvas::TryBeginMaskLayer(const SrSVGBox* bounds,
+                                      bool is_luminance) {
+  if (mask_fallback_depth_ || mask_depth_ == masks_.size())
+    return false;
   SaveLayer(bounds);
+  masks_[mask_depth_++] = {is_luminance, false};
+  return true;
 }
 
 void SrSkityCanvas::BeginMaskContentLayer() {
-  if (dst_in_layer_active_) {
-    return;
-  }
+  TryBeginMaskContentLayer();
+}
 
+bool SrSkityCanvas::TryBeginMaskContentLayer() {
+  if (mask_fallback_depth_ || !mask_depth_)
+    return false;
+  auto& mask = masks_[mask_depth_ - 1];
+  if (mask.content_active)
+    return false;
   ::skity::Paint paint;
   paint.SetBlendMode(::skity::BlendMode::kDstIn);
-  if (mask_is_luminance_) {
+  if (mask.luminance) {
     static const float kLumaToAlpha[20] = {
         0.f,     0.f,     0.f,     0.f, 0.f,  //
         0.f,     0.f,     0.f,     0.f, 0.f,  //
@@ -648,36 +668,43 @@ void SrSkityCanvas::BeginMaskContentLayer() {
   }
   canvas_->SaveLayer(canvas_->GetLocalClipBounds(), paint);
   PushTransformState();
-  dst_in_layer_active_ = true;
+  mask.content_active = true;
+  return true;
 }
 
 void SrSkityCanvas::EndMaskContentLayer() {
-  blend_mode_override_.reset();
-  if (dst_in_layer_active_) {
-    canvas_->Restore();
-    PopTransformState();
-    dst_in_layer_active_ = false;
+  if (mask_fallback_depth_ || !mask_depth_)
+    return;
+  auto& mask = masks_[mask_depth_ - 1];
+  if (mask.content_active) {
+    RestoreLayer();
+    mask.content_active = false;
   }
 }
 
 void SrSkityCanvas::EndMaskLayer() {
-  RestoreLayer();
-  mask_is_luminance_ = false;
+  if (mask_fallback_depth_) {
+    --mask_fallback_depth_;
+    Restore();
+  } else if (mask_depth_) {
+    EndMaskContentLayer();
+    --mask_depth_;
+    RestoreLayer();
+  }
 }
 
 void SrSkityCanvas::RenderPatternTiles(
     const element::ResolvedPattern& resolved_pattern,
     const SrSVGBox& target_bounds) {
-  bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
 
   SrSVGBox pattern_area = target_bounds;
   if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
-    Transform(resolved_pattern.pattern_transform);
     float inverse[6];
-    if (element::InvertAffineTransform(resolved_pattern.pattern_transform,
-                                       inverse)) {
-      pattern_area = element::MapBounds(target_bounds, inverse);
-    }
+    if (!element::InvertAffineTransform(resolved_pattern.pattern_transform,
+                                        inverse) ||
+        !element::TryMapBounds(target_bounds, inverse, &pattern_area))
+      return;
+    Transform(resolved_pattern.pattern_transform);
   }
 
   float origin_x =
@@ -690,6 +717,12 @@ void SrSkityCanvas::RenderPatternTiles(
                                resolved_pattern.height;
   float right = pattern_area.left + pattern_area.width;
   float bottom = pattern_area.top + pattern_area.height;
+  element::PatternTileBudget budget(
+      *current_render_context_, origin_x, origin_y, right, bottom,
+      resolved_pattern.width, resolved_pattern.height);
+  if (!budget.HasRemaining() ||
+      !active_pattern_ids_.insert(resolved_pattern.id).second)
+    return;
   const bool has_resolved_view_box =
       resolved_pattern.has_view_box &&
       FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
@@ -701,10 +734,11 @@ void SrSkityCanvas::RenderPatternTiles(
   // A pattern changes the content transform, but does not establish an SVG
   // viewport. Keep the caller's viewport/viewBox for percentage lengths.
 
-  for (float step_y = origin_y; step_y < bottom;
+  for (float step_y = origin_y; step_y < bottom && budget.HasRemaining();
        step_y += resolved_pattern.height) {
-    for (float step_x = origin_x; step_x < right;
+    for (float step_x = origin_x; step_x < right && budget.HasRemaining();
          step_x += resolved_pattern.width) {
+      budget.Consume();
       Save();
       canvas_->ClipRect(::skity::Rect::MakeXYWH(
           step_x, step_y, resolved_pattern.width, resolved_pattern.height));
@@ -737,9 +771,7 @@ void SrSkityCanvas::RenderPatternTiles(
     }
   }
 
-  if (inserted) {
-    active_pattern_ids_.erase(resolved_pattern.id);
-  }
+  active_pattern_ids_.erase(resolved_pattern.id);
 }
 
 bool SrSkityCanvas::RenderPatternFill(const ::skity::Path& path,
@@ -1074,26 +1106,19 @@ void SrSkityCanvas::DrawUse(const char* href, float x, float y, float width,
 void SrSkityCanvas::DrawImage(
     const char* url, float x, float y, float width, float height,
     const SrSVGPreserveAspectRatio& preserve_aspect_radio, float opacity) {
-  if (url) {
-    std::string href(url);
-
-    if (image_callback_) {
-      auto image = image_callback_(href);
+  if (url && *url) {
+    const SrSVGBox view_port{x, y, width, height};
+    if (image_callback_ && serval_svg_valid_box(&view_port)) {
+      auto image = image_callback_(url);
       if (image) {
         const float image_width = static_cast<float>(image->Width());
         const float image_height = static_cast<float>(image->Height());
-        if (!FloatsLarger(image_width, 0.f) ||
-            !FloatsLarger(image_height, 0.f)) {
-          return;
-        }
-        if (!FloatsLarger(width, 0.f) || !FloatsLarger(height, 0.f)) {
-          return;
-        }
         float form[6];
-        SrSVGBox view_port{x, y, width, height};
         SrSVGBox view_box{0, 0, image_width, image_height};
-        calculate_view_box_transform(&view_port, &view_box,
-                                     preserve_aspect_radio, form);
+        if (!resolve_serval_view_box_transform(&view_port, &view_box,
+                                               preserve_aspect_radio, form)) {
+          return;
+        }
         canvas_->Save();
         canvas_->ClipRect(::skity::Rect::MakeXYWH(x, y, width, height));
         ::skity::Matrix box_transform{
@@ -1150,22 +1175,24 @@ void SrSkityCanvas::UpdateRadialGradient(
 }
 
 void SrSkityCanvas::Translate(float x, float y) {
-  canvas_->Translate(x, y);
-  float translation[6];
   float current[6];
   float out[6];
-  xform_set_translation(translation, x, y);
   CopyTransformArray(current_transform_, current);
-  MultiplyTransformArray(current, translation, out);
+  float translation[6];
+  xform_set_translation(translation, x, y);
+  if (!element::ComposeAffineTransform(current, translation, out))
+    return;
+  canvas_->Translate(x, y);
   current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
 }
 
 void SrSkityCanvas::Transform(const float (&form)[6]) {
-  canvas_->Concat(CreateAffineMatrix(form));
   float current[6];
   float out[6];
   CopyTransformArray(current_transform_, current);
-  MultiplyTransformArray(current, form, out);
+  if (!element::ComposeAffineTransform(current, form, out))
+    return;
+  canvas_->Concat(CreateAffineMatrix(form));
   current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
 }
 

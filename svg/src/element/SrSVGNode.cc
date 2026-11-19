@@ -3,18 +3,24 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGNode.h"
+
+#include "parser/SrSVGTraversalState.h"
 #if defined(_WIN32) || defined(_WIN64)
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
 #include <algorithm>
 #include <cctype>
+#include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
+#include "utils/SrSVGNumber.h"
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGAnimation.h"
@@ -109,7 +115,7 @@ float ResolveOriginLength(const SrSVGLength& length,
 void PrepareIRIResource(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
                         SrSVGPaint* paint) {
   if (!canvas || !paint || paint->type != SERVAL_PAINT_IRI ||
-      !paint->content.iri || strlen(paint->content.iri) == 0) {
+      !paint->content.iri || paint->content.iri[0] != '#') {
     return;
   }
   std::string id{paint->content.iri + 1};
@@ -123,35 +129,28 @@ void PrepareIRIResource(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
   }
 }
 
-bool ParseNumberWithSuffix(const std::string& value, double* number,
-                           std::string* suffix) {
-  if (!number || !suffix) {
-    return false;
-  }
-  char* end = nullptr;
-  const double parsed = std::strtod(value.c_str(), &end);
-  if (end == value.c_str()) {
-    return false;
-  }
-  *number = parsed;
-  *suffix = end ? end : "";
-  return true;
-}
-
 std::string AddAnimatedScalarValue(const std::string& base,
                                    const std::string& addition) {
   double base_number = 0.0;
   double addition_number = 0.0;
-  std::string base_suffix;
-  std::string addition_suffix;
-  if (!ParseNumberWithSuffix(base, &base_number, &base_suffix) ||
-      !ParseNumberWithSuffix(addition, &addition_number, &addition_suffix) ||
-      base_suffix != addition_suffix) {
+  const char* base_suffix =
+      SrSVGParseNumberWithSuffix(base.c_str(), &base_number, nullptr);
+  if (!base_suffix ||
+      base_suffix != SrSVGParseNumberWithSuffix(addition.c_str(),
+                                                &addition_number, nullptr)) {
     return "";
   }
   std::ostringstream stream;
   stream << base_number + addition_number << base_suffix;
   return stream.str();
+}
+
+void ReplacePaint(SrSVGPaint*& paint, const char* value) {
+  auto* replacement = make_serval_paint(value);
+  if (replacement) {
+    release_serval_paint(paint);
+    paint = replacement;
+  }
 }
 
 bool HasZeroDefaultAnimatedAttribute(const std::string& name) {
@@ -162,14 +161,42 @@ bool HasZeroDefaultAnimatedAttribute(const std::string& name) {
          name == "stdDeviation" || name == "offset";
 }
 
+bool ParseNumberAttribute(const char* value, float* out,
+                          bool allow_percent = false) {
+  SrSVGLength length;
+  if (!parse_serval_length(value, &length))
+    return false;
+  if (allow_percent && length.unit == SR_SVG_UNITS_PERCENTAGE) {
+    *out = length.value / 100.f;
+  } else if (length.unit == SR_SVG_UNITS_NUMBER) {
+    *out = length.value;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool ParseOpacityAttribute(const char* value, std::optional<float>& out) {
+  float opacity;
+  if (!ParseNumberAttribute(value, &opacity, true))
+    return false;
+  out = std::clamp(opacity, 0.f, 1.f);
+  return true;
+}
+
 }  // namespace
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
+  parser::SrSVGRenderScope render_scope(&context);
+  if (!render_scope)
+    return;
+  parser::SrSVGViewBoxScope view_box_scope(context);
   canvas->Save();
   canvas->SetRenderContext(&context);
   OnPrepareToRender(canvas, context);
-  bool filter_clipped = false;
+  parser::SrSVGOffscreenScope filter_budget(context);
   bool filter_layer_active = false;
+  canvas::SrFilterModel filter_model;
   bool filter_output_empty = false;
   auto clip_to_box = [&canvas](const SrSVGBox& box) {
     auto clip_path = canvas->PathFactory()->CreateRect(
@@ -181,12 +208,13 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
   if (canvas->SupportsFilters() && IsSVGNode() && Tag() != SrSVGTag::kMask &&
       Tag() != SrSVGTag::kFilter) {
     auto* svg_node = static_cast<SrSVGNode*>(this);
-    if (svg_node->filter_ && svg_node->filter_->type == SERVAL_PAINT_IRI) {
+    if (svg_node->filter_ && svg_node->filter_->type == SERVAL_PAINT_IRI &&
+        svg_node->filter_->content.iri[0] == '#') {
       SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
       bool has_bounds = false;
       if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
         bounds = path->GetBounds();
-        has_bounds = bounds.width > 0.f && bounds.height > 0.f;
+        has_bounds = serval_svg_valid_box(&bounds);
 
         // Expand bounds by stroke width
         float stroke_w = 0.f;
@@ -200,15 +228,9 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
         }
 
         // Check if stroke is actually drawn
-        bool has_stroke = false;
-        if (svg_node->stroke_ && svg_node->stroke_->type != SERVAL_PAINT_NONE) {
-          has_stroke = true;
-        } else if (svg_node->inherit_stroke_paint_ &&
-                   svg_node->inherit_stroke_paint_->type != SERVAL_PAINT_NONE) {
-          // If not overridden locally
-          if (!svg_node->stroke_)
-            has_stroke = true;
-        }
+        const auto* stroke = svg_node->ResolvePaint(
+            &SrSVGNode::stroke_, &SrSVGNode::inherit_stroke_paint_);
+        const bool has_stroke = stroke && stroke->type != SERVAL_PAINT_NONE;
 
         if (has_stroke) {
           // Default stroke width is 1.0 if not specified but stroke is present?
@@ -225,6 +247,7 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
             bounds.top -= half_w;
             bounds.width += stroke_w;
             bounds.height += stroke_w;
+            has_bounds = serval_svg_valid_box(&bounds);
           }
         }
       }
@@ -241,19 +264,21 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
         }
       }
 
-      canvas::SrFilterModel filter_model;
       if (filter_node) {
         if (filter_node->BuildFilterModel(bounds, has_bounds, context,
                                           &filter_model)) {
           if (filter_model.region.width <= 0.f ||
               filter_model.region.height <= 0.f) {
             filter_output_empty = true;
-          } else if (canvas->SupportsFilterModel(filter_model)) {
-            canvas->BeginFilterLayer(&filter_model.region, filter_model);
+          } else if (serval_svg_valid_box(&filter_model.region) &&
+                     canvas->SupportsFilterModel(filter_model) &&
+                     filter_budget.Reserve(
+                         *canvas, 5, 1 + 5 * filter_model.primitives.size()) &&
+                     canvas->TryBeginFilterLayer(&filter_model.region,
+                                                 filter_model)) {
             filter_layer_active = true;
             canvas->Save();
             clip_to_box(filter_model.region);
-            filter_clipped = true;
           }
           // Unsupported filter graphs fall back to rendering the source
           // element without the filter. Only an explicitly empty filter region
@@ -266,70 +291,86 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
   // Mask rendering via explicit source and mask-content phases. Backends can
   // map these phases to their own off-screen layer and DstIn primitives.
   bool masked = false;
-  if (IsSVGNode() && Tag() != SrSVGTag::kMask) {
+  if (!filter_output_empty && IsSVGNode() && Tag() != SrSVGTag::kMask) {
     auto* svg_node = static_cast<SrSVGNode*>(this);
     SrSVGPaint* local_mask =
-        svg_node->mask_ != nullptr ? svg_node->mask_ : svg_node->inherit_mask_;
+        svg_node->ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_);
     if (local_mask && local_mask->type == SERVAL_PAINT_IRI) {
       IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
-      if (nodes) {
+      if (nodes && local_mask->content.iri[0] == '#') {
         std::string id(local_mask->content.iri + 1);
         auto it = nodes->find(id);
         if (it != nodes->end() && it->second &&
             it->second->Tag() == SrSVGTag::kMask) {
           auto* mask_node = static_cast<SrSVGMask*>(it->second);
-          SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
-          bool has_bounds = false;
-          if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
-            bounds = path->GetBounds();
-            has_bounds = true;
-          }
+          parser::SrSVGMaskScope mask_scope(
+              static_cast<parser::SrSVGTraversalState*>(
+                  context.traversal_state),
+              mask_node);
+          if (mask_scope) {
+            SrSVGBox bounds{0.f, 0.f, 0.f, 0.f};
+            bool has_bounds = false;
+            if (auto path = svg_node->AsPath(canvas->PathFactory(), &context)) {
+              bounds = path->GetBounds();
+              has_bounds = serval_svg_valid_box(&bounds);
+            }
 
-          SrSVGBox mask_region{0.f, 0.f, 0.f, 0.f};
-          bool has_mask_region = false;
-          bool has_empty_mask_region = false;
-          const bool can_resolve_mask_region =
-              has_bounds ||
-              mask_node->mask_units() == SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
-          if (can_resolve_mask_region) {
-            const SrSVGBox object_bounds =
-                has_bounds ? bounds : context.view_port;
-            mask_region = mask_node->ResolveMaskRegion(object_bounds, context);
-            has_mask_region =
-                mask_region.width > 0.f && mask_region.height > 0.f;
-            if (!has_mask_region) {
+            SrSVGBox mask_region{0.f, 0.f, 0.f, 0.f};
+            bool has_mask_region = false;
+            bool has_empty_mask_region = false;
+            const bool can_resolve_mask_region =
+                has_bounds || mask_node->mask_units() ==
+                                  SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
+            if (can_resolve_mask_region) {
+              const SrSVGBox object_bounds =
+                  has_bounds ? bounds : context.view_port;
+              mask_region =
+                  mask_node->ResolveMaskRegion(object_bounds, context);
+              has_mask_region = serval_svg_valid_box(&mask_region);
+              if (!has_mask_region) {
+                has_empty_mask_region = true;
+                const bool finite = std::isfinite(mask_region.left) &&
+                                    std::isfinite(mask_region.top) &&
+                                    std::isfinite(mask_region.width) &&
+                                    std::isfinite(mask_region.height);
+                masked = finite &&
+                         (mask_region.width <= 0 || mask_region.height <= 0);
+              }
+            }
+
+            parser::SrSVGOffscreenScope mask_budget(context);
+            if (!has_empty_mask_region && mask_budget.Reserve(*canvas, 2) &&
+                canvas->TryBeginMaskLayer(
+                    has_mask_region ? &mask_region : nullptr,
+                    mask_node->mask_is_luminance())) {
+              if (has_mask_region) {
+                canvas->Save();
+                clip_to_box(mask_region);
+                OnRender(canvas, context);
+                canvas->Restore();
+              } else {
+                OnRender(canvas, context);
+              }
+              mask_scope.EnterContent();
+              if (canvas->TryBeginMaskContentLayer()) {
+                canvas->Save();
+                if (has_mask_region) {
+                  clip_to_box(mask_region);
+                }
+                if (has_bounds &&
+                    mask_node->mask_content_units() ==
+                        SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+                  float xform[6] = {bounds.width,  0.f,         0.f,
+                                    bounds.height, bounds.left, bounds.top};
+                  canvas->Transform(xform);
+                }
+                mask_node->Render(canvas, context);
+                canvas->Restore();
+                canvas->EndMaskContentLayer();
+              }
+              canvas->EndMaskLayer();
               masked = true;
-              has_empty_mask_region = true;
             }
-          }
-
-          if (!has_empty_mask_region) {
-            canvas->BeginMaskLayer(has_mask_region ? &mask_region : nullptr,
-                                   mask_node->mask_is_luminance());
-            if (has_mask_region) {
-              canvas->Save();
-              clip_to_box(mask_region);
-              OnRender(canvas, context);
-              canvas->Restore();
-            } else {
-              OnRender(canvas, context);
-            }
-            canvas->BeginMaskContentLayer();
-            canvas->Save();
-            if (has_mask_region) {
-              clip_to_box(mask_region);
-            }
-            if (has_bounds && mask_node->mask_content_units() ==
-                                  SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-              float xform[6] = {bounds.width,  0.f,         0.f,
-                                bounds.height, bounds.left, bounds.top};
-              canvas->Transform(xform);
-            }
-            mask_node->Render(canvas, context);
-            canvas->Restore();
-            canvas->EndMaskContentLayer();
-            canvas->EndMaskLayer();
-            masked = true;
           }
         }
       }
@@ -339,9 +380,7 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
     OnRender(canvas, context);
   }
   if (filter_layer_active) {
-    if (filter_clipped) {
-      canvas->Restore();
-    }
+    canvas->Restore();
     canvas->EndFilterLayer();
   }
   canvas->Restore();
@@ -355,29 +394,37 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
              strcmp(name, "data-action") == 0) {
     click_event_ = value;
   } else if (strcmp(name, "fill") == 0) {
-    release_serval_paint(fill_);
-    fill_ = make_serval_paint(value);
+    ReplacePaint(fill_, value);
   } else if (strcmp(name, "stroke") == 0) {
-    release_serval_paint(stroke_);
-    stroke_ = make_serval_paint(value);
+    ReplacePaint(stroke_, value);
   } else if (strcmp(name, "opacity") == 0) {
-    opacity_ = Atof(value);
+    return ParseOpacityAttribute(value, opacity_);
   } else if (strcmp(name, "stroke-width") == 0) {
-    stroke_width_ = make_serval_length(value);
+    return ParseLengthAttribute(value, stroke_width_,
+                                LengthRange::kNonNegative);
   } else if (strcmp(name, "stroke-dasharray") == 0) {
-    ParseStrokeDashArray(value);
+    return ParseStrokeDashArray(value);
   } else if (strcmp(name, "stroke-dashoffset") == 0) {
-    stroke_dash_offset_ = Atof(value);
+    return ParseLengthAttribute(value, stroke_dash_offset_);
   } else if (strcmp(name, "stroke-linecap") == 0) {
+    if (strcmp(value, "butt") && strcmp(value, "round") &&
+        strcmp(value, "square"))
+      return false;
     stroke_cap_ = resolve_stroke_line_cap(value);
   } else if (strcmp(name, "stroke-linejoin") == 0) {
+    if (strcmp(value, "miter") && strcmp(value, "round") &&
+        strcmp(value, "bevel"))
+      return false;
     stroke_join_ = resolve_stroke_line_join(value);
   } else if (strcmp(name, "stroke-miterlimit") == 0) {
-    stoke_miter_limit_ = Atof(value);
+    float limit;
+    if (!ParseNumberAttribute(value, &limit) || limit < 1.f)
+      return false;
+    stoke_miter_limit_ = limit;
   } else if (strcmp(name, "fill-opacity") == 0) {
-    fill_opacity_ = Atof(value);
+    return ParseOpacityAttribute(value, fill_opacity_);
   } else if (strcmp(name, "stroke-opacity") == 0) {
-    stroke_opacity_ = Atof(value);
+    return ParseOpacityAttribute(value, stroke_opacity_);
   } else if (strcmp(name, "vector-effect") == 0) {
     if (strcmp(value, "non-scaling-stroke") == 0) {
       vector_effect_ = SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE;
@@ -385,13 +432,13 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
       vector_effect_ = SR_SVG_VECTOR_EFFECT_NONE;
     }
   } else if (strcmp(name, "clip-path") == 0) {
-    clip_path_ = make_serval_paint(value);
+    ReplacePaint(clip_path_, value);
   } else if (strcmp(name, "mask") == 0) {
-    mask_ = make_serval_paint(value);
+    ReplacePaint(mask_, value);
   } else if (strcmp(name, "filter") == 0) {
-    filter_ = make_serval_paint(value);
+    ReplacePaint(filter_, value);
   } else if (strcmp(name, "transform") == 0) {
-    ParseTransform(value, transform_);
+    return TryParseTransform(value, transform_);
   } else if (strcmp(name, "transform-origin") == 0) {
     ParseTransformOrigin(value);
   } else if (strcmp(name, "transform-box") == 0) {
@@ -400,8 +447,10 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     color_ = make_serval_color(value);
   } else if (strcmp(name, "style") == 0) {
     ParseStyle(value);
+  } else {
+    return false;
   }
-  return false;
+  return true;
 }
 
 void SrSVGNode::StoreAttribute(const char* name, const char* value) {
@@ -450,14 +499,6 @@ void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
           effect.attribute,
           base_it == base_attributes_.end() ? "" : base_it->second);
     }
-    if (animated_attributes_.find(effect.attribute) ==
-        animated_attributes_.end()) {
-      auto base_it = base_attributes_.find(effect.attribute);
-      animated_attributes_[effect.attribute] =
-          base_it == base_attributes_.end()
-              ? std::optional<std::string>{}
-              : std::optional<std::string>{base_it->second};
-    }
     std::string value = effect.value;
     if (effect.transform && effect.additive) {
       auto& presentation = presentation_values[effect.attribute];
@@ -474,6 +515,16 @@ void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
         }
       }
     }
+    auto [record, first] = animated_attributes_.try_emplace(effect.attribute);
+    if (first) {
+      if (effect.attribute == "stroke-dashoffset") {
+        record->second = stroke_dash_offset_;
+      } else {
+        auto base = base_attributes_.find(effect.attribute);
+        if (base != base_attributes_.end())
+          record->second = std::optional<std::string>(base->second);
+      }
+    }
     presentation_values[effect.attribute] = value;
     if (effect.path_data && effect.attribute == "d" &&
         SetAnimatedPathData(effect.path_data)) {
@@ -484,8 +535,12 @@ void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
 }
 
 void SrSVGNode::RestoreAnimatedAttributes() {
-  for (const auto& entry : animated_attributes_) {
-    RestoreAnimatedAttribute(entry.first, entry.second);
+  for (auto& [name, saved] : animated_attributes_) {
+    if (auto* offset = std::get_if<std::optional<SrSVGLength>>(&saved)) {
+      stroke_dash_offset_ = *offset;
+    } else if (auto* text = std::get_if<std::optional<std::string>>(&saved)) {
+      RestoreAnimatedAttribute(name, *text);
+    }
   }
   animated_attributes_.clear();
 }
@@ -493,8 +548,8 @@ void SrSVGNode::RestoreAnimatedAttributes() {
 void SrSVGNode::RestoreAnimatedAttribute(
     const std::string& name, const std::optional<std::string>& base_value) {
   if (base_value.has_value()) {
-    ParseAndSetAttribute(name.c_str(), base_value->c_str());
-    return;
+    if (ParseAndSetAttribute(name.c_str(), base_value->c_str()))
+      return;
   }
   ClearAnimatedAttribute(name);
 }
@@ -514,10 +569,12 @@ void SrSVGNode::ClearAnimatedAttribute(const std::string& name) {
     stroke_opacity_.reset();
   } else if (name == "stroke-width") {
     stroke_width_.reset();
+  } else if (name == "fill-rule") {
+    ParseAndSetAttribute("fill-rule", "nonzero");
   } else if (name == "stroke-dasharray") {
     stroke_dash_array_.clear();
   } else if (name == "stroke-dashoffset") {
-    stroke_dash_offset_ = 0.f;
+    stroke_dash_offset_.reset();
   } else if (name == "stroke-linecap") {
     stroke_cap_ = SR_SVG_STROKE_CAP_BUTT;
   } else if (name == "stroke-linejoin") {
@@ -558,6 +615,17 @@ void SrSVGNode::ClearAnimatedAttribute(const std::string& name) {
   }
 }
 
+SrSVGPaint* SrSVGNode::ResolvePaint(SrSVGPaint* SrSVGNode::*local,
+                                    SrSVGPaint* SrSVGNode::*inherited) const {
+  for (auto* node = this; node; node = node->authored_parent_) {
+    if (auto* paint = node->*local)
+      return paint;
+    if (auto* paint = node->*inherited)
+      return paint;
+  }
+  return nullptr;
+}
+
 SrSVGNode::~SrSVGNode() {
   release_serval_paint(fill_);
   release_serval_paint(stroke_);
@@ -583,205 +651,122 @@ bool SrPreparePattern(canvas::SrCanvas* canvas, SrSVGNodeBase* node,
 bool SrSVGNode::OnPrepareToRender(canvas::SrCanvas* canvas,
                                   SrSVGRenderContext& context) const {
   SrSVGPaint* local_clip_path =
-      clip_path_ != nullptr ? clip_path_ : inherit_clip_path_;
+      ResolvePaint(&SrSVGNode::clip_path_, &SrSVGNode::inherit_clip_path_);
   if (local_clip_path && local_clip_path->type == SERVAL_PAINT_IRI &&
-      local_clip_path->content.iri &&
-      strlen(local_clip_path->content.iri) > 0) {
-    const char* iri_str = local_clip_path->content.iri;
-    std::string id(iri_str + 1);
-    IDMapper* nodes = static_cast<IDMapper*>(context.id_mapper);
+      local_clip_path->content.iri && local_clip_path->content.iri[0] == '#') {
+    auto* nodes = static_cast<IDMapper*>(context.id_mapper);
     if (nodes) {
-      // Use find() to safely look up ID, avoid throwing exceptions
-      auto it = nodes->find(id);
-      if (it != nodes->end()) {
-        SrSVGClipPath* clip_path_node = static_cast<SrSVGClipPath*>(it->second);
-        if (clip_path_node) {
-          std::unique_ptr<canvas::Path> path =
-              clip_path_node->AsPath(canvas->PathFactory(), &context);
-          if (clip_path_node->clip_path_units() ==
-              SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
-            auto node_path = this->AsPath(canvas->PathFactory(), &context);
-            if (node_path) {
-              SrSVGBox svg_box = node_path->GetBounds();
-              float xform[6] = {svg_box.width, 0,          0, svg_box.height,
-                                svg_box.left,  svg_box.top};
+      auto it = nodes->find(local_clip_path->content.iri + 1);
+      if (it != nodes->end() && it->second &&
+          it->second->Tag() == SrSVGTag::kClipPath) {
+        auto* clip = static_cast<SrSVGClipPath*>(it->second);
+        auto path = clip->AsPath(canvas->PathFactory(), &context);
+        if (path && clip->clip_path_units() ==
+                        SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
+          if (auto node_path = AsPath(canvas->PathFactory(), &context)) {
+            const SrSVGBox box = node_path->GetBounds();
+            if (std::isfinite(box.left) && std::isfinite(box.top) &&
+                std::isfinite(box.width) && std::isfinite(box.height)) {
+              const float xform[6] = {box.width,  0.f,      0.f,
+                                      box.height, box.left, box.top};
               path = path->CreateTransformCopy(xform);
             }
           }
-          if (path) {
-            canvas->ClipPath(path.get(), clip_path_node->clip_rule());
-          }
         }
+        if (path)
+          canvas->ClipPath(path.get(), clip->clip_rule());
       }
     }
   }
 
-  PrepareIRIResource(canvas, context, fill_ ? fill_ : inherit_fill_paint_);
-  PrepareIRIResource(canvas, context,
-                     stroke_ ? stroke_ : inherit_stroke_paint_);
+  PrepareIRIResource(
+      canvas, context,
+      ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_));
+  PrepareIRIResource(
+      canvas, context,
+      ResolvePaint(&SrSVGNode::stroke_, &SrSVGNode::inherit_stroke_paint_));
   return false;
 }
 
+bool SrSVGNode::TryParseTransform(const char* str, float* xform) {
+  return str && SrSVGParseTransform(str, strlen(str), xform, nullptr);
+}
+
 void SrSVGNode::ParseTransform(const char* str, float* xform) {
-  xform_identity(xform);
-  float tmp_xform[6];
-  while (*str) {
-    if (strncmp(str, "matrix", 6) == 0) {
-      str += ParseMatrix(tmp_xform, str);
-    } else if (strncmp(str, "translate", 9) == 0) {
-      str += ParseTranslate(tmp_xform, str);
-    } else if (strncmp(str, "scale", 5) == 0) {
-      str += ParseScale(tmp_xform, str);
-    } else if (strncmp(str, "rotate", 6) == 0) {
-      str += ParseRotate(tmp_xform, str);
-    } else if (strncmp(str, "skewX", 5) == 0) {
-      str += ParseSkewX(tmp_xform, str);
-    } else if (strncmp(str, "skewY", 5) == 0) {
-      str += ParseSkewY(tmp_xform, str);
-    } else {
-      ++str;
-      continue;
-    }
-    xform_multiply(xform, tmp_xform);
-  }
+  if (!TryParseTransform(str, xform))
+    xform_identity(xform);
 }
 
-int SrSVGNode::ParseMatrix(float* xform, const char* str) {
-  float args[6];
-  int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 6, &arg_index);
-  if (arg_index == 6) {
-    memcpy(xform, args, sizeof(float) * 6);
-  }
-  return length;
+namespace {
+int ParseTransformFunction(float* out, const char* str, const char* name) {
+  if (!str || !out || strncmp(str, name, strlen(name)))
+    return 0;
+  SrSVGParseCursor cursor = SrSVGCursor(str, strlen(str));
+  float result[6];
+  if (!SrSVGParseTransformFunction(&cursor, result, nullptr) ||
+      cursor.pos - str >= INT_MAX)
+    return 0;
+  memcpy(out, result, sizeof(result));
+  return (int)(cursor.pos - str);
+}
+}  // namespace
+
+int SrSVGNode::ParseMatrix(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "matrix");
 }
 
-int SrSVGNode::ParseTranslate(float* xform, const char* str) {
-  float args[2];
-  int arg_index = 0;
-  float t[6];
-  int length = ParseTransformArgs(str, args, 2, &arg_index);
-  if (arg_index == 1) {
-    args[1] = 0.f;
-  }
-  xform_set_translation(t, args[0], args[1]);
-  memcpy(xform, t, sizeof(float) * 6);
-  return length;
+int SrSVGNode::ParseTranslate(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "translate");
 }
 
-int SrSVGNode::ParseScale(float* xform, const char* str) {
-  float args[2];
-  int arg_index = 0;
-  float t[6];
-  int length = ParseTransformArgs(str, args, 2, &arg_index);
-  if (arg_index == 1) {
-    args[1] = args[0];
-  }
-  xform_set_scale(t, args[0], args[1]);
-  memcpy(xform, t, sizeof(float) * 6);
-  return length;
+int SrSVGNode::ParseScale(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "scale");
 }
 
-int SrSVGNode::ParseRotate(float* xform, const char* str) {
-  float args[3];
-  int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 3, &arg_index);
-  if (arg_index == 1) {
-    args[1] = 0.f;
-    args[2] = 0.f;
-  }
-  float tmp_form[6];
-  xform_identity(xform);
-  if (arg_index > 1) {
-    xform_set_translation(tmp_form, -args[1], -args[2]);
-    xform_pre_multiply(xform, tmp_form);
-  }
-  xform_set_rotation(tmp_form, args[0] / 180.0f * M_PI);
-  xform_pre_multiply(xform, tmp_form);
-  if (arg_index > 1) {
-    xform_set_translation(tmp_form, args[1], args[2]);
-    xform_pre_multiply(xform, tmp_form);
-  }
-  return length;
+int SrSVGNode::ParseRotate(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "rotate");
 }
 
-int SrSVGNode::ParseSkewX(float* xform, const char* str) {
-  float args[1] = {0.f};
-  int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 1, &arg_index);
-  xform_set_skewX(xform, args[0] / 180.0f * M_PI);
-  return length;
+int SrSVGNode::ParseSkewX(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "skewX");
 }
 
-int SrSVGNode::ParseSkewY(float* xform, const char* str) {
-  float args[1] = {0.f};
-  int arg_index = 0;
-  int length = ParseTransformArgs(str, args, 1, &arg_index);
-  xform_set_skewY(xform, args[0] / 180.0f * M_PI);
-  return length;
+int SrSVGNode::ParseSkewY(float* out, const char* str) {
+  return ParseTransformFunction(out, str, "skewY");
 }
 
 int SrSVGNode::ParseTransformArgs(const char* str, float* args,
                                   int max_args_number, int* arg_index) {
-  const char* end = nullptr;
-  const char* ptr = nullptr;
-  char it[64];
-
+  if (!str || !arg_index || max_args_number < 0)
+    return 0;
+  SrSVGParseCursor cursor = SrSVGCursor(str, strlen(str));
+  size_t count = 0;
   *arg_index = 0;
-  ptr = str;
-  while (*ptr && *ptr != '(') {
-    ++ptr;
-  }
-  if (*ptr == 0) {
-    return 1;
-  }
-  end = ptr;
-  while (*end && *end != ')') {
-    ++end;
-  }
-  if (*end == 0) {
-    return 1;
-  }
-  while (ptr < end) {
-    if (*ptr == '-' || *ptr == '+' || *ptr == '.' || isdigit(*ptr)) {
-      ptr = ParseNumber(ptr, it, 64);
-      if (*arg_index < max_args_number) {
-        args[(*arg_index)++] = (float)Atof(it);
-      }
-    } else {
-      ++ptr;
-    }
-  }
-  return (int)(end - str);
+  if (!SrSVGParseTransformArgs(&cursor, args, (size_t)max_args_number, &count,
+                               nullptr) ||
+      cursor.pos - str >= INT_MAX)
+    return 0;
+  *arg_index = (int)count;
+  return (int)(cursor.pos - str);
 }
 
-void SrSVGNode::ParseStrokeDashArray(const char* value) {
-  stroke_dash_array_.clear();
-  // SVG `none` disables the dash pattern and is represented by an empty array.
-  if (!value || Trim(value) == "none") {
-    return;
+bool SrSVGNode::ParseStrokeDashArray(const char* value) {
+  if (!serval_svg_valid_dash_array(value))
+    return false;
+  std::vector<float> dashes;
+  auto cursor = SrSVGCursor(value, strlen(value));
+  SrSVGCursorSpaces(&cursor);
+  if (!SrSVGCursorMatch(&cursor, "none")) {
+    while (!SrSVGCursorEnd(&cursor)) {
+      float entry;
+      if (!SrSVGParseCoordinate(&cursor, &entry, nullptr))
+        return false;
+      dashes.push_back(entry);
+      SrSVGCursorSeparator(&cursor);
+    }
   }
-
-  const char* ptr = value;
-  char token[64];
-  while (*ptr) {
-    while (*ptr && (isspace(*ptr) || *ptr == ',')) {
-      ++ptr;
-    }
-    if (!*ptr) {
-      break;
-    }
-
-    const char* next = ParseNumber(ptr, token, sizeof(token));
-    // ParseNumber does not advance for non-numeric tokens. Reject the whole
-    // value instead of repeatedly parsing the same input.
-    if (next == ptr || token[0] == '\0') {
-      stroke_dash_array_.clear();
-      return;
-    }
-    stroke_dash_array_.push_back(static_cast<float>(Atof(token)));
-    ptr = next;
-  }
+  stroke_dash_array_ = std::move(dashes);
+  return true;
 }
 
 void SrSVGNode::ParseTransformOrigin(const char* value) {
@@ -912,7 +897,9 @@ void SrSVGNode::ResolvedTransform(float (&xform)[6],
   xform_pre_translate(centered, origin_x, origin_y);
   xform_multiply(centered, xform);
   xform_pre_translate(centered, -origin_x, -origin_y);
-  std::memcpy(xform, centered, sizeof(float) * 6);
+  if (std::all_of(std::begin(centered), std::end(centered),
+                  [](float value) { return std::isfinite(value); }))
+    std::memcpy(xform, centered, sizeof(centered));
 }
 
 static int IsSpace(char c) {
@@ -956,7 +943,8 @@ bool SrSVGNodeBase::ParseNameValue(const char* start, const char* end) {
     memcpy(value, val, n);
   value[n] = 0;
 
-  return ParseAndSetAttribute(name, value);
+  // A CSS declaration cannot recursively invoke the style attribute parser.
+  return strcmp(name, "style") != 0 && ParseAndSetAttribute(name, value);
 }
 
 void SrSVGNodeBase::ParseStyle(const char* str) {
@@ -1004,110 +992,29 @@ void SrSVGNodeBase::ParseStyle(const char* str) {
   }
 }
 
-const char* SrSVGNode::ParseNumber(const char* s, char* it, const int size) {
-  const int last = size - 1;
-  int i = 0;
-
-  // sign
-  if (*s == '-' || *s == '+') {
-    if (i < last)
-      it[i++] = *s;
-    s++;
-  }
-  // integer part
-  while (*s && isdigit(*s)) {
-    if (i < last)
-      it[i++] = *s;
-    s++;
-  }
-  if (*s == '.') {
-    // decimal point
-    if (i < last)
-      it[i++] = *s;
-    s++;
-    // fraction part
-    while (*s && isdigit(*s)) {
-      if (i < last)
-        it[i++] = *s;
-      s++;
-    }
-  }
-  // exponent
-  if ((*s == 'e' || *s == 'E') && (s[1] != 'm' && s[1] != 'x')) {
-    if (i < last)
-      it[i++] = *s;
-    s++;
-    if (*s == '-' || *s == '+') {
-      if (i < last)
-        it[i++] = *s;
-      s++;
-    }
-    while (*s && isdigit(*s)) {
-      if (i < last)
-        it[i++] = *s;
-      s++;
-    }
-  }
-  it[i] = '\0';
-
-  return s;
+const char* SrSVGNode::ParseNumber(const char* s, char* token, const int size) {
+  if (!s || !token || size <= 0)
+    return s;
+  token[0] = '\0';
+  SrSVGParseCursor cursor = {s, s, nullptr};
+  float value;
+  if (!SrSVGParseCoordinate(&cursor, &value, nullptr) || cursor.pos - s >= size)
+    return s;
+  const size_t length = (size_t)(cursor.pos - s);
+  memcpy(token, s, length);
+  token[length] = '\0';
+  return cursor.pos;
 }
 
 double SrSVGNode::Atof(const char* s) {
-  char* cur = (char*)s;
-  char* end = NULL;
-  double res = 0.0, sign = 1.0;
-  long long intPart = 0, fracPart = 0;
-  char hasIntPart = 0, hasFracPart = 0;
-
-  // Parse optional sign
-  if (*cur == '+') {
-    cur++;
-  } else if (*cur == '-') {
-    sign = -1;
-    cur++;
-  }
-
-  // Parse integer part
-  if (isdigit(*cur)) {
-    // Parse digit sequence
-    intPart = strtoll(cur, &end, 10);
-    if (cur != end) {
-      res = (double)intPart;
-      hasIntPart = 1;
-      cur = end;
-    }
-  }
-
-  // Parse fractional part.
-  if (*cur == '.') {
-    cur++;  // Skip '.'
-    if (isdigit(*cur)) {
-      // Parse digit sequence
-      fracPart = strtoll(cur, &end, 10);
-      if (cur != end) {
-        res += (double)fracPart / pow(10.0, (double)(end - cur));
-        hasFracPart = 1;
-        cur = end;
-      }
-    }
-  }
-
-  // A valid number should have integer or fractional part.
-  if (!hasIntPart && !hasFracPart)
+  if (!s)
     return 0.0;
-
-  // Parse optional exponent
-  if (*cur == 'e' || *cur == 'E') {
-    long expPart = 0;
-    cur++;                            // skip 'E'
-    expPart = strtol(cur, &end, 10);  // Parse digit sequence with sign
-    if (cur != end) {
-      res *= pow(10.0, (double)expPart);
-    }
-  }
-
-  return res * sign;
+  SrSVGSkipSpaces(&s);
+  double value;
+  if (!SrSVGParseNumber(&s, &value) || fabs(value) > FLT_MAX)
+    return 0.0;
+  SrSVGSkipSpaces(&s);
+  return *s ? 0.0 : value;
 }
 
 }  // namespace element

@@ -3,13 +3,26 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGFilterPrimitives.h"
+#include <algorithm>
 #include <cstring>
 #include <vector>
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGParse.h"
 
 namespace serval {
 namespace svg {
 namespace element {
+
+namespace {
+bool ParseUnitless(const char* value, float* out) {
+  SrSVGLength length;
+  if (!parse_serval_length(value, &length) ||
+      length.unit != SR_SVG_UNITS_NUMBER)
+    return false;
+  *out = length.value;
+  return true;
+}
+}  // namespace
 
 bool SrSVGFilterPrimitive::ParseAndSetAttribute(const char* name,
                                                 const char* value) {
@@ -18,13 +31,13 @@ bool SrSVGFilterPrimitive::ParseAndSetAttribute(const char* name,
   } else if (strcmp(name, "in") == 0) {
     in_ = value;
   } else if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
+    return ParseLengthAttribute(value, width_, LengthRange::kNonNegative);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
+    return ParseLengthAttribute(value, height_, LengthRange::kNonNegative);
   } else {
     return SrSVGNode::ParseAndSetAttribute(name, value);
   }
@@ -34,29 +47,26 @@ bool SrSVGFilterPrimitive::ParseAndSetAttribute(const char* name,
 bool SrSVGFeGaussianBlur::ParseAndSetAttribute(const char* name,
                                                const char* value) {
   if (strcmp(name, "stdDeviation") == 0) {
-    const char* ptr = value;
-    char it[64];
-    float args[2];
-    int count = 0;
-
-    while (*ptr && count < 2) {
-      // skip delimiters
-      while (*ptr && (isspace(*ptr) || *ptr == ','))
-        ptr++;
-      if (!*ptr)
-        break;
-
-      ptr = SrSVGNode::ParseNumber(ptr, it, 64);
-      args[count++] = SrSVGNode::Atof(it);
+    auto cursor = SrSVGCursor(value, strlen(value));
+    SrSVGCursorSpaces(&cursor);
+    float x, y;
+    if (!SrSVGParseCoordinate(&cursor, &x, nullptr) || x < 0.f)
+      return false;
+    const char* end = cursor.pos;
+    SrSVGCursorSpaces(&cursor);
+    const bool comma = SrSVGCursorConsume(&cursor, ',');
+    SrSVGCursorSpaces(&cursor);
+    y = x;
+    if (comma || !SrSVGCursorEnd(&cursor)) {
+      if (cursor.pos == end || !SrSVGParseCoordinate(&cursor, &y, nullptr) ||
+          y < 0.f)
+        return false;
+      SrSVGCursorSpaces(&cursor);
+      if (!SrSVGCursorEnd(&cursor))
+        return false;
     }
-
-    if (count == 1) {
-      std_deviation_x_ = args[0];
-      std_deviation_y_ = args[0];
-    } else if (count == 2) {
-      std_deviation_x_ = args[0];
-      std_deviation_y_ = args[1];
-    }
+    std_deviation_x_ = x;
+    std_deviation_y_ = y;
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
   }
@@ -65,9 +75,9 @@ bool SrSVGFeGaussianBlur::ParseAndSetAttribute(const char* name,
 
 bool SrSVGFeOffset::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "dx") == 0) {
-    dx_ = Atof(value);
+    return ParseUnitless(value, &dx_);
   } else if (strcmp(name, "dy") == 0) {
-    dy_ = Atof(value);
+    return ParseUnitless(value, &dy_);
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
   }
@@ -79,26 +89,30 @@ bool SrSVGFeColorMatrix::ParseAndSetAttribute(const char* name,
   if (strcmp(name, "type") == 0) {
     type_ = value;
   } else if (strcmp(name, "values") == 0) {
-    values_.clear();
-    const char* ptr = value;
-    char it[64];
-    while (*ptr) {
-      // skip delimiters
-      while (*ptr && (isspace(*ptr) || *ptr == ','))
-        ptr++;
-      if (!*ptr)
+    float values[20];
+    size_t count = 0;
+    auto cursor = SrSVGCursor(value, strlen(value));
+    SrSVGCursorSpaces(&cursor);
+    while (!SrSVGCursorEnd(&cursor)) {
+      if (count == 20 ||
+          !SrSVGParseCoordinate(&cursor, &values[count], nullptr))
+        return false;
+      ++count;
+      const char* end = cursor.pos;
+      SrSVGCursorSpaces(&cursor);
+      if (SrSVGCursorEnd(&cursor))
         break;
-
-      const char* next = SrSVGNode::ParseNumber(ptr, it, 64);
-      // `values` only accepts numbers. Reject an invalid token if the number
-      // parser cannot consume it; retrying the same token would never finish.
-      if (next == ptr) {
-        values_.clear();
-        return true;
+      if (SrSVGCursorConsume(&cursor, ',')) {
+        SrSVGCursorSpaces(&cursor);
+        if (SrSVGCursorEnd(&cursor))
+          return false;
+      } else if (end == cursor.pos) {
+        return false;
       }
-      values_.push_back(Atof(it));
-      ptr = next;
     }
+    if (count != 0 && count != 1 && count != 20)
+      return false;
+    values_.assign(values, values + count);
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
   }
@@ -112,13 +126,13 @@ bool SrSVGFeComposite::ParseAndSetAttribute(const char* name,
   } else if (strcmp(name, "operator") == 0) {
     operator_ = value;
   } else if (strcmp(name, "k1") == 0) {
-    k1_ = Atof(value);
+    return ParseUnitless(value, &k1_);
   } else if (strcmp(name, "k2") == 0) {
-    k2_ = Atof(value);
+    return ParseUnitless(value, &k2_);
   } else if (strcmp(name, "k3") == 0) {
-    k3_ = Atof(value);
+    return ParseUnitless(value, &k3_);
   } else if (strcmp(name, "k4") == 0) {
-    k4_ = Atof(value);
+    return ParseUnitless(value, &k4_);
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
   }
@@ -138,11 +152,20 @@ bool SrSVGFeBlend::ParseAndSetAttribute(const char* name, const char* value) {
 
 bool SrSVGFeFlood::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "flood-color") == 0) {
-    if (flood_color_)
-      release_serval_paint(flood_color_);
-    flood_color_ = make_serval_paint(value);
+    auto* paint = make_serval_paint(value);
+    if (!paint)
+      return false;
+    release_serval_paint(flood_color_);
+    flood_color_ = paint;
   } else if (strcmp(name, "flood-opacity") == 0) {
-    flood_opacity_ = Atof(value);
+    SrSVGLength opacity;
+    if (!parse_serval_length(value, &opacity))
+      return false;
+    if (opacity.unit == SR_SVG_UNITS_PERCENTAGE)
+      opacity.value /= 100.f;
+    else if (opacity.unit != SR_SVG_UNITS_NUMBER)
+      return false;
+    flood_opacity_ = std::clamp(opacity.value, 0.f, 1.f);
   } else {
     return SrSVGFilterPrimitive::ParseAndSetAttribute(name, value);
   }

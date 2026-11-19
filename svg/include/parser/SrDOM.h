@@ -79,7 +79,10 @@ class SrDOM {
 
  private:
   Node* fRoot;
-  std::unique_ptr<SrDOMParser> fParser;
+  struct ParserDeleter {
+    void operator()(SrDOMParser*) const;
+  };
+  std::unique_ptr<SrDOMParser, ParserDeleter> fParser;
 };
 
 }  // namespace parser

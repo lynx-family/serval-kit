@@ -3,7 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGRect.h"
-#include "utils/SrFloatComparison.h"
+
+#include <algorithm>
 
 #include <cstring>
 
@@ -11,87 +12,82 @@ namespace serval {
 namespace svg {
 namespace element {
 
-static void NormalizeCornerRadii(float& rx, float& ry, float width,
-                                 float height) {
-  if (FloatLess(rx, 0.f) && FloatLess(ry, 0.f)) {
-    rx = 0.f;
-    ry = 0.f;
-  } else if (FloatLessOrEqual(rx, 0.f) && FloatsLarger(ry, 0.f)) {
-    rx = ry;
-  } else if (FloatLessOrEqual(ry, 0.f) && FloatsLarger(rx, 0.f)) {
-    ry = rx;
-  }
-
-  if (FloatsLarger(rx, width / 2.0f)) {
-    rx = width / 2.0f;
-  }
-  if (FloatsLarger(ry, height / 2.0f)) {
-    ry = height / 2.0f;
-  }
-}
-
 bool SrSVGRect::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "rx") == 0) {
-    rx_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, rx_, LengthRange::kNonNegative);
   } else if (strcmp(name, "ry") == 0) {
-    ry_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, ry_, LengthRange::kNonNegative);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, width_, LengthRange::kNonNegative);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, height_, LengthRange::kNonNegative);
   }
   // todo: call super after super being implemented.
   return SrSVGShape::ParseAndSetAttribute(name, value);
 }
 
-void SrSVGRect::onDraw(canvas::SrCanvas* const canvas,
+void SrSVGRect::ClearAnimatedAttribute(const std::string& name) {
+  if (name == "rx")
+    rx_ = {};
+  else if (name == "ry")
+    ry_ = {};
+  else
+    SrSVGShape::ClearAnimatedAttribute(name);
+}
+
+bool SrSVGRect::ResolveGeometry(const SrSVGRenderContext& context,
+                                SrSVGBox& box, float& rx, float& ry) const {
+  if (!resolve_serval_length(&x_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &box.left) ||
+      !resolve_serval_length(&y_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                             &box.top) ||
+      !resolve_serval_length(&width_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &box.width) ||
+      !resolve_serval_length(&height_, &context, SR_SVG_LENGTH_TYPE_VERTICAL,
+                             &box.height) ||
+      !serval_svg_valid_box(&box))
+    return false;
+  const bool has_rx = rx_.unit != SR_SVG_UNITS_UNKNOWN;
+  const bool has_ry = ry_.unit != SR_SVG_UNITS_UNKNOWN;
+  if (!resolve_serval_length(&rx_, &context, SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &rx) ||
+      !resolve_serval_length(&ry_, &context, SR_SVG_LENGTH_TYPE_VERTICAL, &ry))
+    return false;
+  if (!has_rx)
+    rx = ry;
+  if (!has_ry)
+    ry = rx;
+  if (rx == 0.f || ry == 0.f) {
+    rx = ry = 0.f;
+  }
+  rx = std::min(rx, box.width / 2.f);
+  ry = std::min(ry, box.height / 2.f);
+  return true;
+}
+
+void SrSVGRect::onDraw(canvas::SrCanvas* canvas,
                        SrSVGRenderContext& context) const {
-  // convert to platform pixel
-  float xf = convert_serval_length_to_float(&x_, &context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float yf = convert_serval_length_to_float(&y_, &context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  float rx = convert_serval_length_to_float(&rx_, &context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float ry = convert_serval_length_to_float(&ry_, &context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  float wf = convert_serval_length_to_float(&width_, &context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float hf = convert_serval_length_to_float(&height_, &context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-
-  NormalizeCornerRadii(rx, ry, wf, hf);
-
-  canvas->DrawRect(id_.c_str(), xf, yf, rx, ry, wf, hf, render_state_);
+  SrSVGBox box;
+  float rx, ry;
+  if (!ResolveGeometry(context, box, rx, ry))
+    return;
+  canvas->DrawRect(id_.c_str(), box.left, box.top, rx, ry, box.width,
+                   box.height, render_state_);
 }
 
 std::unique_ptr<canvas::Path> SrSVGRect::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context,
     bool include_transform) const {
-  float xf = convert_serval_length_to_float(&x_, context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float yf =
-      convert_serval_length_to_float(&y_, context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  float rx = convert_serval_length_to_float(&rx_, context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float ry = convert_serval_length_to_float(&ry_, context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  float wf = convert_serval_length_to_float(&width_, context,
-                                            SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  float hf = convert_serval_length_to_float(&height_, context,
-                                            SR_SVG_LENGTH_TYPE_VERTICAL);
-  NormalizeCornerRadii(rx, ry, wf, hf);
-  auto path = path_factory->CreateRect(xf, yf, rx, ry, wf, hf);
+  SrSVGBox box;
+  float rx, ry;
+  if (!path_factory || !context || !ResolveGeometry(*context, box, rx, ry))
+    return nullptr;
+  auto path = path_factory->CreateRect(box.left, box.top, rx, ry, box.width,
+                                       box.height);
   if (include_transform && path) {
     float xform[6];
     ResolvedTransform(xform, *context, path_factory);

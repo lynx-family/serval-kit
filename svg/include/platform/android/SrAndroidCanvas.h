@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "canvas/SrCanvas.h"
+#include "canvas/SrCanvasTransformStack.h"
 #include "element/SrSVGPatternResolver.h"
 #include "platform/android/SrAndroidPathFactory.h"
 #include "platform/android/SrScopedJavaRef.h"
@@ -89,6 +90,11 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   void BeginMaskContentLayer() override;
   void EndMaskContentLayer() override;
   void EndMaskLayer() override;
+  bool TryBeginFilterLayer(const SrSVGBox* bounds,
+                           const canvas::SrFilterModel& filter) override;
+  bool TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  bool TryBeginMaskContentLayer() override;
+  bool TryBeginOpacityLayer(const SrSVGBox* bounds, float opacity) override;
   canvas::PathFactory* PathFactory() override { return path_factory_.get(); }
 
  private:
@@ -156,11 +162,13 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   jobject j_engine_;
   jobject j_render_;
   JNIEnv* jni_env_;
-  bool mask_content_layer_active_{false};
+  size_t filter_fallback_depth_{0};
+  size_t mask_fallback_depth_{0};
+  size_t opacity_fallback_depth_{0};
   const SrSVGRenderContext* current_render_context_{nullptr};
   std::unordered_set<std::string> active_pattern_ids_;
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
-  std::vector<std::array<float, 6>> transform_stack_;
+  canvas::SrCanvasTransformStack transform_stack_;
 
  public:
   JNIEnv* GetJNIEnv() const { return jni_env_; }

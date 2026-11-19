@@ -88,6 +88,11 @@ typedef struct SrParagraphStyle {
 
 bool parse_svg_color(const char* str, uint32_t* out_color);
 
+// Check derived bounds before handing them to a drawing backend.
+// The keyword none is represented as a zero-length validated list.
+bool serval_svg_valid_dash_array(const char* value);
+bool serval_svg_valid_box(const SrSVGBox* box);
+
 typedef enum SrSVGDiagnosticCode {
   SR_SVG_DIAGNOSTIC_NONE = 0,
   SR_SVG_DIAGNOSTIC_XML_UNEXPECTED_CLOSE_TAG = 1,
@@ -239,16 +244,28 @@ typedef struct SrSVGPreserveAspectRatio {
 } SrSVGPreserveAspectRatio;
 
 SrSVGUnits make_serval_length_unit(const char* c);
+// Try parsers leave output unchanged on failure; value wrappers return zero.
+bool parse_serval_length(const char* value, SrSVGLength* out);
+bool parse_serval_view_box(const char* value, SrSVGBox* out);
 SrSVGLength make_serval_length(const char* value);
 SrSVGBox make_serval_view_box(const char* value);
+bool parse_serval_preserve_aspect_ratio(const char* value,
+                                        SrSVGPreserveAspectRatio* out);
 SrSVGPreserveAspectRatio make_preserve_aspect_radio(const char* value);
 SrSVGPreserveAspectRatio make_default_preserve_aspect_radio();
+bool resolve_serval_view_box_transform(
+    const SrSVGBox* view_port, const SrSVGBox* view_box,
+    SrSVGPreserveAspectRatio preserve_aspect_ratio, float* out);
 void calculate_view_box_transform(
     const SrSVGBox* view_port, const SrSVGBox* view_box,
     SrSVGPreserveAspectRatio preserve_aspect_ratio, float* xform);
 SrSVGPaint* make_serval_paint(const char* value);
 void release_serval_paint(SrSVGPaint* paint);
 SrSVGColor make_serval_color(const char* value);
+// On failure, leave the output unchanged. A resolved zero is a success.
+bool resolve_serval_length(const SrSVGLength* length,
+                           const SrSVGRenderContext* context,
+                           SrSVGLengthType type, float* out);
 float convert_serval_length_to_float(const SrSVGLength* length,
                                      SrSVGRenderContext* render_context,
                                      SrSVGLengthType type);

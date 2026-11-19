@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #import "SVGMetalView.h"
+#import "SVGPreviewImageLoader.h"
 
 #import <CoreVideo/CoreVideo.h>
 #import <Foundation/Foundation.h>
@@ -27,6 +28,7 @@ using serval::svg::skity::SrSkityCanvas;
 
 @interface SVGMetalView () {
   SrSVGAnimatedRenderer _svgRenderer;
+  SVGPreviewImageLoader* _imageLoader;
   std::unique_ptr<skity::GPUContext> _gpuContext;
   std::unique_ptr<skity::GPUSurface> _gpuSurface;
   CVDisplayLinkRef _animationDisplayLink;
@@ -138,6 +140,10 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
 }
 
 - (void)setSVGContent:(NSString*)content {
+  [_imageLoader invalidate];
+  __weak SVGMetalView* weakSelf = self;
+  _imageLoader =
+      [[SVGPreviewImageLoader alloc] initWithRedraw:^{ [weakSelf render]; }];
   std::vector<SrSVGDiagnostic> diagnostics;
   if (![content isKindOfClass:[NSString class]] || content.length == 0) {
     _svgRenderer.SetDOM(nullptr);
@@ -201,10 +207,9 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
       }
     }
 
-    SrSkityCanvas sr_canvas(
-        canvas, [](std::string url) -> std::shared_ptr<skity::Image> {
-          return nullptr;
-        });
+    SrSkityCanvas sr_canvas(canvas, [self](const std::string& href) {
+      return [_imageLoader imageForHref:href];
+    });
 
     SrSVGBox view_port{0.f, 0.f, width, height};
     //canvas->ClipRect(skity::Rect::MakeXYWH(0.f, 0.f, width, height));
@@ -331,6 +336,7 @@ static CVReturn SVGMetalDisplayLinkCallback(CVDisplayLinkRef displayLink,
 }
 
 - (void)dealloc {
+  [_imageLoader invalidate];
   [self stopAnimationTimer];
 }
 

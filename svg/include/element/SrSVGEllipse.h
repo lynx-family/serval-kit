@@ -29,6 +29,8 @@ class SrSVGEllipse : public SrSVGShape {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
 
  private:
+  bool ResolveGeometry(const SrSVGRenderContext& context, float& x, float& y,
+                       float& rx, float& ry) const;
   SrSVGEllipse() : SrSVGShape(SrSVGTag::kEllipse) {}
   SrSVGLength cx_{0}, cy_{0}, rx_{0}, ry_{0};
 };

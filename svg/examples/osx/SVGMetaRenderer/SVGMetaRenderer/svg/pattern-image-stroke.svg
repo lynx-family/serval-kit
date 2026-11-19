@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <defs>
+    <pattern id="tile" patternUnits="userSpaceOnUse" width="32" height="32">
+      <image width="32" height="32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJUlEQVR4nGP4z8DwHx8mIP2foIpRA4aEAQz/8cP/BPCoAcPCAABX6D3f7ShDqgAAAABJRU5ErkJggg=="/>
+    </pattern>
+  </defs>
+  <rect x="24" y="24" width="112" height="112" fill="none" stroke="url(#tile)" stroke-width="24"/>
+</svg>

@@ -4,6 +4,8 @@
 
 #include "element/SrSVGContainer.h"
 
+#include "parser/SrSVGTraversalState.h"
+
 namespace serval {
 namespace svg {
 namespace element {
@@ -30,10 +32,6 @@ bool IsContainerTag(SrSVGTag tag) {
 }  // namespace
 
 bool SrSVGContainer::ParseAndSetAttribute(const char* name, const char* value) {
-  if (strcmp(name, "transform") == 0) {
-    ParseTransform(value, transform_);
-    return true;
-  }
   return SrSVGNode::ParseAndSetAttribute(name, value);
 }
 
@@ -47,13 +45,10 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
   if (opacity_ && group_opacity <= 0.f) {
     return;
   }
-  const bool has_opacity_layer = opacity_ && group_opacity < 1.f;
-  if (has_opacity_layer) {
-    // TODO: Compute tight layer bounds for group opacity. Correctness requires
-    // whole-group composition; passing nullptr keeps the result correct but may
-    // allocate a larger offscreen layer than necessary.
-    canvas->BeginOpacityLayer(nullptr, group_opacity);
-  }
+  parser::SrSVGOffscreenScope opacity_budget(context);
+  const bool has_opacity_layer =
+      opacity_ && group_opacity < 1.f && opacity_budget.Reserve(*canvas, 1) &&
+      canvas->TryBeginOpacityLayer(nullptr, group_opacity);
   for (SrSVGNodeBase* child : children_) {
     RenderChild(canvas, context, child);
   }
@@ -88,36 +83,24 @@ bool SrSVGContainer::PrepareChild(SrSVGNodeBase* child) {
       node->inherit_color_,
   });
 
-  if (node->fill_) {
-    node->inherit_fill_paint_ = node->fill_;
-  } else if (fill_) {
-    node->inherit_fill_paint_ = fill_;
-  } else if (inherit_fill_paint_) {
-    node->inherit_fill_paint_ = inherit_fill_paint_;
+  if (auto* paint =
+          ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_)) {
+    node->inherit_fill_paint_ = paint;
   }
 
-  if (node->stroke_) {
-    node->inherit_stroke_paint_ = node->stroke_;
-  } else if (stroke_) {
-    node->inherit_stroke_paint_ = stroke_;
-  } else if (inherit_stroke_paint_) {
-    node->inherit_stroke_paint_ = inherit_stroke_paint_;
+  if (auto* paint = ResolvePaint(&SrSVGNode::stroke_,
+                                 &SrSVGNode::inherit_stroke_paint_)) {
+    node->inherit_stroke_paint_ = paint;
   }
 
-  if (node->clip_path_) {
-    node->inherit_clip_path_ = node->clip_path_;
-  } else if (clip_path_) {
-    node->inherit_clip_path_ = clip_path_;
-  } else if (inherit_clip_path_) {
-    node->inherit_clip_path_ = inherit_clip_path_;
+  if (auto* paint = ResolvePaint(&SrSVGNode::clip_path_,
+                                 &SrSVGNode::inherit_clip_path_)) {
+    node->inherit_clip_path_ = paint;
   }
 
-  if (node->mask_) {
-    node->inherit_mask_ = node->mask_;
-  } else if (mask_) {
-    node->inherit_mask_ = mask_;
-  } else if (inherit_mask_) {
-    node->inherit_mask_ = inherit_mask_;
+  if (auto* paint =
+          ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_)) {
+    node->inherit_mask_ = paint;
   }
 
   if (node->stroke_width_) {
@@ -223,8 +206,16 @@ bool SrSVGContainer::RenderChildPathAt(canvas::SrCanvas* canvas,
 std::unique_ptr<canvas::Path> SrSVGContainer::AsPath(
     canvas::PathFactory* path_factory, SrSVGRenderContext* context,
     bool include_transform) const {
+  parser::SrSVGRenderScope scope(context);
+  if (!path_factory || !context || !scope)
+    return nullptr;
   std::unique_ptr<canvas::Path> path = path_factory->CreateMutable();
+  if (!path)
+    return nullptr;
   for (SrSVGNodeBase* child : children_) {
+    parser::SrSVGRenderScope child_scope(context);
+    if (!child_scope)
+      break;
     if (child) {
       auto child_path = child->AsPath(path_factory, context);
       if (child_path) {

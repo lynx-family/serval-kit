@@ -9,6 +9,7 @@ source_set("serval-svg") {
   sources = [
     # common
     "include/canvas/SrCanvas.h",
+    "include/canvas/SrCanvasTransformStack.h",
     "include/canvas/SrParagraph.h",
     "include/element/SrSVGAnimation.h",
     "include/element/SrSVGCircle.h",
@@ -39,12 +40,18 @@ source_set("serval-svg") {
     "include/element/SrSVGUse.h",
     "include/parser/SrDOM.h",
     "include/parser/SrDOMParser.h",
+    "include/parser/SrSVGArray.h",
     "include/parser/SrSVGDOM.h",
+    "include/parser/SrSVGMemory.h",
+    "include/parser/SrSVGParse.h",
+    "include/parser/SrSVGParseLimits.h",
     "include/parser/SrXMLExtractor.h",
     "include/parser/SrXMLParser.h",
     "include/parser/SrXMLParserError.h",
     "include/renderer/SrSVGAnimatedRenderer.h",
     "include/renderer/SrSVGAnimationState.h",
+    "include/utils/SrSVGArc.h",
+    "include/utils/SrSVGNumber.h",
     "include/utils/SrSVGPatternUtils.h",
 
     # skity
@@ -87,9 +94,12 @@ source_set("serval-svg") {
     "src/parser/SrDOM.cc",
     "src/parser/SrDOMParser.cc",
     "src/parser/SrSVGDOM.cc",
+    "src/parser/SrSVGMemory.c",
+    "src/parser/SrSVGParse.c",
     "src/parser/SrXMLExtractor.c",
     "src/parser/SrXMLParser.cc",
     "src/parser/SrXMLParserError.cc",
+    "src/utils/SrSVGArc.c",
     "src/utils/SrSVGPatternUtils.cc",
   ]
 

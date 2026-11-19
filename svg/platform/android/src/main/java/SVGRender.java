@@ -74,6 +74,8 @@ public class SVGRender {
     final Matrix parentMatrix;
     final int[] operations;
     final float[] values;
+    final Paint compositePaint =
+        new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     FilterLayer(Canvas parentCanvas, Canvas layerCanvas, Bitmap bitmap,
                 Matrix parentMatrix, int[] operations, float[] values) {
@@ -111,7 +113,16 @@ public class SVGRender {
   private String mColorString = null;
   private int mCanvasWidth = 0;
   private int mCanvasHeight = 0;
-  private final ArrayDeque<FilterLayer> mFilterLayers = new ArrayDeque<>();
+  private static final int MAX_EFFECT_DEPTH = 256;
+  private static final long MAX_OFFSCREEN_PIXELS = 32L * 1024 * 1024;
+  private final FilterLayer[] mFilterLayers = new FilterLayer[MAX_EFFECT_DEPTH];
+  private int mFilterDepth;
+  private int mFilterFallbackDepth;
+  private final boolean[] mMaskLuminance = new boolean[MAX_EFFECT_DEPTH];
+  private final boolean[] mMaskContent = new boolean[MAX_EFFECT_DEPTH];
+  private int mMaskDepth;
+  private int mMaskFallbackDepth;
+  private int mOpacityFallbackDepth;
   private final ArrayDeque<Bitmap> mFilterBitmapPool = new ArrayDeque<>();
   private int mFilterBitmapPoolWidth = -1;
   private int mFilterBitmapPoolHeight = -1;
@@ -505,11 +516,11 @@ public class SVGRender {
   private void preparePictureRender(Rect viewPort) {
     mCanvasWidth = viewPort.width();
     mCanvasHeight = viewPort.height();
-    while (!mFilterLayers.isEmpty()) {
-      recycleTransientFilterBitmap(mFilterLayers.pop().bitmap);
+    while (mFilterDepth > 0) {
+      recycleTransientFilterBitmap(popFilterLayer().bitmap);
     }
-    mDstInLayerActive = false;
-    mMaskIsLuminance = false;
+    mMaskDepth = mMaskFallbackDepth = mFilterFallbackDepth =
+        mOpacityFallbackDepth = 0;
     mReusableFilterBitmaps = false;
     if (mFilterBitmapPoolWidth != mCanvasWidth ||
         mFilterBitmapPoolHeight != mCanvasHeight) {
@@ -520,8 +531,8 @@ public class SVGRender {
   }
 
   private void finishPictureRender(@Nullable Canvas previousCanvas) {
-    while (!mFilterLayers.isEmpty()) {
-      Bitmap bitmap = mFilterLayers.pop().bitmap;
+    while (mFilterDepth > 0) {
+      Bitmap bitmap = popFilterLayer().bitmap;
       if (mReusableFilterBitmaps) {
         releaseFilterBitmap(bitmap);
       } else {
@@ -529,8 +540,8 @@ public class SVGRender {
       }
     }
     mPictureCanvas = previousCanvas;
-    mDstInLayerActive = false;
-    mMaskIsLuminance = false;
+    mMaskDepth = mMaskFallbackDepth = mFilterFallbackDepth =
+        mOpacityFallbackDepth = 0;
     mReusableFilterBitmaps = false;
   }
 
@@ -698,10 +709,32 @@ public class SVGRender {
 
   public void beginOpacityLayer(float left, float top, float right,
                                 float bottom, float opacity) {
-    if (mPictureCanvas != null) {
-      Paint alphaPaint = new Paint();
-      alphaPaint.setAlpha(clampOpacity(opacity));
-      saveLayerWithPaint(left, top, right, bottom, alphaPaint);
+    if (!tryBeginOpacityLayer(left, top, right, bottom, opacity)) {
+      ++mOpacityFallbackDepth;
+    }
+  }
+
+  public boolean tryBeginOpacityLayer(float left, float top, float right,
+                                      float bottom, float opacity) {
+    if (mPictureCanvas == null || mOpacityFallbackDepth > 0)
+      return false;
+    final int saveCount = mPictureCanvas.getSaveCount();
+    try {
+      Paint paint = new Paint();
+      paint.setAlpha(clampOpacity(opacity));
+      saveLayerWithPaint(left, top, right, bottom, paint);
+      return true;
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      mPictureCanvas.restoreToCount(saveCount);
+      return false;
+    }
+  }
+
+  public void endOpacityLayer() {
+    if (mOpacityFallbackDepth > 0) {
+      --mOpacityFallbackDepth;
+    } else {
+      restoreLayer();
     }
   }
 
@@ -726,65 +759,113 @@ public class SVGRender {
 
   public void beginMaskLayer(float left, float top, float right, float bottom,
                              boolean isLuminance) {
-    mMaskIsLuminance = isLuminance;
-    saveLayer(left, top, right, bottom);
+    if (!tryBeginMaskLayer(left, top, right, bottom, isLuminance)) {
+      ++mMaskFallbackDepth;
+    }
+  }
+
+  public boolean tryBeginMaskLayer(float left, float top, float right,
+                                   float bottom, boolean isLuminance) {
+    if (mPictureCanvas == null || mMaskDepth == MAX_EFFECT_DEPTH ||
+        mMaskFallbackDepth > 0)
+      return false;
+    final int saveCount = mPictureCanvas.getSaveCount();
+    try {
+      saveLayer(left, top, right, bottom);
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      mPictureCanvas.restoreToCount(saveCount);
+      return false;
+    }
+    mMaskLuminance[mMaskDepth] = isLuminance;
+    mMaskContent[mMaskDepth++] = false;
+    return true;
   }
 
   public void endMaskLayer() {
-    if (mPictureCanvas != null) {
-      if (mDstInLayerActive) {
-        endMaskContentLayer();
-      }
+    if (mMaskFallbackDepth > 0) {
+      --mMaskFallbackDepth;
+    } else if (mPictureCanvas != null && mMaskDepth > 0) {
+      endMaskContentLayer();
+      --mMaskDepth;
       restoreLayer();
-      mMaskIsLuminance = false;
     }
   }
 
   public void beginFilterLayer(float left, float top, float right, float bottom,
                                int[] operations, float[] values) {
-    if (mPictureCanvas == null || mCanvasWidth <= 0 || mCanvasHeight <= 0) {
-      return;
+    if (!tryBeginFilterLayer(left, top, right, bottom, operations, values)) {
+      ++mFilterFallbackDepth;
     }
-    Bitmap bitmap = mReusableFilterBitmaps
-                        ? acquireFilterBitmap()
-                        : Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
-                                              Bitmap.Config.ARGB_8888);
-    Canvas layerCanvas = new Canvas(bitmap);
-    Matrix parentMatrix = mPictureCanvas.getMatrix();
-    layerCanvas.setMatrix(parentMatrix);
-    mFilterLayers.push(new FilterLayer(mPictureCanvas, layerCanvas, bitmap,
-                                       new Matrix(parentMatrix), operations,
-                                       values));
-    mPictureCanvas = layerCanvas;
+  }
+
+  public boolean tryBeginFilterLayer(float left, float top, float right,
+                                     float bottom, int[] operations,
+                                     float[] values) {
+    if (mPictureCanvas == null || mCanvasWidth <= 0 || mCanvasHeight <= 0 ||
+        (long)mCanvasWidth * mCanvasHeight > MAX_OFFSCREEN_PIXELS ||
+        mFilterDepth == MAX_EFFECT_DEPTH || mFilterFallbackDepth > 0) {
+      return false;
+    }
+    Bitmap bitmap = null;
+    try {
+      bitmap = mReusableFilterBitmaps
+                   ? acquireFilterBitmap()
+                   : Bitmap.createBitmap(mCanvasWidth, mCanvasHeight,
+                                         Bitmap.Config.ARGB_8888);
+      Canvas layerCanvas = new Canvas(bitmap);
+      Matrix parentMatrix = mPictureCanvas.getMatrix();
+      layerCanvas.setMatrix(parentMatrix);
+      FilterLayer layer = new FilterLayer(mPictureCanvas, layerCanvas, bitmap,
+                                          parentMatrix, operations, values);
+      mFilterLayers[mFilterDepth++] = layer;
+      mPictureCanvas = layerCanvas;
+      return true;
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      recycleTransientFilterBitmap(bitmap);
+      return false;
+    }
+  }
+
+  private FilterLayer popFilterLayer() {
+    FilterLayer layer = mFilterLayers[--mFilterDepth];
+    mFilterLayers[mFilterDepth] = null;
+    return layer;
   }
 
   public void endFilterLayer() {
-    if (mPictureCanvas != null && !mFilterLayers.isEmpty() &&
-        mPictureCanvas == mFilterLayers.peek().layerCanvas) {
+    if (mFilterFallbackDepth > 0) {
+      --mFilterFallbackDepth;
+    } else if (mPictureCanvas != null && mFilterDepth > 0 &&
+               mPictureCanvas == mFilterLayers[mFilterDepth - 1].layerCanvas) {
       restoreFilterLayer();
     }
   }
 
-  private boolean mDstInLayerActive = false;
-  private boolean mMaskIsLuminance = false;
+  public void beginMaskContentLayer() { tryBeginMaskContentLayer(); }
 
-  public void beginMaskContentLayer() {
-    if (mPictureCanvas != null && !mDstInLayerActive) {
-      // Record the full mask into a dedicated layer first, then apply DST_IN
-      // once when that layer is restored back to the content layer. For
-      // luminance masks, the restore paint converts the fully composed mask
-      // image into alpha so black cutouts can punch through earlier white
-      // backdrop content.
-      Paint xferPaint = createMaskCompositePaint(mMaskIsLuminance);
-      mPictureCanvas.saveLayer(null, xferPaint);
-      mDstInLayerActive = true;
+  public boolean tryBeginMaskContentLayer() {
+    int layer = mMaskDepth - 1;
+    if (mPictureCanvas == null || mMaskFallbackDepth > 0 || layer < 0 ||
+        mMaskContent[layer])
+      return false;
+    final int saveCount = mPictureCanvas.getSaveCount();
+    try {
+      Paint paint = createMaskCompositePaint(mMaskLuminance[layer]);
+      mPictureCanvas.saveLayer(null, paint);
+      mMaskContent[layer] = true;
+      return true;
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      mPictureCanvas.restoreToCount(saveCount);
+      return false;
     }
   }
 
   public void endMaskContentLayer() {
-    if (mPictureCanvas != null && mDstInLayerActive) {
+    int layer = mMaskDepth - 1;
+    if (mPictureCanvas != null && mMaskFallbackDepth == 0 && layer >= 0 &&
+        mMaskContent[layer]) {
       mPictureCanvas.restore();
-      mDstInLayerActive = false;
+      mMaskContent[layer] = false;
     }
   }
 
@@ -1220,16 +1301,20 @@ public class SVGRender {
   }
 
   private void restoreFilterLayer() {
-    FilterLayer layer = mFilterLayers.pop();
+    FilterLayer layer = popFilterLayer();
+    mPictureCanvas = layer.parentCanvas;
     Bitmap filtered = applyFilterBitmap(layer.bitmap, layer.operations,
                                         layer.values, layer.parentMatrix);
-    mPictureCanvas = layer.parentCanvas;
-    mPictureCanvas.save();
-    mPictureCanvas.setMatrix(new Matrix());
-    Paint bitmapPaint =
-        new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-    mPictureCanvas.drawBitmap(filtered, 0, 0, bitmapPaint);
-    mPictureCanvas.restore();
+    final int saveCount = mPictureCanvas.getSaveCount();
+    try {
+      mPictureCanvas.save();
+      mPictureCanvas.setMatrix(null);
+      mPictureCanvas.drawBitmap(filtered, 0, 0, layer.compositePaint);
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      // The parent canvas and save stack must survive a failed composite.
+    } finally {
+      mPictureCanvas.restoreToCount(saveCount);
+    }
     if (mReusableFilterBitmaps) {
       boolean canRecycleDrawnBitmap = !mPictureCanvas.isHardwareAccelerated();
       if (filtered != layer.bitmap) {
@@ -1249,53 +1334,58 @@ public class SVGRender {
                                    float[] values, Matrix matrix) {
     Bitmap current = source;
     int valueIndex = 0;
-    for (int operation : operations) {
-      switch (operation) {
-        case FILTER_OP_BLUR: {
-          if (valueIndex + 1 >= values.length) {
-            return current;
+    try {
+      for (int operation : operations) {
+        switch (operation) {
+          case FILTER_OP_BLUR: {
+            if (valueIndex + 1 >= values.length) {
+              return current;
+            }
+            float sigmaX = mapVectorLength(matrix, values[valueIndex++], 0f);
+            float sigmaY = mapVectorLength(matrix, 0f, values[valueIndex++]);
+            Bitmap next = blurBitmap(current, sigmaX, sigmaY);
+            recycleIntermediateFilterBitmap(current, source, next);
+            current = next;
+            break;
           }
-          float sigmaX = mapVectorLength(matrix, values[valueIndex++], 0f);
-          float sigmaY = mapVectorLength(matrix, 0f, values[valueIndex++]);
-          Bitmap next = blurBitmap(current, sigmaX, sigmaY);
-          recycleIntermediateFilterBitmap(current, source, next);
-          current = next;
-          break;
-        }
-        case FILTER_OP_OFFSET: {
-          if (valueIndex + 1 >= values.length) {
-            return current;
+          case FILTER_OP_OFFSET: {
+            if (valueIndex + 1 >= values.length) {
+              return current;
+            }
+            float[] vector =
+                new float[] {values[valueIndex++], values[valueIndex++]};
+            matrix.mapVectors(vector);
+            Bitmap next = offsetBitmap(current, vector[0], vector[1]);
+            recycleIntermediateFilterBitmap(current, source, next);
+            current = next;
+            break;
           }
-          float[] vector =
-              new float[] {values[valueIndex++], values[valueIndex++]};
-          matrix.mapVectors(vector);
-          Bitmap next = offsetBitmap(current, vector[0], vector[1]);
-          recycleIntermediateFilterBitmap(current, source, next);
-          current = next;
-          break;
-        }
-        case FILTER_OP_COLOR_MATRIX: {
-          if (valueIndex + 19 >= values.length) {
-            return current;
+          case FILTER_OP_COLOR_MATRIX: {
+            if (valueIndex + 19 >= values.length) {
+              return current;
+            }
+            float[] colorMatrix = new float[20];
+            System.arraycopy(values, valueIndex, colorMatrix, 0, 20);
+            valueIndex += 20;
+            Bitmap next = applyColorMatrix(current, colorMatrix, true);
+            recycleIntermediateFilterBitmap(current, source, next);
+            current = next;
+            break;
           }
-          float[] colorMatrix = new float[20];
-          System.arraycopy(values, valueIndex, colorMatrix, 0, 20);
-          valueIndex += 20;
-          Bitmap next = applyColorMatrix(current, colorMatrix, true);
-          recycleIntermediateFilterBitmap(current, source, next);
-          current = next;
-          break;
+          case FILTER_OP_LUMINANCE_TO_ALPHA: {
+            Bitmap next =
+                applyColorMatrix(current, LUMINANCE_TO_ALPHA_MATRIX, false);
+            recycleIntermediateFilterBitmap(current, source, next);
+            current = next;
+            break;
+          }
+          default:
+            return current;
         }
-        case FILTER_OP_LUMINANCE_TO_ALPHA: {
-          Bitmap next =
-              applyColorMatrix(current, LUMINANCE_TO_ALPHA_MATRIX, false);
-          recycleIntermediateFilterBitmap(current, source, next);
-          current = next;
-          break;
-        }
-        default:
-          return current;
       }
+    } catch (OutOfMemoryError | IllegalArgumentException e) {
+      recycleIntermediateFilterBitmap(current, source, source);
+      return source;
     }
     return current;
   }
@@ -1321,9 +1411,13 @@ public class SVGRender {
     if (bitmap.getWidth() == mFilterBitmapPoolWidth &&
         bitmap.getHeight() == mFilterBitmapPoolHeight &&
         mFilterBitmapPool.size() < MAX_FILTER_BITMAP_POOL_SIZE) {
-      bitmap.eraseColor(Color.TRANSPARENT);
-      mFilterBitmapPool.push(bitmap);
-      return;
+      try {
+        bitmap.eraseColor(Color.TRANSPARENT);
+        mFilterBitmapPool.push(bitmap);
+        return;
+      } catch (OutOfMemoryError e) {
+        // Pooling is optional.
+      }
     }
     recycleTransientFilterBitmap(bitmap);
   }
@@ -1354,6 +1448,9 @@ public class SVGRender {
   }
 
   private Bitmap offsetBitmap(Bitmap source, float dx, float dy) {
+    if (Float.isNaN(dx) || Float.isInfinite(dx) || Float.isNaN(dy) ||
+        Float.isInfinite(dy))
+      return source;
     if (dx == 0f && dy == 0f) {
       return source;
     }
@@ -1385,14 +1482,25 @@ public class SVGRender {
   }
 
   private Bitmap blurBitmap(Bitmap source, float sigmaX, float sigmaY) {
-    int radiusX = Math.max(0, (int)Math.ceil(Math.abs(sigmaX) * 3f));
-    int radiusY = Math.max(0, (int)Math.ceil(Math.abs(sigmaY) * 3f));
+    // The box-blur setup is linear in radius. Limit work before narrowing to int.
+    final double radiusXValue = Math.ceil(Math.abs(sigmaX) * 3f);
+    final double radiusYValue = Math.ceil(Math.abs(sigmaY) * 3f);
+    final int maxRadius = 4096;
+    if (!(radiusXValue <= maxRadius && radiusYValue <= maxRadius)) {
+      return source;
+    }
+    int radiusX = (int)radiusXValue;
+    int radiusY = (int)radiusYValue;
     if (radiusX == 0 && radiusY == 0) {
       return source;
     }
 
     int width = source.getWidth();
     int height = source.getHeight();
+    // The sliding window's setup cost applies once to each row or column.
+    long setup = (long)radiusX * height + (long)radiusY * width;
+    if (setup > 4L * width * height + 4096)
+      return source;
     int[] pixels = new int[width * height];
     int[] temp = new int[width * height];
     source.getPixels(pixels, 0, width, 0, 0, width, height);

@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "element/SrSVGAnimation.h"
+#include "utils/SrSVGNumber.h"
 
 namespace serval {
 namespace svg {
@@ -17,34 +18,23 @@ namespace element {
 
 namespace {
 
-bool ParseNumberWithSuffix(const std::string& value, double* number,
-                           std::string* suffix) {
-  if (!number || !suffix) {
-    return false;
-  }
-  char* end = nullptr;
-  const double parsed = std::strtod(value.c_str(), &end);
-  if (end == value.c_str()) {
-    return false;
-  }
-  *number = parsed;
-  *suffix = end ? end : "";
-  return true;
-}
-
 std::string AddAnimatedScalarValue(const std::string& base,
                                    const std::string& addition) {
   double base_number = 0.0;
   double addition_number = 0.0;
-  std::string base_suffix;
-  std::string addition_suffix;
-  if (!ParseNumberWithSuffix(base, &base_number, &base_suffix) ||
-      !ParseNumberWithSuffix(addition, &addition_number, &addition_suffix) ||
-      base_suffix != addition_suffix) {
+  const char* base_suffix;
+  const char* addition_suffix;
+  if (!SrSVGParseNumberWithSuffix(base.c_str(), &base_number, &base_suffix) ||
+      !SrSVGParseNumberWithSuffix(addition.c_str(), &addition_number,
+                                  &addition_suffix) ||
+      strcmp(base_suffix, addition_suffix) != 0) {
     return "";
   }
+  const double result = base_number + addition_number;
+  if (!isfinite(result) || fabs(result) > FLT_MAX)
+    return "";
   std::ostringstream stream;
-  stream << base_number + addition_number << base_suffix;
+  stream << result << base_suffix;
   return stream.str();
 }
 
@@ -55,13 +45,13 @@ bool SrSVGStop::ParseAndSetAttribute(const char* name, const char* value) {
     id_ = value;
     return true;
   } else if (strcmp(name, "offset") == 0) {
-    stop_.offset = make_serval_length(value);
+    parse_serval_length(value, &stop_.offset);
     return true;
   } else if (strcmp(name, "stop-color") == 0) {
     stop_.stopColor = make_serval_color(value);
     return true;
   } else if (strcmp(name, "stop-opacity") == 0) {
-    stop_.stopOpacity = make_serval_length(value);
+    parse_serval_length(value, &stop_.stopOpacity);
     return true;
   } else if (strcmp(name, "style") == 0) {
     ParseStyle(value);

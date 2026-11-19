@@ -68,6 +68,8 @@ class SrSVGAnimation final : public SrSVGNodeBase {
   ~SrSVGAnimation() override;
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   void AppendChild(SrSVGNodeBase* child) override;
+  // Failure clears effect. path_data is borrowed until the next evaluation or
+  // attribute update, or until this animation is destroyed.
   bool Evaluate(double seconds, const IDMapper* id_mapper,
                 const std::string& underlying, Effect* effect) const;
   double LastChangeSeconds(const IDMapper* id_mapper) const;
@@ -106,6 +108,8 @@ class SrSVGAnimation final : public SrSVGNodeBase {
     double offset{0.0};
   };
 
+  bool EvaluateValue(double seconds, const IDMapper* id_mapper,
+                     const std::string& underlying, Effect* effect) const;
   std::string MakeValue(const ActiveState& state,
                         const std::string& underlying) const;
   const SrPathData* MakePathDataValue(const ActiveState& state,
@@ -150,6 +154,9 @@ class SrSVGAnimation final : public SrSVGNodeBase {
   std::vector<double> key_times_;
   std::vector<double> key_points_;
   std::vector<double> key_splines_;
+  bool invalid_key_times_{false};
+  bool invalid_key_points_{false};
+  bool invalid_key_splines_{false};
   std::string transform_type_;
   std::string path_href_;
   std::string path_;

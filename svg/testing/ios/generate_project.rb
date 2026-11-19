@@ -36,11 +36,13 @@ target.build_configurations.each do |configuration|
   configuration.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
   configuration.build_settings['CLANG_ENABLE_OBJC_ARC'] = 'YES'
   configuration.build_settings['HEADER_SEARCH_PATHS'] = [
-    '$(inherited)', File.join(root, 'svg/examples/iOS/ServalPark/ServalPark')
+    '$(inherited)', File.join(root, 'svg/examples/iOS/ServalPark/ServalPark'),
+    File.join(root, 'svg/include')
   ]
 end
 sources = [
   File.join(__dir__, 'PatternImageTests.m'),
+  File.join(__dir__, 'RenderRegressionTests.mm'),
   File.join(__dir__, 'ImageLoaderTests.m'),
   File.join(root, 'svg/examples/iOS/ServalPark/ServalPark/SvgImageLoader.m'),
   File.join(root, 'svg/examples/iOS/ServalPark/ServalPark/ViewController.m')
@@ -52,6 +54,7 @@ end
 resources = [manifest_path] + manifest.fetch('cases').map do |test_case|
   File.join(root, 'svg/test_cases', test_case.fetch('file'))
 end
+resources.concat(Dir[File.join(root, 'svg/examples/iOS/ServalPark/ServalPark/svg/invalid-*.svg')])
 resources.each do |path|
   raise "Missing fixture #{path}" unless File.file?(path)
   reference = project.main_group.new_file(path)

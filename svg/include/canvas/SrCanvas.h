@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "element/SrSVGTypes.h"
@@ -101,12 +102,12 @@ inline bool SrSupportsLinearSourceGraphicFilterModel(
     return true;
   }
 
-  std::string expected_input = "SourceGraphic";
+  std::string_view expected_input = "SourceGraphic";
   for (const auto& primitive : filter.primitives) {
     if (!SrFilterPrimitiveSupportedInLinearLayer(primitive)) {
       return false;
     }
-    if (primitive.input != expected_input) {
+    if (std::string_view(primitive.input) != expected_input) {
       return false;
     }
     if (!primitive.input2.empty()) {
@@ -290,6 +291,27 @@ class SrCanvas {
   virtual void EndMaskContentLayer() {}
   virtual void EndMaskLayer() { RestoreLayer(); }
   virtual PathFactory* PathFactory() = 0;
+  // True means the corresponding End operation must be called.
+  // The filter model remains alive until EndFilterLayer().
+  virtual bool TryBeginFilterLayer(const SrSVGBox* bounds,
+                                   const SrFilterModel& filter) {
+    BeginFilterLayer(bounds, filter);
+    return true;
+  }
+  virtual bool TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) {
+    BeginMaskLayer(bounds, is_luminance);
+    return true;
+  }
+  virtual bool TryBeginMaskContentLayer() {
+    BeginMaskContentLayer();
+    return true;
+  }
+  virtual bool TryBeginOpacityLayer(const SrSVGBox* bounds, float opacity) {
+    BeginOpacityLayer(bounds, opacity);
+    return true;
+  }
+  // Backends with a device bitmap can override the viewport-based estimate.
+  virtual bool GetOffscreenPixelCount(size_t* out) const { return false; }
   SrCanvas() = default;
 };
 

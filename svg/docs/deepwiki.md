@@ -44,11 +44,45 @@ platform split, and how the public `svg/docs/support-matrix.json` is derived.
 
 `SrDOMParser` and `SrDOM` build a lightweight XML tree from SVG text.
 
+Parsing has explicit resource limits: 16 MiB input, 32 MiB copied DOM storage,
+1 MiB per copied string, 65,536 nodes (including text), and 128 tree levels.
+An element may have at most 256 attributes. Exceeding a limit or failing an
+allocation aborts the build and cleans up the partial tree. XML cleanup does not
+allocate. Attribute ownership moves only after container capacity is available.
+
+The shared decimal-number parser rejects malformed, non-finite, and
+unrepresentable geometry values. Path commands and transform argument lists
+must be complete before their output is committed; invalid path/polygon data
+is discarded. Build diagnostic sinks are detached after attribute parsing so
+later animation evaluation cannot retain stack pointers from construction.
+Portable sanitizer regressions are documented in `svg/testing/README.md`.
+
 Key files:
 
 - `svg/src/parser/SrDOMParser.cc`
 - `svg/src/parser/SrDOM.cc`
 - `svg/src/parser/SrXMLParser.cc`
+
+The shared parser is implemented in `SrSVGParse.c`: a bounded cursor, typed
+outputs, and a nonallocating `{code, offset}` error distinguish invalid data,
+range overflow, resource limits, and OOM. The legacy C wrappers retain their
+signatures. `SrSVGMemory.c` owns checked growth and allocation, and
+`SrSVGArray.h` provides fallible scratch arrays for the XML parser. A path command
+is published only after complete validation and both buffer reservations;
+whole paths/polygons transfer ownership only after parsing succeeds.
+
+`SrSVGArc.c` is the allocation-free iOS/Harmony arc conversion. It uses fixed
+storage, bounded radius correction/subdivision, finite output checks, absolute
+radii, and a line fallback for zero radii or unrepresentable geometry. Platform
+backends only emit the resulting curves. Arc commands remain in SrPathData until
+after SMIL interpolation, preserving command topology and flag compatibility.
+
+No-exception OOM recovery currently applies to this shared parsing layer and
+XML DOM with nonallocating callbacks. SVG node construction, diagnostic vectors,
+SMIL strings/vectors/streams, and platform caches still use the standard library;
+these can terminate on OOM when exceptions are disabled. Build success and
+normal rendering equivalence do not prove whole-renderer OOM recovery. See
+`svg/testing/README.md` for the allocation-failure tests and fuzz entry point.
 
 ### 2. DOM to SVG Nodes
 
@@ -350,6 +384,9 @@ Current backend status:
   shared Chrome probes; ordinary launches open the example browser.
 - Skity stroke patterns depend on `SrPathFactorySkity::CreateStrokePath()`,
   which converts the stroked outline to a fill path via `skity::Stroke`.
+- The macOS Skity preview caches decoded base64 PNGs and downloaded raster
+  images per document. HTTP(S) downloads trigger a redraw on completion.
+  Hardware and software rendering use the same cached pixmap.
 - Skity maps intrinsic image coordinates to the destination once and clips to
   the image viewport. Oversized pattern fills are intersected with the device
   clip before drawing to avoid software rasterizer fixed-point overflow; paint

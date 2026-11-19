@@ -34,21 +34,10 @@ void SrSVGShape::AppendChild(SrSVGNodeBase* node) {
 
 void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
                           SrSVGRenderContext& context) {
-  if (fill_) {
-    render_state_.fill = fill_;
-  } else if (inherit_fill_paint_) {
-    render_state_.fill = inherit_fill_paint_;
-  } else {
-    render_state_.fill = nullptr;
-  }
-
-  if (stroke_) {
-    render_state_.stroke = stroke_;
-  } else if (inherit_stroke_paint_) {
-    render_state_.stroke = inherit_stroke_paint_;
-  } else {
-    render_state_.stroke = nullptr;
-  }
+  render_state_.fill =
+      ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_);
+  render_state_.stroke =
+      ResolvePaint(&SrSVGNode::stroke_, &SrSVGNode::inherit_stroke_paint_);
 
   if (render_state_.fill && render_state_.fill->type == SERVAL_PAINT_COLOR) {
     SrSVGColor& svgColor = render_state_.fill->content.color;
@@ -76,6 +65,9 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
     render_state_.stroke_width = convert_serval_length_to_float(
         &stroke_width, &context, SR_SVG_LENGTH_TYPE_OTHER);
   }
+
+  if (render_state_.stroke_width <= 0.f)
+    render_state_.stroke = nullptr;
 
   if (opacity_) {
     render_state_.opacity = SrSVGNode::ClampOpacity(opacity_.value_or(1.0));
@@ -111,11 +103,16 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
 
   size_t dash_array_length = stroke_dash_array_.size();
   float* dash_array = stroke_dash_array_.data();
+  float dash_offset = 0.f;
+  if (stroke_dash_offset_) {
+    resolve_serval_length(&*stroke_dash_offset_, &context,
+                          SR_SVG_LENGTH_TYPE_OTHER, &dash_offset);
+  }
 
   SRSVGStrokeState stroke_state = {.stroke_line_join = stroke_join_,
                                    .stroke_line_cap = stroke_cap_,
                                    .stroke_miter_limit = stoke_miter_limit_,
-                                   .stroke_dash_offset = stroke_dash_offset_,
+                                   .stroke_dash_offset = dash_offset,
                                    .dash_array = dash_array,
                                    .dash_array_length = dash_array_length};
 
@@ -130,7 +127,11 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
 bool SrSVGShape::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "fill-rule") == 0) {
     if (strcmp(value, "evenodd") == 0) {
-      this->fill_rule_ = SR_SVG_EO_FILL;
+      fill_rule_ = SR_SVG_EO_FILL;
+    } else if (strcmp(value, "nonzero") == 0) {
+      fill_rule_ = SR_SVG_FILL;
+    } else {
+      return false;
     }
     return true;
   }

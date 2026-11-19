@@ -3,9 +3,11 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGMemory.h"
+#include "parser/SrSVGParse.h"
+#include "utils/SrSVGNumber.h"
 
 #if defined(_WIN32) || defined(_WIN64)
-#define strtok_r strtok_s
 #define _USE_MATH_DEFINES
 #endif
 
@@ -199,14 +201,14 @@ SrSVGUnits make_serval_length_unit(const char* c) {
   return SR_SVG_UNITS_NUMBER;
 }
 
+bool parse_serval_length(const char* value, SrSVGLength* out) {
+  return value && SrSVGParseLength(value, strlen(value), out, NULL);
+}
+
 SrSVGLength make_serval_length(const char* value) {
-  char* end;
-  const double a = strtod(value, &end);
-  if (*end) {
-    SrSVGUnits unit = make_serval_length_unit(end);
-    return (SrSVGLength){.value = a, .unit = unit};
-  }
-  return (SrSVGLength){.value = a, .unit = SR_SVG_UNITS_NUMBER};
+  SrSVGLength result = {0.f, SR_SVG_UNITS_NUMBER};
+  parse_serval_length(value, &result);
+  return result;
 }
 
 GradientSpread make_serval_spread_method(const char* value) {
@@ -218,94 +220,135 @@ GradientSpread make_serval_spread_method(const char* value) {
   return pad;
 }
 
-#define SERVAL_SVG_VIEW_BOX_DELIMITERS " ,;\t\n"
-SrSVGBox make_serval_view_box(const char* value) {
-  float result[4] = {0};
-  if (!value) {
-    return (SrSVGBox){.left = result[0],
-                      .top = result[1],
-                      .width = result[2],
-                      .height = result[3]};
-  }
-  const char* cursor = value;
-  int i = 0;
-  while (*cursor && i < 4) {
-    while (*cursor && strchr(SERVAL_SVG_VIEW_BOX_DELIMITERS, *cursor)) {
-      ++cursor;
-    }
-    if (!*cursor) {
-      break;
-    }
-    char* end;
-    result[i] = (float)strtof(cursor, &end);
-    if (end == cursor) {
-      break;
-    }
-    cursor = end;
-    ++i;
-  }
-  return (SrSVGBox){.left = result[0],
-                    .top = result[1],
-                    .width = result[2],
-                    .height = result[3]};
+bool parse_serval_view_box(const char* value, SrSVGBox* out) {
+  return value && SrSVGParseViewBox(value, strlen(value), out, NULL);
 }
-#undef SERVAL_SVG_VIEW_BOX_DELIMITERS
 
-SrSVGPreserveAspectRatio make_preserve_aspect_radio(const char* value) {
-  // xMidYMid is default value.
-  SrSVGAlign align_x = SR_SVG_AlIGN_MID;
-  SrSVGAlign align_y = SR_SVG_AlIGN_MID;
-  // meet is default value.
-  SrSVGScale scale = SR_SVG_SCALE_MEET;
-  if (strstr(value, "none")) {
-    scale = SR_SVG_SCALE_NONE;
-  } else {
-    // Parse X align
-    if (strstr(value, "xMin")) {
-      align_x = SR_SVG_AlIGN_MIN;
-    } else if (strstr(value, "xMid")) {
-      align_x = SR_SVG_AlIGN_MID;
-    } else if (strstr(value, "xMax")) {
-      align_x = SR_SVG_AlIGN_MAX;
-    }
-    // Parse X align
-    if (strstr(value, "YMin")) {
-      align_y = SR_SVG_AlIGN_MIN;
-    } else if (strstr(value, "YMid")) {
-      align_y = SR_SVG_AlIGN_MID;
-    } else if (strstr(value, "YMax")) {
-      align_y = SR_SVG_AlIGN_MAX;
-    }
-    // Parse meet(default) / slice
-    scale = SR_SVG_SCALE_MEET;
-    if (strstr(value, "slice")) {
-      scale = SR_SVG_SCALE_SLICE;
-    }
-  }
-  return (SrSVGPreserveAspectRatio){
-      .align_x = align_x,
-      .align_y = align_y,
-      .scale = scale,
-  };
+SrSVGBox make_serval_view_box(const char* value) {
+  SrSVGBox result = {0};
+  parse_serval_view_box(value, &result);
+  return result;
 }
 
 SrSVGPreserveAspectRatio make_default_preserve_aspect_radio() {
-  return make_preserve_aspect_radio("");
+  return (SrSVGPreserveAspectRatio){.align_x = SR_SVG_AlIGN_MID,
+                                    .align_y = SR_SVG_AlIGN_MID,
+                                    .scale = SR_SVG_SCALE_MEET};
 }
 
-void calculate_view_box_transform(
+static bool parse_align(SrSVGParseCursor* cursor, SrSVGAlign* align) {
+  if (SrSVGCursorMatch(cursor, "Min"))
+    *align = SR_SVG_AlIGN_MIN;
+  else if (SrSVGCursorMatch(cursor, "Mid"))
+    *align = SR_SVG_AlIGN_MID;
+  else if (SrSVGCursorMatch(cursor, "Max"))
+    *align = SR_SVG_AlIGN_MAX;
+  else
+    return false;
+  return true;
+}
+
+bool parse_serval_preserve_aspect_ratio(const char* value,
+                                        SrSVGPreserveAspectRatio* out) {
+  if (!value || !out)
+    return false;
+  SrSVGParseCursor cursor = SrSVGCursor(value, strlen(value));
+  SrSVGCursorSpaces(&cursor);
+  if (SrSVGCursorMatch(&cursor, "defer")) {
+    const char* end = cursor.pos;
+    SrSVGCursorSpaces(&cursor);
+    if (cursor.pos == end)
+      return false;
+  }
+  SrSVGPreserveAspectRatio result = make_default_preserve_aspect_radio();
+  bool none = SrSVGCursorMatch(&cursor, "none");
+  if (!none && (!SrSVGCursorMatch(&cursor, "x") ||
+                !parse_align(&cursor, &result.align_x) ||
+                !SrSVGCursorMatch(&cursor, "Y") ||
+                !parse_align(&cursor, &result.align_y)))
+    return false;
+  const char* end = cursor.pos;
+  SrSVGCursorSpaces(&cursor);
+  if (!SrSVGCursorEnd(&cursor)) {
+    if (cursor.pos == end)
+      return false;
+    if (SrSVGCursorMatch(&cursor, "slice"))
+      result.scale = SR_SVG_SCALE_SLICE;
+    else if (!SrSVGCursorMatch(&cursor, "meet"))
+      return false;
+    SrSVGCursorSpaces(&cursor);
+    if (!SrSVGCursorEnd(&cursor))
+      return false;
+  }
+  if (none)
+    result.scale = SR_SVG_SCALE_NONE;
+  *out = result;
+  return true;
+}
+
+SrSVGPreserveAspectRatio make_preserve_aspect_radio(const char* value) {
+  SrSVGPreserveAspectRatio result = make_default_preserve_aspect_radio();
+  parse_serval_preserve_aspect_ratio(value, &result);
+  return result;
+}
+
+bool serval_svg_valid_dash_array(const char* value) {
+  if (!value)
+    return false;
+  SrSVGParseCursor cursor = SrSVGCursor(value, strlen(value));
+  SrSVGCursorSpaces(&cursor);
+  if (SrSVGCursorMatch(&cursor, "none")) {
+    SrSVGCursorSpaces(&cursor);
+    return SrSVGCursorEnd(&cursor);
+  }
+  double sum = 0;
+  size_t count = 0;
+  while (!SrSVGCursorEnd(&cursor)) {
+    float entry;
+    if (!SrSVGParseCoordinate(&cursor, &entry, NULL) || entry < 0.f)
+      return false;
+    sum += entry;
+    if (sum > FLT_MAX / 2 || ++count > 16384)
+      return false;  // Odd lists may be doubled.
+    const char* end = cursor.pos;
+    SrSVGCursorSpaces(&cursor);
+    if (SrSVGCursorConsume(&cursor, ',')) {
+      SrSVGCursorSpaces(&cursor);
+      if (SrSVGCursorEnd(&cursor))
+        return false;
+    } else if (!SrSVGCursorEnd(&cursor) && cursor.pos == end) {
+      return false;
+    }
+  }
+  return count != 0;
+}
+
+bool serval_svg_valid_box(const SrSVGBox* box) {
+  return box && isfinite(box->left) && isfinite(box->top) &&
+         isfinite(box->width) && isfinite(box->height) &&
+         isfinite(box->left + box->width) && isfinite(box->top + box->height) &&
+         box->width > 0.f && box->height > 0.f;
+}
+
+bool resolve_serval_view_box_transform(
     const SrSVGBox* view_port, const SrSVGBox* view_box,
-    SrSVGPreserveAspectRatio preserve_aspect_ratio, float* xform) {
+    SrSVGPreserveAspectRatio preserve_aspect_ratio, float* out) {
+  float xform[6];
   xform_identity(xform);
+  if (!serval_svg_valid_box(view_port) || !serval_svg_valid_box(view_box))
+    return false;
   float x_scale = view_port->width / view_box->width;
   float y_scale = view_port->height / view_box->height;
+  if (!isfinite(x_scale) || !isfinite(y_scale) || x_scale <= 0.f ||
+      y_scale <= 0.f)
+    return false;
   float x_offset = -view_box->left;
   float y_offset = -view_box->top;
   if (preserve_aspect_ratio.scale == SR_SVG_SCALE_NONE) {
     xform_pre_translate(xform, view_port->left, view_port->top);
     xform_pre_scale(xform, x_scale, y_scale);
     xform_pre_translate(xform, x_offset, y_offset);
-    return;
+    goto validate;
   }
   float scale = 1.f;
   if (preserve_aspect_ratio.scale == SR_SVG_SCALE_SLICE) {
@@ -336,6 +379,21 @@ void calculate_view_box_transform(
   xform_pre_translate(xform, view_port->left, view_port->top);
   xform_pre_scale(xform, scale, scale);
   xform_pre_translate(xform, x_offset, y_offset);
+validate:
+  for (int i = 0; i < 6; ++i) {
+    if (!isfinite(xform[i]))
+      return false;
+  }
+  memcpy(out, xform, sizeof(xform));
+  return true;
+}
+
+void calculate_view_box_transform(
+    const SrSVGBox* view_port, const SrSVGBox* view_box,
+    SrSVGPreserveAspectRatio preserve_aspect_ratio, float* xform) {
+  if (!resolve_serval_view_box_transform(view_port, view_box,
+                                         preserve_aspect_ratio, xform))
+    xform_identity(xform);
 }
 
 void xform_pre_scale(float* xform, float x_scale, float y_scale) {
@@ -451,7 +509,8 @@ void xform_set_skewY(float* xform, float d) {
 
 #define SERVAL_SVG_LEFT_PAREN '('
 #define SERVAL_SVG_RIGHT_PAREN ')'
-static const char* extract_iri(const char* value) {
+static const char* extract_iri(const char* value, bool* allocation_failed) {
+  *allocation_failed = false;
   char* start_ptr = strchr(value, SERVAL_SVG_LEFT_PAREN);
   if (!start_ptr) {
     // Start delimiter not found
@@ -464,10 +523,10 @@ static const char* extract_iri(const char* value) {
   }
   start_ptr++;  // move past '(' character
   end_ptr--;    // move before ')' character
-  while (isspace(*start_ptr)) {
+  while (isspace((unsigned char)*start_ptr)) {
     start_ptr++;  // ignore leading whitespace
   }
-  while (end_ptr > start_ptr && isspace(*end_ptr)) {
+  while (end_ptr > start_ptr && isspace((unsigned char)*end_ptr)) {
     end_ptr--;  // ignore trailing whitespace
   }
   if (end_ptr < start_ptr) {
@@ -475,9 +534,9 @@ static const char* extract_iri(const char* value) {
   }
 
   const size_t result_size = (size_t)(end_ptr - start_ptr) + 1;
-  char* result = malloc(result_size + 1);
+  char* result = SrSVGAlloc(result_size + 1);
   if (!result) {
-    // Memory allocation failed
+    *allocation_failed = true;
     return NULL;
   }
   memcpy(result, start_ptr, result_size);
@@ -488,38 +547,44 @@ static const char* extract_iri(const char* value) {
 #undef SERVAL_SVG_RIGHT_PAREN
 
 SrSVGPaint* make_serval_paint(const char* value) {
-  if (strcmp(value, "none") == 0) {
-    SrSVGPaint* paint = malloc(sizeof(SrSVGPaint));
-    *paint = (SrSVGPaint){.type = SERVAL_PAINT_NONE, .content = {0}};
+  if (!value)
+    return NULL;
+  SrSVGPaint* paint = SrSVGAlloc(sizeof(SrSVGPaint));
+  if (!paint)
+    return NULL;
+  *paint = (SrSVGPaint){.type = SERVAL_PAINT_NONE, .content = {0}};
+  if (strcmp(value, "none") == 0)
     return paint;
-  } else if (strncmp(value, "url(", 4) == 0) {
-    SrSVGPaint* paint = malloc(sizeof(SrSVGPaint));
-    const char* iri = extract_iri(value);
-    if (iri == NULL || iri[0] == '\0') {
-      *paint = (SrSVGPaint){.type = SERVAL_PAINT_NONE, .content = {0}};
-      if (iri != NULL) {
-        free((void*)iri);
-      }
-    } else {
-      *paint = (SrSVGPaint){.type = SERVAL_PAINT_IRI, .content.iri = iri};
+  if (strncmp(value, "url(", 4) == 0) {
+    bool allocation_failed;
+    const char* iri = extract_iri(value, &allocation_failed);
+    if (allocation_failed) {
+      SrSVGFree(paint);
+      return NULL;
     }
-    return paint;
+    if (!iri)
+      return paint;
+    if (!*iri) {
+      SrSVGFree((void*)iri);
+    } else {
+      paint->type = SERVAL_PAINT_IRI;
+      paint->content.iri = iri;
+    }
   } else {
-    SrSVGColor color = make_serval_color(value);
-    SrSVGPaint* paint = malloc(sizeof(SrSVGPaint));
-    *paint = (SrSVGPaint){.type = SERVAL_PAINT_COLOR, .content.color = color};
-    return paint;
+    paint->type = SERVAL_PAINT_COLOR;
+    paint->content.color = make_serval_color(value);
   }
+  return paint;
 }
 
 void release_serval_paint(SrSVGPaint* paint) {
   if (paint) {
     if (paint->type == SERVAL_PAINT_IRI) {
-      free((void*)paint->content.iri);
+      SrSVGFree((void*)paint->content.iri);
       paint->content.iri = NULL;
     }
   }
-  free(paint);
+  SrSVGFree(paint);
 }
 
 SrSVGColor make_serval_color(const char* value) {
@@ -534,374 +599,105 @@ SrSVGColor make_serval_color(const char* value) {
   }
 }
 
-static float length_size_for_type(SrSVGRenderContext* render_context,
+static float length_size_for_type(const SrSVGRenderContext* render_context,
                                   SrSVGLengthType type) {
   switch (type) {
     case SR_SVG_LENGTH_TYPE_HORIZONTAL:
       return render_context->view_box.width;
     case SR_SVG_LENGTH_TYPE_VERTICAL:
       return render_context->view_box.height;
-    case SR_SVG_LENGTH_TYPE_OTHER:
-      return M_SQRT1_2 * sqrt(render_context->view_box.width *
-                                  render_context->view_box.width +
-                              render_context->view_box.height *
-                                  render_context->view_box.height);
+    case SR_SVG_LENGTH_TYPE_OTHER: {
+      const float width = render_context->view_box.width;
+      const float height = render_context->view_box.height;
+      const float squares = width * width + height * height;
+      return M_SQRT1_2 *
+             (isfinite(squares) ? sqrt(squares) : hypot(width, height));
+    }
     case SR_SVG_LENGTH_TYPE_NUMERIC:
       return 1.f;
   }
   return .0f;
 }
 
-float convert_serval_length_to_float(const SrSVGLength* length,
-                                     SrSVGRenderContext* render_context,
-                                     SrSVGLengthType type) {
+bool resolve_serval_length(const SrSVGLength* length,
+                           const SrSVGRenderContext* context,
+                           SrSVGLengthType type, float* out) {
+  if (!length || !context || !out || !isfinite(length->value))
+    return false;
+  const float value = length->value;
+  float resolved;
   switch (length->unit) {
     case SR_SVG_UNITS_NUMBER:
     case SR_SVG_UNITS_UNKNOWN:
-      return length->value;
     case SR_SVG_UNITS_PX:
-      return length->value;
+      resolved = value;
+      break;
     case SR_SVG_UNITS_PT:
-      return length->value / 72.0f * render_context->dpi;
+      resolved = value / 72.f * context->dpi;
+      break;
     case SR_SVG_UNITS_PC:
-      return length->value / 6.0f * render_context->dpi;
+      resolved = value / 6.f * context->dpi;
+      break;
     case SR_SVG_UNITS_MM:
-      return length->value / 25.4f * render_context->dpi;
+      resolved = value / 25.4f * context->dpi;
+      break;
     case SR_SVG_UNITS_CM:
-      return length->value / 2.54f * render_context->dpi;
+      resolved = value / 2.54f * context->dpi;
+      break;
     case SR_SVG_UNITS_IN:
-      return length->value * render_context->dpi;
+      resolved = value * context->dpi;
+      break;
     case SR_SVG_UNITS_EM:
-      return length->value * render_context->font_size;
-    case SR_SVG_UNITS_EX:
-      return length->value * render_context->font_size * 0.52f;
+      resolved = value * context->font_size;
+      break;
+    case SR_SVG_UNITS_EX: {
+      const float em = value * context->font_size;
+      if (isfinite(em)) {
+        resolved = em * .52f;
+      } else {
+        const double ex = (double)value * context->font_size * .52f;
+        if (!isfinite(ex) || fabs(ex) > FLT_MAX)
+          return false;
+        resolved = (float)ex;
+      }
+      break;
+    }
     case SR_SVG_UNITS_PERCENTAGE:
-      return length->value / 100.f * length_size_for_type(render_context, type);
+      resolved = value / 100.f * length_size_for_type(context, type);
+      break;
+    default:
+      return false;
   }
-  return .0f;
-}
-
-static bool resize_polygon(SrPolygon* path) {  // resizing the points array.
-
-  path->capacity = path->capacity ? path->capacity * 2 : 8;
-
-  // prevent memory leak when realloc fails.
-
-  float* new_points = realloc(path->points, path->capacity * 2 * sizeof(float));
-
-  if (!new_points) {
-    // realloc failed
-    if (path->points) {
-      free(path->points);
-    }
-    path->n_points = 0;
-    path->capacity = 0;
+  if (!isfinite(resolved))
     return false;
-  }
-  path->points = new_points;
+  *out = resolved;
   return true;
 }
 
-static bool add_point_to_polygon(SrPolygon* path, float x, float y) {
-  if (path->n_points + 1 > path->capacity && !resize_polygon(path)) {
-    return false;
-  }
-  path->points[2 * path->n_points] = x;
-  path->points[2 * path->n_points + 1] = y;
-  path->n_points++;
-  return true;
+float convert_serval_length_to_float(const SrSVGLength* length,
+                                     SrSVGRenderContext* render_context,
+                                     SrSVGLengthType type) {
+  float result = 0.f;
+  resolve_serval_length(length, render_context, type, &result);
+  return result;
 }
 
-static float next_number(const char** s) {
-  const char* start = *s;
-  uint32_t len = 0;
-  // sign
-  if (**s == '-' || **s == '+') {
-    len++;
-    (*s)++;
-  }
-
-  // integer
-  while (**s && isdigit(**s)) {
-    (*s)++;
-    len++;
-  }
-
-  // decimal
-  if (**s == '.') {
-    len++;
-    (*s)++;
-    while (**s && isdigit(**s)) {
-      (*s)++;
-      len++;
-    }
-  }
-
-  // exponent
-  if ((**s == 'e' || **s == 'E') &&
-      (isdigit((*s)[1]) || (*s)[1] == '+' || (*s)[1] == '-')) {
-    (*s)++;
-    len++;
-    if (**s == '-' || **s == '+') {
-      (*s)++;
-      len++;
-    }
-  }
-  while (**s && isdigit(**s)) {
-    (*s)++;
-    len++;
-  }
-  char number[len + 1];
-  strncpy(number, start, len);
-  number[len] = 0;
-  char* error;
-  return strtof(number, &error);
-}
-
-static void extract_path_args(const char** s, float args[], int n_args) {
-  for (int i = 0; i < n_args; i++) {
-    skip_sep(s);
-    args[i] = next_number(s);
-  }
-}
-
-static void add_command_to_path(SrPathData* path, SrPathOps ops) {
-  if (path->n_ops + 1 > path->c_ops) {
-    path->c_ops = path->c_ops ? path->c_ops * 2 : 8;
-    SrPathOps* new_ops = realloc(path->ops, path->c_ops * sizeof(SrPathOps));
-    if (!new_ops) {
-      return;
-    }
-    path->ops = new_ops;
-  }
-  path->ops[path->n_ops++] = ops;
-}
-
-static void add_args_to_path(SrPathData* path, float args[], size_t len) {
-  bool need_realloc = false;
-  while (path->n_args + len > path->c_args) {
-    need_realloc = true;
-    path->c_args = path->c_args ? path->c_args * 2 : 8;
-  }
-  if (need_realloc) {
-    float* new_args = realloc(path->args, path->c_args * sizeof(float));
-    if (!new_args) {
-      return;
-    }
-    path->args = new_args;
-  }
-  memcpy(path->args + path->n_args, args, len * sizeof(float));
-  path->n_args += len;
+static bool append_path_command(SrPathData* path, SrPathOps op,
+                                const float* args, size_t len) {
+  return SrSVGAppendPathCommand(path, op, args, len, 8) == SR_PARSE_OK;
 }
 
 SrPathData* make_serval_path(const char* value,
-                             const SrSVGDiagnosticSink* diagnostic_sink) {
-  SrPathData* path = malloc(sizeof(SrPathData));
-  memset(path, 0, sizeof(SrPathData));
-  const char* s = value;
-  float args[6] = {0};
-  skip_sep(&s);
-  if (s) {
-    char cmd = 0, last_cmd = 0;
-    float current_point_x = 0, current_point_y = 0, control_point_x = 0,
-          control_point_y = 0;
-    float sub_path_start_x = 0, sub_path_start_y = 0;
-    while (*s) {
-      const char* loop_start = s;
-      if (isalpha(*s)) {
-        cmd = last_cmd = *s++;
-      } else {
-        cmd = last_cmd;
-      }
-      switch (cmd) {
-        case 'm':
-        case 'M': {
-          extract_path_args(&s, args, 2);
-          if (cmd == 'm') {
-            args[0] += current_point_x;
-            args[1] += current_point_y;
-            last_cmd = 'l';
-          } else {
-            last_cmd = 'L';
-          }
-          add_command_to_path(path, SPO_MOVE_TO);
-          add_args_to_path(path, args, 2);
-          sub_path_start_x = current_point_x = control_point_x = args[0];
-          sub_path_start_y = current_point_y = control_point_y = args[1];
-          break;
-        }
-        case 'l':
-        case 'L':
-          extract_path_args(&s, args, 2);
-          if (cmd == 'l') {
-            args[0] += current_point_x;
-            args[1] += current_point_y;
-          }
-          add_command_to_path(path, SPO_LINE_TO);
-          add_args_to_path(path, args, 2);
-          current_point_x = control_point_x = args[0];
-          current_point_y = control_point_y = args[1];
-          last_cmd = cmd;
-          break;
-        case 'h':
-        case 'H':
-          extract_path_args(&s, args, 1);
-          if (cmd == 'h') {
-            args[0] += current_point_x;
-          }
-          args[1] = current_point_y;
-          add_command_to_path(path, SPO_LINE_TO);
-          add_args_to_path(path, args, 2);
-          current_point_x = control_point_x = args[0];
-          last_cmd = cmd;
-          break;
-        case 'v':
-        case 'V':
-          extract_path_args(&s, args + 1, 1);
-          if (cmd == 'v') {
-            args[1] += current_point_y;
-          }
-          args[0] = current_point_x;
-          add_command_to_path(path, SPO_LINE_TO);
-          add_args_to_path(path, args, 2);
-          current_point_y = control_point_y = args[1];
-          last_cmd = cmd;
-          break;
-        case 'c':
-        case 'C':
-          extract_path_args(&s, args, 6);
-          if (cmd == 'c') {
-            for (int i = 0; i < 3; i++) {
-              args[2 * i] += current_point_x;
-              args[2 * i + 1] += current_point_y;
-            }
-          }
-          add_command_to_path(path, SPO_CUBIC_BEZ);
-          add_args_to_path(path, args, 6);
-          current_point_x = args[4];
-          current_point_y = args[5];
-          control_point_x = args[2];
-          control_point_y = args[3];
-          last_cmd = cmd;
-          break;
-        case 's':
-        case 'S':
-          extract_path_args(&s, args + 2, 4);
-          if ('s' == cmd) {
-            for (int i = 1; i < 3; i++) {
-              args[2 * i] += current_point_x;
-              args[2 * i + 1] += current_point_y;
-            }
-          }
-
-          // If there is no previous command or if the previous command was not
-          // an C, c, S or s, assume the first control point is coincident with
-          // the current point.
-          if (strchr("cCsS", last_cmd)) {
-            args[0] = 2 * current_point_x - control_point_x;
-            args[1] = 2 * current_point_y - control_point_y;
-          } else {
-            args[0] = current_point_x;
-            args[1] = current_point_y;
-          }
-
-          add_command_to_path(path, SPO_CUBIC_BEZ);
-          add_args_to_path(path, args, 6);
-          control_point_x = args[2];
-          control_point_y = args[3];
-          current_point_x = args[4];
-          current_point_y = args[5];
-          last_cmd = cmd;
-          break;
-        case 'q':
-        case 'Q':
-          extract_path_args(&s, args, 4);
-          if (cmd == 'q') {
-            for (int i = 0; i < 2; i++) {
-              args[2 * i] += current_point_x;
-              args[2 * i + 1] += current_point_y;
-            }
-          }
-          control_point_x = args[0];
-          control_point_y = args[1];
-          add_command_to_path(path, SPO_QUAD_ARC);
-          add_args_to_path(path, args, 4);
-          current_point_x = args[2];
-          current_point_y = args[3];
-          last_cmd = cmd;
-          break;
-        case 't':
-        case 'T':
-          extract_path_args(&s, args + 2, 2);
-          if (cmd == 't') {
-            args[2] += current_point_x;
-            args[3] += current_point_y;
-          }
-
-          // The control point is assumed to be the reflection of the control
-          // point on the previous command relative to the current point. (If
-          // there is no previous command or if the previous command was not a
-          // Q, q, T or t, assume the control point is coincident with the
-          // current point.)
-          if (strchr("tTqQ", last_cmd)) {
-            control_point_x = 2 * current_point_x - control_point_x;
-            control_point_y = 2 * current_point_y - control_point_y;
-          } else {
-            control_point_x = current_point_x;
-            control_point_y = current_point_y;
-          }
-          args[0] = control_point_x;
-          args[1] = control_point_y;
-          add_command_to_path(path, SPO_QUAD_ARC);
-          add_args_to_path(path, args, 4);
-          current_point_x = args[2];
-          current_point_y = args[3];
-          last_cmd = cmd;
-          break;
-        case 'a':
-        case 'A':
-          extract_path_args(&s, args, 3);
-          skip_sep(&s);
-          float f_large_flag = *s++ == '1' ? 1.f : 0.f;
-          skip_sep(&s);
-          float f_sweep_flag = *s++ == '1' ? 1.f : 0.f;
-          extract_path_args(&s, args + 3, 2);
-          if (cmd == 'a') {
-            args[3] += current_point_x;
-            args[4] += current_point_y;
-          }
-          add_command_to_path(path, SPO_ELLIPTICAL_ARC);
-          float cp[2] = {current_point_x, current_point_y};
-          add_args_to_path(path, cp, 2);
-          add_args_to_path(path, args, 3);
-          add_args_to_path(path, &f_large_flag, 1);
-          add_args_to_path(path, &f_sweep_flag, 1);
-          float cur_point[2] = {args[3], args[4]};
-          add_args_to_path(path, cur_point, 2);
-          control_point_x = current_point_x = args[3];
-          control_point_y = current_point_y = args[4];
-          last_cmd = cmd;
-          break;
-        case 'z':
-        case 'Z':
-          current_point_x = control_point_x = sub_path_start_x;
-          current_point_y = control_point_y = sub_path_start_y;
-          add_command_to_path(path, SPO_CLOSE);
-          break;
-        default:
-          break;
-      }
-      // next command
-      skip_sep(&s);
-      if (s == loop_start) {
-        SrSVGReportDiagnostic(
-            diagnostic_sink, SR_SVG_DIAGNOSTIC_PATH_PARSER_STALLED,
-            "Stopped parsing path because the parser did not advance.", s, 0);
-        break;
-      }
-    }
-  }
-  return path;
+                             const SrSVGDiagnosticSink* sink) {
+  SrPathData* path = NULL;
+  SrSVGParseError error;
+  if (value && SrSVGParsePath(value, strlen(value), &path, &error))
+    return path;
+  if (value && error.code != SR_PARSE_OOM)
+    SrSVGReportDiagnostic(sink, SR_SVG_DIAGNOSTIC_PATH_PARSER_STALLED,
+                          "Stopped parsing invalid path data.",
+                          value + error.offset, 0);
+  return NULL;
 }
 
 void release_serval_polygon_path(SrPolygon* path) {
@@ -909,40 +705,22 @@ void release_serval_polygon_path(SrPolygon* path) {
     return;
   }
   if (path->points) {
-    free(path->points);
+    SrSVGFree(path->points);
   }
-  free(path);
+  SrSVGFree(path);
 }
 
 SrPolygon* make_serval_polygon(const char* value,
-                               const SrSVGDiagnosticSink* diagnostic_sink) {
-  SrPolygon* polygon = malloc(sizeof(SrPolygon));
-  *polygon = (SrPolygon){0};
-  const char* s = value;
-  while (*s) {
-    const char* x_start = s;
-    float x = strtof(s, (char**)&s);
-    if (s == x_start) {
-      SrSVGReportDiagnostic(
-          diagnostic_sink, SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED,
-          "Stopped parsing polygon/polyline because x did not advance.", s, 0);
-      break;
-    }
-    skip_sep(&s);
-    const char* y_start = s;
-    float y = strtof(s, (char**)&s);
-    if (s == y_start) {
-      SrSVGReportDiagnostic(
-          diagnostic_sink, SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED,
-          "Stopped parsing polygon/polyline because y did not advance.", s, 0);
-      break;
-    }
-    // resize failed, return an empty path;
-    if (!add_point_to_polygon(polygon, x, y))
-      return polygon;
-    skip_sep(&s);
-  }
-  return polygon;
+                               const SrSVGDiagnosticSink* sink) {
+  SrPolygon* polygon = NULL;
+  SrSVGParseError error;
+  if (value && SrSVGParsePolygon(value, strlen(value), &polygon, &error))
+    return polygon;
+  if (value && error.code != SR_PARSE_OOM)
+    SrSVGReportDiagnostic(sink, SR_SVG_DIAGNOSTIC_POLYGON_PARSER_STALLED,
+                          "Stopped parsing invalid polygon/polyline points.",
+                          value + error.offset, 0);
+  return NULL;
 }
 
 void release_serval_path(SrPathData* path) {
@@ -950,36 +728,36 @@ void release_serval_path(SrPathData* path) {
     return;
   }
   if (path->args) {
-    free(path->args);
+    SrSVGFree(path->args);
     path->args = NULL;
   }
   if (path->ops) {
-    free(path->ops);
+    SrSVGFree(path->ops);
     path->ops = NULL;
   }
-  free(path);
+  SrSVGFree(path);
 }
 
-#define CP_FACTOR 0.5519150244935105
 // reference to https://spencermortensen.com/articles/bezier-circle/
 void add_circle_to_path(SrPathData* path, float cx, float cy, float r) {
-  add_command_to_path(path, SPO_MOVE_TO);
-  add_args_to_path(path, (float[2]){cx + r, cy}, 2);
-  add_command_to_path(path, SPO_CUBIC_BEZ);
-  add_args_to_path(path,
-                   (float[6]){cx - r * CP_FACTOR, cy + r, cx - r,
-                              cy + r * CP_FACTOR, cx - r, cy},
-                   6);
-  add_command_to_path(path, SPO_CUBIC_BEZ);
-  add_args_to_path(path,
-                   (float[6]){cx - r, cy - r * CP_FACTOR, cx - r * CP_FACTOR,
-                              cy - r, cx, cy - r},
-                   6);
-  add_command_to_path(path, SPO_CUBIC_BEZ);
-  add_args_to_path(path,
-                   (float[6]){cx + r * CP_FACTOR, cy - r, cx + r,
-                              cy - r * CP_FACTOR, cx + r, cy},
-                   6);
+  const double control_point_factor = 0.5519150244935105;
+  if (!append_path_command(path, SPO_MOVE_TO, (float[2]){cx + r, cy}, 2) ||
+      !append_path_command(
+          path, SPO_CUBIC_BEZ,
+          (float[6]){cx - r * control_point_factor, cy + r, cx - r,
+                     cy + r * control_point_factor, cx - r, cy},
+          6) ||
+      !append_path_command(
+          path, SPO_CUBIC_BEZ,
+          (float[6]){cx - r, cy - r * control_point_factor,
+                     cx - r * control_point_factor, cy - r, cx, cy - r},
+          6)) {
+    return;
+  }
+  append_path_command(path, SPO_CUBIC_BEZ,
+                      (float[6]){cx + r * control_point_factor, cy - r, cx + r,
+                                 cy - r * control_point_factor, cx + r, cy},
+                      6);
 }
 
 static void skip_sep(const char** s) {
@@ -1015,12 +793,9 @@ static bool consume_required_separator(const char** s) {
 }
 
 static bool parse_float_token(const char** s, float* out, bool* is_percent) {
-  char* endp = NULL;
-  float value = strtof(*s, &endp);
-  if (endp == *s) {
+  float value;
+  if (!SrSVGParseFloat(s, &value))
     return false;
-  }
-  *s = endp;
   *is_percent = false;
   if (**s == '%') {
     *is_percent = true;

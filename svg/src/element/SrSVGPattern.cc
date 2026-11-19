@@ -12,17 +12,13 @@ namespace element {
 
 bool SrSVGPattern::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, width_, LengthRange::kNonNegative);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, height_, LengthRange::kNonNegative);
   } else if (strcmp(name, "patternUnits") == 0) {
     if (strcmp(value, "userSpaceOnUse") == 0) {
       pattern_units_ = SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
@@ -40,15 +36,18 @@ bool SrSVGPattern::ParseAndSetAttribute(const char* name, const char* value) {
     has_pattern_content_units_ = true;
     return true;
   } else if (strcmp(name, "patternTransform") == 0) {
-    ParseTransform(value, pattern_transform_);
+    if (!TryParseTransform(value, pattern_transform_))
+      return false;
     has_pattern_transform_ = true;
     return true;
   } else if (strcmp(name, "viewBox") == 0) {
-    view_box_ = make_serval_view_box(value);
+    if (!parse_serval_view_box(value, &view_box_))
+      return false;
     has_view_box_ = true;
     return true;
   } else if (strcmp(name, "preserveAspectRatio") == 0) {
-    preserve_aspect_ratio_ = make_preserve_aspect_radio(value);
+    if (!parse_serval_preserve_aspect_ratio(value, &preserve_aspect_ratio_))
+      return false;
     has_preserve_aspect_ratio_ = true;
     return true;
   } else if (strcmp(name, "xlink:href") == 0 || strcmp(name, "href") == 0) {

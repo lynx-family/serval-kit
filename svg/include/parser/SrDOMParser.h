@@ -8,7 +8,7 @@
 #include "parser/SrDOM.h"
 #include "parser/SrXMLParser.h"
 
-#include <vector>
+#include "parser/SrSVGArray.h"
 
 namespace serval {
 namespace svg {
@@ -38,16 +38,21 @@ class SrDOMParser : public SrXMLParser {
 
  private:
   bool startCommon(const char elem[], size_t elemSize, SrDOM::Type type);
+  bool fail(const char* reason);
+  bool reserveBytes(size_t bytes);
 
  private:
-  std::vector<SrDOM::Node*> fParentStack;
+  SrSVGArray<SrDOM::Node*> fParentStack;
   SrDOM::Node* fRoot;
   bool fNeedToFlush;
   // state needed for flushAttributes()
-  std::vector<SrDOM::Attr> fAttrs;
+  SrSVGArray<SrDOM::Attr> fAttrs;
   char* fElemName;
-  SrDOM::Type fElemType;
+  SrDOM::Type fElemType{SrDOM::kElement_Type};
   int fLevel;
+  size_t fNodeCount{0};
+  size_t fDOMBytes{0};
+  bool fFailed{false};
   const SrSVGDiagnosticSink* fDiagnosticSink;
 };
 

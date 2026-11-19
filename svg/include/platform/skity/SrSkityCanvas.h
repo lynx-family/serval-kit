@@ -16,6 +16,7 @@
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGPatternResolver.h"
+#include "parser/SrSVGTraversalState.h"
 #include "skity/effect/image_filter.hpp"
 #include "skity/render/canvas.hpp"
 
@@ -143,6 +144,10 @@ class SrSkityCanvas : public canvas::SrCanvas {
   void BeginMaskContentLayer() override;
   void EndMaskContentLayer() override;
   void EndMaskLayer() override;
+  bool TryBeginFilterLayer(const SrSVGBox* bounds,
+                           const canvas::SrFilterModel& filter) override;
+  bool TryBeginMaskLayer(const SrSVGBox* bounds, bool is_luminance) override;
+  bool TryBeginMaskContentLayer() override;
 
  private:
   ::skity::Paint ConvertToPaint(const SrSVGRenderState& render_state,
@@ -169,8 +174,13 @@ class SrSkityCanvas : public canvas::SrCanvas {
   std::unordered_map<std::string, canvas::LinearGradientModel> lg_models_;
   std::unordered_map<std::string, canvas::RadialGradientModel> rg_models_;
   std::optional<::skity::BlendMode> blend_mode_override_;
-  bool mask_is_luminance_{false};
-  bool dst_in_layer_active_{false};
+  struct MaskState {
+    bool luminance{false};
+    bool content_active{false};
+  };
+  std::array<MaskState, parser::SrSVGTraversalState::kMaxRenderDepth> masks_{};
+  size_t mask_depth_{0};
+  size_t mask_fallback_depth_{0};
   const SrSVGRenderContext* current_render_context_{nullptr};
   std::unordered_set<std::string> active_pattern_ids_;
   std::array<float, 6> current_transform_{1.f, 0.f, 0.f, 1.f, 0.f, 0.f};

@@ -15,23 +15,18 @@ namespace element {
 bool SrSVGLinearGradient::ParseAndSetAttribute(const char* name,
                                                const char* value) {
   if (strcmp(name, "gradientTransform") == 0) {
-    ParseTransform(value, gradient_transform_);
-    return true;
+    return TryParseTransform(value, gradient_transform_);
   } else if (strcmp(name, "spreadMethod") == 0) {
     spread_method_ = make_serval_spread_method(value);
     return true;
   } else if (strcmp(name, "x1") == 0) {
-    x1_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x1_);
   } else if (strcmp(name, "x2") == 0) {
-    x2_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x2_);
   } else if (strcmp(name, "y1") == 0) {
-    y1_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y1_);
   } else if (strcmp(name, "y2") == 0) {
-    y2_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y2_);
   } else if (strcmp(name, "gradientUnits") == 0) {
     if (strcmp(value, "userSpaceOnUse") == 0) {
       gradient_units_ = SR_SVG_OBB_UNIT_TYPE_USER_SPACE_ON_USE;
@@ -60,14 +55,12 @@ void SrSVGLinearGradient::OnRender(canvas::SrCanvas* canvas,
       }
     }
   }
-  float x1 = convert_serval_length_to_float(&x1_, &context,
-                                            SR_SVG_LENGTH_TYPE_NUMERIC);
-  float y1 = convert_serval_length_to_float(&y1_, &context,
-                                            SR_SVG_LENGTH_TYPE_NUMERIC);
-  float x2 = convert_serval_length_to_float(&x2_, &context,
-                                            SR_SVG_LENGTH_TYPE_NUMERIC);
-  float y2 = convert_serval_length_to_float(&y2_, &context,
-                                            SR_SVG_LENGTH_TYPE_NUMERIC);
+  float x1, y1, x2, y2;
+  if (!resolve_serval_length(&x1_, &context, SR_SVG_LENGTH_TYPE_NUMERIC, &x1) ||
+      !resolve_serval_length(&y1_, &context, SR_SVG_LENGTH_TYPE_NUMERIC, &y1) ||
+      !resolve_serval_length(&x2_, &context, SR_SVG_LENGTH_TYPE_NUMERIC, &x2) ||
+      !resolve_serval_length(&y2_, &context, SR_SVG_LENGTH_TYPE_NUMERIC, &y2))
+    return;
   canvas->UpdateLinearGradient(id_.c_str(), gradient_transform_, spread_method_,
                                x1, x2, y1, y2, stops, gradient_units_);
 }

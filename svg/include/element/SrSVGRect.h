@@ -6,6 +6,7 @@
 #define SVG_INCLUDE_ELEMENT_SRSVGRECT_H_
 
 #include <memory>
+#include <string>
 
 #include "SrSVGShape.h"
 #include "SrSVGTypes.h"
@@ -20,6 +21,7 @@ class SrSVGRect : public SrSVGShape {
   bool ParseAndSetAttribute(const char* name, const char* value) override;
 
  protected:
+  void ClearAnimatedAttribute(const std::string& name) override;
   void onDraw(canvas::SrCanvas* const canvas,
               SrSVGRenderContext& context) const override;
   std::unique_ptr<canvas::Path> AsPath(
@@ -27,6 +29,8 @@ class SrSVGRect : public SrSVGShape {
       bool include_transform = true) const override;
 
  private:
+  bool ResolveGeometry(const SrSVGRenderContext& context, SrSVGBox& box,
+                       float& rx, float& ry) const;
   SrSVGRect() : SrSVGShape(SrSVGTag::kRect) {}
   SrSVGLength x_{}, y_{}, width_{}, height_{}, rx_{}, ry_{};
 };

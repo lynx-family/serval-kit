@@ -79,6 +79,9 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/parser/SrDOM.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrDOMParser.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLExtractor.c
+        ${SVG_SRC_DIRECTORY}/src/parser/SrSVGMemory.c
+        ${SVG_SRC_DIRECTORY}/src/parser/SrSVGParse.c
+        ${SVG_SRC_DIRECTORY}/src/utils/SrSVGArc.c
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLParser.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrXMLParserError.cc
         ${SVG_SRC_DIRECTORY}/src/parser/SrSVGDOM.cc

@@ -9,6 +9,7 @@
 
 #include "canvas/SrCanvas.h"
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGMemory.h"
 
 namespace serval {
 namespace svg {
@@ -20,7 +21,7 @@ SrPathData* ClonePathData(const SrPathData* source) {
   if (!source) {
     return nullptr;
   }
-  auto* clone = static_cast<SrPathData*>(std::calloc(1, sizeof(SrPathData)));
+  auto* clone = static_cast<SrPathData*>(SrSVGCalloc(1, sizeof(SrPathData)));
   if (!clone) {
     return nullptr;
   }
@@ -34,7 +35,7 @@ SrPathData* ClonePathData(const SrPathData* source) {
       return nullptr;
     }
     clone->ops =
-        static_cast<uint8_t*>(std::malloc(source->n_ops * sizeof(uint8_t)));
+        static_cast<uint8_t*>(SrSVGAlloc(source->n_ops * sizeof(uint8_t)));
     if (!clone->ops) {
       release_serval_path(clone);
       return nullptr;
@@ -47,7 +48,7 @@ SrPathData* ClonePathData(const SrPathData* source) {
       return nullptr;
     }
     clone->args =
-        static_cast<float*>(std::malloc(source->n_args * sizeof(float)));
+        static_cast<float*>(SrSVGAlloc(source->n_args * sizeof(float)));
     if (!clone->args) {
       release_serval_path(clone);
       return nullptr;
@@ -69,9 +70,10 @@ void SrSVGPath::onDraw(canvas::SrCanvas* canvas,
 
 bool SrSVGPath::ParseAndSetAttribute(const char* name, const char* value) {
   if (strcmp(name, "d") == 0) {
-    release_serval_path(path_);
-    path_ =
+    auto* replacement =
         value && value[0] ? make_serval_path(value, diagnostic_sink_) : nullptr;
+    release_serval_path(path_);
+    path_ = replacement;
     return true;
   }
   return SrSVGShape::ParseAndSetAttribute(name, value);

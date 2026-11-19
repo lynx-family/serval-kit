@@ -5,6 +5,7 @@
 #include "element/SrSVGMask.h"
 
 #include <cstring>
+#include <limits>
 
 namespace serval {
 namespace svg {
@@ -21,7 +22,10 @@ float ResolveMaskLength(const SrSVGLength& length,
     mutable_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
     mutable_context.view_box = mutable_context.view_port;
   }
-  return convert_serval_length_to_float(&length, &mutable_context, length_type);
+  float resolved;
+  if (!resolve_serval_length(&length, &mutable_context, length_type, &resolved))
+    return std::numeric_limits<float>::quiet_NaN();
+  return resolved;
 }
 
 }  // namespace
@@ -45,17 +49,13 @@ bool SrSVGMask::ParseAndSetAttribute(const char* name, const char* value) {
     }
     return true;
   } else if (strcmp(name, "x") == 0) {
-    x_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, x_);
   } else if (strcmp(name, "y") == 0) {
-    y_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, y_);
   } else if (strcmp(name, "width") == 0) {
-    width_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, width_);
   } else if (strcmp(name, "height") == 0) {
-    height_ = make_serval_length(value);
-    return true;
+    return ParseLengthAttribute(value, height_);
   }
   return SrSVGContainer::ParseAndSetAttribute(name, value);
 }

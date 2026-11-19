@@ -4,6 +4,7 @@
 
 #include "platform/harmony/sr_harmony_canvas.h"
 #include "element/SrSVGNode.h"
+#include "parser/SrSVGArray.h"
 #include "platform/harmony/path_harmony_impl.h"
 #include "utils/SrFloatComparison.h"
 #include "utils/SrSVGLog.h"
@@ -120,8 +121,8 @@ bool SupportsHarmonyLinearSourceGraphicFilterModel(const canvas::SrFilterModel &
 }
 
 OH_Drawing_ImageFilter *BuildHarmonyImageFilter(const canvas::SrFilterModel &filter,
-                                                std::vector<OH_Drawing_ImageFilter *> *image_filters,
-                                                std::vector<OH_Drawing_ColorFilter *> *color_filters) {
+                                                parser::SrSVGArray<OH_Drawing_ImageFilter *> *image_filters,
+                                                parser::SrSVGArray<OH_Drawing_ColorFilter *> *color_filters) {
     OH_Drawing_ImageFilter *current_filter = nullptr;
     for (const auto &primitive : filter.primitives) {
         OH_Drawing_ImageFilter *next_filter = nullptr;
@@ -157,10 +158,10 @@ OH_Drawing_ImageFilter *BuildHarmonyImageFilter(const canvas::SrFilterModel &fil
         case canvas::SrFilterPrimitiveType::kFlood:
             return nullptr;
         }
-        if (next_filter) {
-            image_filters->push_back(next_filter);
-            current_filter = next_filter;
-        }
+        if (!next_filter)
+            return nullptr;
+        image_filters->push_back(next_filter);
+        current_filter = next_filter;
     }
     return current_filter;
 }
@@ -177,7 +178,7 @@ void SrHarmonyCanvas::Reset(OH_Drawing_Canvas *context) {
     lg_models_.clear();
     rg_models_.clear();
     current_transform_ = {1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
-    transform_stack_.clear();
+    transform_stack_.Clear();
 }
 
 SrHarmonyCanvas::~SrHarmonyCanvas() {
@@ -202,15 +203,12 @@ canvas::PathFactory *SrHarmonyCanvas::PathFactory() { return path_factory_.get()
 
 void SrHarmonyCanvas::Save() {
     OH_Drawing_CanvasSave(context_);
-    transform_stack_.push_back(current_transform_);
+    transform_stack_.Save();
 }
 
 void SrHarmonyCanvas::Restore() {
     OH_Drawing_CanvasRestore(context_);
-    if (!transform_stack_.empty()) {
-        current_transform_ = transform_stack_.back();
-        transform_stack_.pop_back();
-    }
+    transform_stack_.Restore(current_transform_);
 }
 
 void SrHarmonyCanvas::DrawLine(const char *, float x1, float y1, float x2, float y2,
@@ -386,25 +384,30 @@ void SrHarmonyCanvas::UpdateRadialGradient(const char *id, const float (&gradien
 }
 
 void SrHarmonyCanvas::Translate(float x, float y) {
-    OH_Drawing_CanvasTranslate(context_, x, y);
-    float translation[6];
     float current[6] = {current_transform_[0], current_transform_[1], current_transform_[2],
                         current_transform_[3], current_transform_[4], current_transform_[5]};
     float out[6];
+    float translation[6];
     xform_set_translation(translation, x, y);
-    MultiplyTransformArray(current, translation, out);
+    if (!element::ComposeAffineTransform(current, translation, out) ||
+        !transform_stack_.BeforeTransform(current_transform_))
+        return;
+    OH_Drawing_CanvasTranslate(context_, x, y);
     current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
 }
 
 void SrHarmonyCanvas::Transform(const float (&form)[6]) {
-    auto matrix = OH_Drawing_MatrixCreate();
-    OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
-    OH_Drawing_CanvasConcatMatrix(context_, matrix);
-    OH_Drawing_MatrixDestroy(matrix);
     float current[6] = {current_transform_[0], current_transform_[1], current_transform_[2],
                         current_transform_[3], current_transform_[4], current_transform_[5]};
     float out[6];
-    MultiplyTransformArray(current, form, out);
+    if (!element::ComposeAffineTransform(current, form, out) || !transform_stack_.BeforeTransform(current_transform_))
+        return;
+    auto matrix = OH_Drawing_MatrixCreate();
+    if (!matrix)
+        return;
+    OH_Drawing_MatrixSetMatrix(matrix, form[0], form[2], form[4], form[1], form[3], form[5], 0.f, 0.f, 1.f);
+    OH_Drawing_CanvasConcatMatrix(context_, matrix);
+    OH_Drawing_MatrixDestroy(matrix);
     current_transform_ = {out[0], out[1], out[2], out[3], out[4], out[5]};
 }
 
@@ -441,15 +444,14 @@ bool SrHarmonyCanvas::CalculatePathBounds(OH_Drawing_Path *path, SrSVGBox *bound
 
 void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolved_pattern,
                                          const SrSVGBox &target_bounds) {
-    bool inserted = active_pattern_ids_.insert(resolved_pattern.id).second;
 
     SrSVGBox pattern_area = target_bounds;
     if (!element::IsIdentityTransform(resolved_pattern.pattern_transform)) {
-        Transform(resolved_pattern.pattern_transform);
         float inverse[6];
-        if (element::InvertAffineTransform(resolved_pattern.pattern_transform, inverse)) {
-            pattern_area = element::MapBounds(target_bounds, inverse);
-        }
+        if (!element::InvertAffineTransform(resolved_pattern.pattern_transform, inverse) ||
+            !element::TryMapBounds(target_bounds, inverse, &pattern_area))
+            return;
+        Transform(resolved_pattern.pattern_transform);
     }
 
     float origin_x =
@@ -460,6 +462,10 @@ void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolve
         std::floor((pattern_area.top - resolved_pattern.y) / resolved_pattern.height) * resolved_pattern.height;
     float right = pattern_area.left + pattern_area.width;
     float bottom = pattern_area.top + pattern_area.height;
+    element::PatternTileBudget budget(*current_render_context_, origin_x, origin_y, right, bottom,
+                                      resolved_pattern.width, resolved_pattern.height);
+    if (!budget.HasRemaining() || !active_pattern_ids_.insert(resolved_pattern.id).second)
+        return;
     const bool has_resolved_view_box = resolved_pattern.has_view_box &&
                                        FloatsLarger(resolved_pattern.view_box.width, 0.f) &&
                                        FloatsLarger(resolved_pattern.view_box.height, 0.f);
@@ -469,8 +475,9 @@ void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolve
     // A pattern changes the content transform, but does not establish an SVG
     // viewport. Keep the caller's viewport/viewBox for percentage lengths.
 
-    for (float step_y = origin_y; step_y < bottom; step_y += resolved_pattern.height) {
-        for (float step_x = origin_x; step_x < right; step_x += resolved_pattern.width) {
+    for (float step_y = origin_y; step_y < bottom && budget.HasRemaining(); step_y += resolved_pattern.height) {
+        for (float step_x = origin_x; step_x < right && budget.HasRemaining(); step_x += resolved_pattern.width) {
+            budget.Consume();
             Save();
             ClipRect(step_x, step_y, step_x + resolved_pattern.width, step_y + resolved_pattern.height);
 
@@ -499,9 +506,7 @@ void SrHarmonyCanvas::RenderPatternTiles(const element::ResolvedPattern &resolve
         }
     }
 
-    if (inserted) {
-        active_pattern_ids_.erase(resolved_pattern.id);
-    }
+    active_pattern_ids_.erase(resolved_pattern.id);
 }
 
 bool SrHarmonyCanvas::RenderPatternFill(OH_Drawing_Path *path, const SrSVGRenderState &render_state, const char *iri) {
@@ -1024,43 +1029,51 @@ void SrHarmonyCanvas::StrokePath(OH_Drawing_Path *path, const SrSVGRenderState &
     Restore();
 }
 
-void SrHarmonyCanvas::SaveLayer(const SrSVGBox *bounds) {
-    // OH_Drawing_CanvasSaveLayer creates an off-screen compositing layer.
-    // All drawing until RestoreLayer() goes to this temporary buffer.
-    OH_Drawing_Rect *rect = nullptr;
-    if (bounds) {
-        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
-                                     bounds->top + bounds->height);
-    }
-    OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
-    transform_stack_.push_back(current_transform_);
-    if (rect) {
-        OH_Drawing_RectDestroy(rect);
-    }
+bool SrHarmonyCanvas::GetOffscreenPixelCount(size_t *out) const {
+    const auto width = OH_Drawing_CanvasGetWidth(context_);
+    const auto height = OH_Drawing_CanvasGetHeight(context_);
+    if (width <= 0 || height <= 0)
+        return false;
+    *out = parser::SrSVGTraversalState::OffscreenPixels(width, height);
+    return true;
 }
 
-void SrHarmonyCanvas::RestoreLayer() {
-    OH_Drawing_CanvasRestore(context_);
-    if (!transform_stack_.empty()) {
-        current_transform_ = transform_stack_.back();
-        transform_stack_.pop_back();
-    }
+bool SrHarmonyCanvas::SaveDrawingLayer(const SrSVGBox *bounds, OH_Drawing_Brush *brush) {
+    auto *rect = bounds ? OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
+                                                bounds->top + bounds->height)
+                        : nullptr;
+    if (bounds && !rect)
+        return false;
+    const bool saved = transform_stack_.TrySaveLayer(current_transform_, [&] {
+        const auto depth = OH_Drawing_CanvasGetSaveCount(context_);
+        OH_Drawing_CanvasSaveLayer(context_, rect, brush);
+        return OH_Drawing_CanvasGetSaveCount(context_) > depth;
+    });
+    if (rect)
+        OH_Drawing_RectDestroy(rect);
+    return saved;
 }
+
+void SrHarmonyCanvas::SaveLayer(const SrSVGBox *bounds) {
+    if (!SaveDrawingLayer(bounds, nullptr))
+        Save();
+}
+
+void SrHarmonyCanvas::RestoreLayer() { Restore(); }
 
 void SrHarmonyCanvas::BeginOpacityLayer(const SrSVGBox *bounds, float opacity) {
-    OH_Drawing_Rect *rect = nullptr;
-    if (bounds) {
-        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
-                                     bounds->top + bounds->height);
-    }
-    OH_Drawing_Brush *alpha_brush = OH_Drawing_BrushCreate();
-    OH_Drawing_BrushSetAlpha(alpha_brush, ConvertAlpha(opacity));
-    OH_Drawing_CanvasSaveLayer(context_, rect, alpha_brush);
-    transform_stack_.push_back(current_transform_);
-    OH_Drawing_BrushDestroy(alpha_brush);
-    if (rect) {
-        OH_Drawing_RectDestroy(rect);
-    }
+    if (!TryBeginOpacityLayer(bounds, opacity))
+        Save();
+}
+
+bool SrHarmonyCanvas::TryBeginOpacityLayer(const SrSVGBox *bounds, float opacity) {
+    auto *brush = OH_Drawing_BrushCreate();
+    if (!brush)
+        return false;
+    OH_Drawing_BrushSetAlpha(brush, ConvertAlpha(opacity));
+    const bool begun = SaveDrawingLayer(bounds, brush);
+    OH_Drawing_BrushDestroy(brush);
+    return begun;
 }
 
 void SrHarmonyCanvas::EndOpacityLayer() { RestoreLayer(); }
@@ -1070,93 +1083,108 @@ bool SrHarmonyCanvas::SupportsFilterModel(const canvas::SrFilterModel &filter) c
 }
 
 void SrHarmonyCanvas::BeginFilterLayer(const SrSVGBox *bounds, const canvas::SrFilterModel &filter) {
-    std::vector<OH_Drawing_ImageFilter *> image_filters;
-    std::vector<OH_Drawing_ColorFilter *> color_filters;
-    OH_Drawing_ImageFilter *image_filter = BuildHarmonyImageFilter(filter, &image_filters, &color_filters);
-    if (!image_filter) {
-        OH_Drawing_Rect *rect = nullptr;
-        if (bounds) {
-            rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
-                                         bounds->top + bounds->height);
-        }
-        OH_Drawing_CanvasSaveLayer(context_, rect, nullptr);
-        transform_stack_.push_back(current_transform_);
-        if (rect) {
-            OH_Drawing_RectDestroy(rect);
-        }
-        return;
-    }
+    if (!TryBeginFilterLayer(bounds, filter))
+        Save();
+}
 
-    OH_Drawing_Rect *rect = nullptr;
-    if (bounds) {
-        rect = OH_Drawing_RectCreate(bounds->left, bounds->top, bounds->left + bounds->width,
-                                     bounds->top + bounds->height);
+bool SrHarmonyCanvas::TryBeginFilterLayer(const SrSVGBox *bounds, const canvas::SrFilterModel &filter) {
+    constexpr double kMaxSigma = parser::SrSVGTraversalState::kMaxBlurSigma;
+    const double scale_x = std::hypot(current_transform_[0], current_transform_[1]);
+    const double scale_y = std::hypot(current_transform_[2], current_transform_[3]);
+    for (const auto &primitive : filter.primitives) {
+        if (primitive.type == canvas::SrFilterPrimitiveType::kGaussianBlur &&
+            (!(scale_x * primitive.std_deviation_x <= kMaxSigma) ||
+             !(scale_y * primitive.std_deviation_y <= kMaxSigma)))
+            return false;
     }
-    OH_Drawing_Filter *drawing_filter = OH_Drawing_FilterCreate();
-    OH_Drawing_Brush *filter_brush = OH_Drawing_BrushCreate();
-    OH_Drawing_FilterSetImageFilter(drawing_filter, image_filter);
-    OH_Drawing_BrushSetFilter(filter_brush, drawing_filter);
-    OH_Drawing_CanvasSaveLayer(context_, rect, filter_brush);
-    transform_stack_.push_back(current_transform_);
-
-    if (rect) {
-        OH_Drawing_RectDestroy(rect);
+    parser::SrSVGArray<OH_Drawing_ImageFilter *> image_filters;
+    parser::SrSVGArray<OH_Drawing_ColorFilter *> color_filters;
+    if (!image_filters.reserve(filter.primitives.size()) || !color_filters.reserve(filter.primitives.size()))
+        return false;
+    auto *image_filter = BuildHarmonyImageFilter(filter, &image_filters, &color_filters);
+    auto *drawing_filter = image_filter ? OH_Drawing_FilterCreate() : nullptr;
+    auto *brush = drawing_filter ? OH_Drawing_BrushCreate() : nullptr;
+    bool begun = false;
+    if (brush) {
+        OH_Drawing_FilterSetImageFilter(drawing_filter, image_filter);
+        OH_Drawing_BrushSetFilter(brush, drawing_filter);
+        begun = SaveDrawingLayer(bounds, brush);
+        OH_Drawing_BrushDestroy(brush);
     }
-    OH_Drawing_BrushDestroy(filter_brush);
-    OH_Drawing_FilterDestroy(drawing_filter);
-    for (auto *created_filter : image_filters) {
-        OH_Drawing_ImageFilterDestroy(created_filter);
-    }
-    for (auto *created_filter : color_filters) {
-        OH_Drawing_ColorFilterDestroy(created_filter);
-    }
+    if (drawing_filter)
+        OH_Drawing_FilterDestroy(drawing_filter);
+    for (auto *item : image_filters)
+        OH_Drawing_ImageFilterDestroy(item);
+    for (auto *item : color_filters)
+        OH_Drawing_ColorFilterDestroy(item);
+    return begun;
 }
 
 void SrHarmonyCanvas::EndFilterLayer() { RestoreLayer(); }
 
 void SrHarmonyCanvas::BeginMaskLayer(const SrSVGBox *bounds, bool is_luminance) {
-    mask_is_luminance_ = is_luminance;
-    SaveLayer(bounds);
+    if (!TryBeginMaskLayer(bounds, is_luminance)) {
+        ++mask_fallback_depth_;
+        Save();
+    }
 }
 
-void SrHarmonyCanvas::BeginMaskContentLayer() {
-    if (mask_content_layer_active_) {
-        return;
+bool SrHarmonyCanvas::TryBeginMaskLayer(const SrSVGBox *bounds, bool is_luminance) {
+    if (mask_fallback_depth_ || mask_depth_ == masks_.size())
+        return false;
+    if (!SaveDrawingLayer(bounds, nullptr))
+        return false;
+    masks_[mask_depth_++] = {is_luminance, false};
+    return true;
+}
+
+void SrHarmonyCanvas::BeginMaskContentLayer() { TryBeginMaskContentLayer(); }
+
+bool SrHarmonyCanvas::TryBeginMaskContentLayer() {
+    if (mask_fallback_depth_ || !mask_depth_)
+        return false;
+    auto &mask = masks_[mask_depth_ - 1];
+    if (mask.content_active)
+        return false;
+    auto *brush = OH_Drawing_BrushCreate();
+    if (!brush)
+        return false;
+    OH_Drawing_BrushSetBlendMode(brush, BLEND_MODE_DST_IN);
+    auto *filter = mask.luminance ? OH_Drawing_FilterCreate() : nullptr;
+    auto *luma = filter ? OH_Drawing_ColorFilterCreateLuma() : nullptr;
+    if (luma) {
+        OH_Drawing_FilterSetColorFilter(filter, luma);
+        OH_Drawing_BrushSetFilter(brush, filter);
     }
-    OH_Drawing_Brush *blend_brush = OH_Drawing_BrushCreate();
-    OH_Drawing_Filter *blend_filter = nullptr;
-    OH_Drawing_ColorFilter *color_filter = nullptr;
-    OH_Drawing_BrushSetBlendMode(blend_brush, BLEND_MODE_DST_IN);
-    if (mask_is_luminance_) {
-        blend_filter = OH_Drawing_FilterCreate();
-        color_filter = OH_Drawing_ColorFilterCreateLuma();
-        OH_Drawing_FilterSetColorFilter(blend_filter, color_filter);
-        OH_Drawing_BrushSetFilter(blend_brush, blend_filter);
-    }
-    OH_Drawing_CanvasSaveLayer(context_, nullptr, blend_brush);
-    if (color_filter) {
-        OH_Drawing_ColorFilterDestroy(color_filter);
-    }
-    if (blend_filter) {
-        OH_Drawing_FilterDestroy(blend_filter);
-    }
-    OH_Drawing_BrushDestroy(blend_brush);
-    mask_content_layer_active_ = true;
+    const bool begun = (!mask.luminance || luma) && SaveDrawingLayer(nullptr, brush);
+    if (luma)
+        OH_Drawing_ColorFilterDestroy(luma);
+    if (filter)
+        OH_Drawing_FilterDestroy(filter);
+    OH_Drawing_BrushDestroy(brush);
+    mask.content_active = begun;
+    return begun;
 }
 
 void SrHarmonyCanvas::EndMaskContentLayer() {
-    if (mask_content_layer_active_) {
-        OH_Drawing_CanvasRestore(context_);
-        mask_content_layer_active_ = false;
+    if (mask_fallback_depth_ || !mask_depth_)
+        return;
+    auto &mask = masks_[mask_depth_ - 1];
+    if (mask.content_active) {
+        RestoreLayer();
+        mask.content_active = false;
     }
 }
 
 void SrHarmonyCanvas::EndMaskLayer() {
-    if (mask_content_layer_active_) {
+    if (mask_fallback_depth_) {
+        --mask_fallback_depth_;
+        Restore();
+    } else if (mask_depth_) {
         EndMaskContentLayer();
+        --mask_depth_;
+        RestoreLayer();
     }
-    RestoreLayer();
-    mask_is_luminance_ = false;
 }
 
 void SrHarmonyCanvas::SetAntiAlias(bool anti_alias) { anti_alias_ = anti_alias; }

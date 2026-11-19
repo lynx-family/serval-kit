@@ -5,7 +5,10 @@
 #include "element/SrSVGPatternResolver.h"
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
+
+#include "parser/SrSVGParseLimits.h"
 
 #include "element/SrSVGNode.h"
 
@@ -40,7 +43,9 @@ bool ResolvePatternCascade(const SrSVGPattern* pattern, const std::string& id,
                            IDMapper* mapper,
                            const std::unordered_set<std::string>& active_ids,
                            std::unordered_set<std::string>* visited_ids,
-                           PatternCascadeState* state) {
+                           PatternCascadeState* state, size_t depth = 0) {
+  if (depth >= parser::kSVGMaxDepth)
+    return false;
   if (!pattern || !visited_ids || !state) {
     return false;
   }
@@ -56,7 +61,7 @@ bool ResolvePatternCascade(const SrSVGPattern* pattern, const std::string& id,
         it->second->Tag() == SrSVGTag::kPattern) {
       if (!ResolvePatternCascade(static_cast<SrSVGPattern*>(it->second),
                                  pattern->href(), mapper, active_ids,
-                                 visited_ids, state)) {
+                                 visited_ids, state, depth + 1)) {
         return false;
       }
     }
@@ -163,14 +168,19 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
     mutable_context.view_port = SrSVGBox{0.f, 0.f, 1.f, 1.f};
     mutable_context.view_box = mutable_context.view_port;
   }
-  resolved_pattern->x = convert_serval_length_to_float(
-      &pattern_x, &mutable_context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  resolved_pattern->y = convert_serval_length_to_float(
-      &pattern_y, &mutable_context, SR_SVG_LENGTH_TYPE_VERTICAL);
-  resolved_pattern->width = convert_serval_length_to_float(
-      &pattern_width, &mutable_context, SR_SVG_LENGTH_TYPE_HORIZONTAL);
-  resolved_pattern->height = convert_serval_length_to_float(
-      &pattern_height, &mutable_context, SR_SVG_LENGTH_TYPE_VERTICAL);
+  if (!resolve_serval_length(&pattern_x, &mutable_context,
+                             SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &resolved_pattern->x) ||
+      !resolve_serval_length(&pattern_y, &mutable_context,
+                             SR_SVG_LENGTH_TYPE_VERTICAL,
+                             &resolved_pattern->y) ||
+      !resolve_serval_length(&pattern_width, &mutable_context,
+                             SR_SVG_LENGTH_TYPE_HORIZONTAL,
+                             &resolved_pattern->width) ||
+      !resolve_serval_length(&pattern_height, &mutable_context,
+                             SR_SVG_LENGTH_TYPE_VERTICAL,
+                             &resolved_pattern->height))
+    return false;
 
   if (resolved_pattern->pattern_units ==
       SR_SVG_OBB_UNIT_TYPE_OBJECT_BOUNDING_BOX) {
@@ -181,7 +191,9 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
     resolved_pattern->width *= object_bounding_box.width;
     resolved_pattern->height *= object_bounding_box.height;
   }
-  if (resolved_pattern->width <= 0.f || resolved_pattern->height <= 0.f) {
+  const SrSVGBox tile{resolved_pattern->x, resolved_pattern->y,
+                      resolved_pattern->width, resolved_pattern->height};
+  if (!serval_svg_valid_box(&tile)) {
     return false;
   }
 
@@ -192,9 +204,8 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
       cascade.has_view_box ? cascade.view_box : resolved_pattern->view_port;
 
   xform_identity(resolved_pattern->content_transform);
-  if (cascade.has_view_box && cascade.view_box.width > 0.f &&
-      cascade.view_box.height > 0.f) {
-    calculate_view_box_transform(
+  if (cascade.has_view_box) {
+    return resolve_serval_view_box_transform(
         &resolved_pattern->view_port, &resolved_pattern->view_box,
         cascade.preserve_aspect_ratio, resolved_pattern->content_transform);
   } else if (resolved_pattern->pattern_content_units ==
@@ -210,7 +221,9 @@ bool ResolvePatternFromIri(const char* iri, const SrSVGRenderContext& context,
                           -resolved_pattern->x, -resolved_pattern->y);
   }
 
-  return true;
+  const auto* transform = resolved_pattern->content_transform;
+  return std::all_of(transform, transform + 6,
+                     [](float n) { return std::isfinite(n); });
 }
 
 }  // namespace element
