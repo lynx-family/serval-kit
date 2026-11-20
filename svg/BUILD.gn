@@ -51,6 +51,7 @@ source_set("serval-svg") {
     "include/renderer/SrSVGAnimatedRenderer.h",
     "include/renderer/SrSVGAnimationState.h",
     "include/utils/SrSVGArc.h",
+    "include/utils/SrSVGMath.h",
     "include/utils/SrSVGNumber.h",
     "include/utils/SrSVGPatternUtils.h",
 
