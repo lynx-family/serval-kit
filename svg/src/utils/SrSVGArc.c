@@ -6,6 +6,7 @@
 #include <float.h>
 #include <math.h>
 #include <string.h>
+#include "utils/SrSVGMath.h"
 
 // The ellipse axes include the radii and rotation. Calculate intermediate
 // points relative to the authored start, so adding and subtracting a distant
@@ -14,7 +15,7 @@ static bool arc_cubics(SrSVGArc* result, const float args[9], double axis_xx,
                        double axis_xy, double axis_yx, double axis_yy,
                        double start_cos, double start_sin, double sweep) {
   // Keep each cubic Bézier segment strictly below 45 degrees.
-  const double subdivisions = floor(fabs(sweep) / (M_PI / 4)) + 1;
+  const double subdivisions = floor(fabs(sweep) / (kSrSVGPi / 4)) + 1;
   if (!isfinite(subdivisions) || subdivisions < 1 ||
       subdivisions > SR_SVG_ARC_MAX_CUBICS)
     return false;
@@ -84,7 +85,7 @@ bool SrSVGArcToCubics(const float args[9], SrSVGArc* out) {
 
   // In the rotated coordinate system centered at the endpoint midpoint, the
   // endpoints are opposite. Normalize their half-chord by the ellipse radii.
-  const double theta = fmod(args[4], 360.0) * (M_PI / 180);
+  const double theta = fmod(args[4], 360.0) * (kSrSVGPi / 180);
   const double cos_theta = cos(theta), sin_theta = sin(theta);
   const double half_dx = ((double)args[0] - args[7]) / 2;
   const double half_dy = ((double)args[1] - args[8]) / 2;
@@ -111,7 +112,7 @@ bool SrSVGArcToCubics(const float args[9], SrSVGArc* out) {
   const double start_sin = half_chord * unit_y + center_offset * unit_x;
   const double minor_sweep = 2 * asin(half_chord);
   const double sweep =
-      (clockwise ? 1 : -1) * (large ? 2 * M_PI - minor_sweep : minor_sweep);
+      (clockwise ? 1 : -1) * (large ? 2 * kSrSVGPi - minor_sweep : minor_sweep);
 
   if (!arc_cubics(&result, args, rx * cos_theta, rx * sin_theta,
                   -ry * sin_theta, ry * cos_theta, start_cos, start_sin,

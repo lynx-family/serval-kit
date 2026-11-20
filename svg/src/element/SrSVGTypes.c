@@ -5,11 +5,8 @@
 #include "element/SrSVGTypes.h"
 #include "parser/SrSVGMemory.h"
 #include "parser/SrSVGParse.h"
+#include "utils/SrSVGMath.h"
 #include "utils/SrSVGNumber.h"
-
-#if defined(_WIN32) || defined(_WIN64)
-#define _USE_MATH_DEFINES
-#endif
 
 #include <ctype.h>
 #include <math.h>
@@ -610,7 +607,7 @@ static float length_size_for_type(const SrSVGRenderContext* render_context,
       const float width = render_context->view_box.width;
       const float height = render_context->view_box.height;
       const float squares = width * width + height * height;
-      return M_SQRT1_2 *
+      return kSrSVGInvSqrt2 *
              (isfinite(squares) ? sqrt(squares) : hypot(width, height));
     }
     case SR_SVG_LENGTH_TYPE_NUMERIC:

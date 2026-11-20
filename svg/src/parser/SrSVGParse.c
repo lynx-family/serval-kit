@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser/SrSVGMemory.h"
+#include "utils/SrSVGMath.h"
 
 #define SR_SVG_MAX_VALUE_BYTES (1024u * 1024u)
 
@@ -322,16 +323,16 @@ bool SrSVGParseTransformFunction(SrSVGParseCursor* cursor, float out[6],
       xform_set_translation(temp, -args[1], -args[2]);
       xform_pre_multiply(result, temp);
     }
-    xform_set_rotation(temp, args[0] / 180.0f * M_PI);
+    xform_set_rotation(temp, args[0] / 180.0f * kSrSVGPi);
     xform_pre_multiply(result, temp);
     if (n == 3) {
       xform_set_translation(temp, args[1], args[2]);
       xform_pre_multiply(result, temp);
     }
   } else if (transform_name_equals(name, len, "skewX") && n == 1)
-    xform_set_skewX(result, args[0] / 180.0f * M_PI);
+    xform_set_skewX(result, args[0] / 180.0f * kSrSVGPi);
   else if (transform_name_equals(name, len, "skewY") && n == 1)
-    xform_set_skewY(result, args[0] / 180.0f * M_PI);
+    xform_set_skewY(result, args[0] / 180.0f * kSrSVGPi);
   else {
     set_error(error, SR_PARSE_INVALID, &local);
     return false;
