@@ -16,4 +16,6 @@ xcuserdata/
 
 # CXX build
 .cxx/
+.gradle/
+local.properties
 
