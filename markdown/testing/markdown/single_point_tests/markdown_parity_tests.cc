@@ -72,6 +72,17 @@ TEST_F(ParityViewTest, ContentRangeDoesNotLeaveDiscardedListMarkerAltText) {
   EXPECT_EQ(view_->GetParsedContent({0, 100}), "plain\n");
 }
 
+TEST_F(ParityViewTest, TaskMarkersPreserveStateAndLeaveLinksIntact) {
+  Render("- [ ] todo\n- [X] **done**\n- [x](url)\n- ordinary\n");
+  EXPECT_EQ(view_->GetParsedContent({0, 100}),
+            "[ ] todo\n[x] done\n- x\n- ordinary\n");
+}
+
+TEST_F(ParityViewTest, EmptyTaskItemKeepsItsMarkerBeforeASplit) {
+  Render("1. [ ]\n2. [x] ---\n\nplain");
+  EXPECT_EQ(view_->GetParsedContent({0, 100}), "[ ] \n[x] \nplain\n");
+}
+
 TEST_F(ParityViewTest, ImagesAndInlineViewsMapWholeSourceToOneCharacter) {
   for (const std::string& url :
        {"url", "inlineview://view", "blockview://view"}) {

@@ -42,6 +42,7 @@ enum class MarkdownStyleTag {
   kImageCaption = 28,
   kBold = 29,
   kItalic = 30,
+  kTaskListMarker = 31,
 };
 enum class MarkdownStyleOp {
   kRangeEnd = 0,
@@ -113,6 +114,7 @@ enum class MarkdownStyleOp {
   kTextIndent = 66,
   kLastLineAlignment = 67,
   kTableSplit = 68,
+  kCheckColor = 69,
 };
 enum class MarkdownBorderType {
   kNone = 0,
@@ -485,6 +487,13 @@ struct MarkdownBoldStyle {
 struct MarkdownItalicStyle {
   MarkdownBaseStylePart base_;
 };
+struct MarkdownTaskListMarkerStyle {
+  float width_;
+  float margin_right_;
+  uint32_t color_;
+  uint32_t check_color_;
+  float GetAdvance() const { return width_ + margin_right_; }
+};
 struct MarkdownStyle {
   MarkdownNormalTextStyle normal_text_;
   MarkdownH1Style h1_;
@@ -517,6 +526,7 @@ struct MarkdownStyle {
   MarkdownImageCaptionStyle image_caption_;
   MarkdownBoldStyle bold_;
   MarkdownItalicStyle italic_;
+  MarkdownTaskListMarkerStyle task_list_marker_;
 };
 // AUTO GEN END
 }  // namespace serval::markdown

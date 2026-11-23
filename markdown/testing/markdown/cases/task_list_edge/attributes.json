@@ -1,4 +1,11 @@
 {
   "width": 300,
-  "height": 260
+  "height": 260,
+  "style": {
+    "taskListMarker": {
+      "width": 24,
+      "color": "#008060",
+      "checkColor": "#ffffcc"
+    }
+  }
 }

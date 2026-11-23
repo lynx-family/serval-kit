@@ -87,6 +87,11 @@ void MarkdownParserEmbed::Parse(const char* src, int size,
 }
 
 void MarkdownParserEmbed::OnParagraphStart(int type) {
+  if (context_.current_paragraph_ && context_.para_stack_.back() == LISTITEM &&
+      type != MARKUP && type != HDR) {
+    // A block child needs its own paragraph, after the list marker.
+    GenerateParagraph(MARKUP);
+  }
   context_.para_stack_.push_back(type);
   if (type != OL && type != UL && type != SOURCE && type != QUOTE &&
       type != HR) {
@@ -142,8 +147,7 @@ void MarkdownParserEmbed::OnParagraphStart(int type) {
                       style_.unordered_list_.unordered_list_.mark_margin_right_;
         context_.block_style_.margin_left_ +=
             (context_.list_level_ - 1) * indent;
-        AppendUnorderedListMark();
-        context_.indent_ += (context_.list_level_ - 1) * indent;
+        context_.indent_ = (context_.list_level_ - 1) * indent;
         context_.have_normal_text_ = true;
         if (context_.list_index_stack_.back() == context_.list_start_index_ &&
             context_.list_level_ == 1) {
@@ -163,8 +167,7 @@ void MarkdownParserEmbed::OnParagraphStart(int type) {
                       style_.ordered_list_.ordered_list_.number_font_size_;
         context_.block_style_.margin_left_ +=
             (context_.list_level_ - 1) * indent;
-        AppendOrderedListNumber();
-        context_.indent_ += (context_.list_level_ - 1) * indent;
+        context_.indent_ = (context_.list_level_ - 1) * indent;
         context_.have_normal_text_ = true;
         if (context_.list_index_stack_.back() == context_.list_start_index_ &&
             context_.list_level_ == 1) {
@@ -251,6 +254,10 @@ std::string MarkdownParserEmbed::MarkdownNumberTypeToString(
 
 void MarkdownParserEmbed::OnParagraphEnd() {
   int type = context_.para_stack_.back();
+  if (type == LISTITEM && context_.current_paragraph_) {
+    // A list item without child blocks still has a marker.
+    GenerateParagraph(MARKUP);
+  }
   context_.para_stack_.pop_back();
   if (type == QUOTE) {
     // TODO(zhouchaoying): temporarily fix quote border, will be removed next
@@ -310,16 +317,7 @@ void MarkdownParserEmbed::OnParagraphEnd() {
     }
   } else if (context_.current_paragraph_ != nullptr &&
              context_.current_paragraph_->GetCharCount() > 0) {
-    auto para = std::make_shared<MarkdownParagraphElement>();
-    GenerateParagraph(type, para.get());
-    para->SetMarkdownSourceType(
-        ParagraphTypeToSyntaxType(static_cast<ParagraphType>(type)));
-    para->SetMarkdownSourceRange(
-        Range{.start_ = MarkdownSourceByteIndexToCharIndex(
-                  context_.markdown_source_range_.start_),
-              .end_ = MarkdownSourceByteIndexToCharIndex(
-                  context_.markdown_source_range_.end_)});
-    document_->AddParagraph(std::move(para));
+    GenerateParagraph(type);
   } else if (context_.current_table_ != nullptr &&
              !context_.current_table_->Empty()) {
     auto table = std::make_shared<MarkdownTableElement>();
@@ -638,8 +636,7 @@ void MarkdownParserEmbed::OnParagraphText(line* text_line) {
                    static_cast<uint32_t>(text_line->markdown_offset)) &&
               context_.current_paragraph_ != nullptr) {
             // remove list mark/number but apply list indent
-            if (list_type == UL &&
-                context_.current_paragraph_->GetCharCount() > 0) {
+            if (context_.current_paragraph_->GetCharCount() > 0) {
               document_->RemoveLastShapeRunAltString(
                   context_.char_offset_ +
                   context_.current_paragraph_->GetCharCount() - 1);
@@ -706,38 +703,42 @@ void MarkdownParserEmbed::GenerateElement(
   element->SetCharStart(context_.char_offset_);
 }
 
-void MarkdownParserEmbed::GenerateParagraph(
-    int type, serval::markdown::MarkdownParagraphElement* para) {
+void MarkdownParserEmbed::GenerateParagraph(int type) {
+  auto para = std::make_shared<MarkdownParagraphElement>();
   if (context_.quote_level_ > 0) {
     SetParagraphStyle(style_.quote_.base_,
-                      &context_.current_paragraph_->GetParagraphStyle(), para);
+                      &context_.current_paragraph_->GetParagraphStyle(),
+                      para.get());
   } else if (context_.list_level_ > 0) {
     int list_type = context_.para_stack_[context_.para_stack_.size() - 2];
     if (list_type == UL) {
       SetParagraphStyle(style_.unordered_list_.base_,
                         &context_.current_paragraph_->GetParagraphStyle(),
-                        para);
+                        para.get());
     } else if (list_type == OL) {
       SetParagraphStyle(style_.ordered_list_.base_,
                         &context_.current_paragraph_->GetParagraphStyle(),
-                        para);
+                        para.get());
     }
   } else if (type == CODE) {
     SetParagraphStyle(style_.code_block_.base_,
-                      &context_.current_paragraph_->GetParagraphStyle(), para);
+                      &context_.current_paragraph_->GetParagraphStyle(),
+                      para.get());
   } else if (context_.hn_ > 0) {
     SetParagraphStyle(GetHNStyle(style_, context_.hn_),
-                      &context_.current_paragraph_->GetParagraphStyle(), para);
+                      &context_.current_paragraph_->GetParagraphStyle(),
+                      para.get());
   } else {
     SetParagraphStyle(style_.normal_text_.base_,
-                      &context_.current_paragraph_->GetParagraphStyle(), para);
+                      &context_.current_paragraph_->GetParagraphStyle(),
+                      para.get());
   }
   if (!context_.extra_class_.empty()) {
     const auto style = style_.span_styles_.find(context_.extra_class_);
     if (style != style_.span_styles_.end()) {
       SetParagraphStyle(style->second.base_,
                         &context_.current_paragraph_->GetParagraphStyle(),
-                        para);
+                        para.get());
       const auto& block = style->second.block_;
       context_.block_style_.margin_top_ = block.margin_top_;
       context_.block_style_.padding_top_ = block.padding_top_;
@@ -752,7 +753,7 @@ void MarkdownParserEmbed::GenerateParagraph(
     context_.current_paragraph_->GetParagraphStyle().SetVerticalAlign(
         tttext::ParagraphVerticalAlignment::kCenter);
   }
-  GenerateElement(para);
+  GenerateElement(para.get());
   auto char_count = context_.current_paragraph_->GetCharCount();
   para->SetCharCount(char_count);
   context_.char_offset_ += char_count;
@@ -760,6 +761,14 @@ void MarkdownParserEmbed::GenerateParagraph(
   if (type == CODE) {
     para->SetScrollX(style_.code_block_.scroll_.scroll_x_);
   }
+  para->SetMarkdownSourceType(
+      ParagraphTypeToSyntaxType(static_cast<ParagraphType>(type)));
+  para->SetMarkdownSourceRange(
+      Range{.start_ = MarkdownSourceByteIndexToCharIndex(
+                context_.markdown_source_range_.start_),
+            .end_ = MarkdownSourceByteIndexToCharIndex(
+                context_.markdown_source_range_.end_)});
+  document_->AddParagraph(std::move(para));
 }
 
 void MarkdownParserEmbed::GenerateTable(
@@ -780,28 +789,42 @@ void MarkdownParserEmbed::GenerateTable(
   table->SetScrollX(style_.table_.scroll_.scroll_x_);
 }
 
-void MarkdownParserEmbed::AppendUnorderedListMark() {
-  MarkdownMarkType mark_type = style_.unordered_list_marker_.marker_.mark_type_;
-  if (mark_type == MarkdownMarkType::kMixed) {
-    mark_type = static_cast<MarkdownMarkType>(
-        (context_.list_level_ - 1) %
-        (static_cast<int>(MarkdownMarkType::kMixed)));
+float MarkdownParserEmbed::AppendListMark(int list_type, int checked) {
+  std::shared_ptr<MarkdownDrawable> mark;
+  auto align = style_.unordered_list_marker_.align_.vertical_align_;
+  const char* alt_text = "- ";
+  if (checked >= 0) {
+    const auto& list_text = list_type == OL ? style_.ordered_list_.base_
+                                            : style_.unordered_list_.base_;
+    const float font_size = context_.quote_level_ > 0
+                                ? style_.quote_.base_.font_size_
+                                : list_text.font_size_;
+    mark = std::make_shared<MarkdownTaskListMarkerDelegate>(
+        checked == 1, style_.task_list_marker_, font_size);
+    align = MarkdownVerticalAlign::kBaseline;
+    alt_text = checked ? "[x] " : "[ ] ";
+    context_.line_height_rule_ = tttext::RulerType::kAtLeast;
+  } else {
+    auto mark_type = style_.unordered_list_marker_.marker_.mark_type_;
+    if (mark_type == MarkdownMarkType::kMixed) {
+      mark_type = static_cast<MarkdownMarkType>(
+          (context_.list_level_ - 1) %
+          static_cast<int>(MarkdownMarkType::kMixed));
+    }
+    mark = std::make_shared<MarkdownUnorderedListMarkDelegate>(
+        mark_type, style_.unordered_list_marker_);
   }
-  auto mark = std::make_unique<MarkdownUnorderedListMarkDelegate>(
-      mark_type, style_.unordered_list_marker_);
-  context_.indent_ = mark->GetAdvance();
-  context_.current_paragraph_->GetParagraphStyle().SetHangingIndentInPx(
-      mark->GetAdvance());
+  const float width = mark->Measure(MeasureSpec{}).width_;
   tttext::Style style;
-  style.SetVerticalAlignment(ConvertVerticalAlign(
-      style_.unordered_list_marker_.align_.vertical_align_));
+  style.SetVerticalAlignment(ConvertVerticalAlign(align));
   document_->SetShapeRunAltString(
       context_.char_offset_ + context_.current_paragraph_->GetCharCount(),
-      "- ");
+      alt_text);
   context_.current_paragraph_->AddShapeRun(&style, std::move(mark), false);
+  return width;
 }
 
-void MarkdownParserEmbed::AppendOrderedListNumber() {
+float MarkdownParserEmbed::AppendOrderedListNumber() {
   MarkdownNumberType number_type =
       style_.ordered_list_.ordered_list_.number_type_;
   if (number_type == MarkdownNumberType::kMixed) {
@@ -834,10 +857,8 @@ void MarkdownParserEmbed::AppendOrderedListNumber() {
   auto [width, _] = MarkdownLayout::MeasureParagraph(
       document_->GetContextPtr(), tmp_para.get(),
       std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), -1);
-  auto indent = width + style_.ordered_list_number_.block_.margin_left_ +
-                style_.ordered_list_number_.block_.margin_right_;
-  context_.indent_ = indent;
-  context_.current_paragraph_->GetParagraphStyle().SetHangingIndentInPx(indent);
+  return width + style_.ordered_list_number_.block_.margin_left_ +
+         style_.ordered_list_number_.block_.margin_right_;
 }
 
 void MarkdownParserEmbed::HandleTableLines(line* text_line) {
@@ -1057,7 +1078,12 @@ MarkdownParserEmbed::HandleTableAlign(const std::string_view& content) {
 }
 
 void MarkdownParserEmbed::OnListCheck(int checked) {
-  context_.list_checked_ = checked;
+  const int list_type = context_.para_stack_[context_.para_stack_.size() - 2];
+  const float width = list_type == OL && checked < 0
+                          ? AppendOrderedListNumber()
+                          : AppendListMark(list_type, checked);
+  context_.current_paragraph_->GetParagraphStyle().SetHangingIndentInPx(width);
+  context_.indent_ += width;
 }
 
 void MarkdownParserEmbed::OnParagraphAlign(int align_type) {}

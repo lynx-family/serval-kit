@@ -16,6 +16,33 @@
 #include "markdown/utils/markdown_platform.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
+void MarkdownTaskListMarkerDelegate::Draw(tttext::ICanvasHelper* canvas,
+                                          float x, float y) {
+  const float size = style_.width_;
+  const float stroke = size / 8;
+  const float radius = size / 6;
+  auto painter = canvas->CreatePainter();
+  painter->SetStrokeWidth(stroke);
+  if (!checked_) {
+    const float inset = stroke / 2;
+    painter->SetStrokeColor(style_.color_);
+    canvas->DrawRoundRect(x + inset, y + inset, x + size - inset,
+                          y + size - inset, radius - inset, painter.get());
+    return;
+  }
+  painter->SetFillColor(style_.color_);
+  canvas->DrawRoundRect(x, y, x + size, y + size, radius, painter.get());
+  painter->SetFillColor(tttext::TTColor::UNDEFINED);
+  painter->SetStrokeColor(style_.check_color_);
+  painter->SetCap(tttext::Cap::kRound_Cap);
+  const float joint_x = x + size * 0.43f;
+  const float joint_y = y + size * 0.68f;
+  canvas->DrawLine(x + size * 0.20f, y + size * 0.46f, joint_x, joint_y,
+                   painter.get());
+  canvas->DrawLine(joint_x, joint_y, x + size * 0.80f, y + size * 0.31f,
+                   painter.get());
+}
+
 void MarkdownRefDelegate::Layout() {
   if (layout_)
     return;
