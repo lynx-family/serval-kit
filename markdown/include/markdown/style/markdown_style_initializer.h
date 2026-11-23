@@ -43,6 +43,7 @@ class MarkdownStyleInitializer {
     InitialImageStyle(style);
     InitialQuoteBorderLineStyle(style);
     InitialUnorderedListMarkerStyle(style);
+    InitialTaskListMarkerStyle(style);
     InitialOrderedListNumberStyle(style);
     InitialImageCaptionStyle(style);
   }
@@ -306,6 +307,15 @@ class MarkdownStyleInitializer {
         style->unordered_list_.unordered_list_.mark_size_;
     style->unordered_list_marker_.size_.height_ = SIZE_UNDEFINED;
     style->unordered_list_marker_.align_.vertical_align_ = DEFAULT_MARKER_ALIGN;
+  }
+
+  static void InitialTaskListMarkerStyle(MarkdownStyle* style) {
+    style->task_list_marker_ = {
+        .width_ = Dp(14),
+        .margin_right_ = Dp(3),
+        .color_ = 0xff0066ff,
+        .check_color_ = 0xffffffff,
+    };
   }
 
   static void ResetBaseStyle(MarkdownBaseStylePart* base) {

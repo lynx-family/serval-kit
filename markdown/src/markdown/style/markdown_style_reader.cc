@@ -92,6 +92,8 @@ class MarkdownStyleReaderImpl {
         return "bold";
       case MarkdownStyleTag::kItalic:
         return "italic";
+      case MarkdownStyleTag::kTaskListMarker:
+        return "taskListMarker";
     }
     return "";
   }
@@ -235,6 +237,8 @@ class MarkdownStyleReaderImpl {
         return "lastLineAlignment";
       case MarkdownStyleOp::kTableSplit:
         return "tableSplit";
+      case MarkdownStyleOp::kCheckColor:
+        return "checkColor";
     }
     return "";
   }
@@ -1424,6 +1428,18 @@ class MarkdownStyleReaderImpl {
     MarkdownStyleInitializer::InitialItalicStyle(style);
     if (value != map.end() && value->second->GetType() == ValueType::kMap) {
       ReadMarkdownItalicStyle(value->second->AsMap(), &(style->italic_));
+    }
+    value = map.find(ToString(MarkdownStyleTag::kTaskListMarker));
+    MarkdownStyleInitializer::InitialTaskListMarkerStyle(style);
+    if (value != map.end() && value->second->GetType() == ValueType::kMap) {
+      const auto& props = value->second->AsMap();
+      auto& marker = style->task_list_marker_;
+      ReadLengthValue(props, ToString(MarkdownStyleOp::kWidth), &marker.width_);
+      ReadLengthValue(props, ToString(MarkdownStyleOp::kMarginRight),
+                      &marker.margin_right_);
+      ReadColorValue(props, ToString(MarkdownStyleOp::kColor), &marker.color_);
+      ReadColorValue(props, ToString(MarkdownStyleOp::kCheckColor),
+                     &marker.check_color_);
     }
   }
   // AUTO GEN END

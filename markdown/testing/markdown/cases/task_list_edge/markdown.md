@@ -3,4 +3,5 @@
   - [ ] nested unchecked
 
 1. ordered one
-2. ordered two
+2. [X] ordered task
+3. ordered three

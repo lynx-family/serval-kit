@@ -23,9 +23,6 @@
 #include "cstring.h"
 #include "cstring_private.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define strncasecmp _strnicmp
-#endif
 int line_whitespace_indent(Line* t);
 typedef int (*stfu)(const void*, const void*);
 
@@ -539,37 +536,22 @@ static Line* listitem(Line* p, int indent, mkd_flag_t* flags, linefn check,
   Line *t, *q;
   int clip = indent;
   int z;
-  int firstpara = 1;
-  int ischeck;
-#define CHECK_NOT 0
-#define CHECK_NO 1
-#define CHECK_YES 2
 
   for (t = p; t; t = q) {
     UNCHECK(t);
-    if (firstpara) {}
     __mkd_trim_line(t, clip);
 
-    if (firstpara /*&& !(is_flag_set(flags, MKD_NORMAL_LISTITEM) || is_flag_set(flags, MKD_STRICT))*/) {
-      ischeck = CHECK_NOT;
-      if (strncmp(T(t->text) + t->dle, "[ ]", 3) == 0)
-        ischeck = CHECK_NO;
-      else if (strncasecmp(T(t->text) + t->dle, "[x]", 3) == 0)
-        ischeck = CHECK_YES;
-
-      if (ischeck != CHECK_NOT) {
-        __mkd_trim_line(t, 3);
-        //        p->para_flags |= GITHUB_CHECK;
-        if (ischeck == CHECK_YES) {
-          //          p->para_flags |= IS_CHECKED;
-          f->cb->list_check(1, f->cb->ud);
-        } else {
-          f->cb->list_check(0, f->cb->ud);
-        }
-      } else {
-        f->cb->list_check(-1, f->cb->ud);
+    if (t == p) {
+      int checked = -1;
+      const char* marker = T(t->text) + t->dle;
+      int remaining = S(t->text) - t->dle;
+      if (remaining >= 3 && marker[0] == '[' && marker[2] == ']' &&
+          (remaining == 3 || isspace((unsigned char)marker[3])) &&
+          (marker[1] == ' ' || marker[1] == 'x' || marker[1] == 'X')) {
+        checked = marker[1] != ' ';
+        __mkd_trim_line(t, t->dle + 3 + (remaining > 3));
       }
-      firstpara = 0;
+      f->cb->list_check(checked, f->cb->ud);
     }
 
     if ((q = skipempty(t->next)) == 0) {

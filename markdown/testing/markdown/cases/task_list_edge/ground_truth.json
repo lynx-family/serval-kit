@@ -29,25 +29,25 @@
       ],
       [
         {
-          "id": 8,
+          "id": 9,
           "name": "region view"
         },
         {
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 174.0,
-            "right": 225.0,
-            "bottom": 204.0
+            "top": 223.9709014892578,
+            "right": 259.0,
+            "bottom": 253.9709014892578
           }
         },
         {
           "op": "glyphs",
-          "text": "2.",
+          "text": "3.",
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 196.64999389648438
+            "y": 246.6208953857422
           },
           "painter": {
             "stroke_width": 1.0,
@@ -60,11 +60,91 @@
         },
         {
           "op": "glyphs",
-          "text": "ordered two",
+          "text": "ordered three",
           "font": "",
           "origin": {
             "x": 38.0,
-            "y": 196.64999389648438
+            "y": 246.6208953857422
+          },
+          "painter": {
+            "stroke_width": 1.0,
+            "fill_color": 4278190080,
+            "stroke_color": 0,
+            "text_size": 17.0,
+            "bold": false,
+            "italic": false
+          }
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "name": "region view"
+        },
+        {
+          "op": "clip",
+          "rect": {
+            "left": 0.0,
+            "top": 184.47817993164063,
+            "right": 231.0,
+            "bottom": 217.9709014892578
+          }
+        },
+        {
+          "op": "round rect",
+          "radius": 4.0,
+          "rect": {
+            "left": 0.0,
+            "top": 189.22454833984375,
+            "right": 24.0,
+            "bottom": 213.22454833984375
+          }
+        },
+        {
+          "op": "line",
+          "p1": {
+            "x": 4.800000190734863,
+            "y": 200.26454162597656
+          },
+          "p2": {
+            "x": 10.319999694824219,
+            "y": 205.54454040527344
+          },
+          "painter": {
+            "stroke_width": 3.0,
+            "fill_color": 0,
+            "stroke_color": 4294967244,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "line",
+          "p1": {
+            "x": 10.319999694824219,
+            "y": 205.54454040527344
+          },
+          "p2": {
+            "x": 19.200000762939453,
+            "y": 196.66455078125
+          },
+          "painter": {
+            "stroke_width": 3.0,
+            "fill_color": 0,
+            "stroke_color": 4294967244,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "glyphs",
+          "text": "ordered task",
+          "font": "",
+          "origin": {
+            "x": 27.0,
+            "y": 207.00454711914063
           },
           "painter": {
             "stroke_width": 1.0,
@@ -85,9 +165,9 @@
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 138.0,
+            "top": 148.47817993164063,
             "right": 225.0,
-            "bottom": 168.0
+            "bottom": 178.47817993164063
           }
         },
         {
@@ -96,7 +176,7 @@
           "font": "",
           "origin": {
             "x": 0.0,
-            "y": 160.64999389648438
+            "y": 171.128173828125
           },
           "painter": {
             "stroke_width": 1.0,
@@ -113,7 +193,7 @@
           "font": "",
           "origin": {
             "x": 38.0,
-            "y": 160.64999389648438
+            "y": 171.128173828125
           },
           "painter": {
             "stroke_width": 1.0,
@@ -134,34 +214,28 @@
           "op": "clip",
           "rect": {
             "left": 8.0,
-            "top": 72.0,
-            "right": 169.0,
-            "bottom": 132.0
+            "top": 78.9854507446289,
+            "right": 188.0,
+            "bottom": 142.47817993164063
           }
         },
         {
-          "op": "circle",
-          "center": {
-            "x": 10.0,
-            "y": 87.0
-          },
-          "radius": 1.5,
-          "painter": {
-            "stroke_width": 1.0,
-            "fill_color": 0,
-            "stroke_color": 4291872511,
-            "text_size": 14.0,
-            "bold": false,
-            "italic": false
+          "op": "round rect",
+          "radius": 2.5,
+          "rect": {
+            "left": 9.5,
+            "top": 85.2318115234375,
+            "right": 30.5,
+            "bottom": 106.2318115234375
           }
         },
         {
           "op": "glyphs",
-          "text": " nested",
+          "text": "nested",
           "font": "",
           "origin": {
-            "x": 16.0,
-            "y": 94.6500015258789
+            "x": 35.0,
+            "y": 101.51181030273438
           },
           "painter": {
             "stroke_width": 1.0,
@@ -177,8 +251,8 @@
           "text": "unchecked",
           "font": "",
           "origin": {
-            "x": 16.0,
-            "y": 124.6500015258789
+            "x": 35.0,
+            "y": 135.128173828125
           },
           "painter": {
             "stroke_width": 1.0,
@@ -199,22 +273,54 @@
           "op": "clip",
           "rect": {
             "left": 0.0,
-            "top": 36.0,
-            "right": 229.0,
-            "bottom": 66.0
+            "top": 39.49272537231445,
+            "right": 231.0,
+            "bottom": 72.9854507446289
           }
         },
         {
-          "op": "circle",
-          "center": {
-            "x": 2.0,
-            "y": 51.0
+          "op": "round rect",
+          "radius": 4.0,
+          "rect": {
+            "left": 0.0,
+            "top": 44.23908996582031,
+            "right": 24.0,
+            "bottom": 68.23908996582031
+          }
+        },
+        {
+          "op": "line",
+          "p1": {
+            "x": 4.800000190734863,
+            "y": 55.27908706665039
           },
-          "radius": 2.0,
+          "p2": {
+            "x": 10.319999694824219,
+            "y": 60.55908966064453
+          },
           "painter": {
-            "stroke_width": 1.0,
-            "fill_color": 4291872511,
-            "stroke_color": 0,
+            "stroke_width": 3.0,
+            "fill_color": 0,
+            "stroke_color": 4294967244,
+            "text_size": 14.0,
+            "bold": false,
+            "italic": false
+          }
+        },
+        {
+          "op": "line",
+          "p1": {
+            "x": 10.319999694824219,
+            "y": 60.55908966064453
+          },
+          "p2": {
+            "x": 19.200000762939453,
+            "y": 51.6790885925293
+          },
+          "painter": {
+            "stroke_width": 3.0,
+            "fill_color": 0,
+            "stroke_color": 4294967244,
             "text_size": 14.0,
             "bold": false,
             "italic": false
@@ -222,11 +328,11 @@
         },
         {
           "op": "glyphs",
-          "text": " checked item",
+          "text": "checked item",
           "font": "",
           "origin": {
-            "x": 8.0,
-            "y": 58.650001525878906
+            "x": 27.0,
+            "y": 62.01908874511719
           },
           "painter": {
             "stroke_width": 1.0,
@@ -248,33 +354,27 @@
           "rect": {
             "left": 0.0,
             "top": 0.0,
-            "right": 263.0,
-            "bottom": 30.0
+            "right": 265.0,
+            "bottom": 33.49272537231445
           }
         },
         {
-          "op": "circle",
-          "center": {
-            "x": 2.0,
-            "y": 15.0
-          },
-          "radius": 2.0,
-          "painter": {
-            "stroke_width": 1.0,
-            "fill_color": 4291872511,
-            "stroke_color": 0,
-            "text_size": 14.0,
-            "bold": false,
-            "italic": false
+          "op": "round rect",
+          "radius": 2.5,
+          "rect": {
+            "left": 1.5,
+            "top": 6.246362686157227,
+            "right": 22.5,
+            "bottom": 27.246362686157227
           }
         },
         {
           "op": "glyphs",
-          "text": " unchecked item",
+          "text": "unchecked item",
           "font": "",
           "origin": {
-            "x": 8.0,
-            "y": 22.649999618530273
+            "x": 27.0,
+            "y": 22.526363372802734
           },
           "painter": {
             "stroke_width": 1.0,

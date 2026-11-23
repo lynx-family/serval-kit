@@ -18,6 +18,11 @@
 #include "markdown/utils/markdown_definition.h"
 #include "markdown/utils/markdown_textlayout_headers.h"
 namespace serval::markdown {
+// Center an inline object on the surrounding text's estimated ascent/descent.
+inline float CenteredInlineBaseline(float height, float font_size) {
+  return (height + 0.68f * font_size) / 2;
+}
+
 class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
  public:
   MarkdownUnorderedListMarkDelegate(
@@ -72,6 +77,30 @@ class MarkdownUnorderedListMarkDelegate : public MarkdownDrawable {
   MeasureResult OnMeasure(MeasureSpec spec) override {
     return {.width_ = width_, .height_ = height_, .baseline_ = height_};
   }
+};
+
+class MarkdownTaskListMarkerDelegate : public MarkdownDrawable {
+ public:
+  MarkdownTaskListMarkerDelegate(bool checked,
+                                 MarkdownTaskListMarkerStyle style,
+                                 float font_size)
+      : checked_(checked),
+        style_(style),
+        baseline_(CenteredInlineBaseline(style.width_, font_size)) {}
+
+  void Draw(tttext::ICanvasHelper* canvas, float x, float y) override;
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {.width_ = style_.GetAdvance(),
+            .height_ = style_.width_,
+            .baseline_ = baseline_};
+  }
+
+ private:
+  bool checked_;
+  MarkdownTaskListMarkerStyle style_;
+  float baseline_;
 };
 
 class MarkdownEmptySpaceDelegate : public MarkdownDrawable {
@@ -245,7 +274,7 @@ class MarkdownInlineViewWrapper : public MarkdownDrawable {
         size.baseline_ = size.height_ - 0.24f * font_size_;
         break;
       case MarkdownVerticalAlign::kCenter:
-        size.baseline_ = (size.height_ + 0.68f * font_size_) / 2;
+        size.baseline_ = CenteredInlineBaseline(size.height_, font_size_);
         break;
       case MarkdownVerticalAlign::kLength:
         size.baseline_ += view_->GetVerticalAlignLength();

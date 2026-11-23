@@ -17,6 +17,7 @@
 #include "markdown/parser/impl/markdown_parser_impl.h"
 #include "markdown/parser/markdown_dom_node.h"
 #include "markdown/style/markdown_style_initializer.h"
+#include "markdown/style/markdown_style_reader.h"
 #include "testing/markdown/mock_platform/markdown_tests_platform.h"
 #include "testing/markdown/mock_platform/mock_markdown_resource_loader.h"
 
@@ -348,6 +349,102 @@ TEST(MarkdownConverterTest, AppliesListBlockStyleToEveryListItem) {
                       .GetDefaultStyle()
                       .GetTextSize(),
                   23);
+}
+
+TEST(MarkdownConverterTest, TaskItemUsesConfiguredMarkerSizeAndColors) {
+  MockMarkdownResourceLoader loader;
+  auto document = MakeDocument(&loader);
+  ValueMap marker;
+  marker.emplace("width", Value::MakeInt(36));
+  marker.emplace("color", Value::MakeString("#008060"));
+  marker.emplace("checkColor", Value::MakeString("#ffffcc"));
+  ValueMap sheet;
+  sheet.emplace("taskListMarker", Value::MakeMap(std::move(marker)));
+  auto style = MarkdownStyleReader::ReadStyle(sheet, &loader);
+  EXPECT_EQ(style.task_list_marker_.color_, 0xff008060u);
+  EXPECT_EQ(style.task_list_marker_.check_color_, 0xffffffccu);
+  document->SetStyle(style);
+
+  MarkdownDomList list(MarkdownDomType::kOrderedList);
+  MarkdownDomListItem item;
+  item.SetTaskState(MarkdownTaskState::kChecked);
+  MarkdownDomNode paragraph(MarkdownDomType::kParagraph);
+  MarkdownDomRawText text(MarkdownDomType::kRawText);
+  AppendText(&paragraph, &text, "task");
+  item.AppendChild(&paragraph);
+  list.AppendChild(&item);
+  TestMarkdownParserImpl::ConvertDomTree(document.get(), &list);
+  MarkdownLayout layout(document.get());
+  layout.Layout(400, 400, -1);
+
+  ASSERT_EQ(document->GetParagraphs().size(), 1u);
+  auto* element = static_cast<MarkdownParagraphElement*>(
+      document->GetParagraphs().front().get());
+  EXPECT_FLOAT_EQ(
+      element->GetParagraph()->GetParagraphStyle().GetHangingIndentInPx(),
+      MarkdownStyleInitializer::Dp(36 + 3));
+  EXPECT_EQ(document->GetLineTexts(), std::vector<std::string>{"[x] task"});
+}
+
+TEST(MarkdownConverterTest, KeepsEmptyListMarkersWithTheirItems) {
+  MockMarkdownResourceLoader loader;
+  auto document = MakeDocument(&loader);
+  MarkdownDomNode root(MarkdownDomType::kSource);
+  MarkdownDomList list(MarkdownDomType::kUnorderedList);
+  MarkdownDomListItem empty;
+  MarkdownDomListItem task;
+  task.SetTaskState(MarkdownTaskState::kChecked);
+  MarkdownDomCodeBlock code;
+  MarkdownDomRawText code_text(MarkdownDomType::kRawText);
+  AppendText(&code, &code_text, "code");
+  task.AppendChild(&code);
+  list.AppendChild(&empty);
+  list.AppendChild(&task);
+  MarkdownDomListItem empty_task;
+  empty_task.SetTaskState(MarkdownTaskState::kUnchecked);
+  list.AppendChild(&empty_task);
+  root.AppendChild(&list);
+  MarkdownDomNode paragraph(MarkdownDomType::kParagraph);
+  MarkdownDomRawText text(MarkdownDomType::kRawText);
+  AppendText(&paragraph, &text, "plain");
+  root.AppendChild(&paragraph);
+
+  TestMarkdownParserImpl::ConvertDomTree(document.get(), &root);
+  MarkdownLayout layout(document.get());
+  layout.Layout(400, 400, -1);
+  EXPECT_EQ(document->GetLineTexts(),
+            (std::vector<std::string>{" ", "[x] ", "code", "[ ] ", "plain"}));
+}
+
+TEST(MarkdownConverterTest, CentersTaskMarkerOnQuoteText) {
+  MockMarkdownResourceLoader loader;
+  auto document = MakeDocument(&loader);
+  auto style = document->GetStyle();
+  style.quote_.base_.font_size_ = 40;
+  style.unordered_list_.base_.font_size_ = 14;
+  document->SetStyle(style);
+  MarkdownDomNode quote(MarkdownDomType::kQuote);
+  MarkdownDomList list(MarkdownDomType::kUnorderedList);
+  MarkdownDomListItem item;
+  item.SetTaskState(MarkdownTaskState::kUnchecked);
+  MarkdownDomNode paragraph(MarkdownDomType::kParagraph);
+  MarkdownDomRawText text(MarkdownDomType::kRawText);
+  AppendText(&paragraph, &text, "task");
+  item.AppendChild(&paragraph);
+  list.AppendChild(&item);
+  quote.AppendChild(&list);
+
+  TestMarkdownParserImpl::ConvertDomTree(document.get(), &quote);
+  MarkdownLayout layout(document.get());
+  layout.Layout(400, 400, -1);
+  auto* region = static_cast<MarkdownPageParagraphRegion*>(
+      document->GetPage()->GetRegion(0));
+  ASSERT_NE(region, nullptr);
+  float bounds[4];
+  auto* line = region->region_->GetLine(0);
+  line->GetCharBoundingRect(bounds, 0);
+  EXPECT_FLOAT_EQ(line->GetLineBaseLine() - bounds[1],
+                  CenteredInlineBaseline(style.task_list_marker_.width_, 40));
 }
 
 TEST(MarkdownConverterTest, AppliesParagraphSpaceToParagraphsAndSplit) {

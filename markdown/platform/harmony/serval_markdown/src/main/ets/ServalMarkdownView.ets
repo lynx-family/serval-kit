@@ -9,6 +9,7 @@ export interface ServalMarkdownStyle {
   fontStyle?: string
   lineHeight?: number
   color?: string
+  checkColor?: string
   width?: number
   maxWidth ?: number
   height?: number
@@ -33,6 +34,7 @@ export interface ServalMarkdownStyleSheet {
   quote?: ServalMarkdownStyle
   unorderedList?: ServalMarkdownStyle
   unorderedListMarker?: ServalMarkdownStyle
+  taskListMarker?: ServalMarkdownStyle
   orderedList?: ServalMarkdownStyle
   orderedListNumber?: ServalMarkdownStyle
 }

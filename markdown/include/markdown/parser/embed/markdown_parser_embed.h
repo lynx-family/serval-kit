@@ -35,7 +35,6 @@ struct MarkdownParseContext {
   std::vector<int32_t> list_level_stack_;
   int list_level_{0};
   int list_extra_level_{0};
-  int list_checked_{-1};
   int quote_level_{0};
   int quote_start_para_{-1};
   int list_start_index_{1};
@@ -189,10 +188,10 @@ class MarkdownParserEmbed {
       MarkdownTextAlign align);
 
   void GenerateElement(MarkdownElement* element);
-  void GenerateParagraph(int type, MarkdownParagraphElement* para);
+  void GenerateParagraph(int type);
   void GenerateTable(MarkdownTableElement* table);
-  void AppendOrderedListNumber();
-  void AppendUnorderedListMark();
+  float AppendOrderedListNumber();
+  float AppendListMark(int list_type, int checked);
 
   static const MarkdownBaseStylePart& GetHNStyle(const MarkdownStyle& style,
                                                  int hn);

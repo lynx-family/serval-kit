@@ -100,7 +100,8 @@ struct MarkdownConverterContext {
   std::vector<float> max_width_stack_;
   int32_t node_id_{0};
   int32_t list_level_{0};
-  std::shared_ptr<MarkdownDrawable> marker_;
+  MarkdownListItem* pending_list_item_{nullptr};
+  MarkdownTaskState task_state_{MarkdownTaskState::kNone};
 
   int32_t hn_{0};
 
@@ -171,7 +172,8 @@ class MarkdownConverter {
   void UpdateInlineBorderLeft(MarkdownDomType type);
   void UpdateInlineBorderRight(MarkdownDomType type, uint32_t char_start,
                                uint32_t char_end);
-  void UpdateListItemMarker(MarkdownDomNode* node);
+  void UpdateListItemMarker(MarkdownDomListItem* item);
+  void AppendEmptyListParagraph();
 
   static std::unique_ptr<MarkdownElement> GenerateElement(MarkdownDomType type);
   void PushState(MarkdownElement* element, MarkdownDomType type);
@@ -260,22 +262,42 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ReplaceBlockNode(
 }
 
 void MarkdownConverter::ConvertParagraph(MarkdownDomNode* node) {
-  const auto type = node->GetType();
-  auto para_element = context_.GetParagraphElement();
+  auto* para_element = context_.GetParagraphElement();
   auto para = tttext::Paragraph::Create();
-  para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
-  para_element->SetParagraph(std::move(para));
-  para_element->SetCharStart(context_.char_offset_);
-  if (type == MarkdownDomType::kParagraph || type == MarkdownDomType::kHeader) {
-    if (context_.marker_ != nullptr) {
-      auto run_style = context_.GetCurrentState().run_style_;
+  auto& state = context_.GetCurrentState();
+  para->SetParagraphStyle(&state.paragraph_style_);
+  auto* item = context_.pending_list_item_;
+  if (item) {
+    auto run_style = state.run_style_;
+    if (context_.task_state_ != MarkdownTaskState::kNone) {
+      const bool checked = context_.task_state_ == MarkdownTaskState::kChecked;
+      auto marker = std::make_shared<MarkdownTaskListMarkerDelegate>(
+          checked, document_->GetStyle().task_list_marker_,
+          run_style.GetTextSize());
+      item->SetMarker(marker);
+      auto& style = para->GetParagraphStyle();
+      style.SetHangingIndentInPx(marker->Measure({}).width_);
+      style.SetLineHeightInPxAtLeast(style.GetLineHeightInPx());
+      document_->SetShapeRunAltString(context_.char_offset_,
+                                      checked ? "[x] " : "[ ] ");
+      run_style.SetVerticalAlignment(
+          tttext::CharacterVerticalAlignment::kBaseLine);
+      para->AddShapeRun(&run_style, std::move(marker), false);
+    } else {
       run_style.SetVerticalAlignment(
           tttext::CharacterVerticalAlignment::kMiddle);
-      context_.GetParagraph()->AddGhostShapeRun(&run_style, context_.marker_);
-      context_.marker_ = nullptr;
+      para->AddGhostShapeRun(&run_style, item->GetMarker());
     }
+    context_.pending_list_item_ = nullptr;
   }
+  para_element->SetParagraph(std::move(para));
+  para_element->SetCharStart(context_.char_offset_);
   ConvertInlineChild(node);
+  if (item && context_.GetParagraph()->GetCharCount() == 0) {
+    // Ordinary list markers are ghost runs and need a character for layout.
+    context_.GetParagraph()->AddTextRun(&context_.GetCurrentState().run_style_,
+                                        " ");
+  }
   para_element->SetCharCount(context_.GetParagraph()->GetCharCount());
   context_.char_offset_ += para_element->GetCharCount();
 }
@@ -283,7 +305,7 @@ void MarkdownConverter::ConvertParagraph(MarkdownDomNode* node) {
 void MarkdownConverter::ConvertBlock(MarkdownDomNode* node) {
   const auto type = node->GetType();
   if (type == MarkdownDomType::kListItem) {
-    UpdateListItemMarker(node);
+    UpdateListItemMarker(static_cast<MarkdownDomListItem*>(node));
     context_.list_index_stack_.back()++;
   } else if (type == MarkdownDomType::kOrderedList ||
              type == MarkdownDomType::kUnorderedList) {
@@ -294,6 +316,9 @@ void MarkdownConverter::ConvertBlock(MarkdownDomNode* node) {
     context_.list_index_stack_.emplace_back(start_index);
   }
   ConvertBlockChild(node);
+  if (type == MarkdownDomType::kListItem && context_.pending_list_item_) {
+    AppendEmptyListParagraph();
+  }
   if (type == MarkdownDomType::kOrderedList ||
       type == MarkdownDomType::kUnorderedList) {
     context_.list_level_--;
@@ -413,6 +438,14 @@ std::unique_ptr<MarkdownElement> MarkdownConverter::ConvertNode(
     MarkdownDomNode* node) {
   context_.node_id_++;
   const auto type = node->GetType();
+  if (context_.pending_list_item_ &&
+      (type == MarkdownDomType::kPlaceHolder ||
+       type == MarkdownDomType::kCodeBlock || type == MarkdownDomType::kTable ||
+       type == MarkdownDomType::kSplit ||
+       type == MarkdownDomType::kOrderedList ||
+       type == MarkdownDomType::kUnorderedList)) {
+    AppendEmptyListParagraph();
+  }
   if (type == MarkdownDomType::kPlaceHolder) {
     return ReplaceBlockNode(node);
   }
@@ -761,13 +794,26 @@ void MarkdownConverter::UpdateDecorationStyle(uint32_t char_start,
   }
 }
 
-void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
-  (void)node;
-  if (context_.list_type_stack_.empty()) {
-    return;
-  }
+void MarkdownConverter::AppendEmptyListParagraph() {
+  MarkdownDomNode empty(MarkdownDomType::kParagraph);
+  auto paragraph = std::make_unique<MarkdownParagraphElement>();
+  PushState(paragraph.get(), empty.GetType());
+  ConvertParagraph(&empty);
+  PopState();
+  context_.GetBlock()->AddChild(std::move(paragraph));
+}
+
+void MarkdownConverter::UpdateListItemMarker(MarkdownDomListItem* item) {
   auto type = context_.list_type_stack_.back();
   auto& style = document_->GetStyle();
+  context_.pending_list_item_ = context_.GetListItem();
+  context_.task_state_ = item->GetTaskState();
+  if (context_.task_state_ != MarkdownTaskState::kNone) {
+    // Reserve the width now. The checkbox baseline uses its paragraph's font.
+    context_.max_width_stack_.back() -= style.task_list_marker_.GetAdvance();
+    return;
+  }
+  std::shared_ptr<MarkdownDrawable> marker;
   if (type == MarkdownDomType::kOrderedList) {
     MarkdownNumberType number_type =
         style.ordered_list_.ordered_list_.number_type_;
@@ -786,13 +832,10 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
     para->SetParagraphStyle(&(context_.GetCurrentState().paragraph_style_));
     para->AddTextRun(&new_style, number_str.c_str(),
                      static_cast<uint32_t>(number_str.length()));
-    auto delegate = std::make_shared<MarkdownTextDelegate>(
+    marker = std::make_shared<MarkdownTextDelegate>(
         document_->GetContextPtr(), std::move(para),
         style.ordered_list_number_.block_, 0, 0);
-    delegate->Measure(MeasureSpec{});
-    context_.GetListItem()->SetMarker(delegate);
-    context_.marker_ = delegate;
-  } else if (type == MarkdownDomType::kUnorderedList) {
+  } else {
     MarkdownMarkType mark_type =
         style.unordered_list_marker_.marker_.mark_type_;
     if (mark_type == MarkdownMarkType::kMixed) {
@@ -800,16 +843,11 @@ void MarkdownConverter::UpdateListItemMarker(MarkdownDomNode* node) {
           (context_.list_level_ - 1) %
           (static_cast<int>(MarkdownMarkType::kMixed)));
     }
-    auto mark = std::make_shared<MarkdownUnorderedListMarkDelegate>(
+    marker = std::make_shared<MarkdownUnorderedListMarkDelegate>(
         mark_type, style.unordered_list_marker_);
-    mark->Measure(MeasureSpec{});
-    context_.GetListItem()->SetMarker(mark);
-    context_.marker_ = mark;
   }
-  if (context_.marker_ != nullptr) {
-    float width = context_.marker_->GetAdvance();
-    context_.max_width_stack_.back() -= width;
-  }
+  context_.max_width_stack_.back() -= marker->Measure({}).width_;
+  context_.pending_list_item_->SetMarker(marker);
 }
 
 const MarkdownDecorationStylePart* MarkdownConverter::GetDecorationStyle(
