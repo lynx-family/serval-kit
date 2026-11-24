@@ -104,6 +104,10 @@ Always evaluate all layers:
 - Keep pattern content transforms separate from the referencing SVG viewport
   used by percentages. Validate numeric bbox fractions and percentages against
   Chrome; a pattern tile or pattern viewBox does not establish a new viewport.
+- Harmony text uses NativeDrawing typography. Verify alphabetic baseline,
+  measured-width anchoring, nested style inheritance, opacity, and font
+  collection lifetime with `svg/tools/run_harmony_text_tests.py`; the tests
+  compare real SVG pixels against independent native typography on a device.
 
 ## Boundary
 

@@ -50,6 +50,9 @@ This skill should answer:
 - Percentages inside pattern content use the referencing SVG viewport; do not
   describe them as interchangeable with numeric object-bounding-box fractions.
 - Keep the answer direct and product-facing.
+- Basic `text` / `tspan` is available with limited attributes on Android, iOS,
+  and Harmony; Skity remains unavailable. Explain system-font differences and
+  do not imply textPath, text stroke, or per-span positioning support.
 
 ## Escalation
 

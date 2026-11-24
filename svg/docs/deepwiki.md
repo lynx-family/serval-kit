@@ -190,10 +190,9 @@ The main partial-support areas are:
   Geometry currently uses raw stored length values in `SrSVGImage::onDraw()`,
   so non-px / percentage behavior is not fully audited.
 - `text`, `tspan`
-  Android and iOS have text bridges, but the support surface is much smaller
+  Android, iOS, and Harmony have text bridges, but the support surface is much smaller
   than generic SVG presentation attributes suggest. Stroke-oriented text
-  styling is not really rendered. Harmony and Skity text backends are still
-  stubbed.
+  styling is not really rendered. The Skity text backend is still stubbed.
 - `filter`, `feGaussianBlur`, `feOffset`, `feColorMatrix`
   The parser and node model recognize them, but actual filter execution is
   gated behind `SrCanvas::SupportsFilters()`, and only Skity enables that.
@@ -256,7 +255,8 @@ Strengths:
 
 Current gaps:
 
-- text paragraph implementation is incomplete
+- basic text and nested tspan use NativeDrawing typography with system fonts
+- textPath, per-character positions, text stroke, and per-span transforms are not implemented
 - filters are disabled because the Harmony backend does not override
   `SupportsFilters()`
 
@@ -264,6 +264,7 @@ Key files:
 
 - `svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_canvas.cc`
 - `svg/include/platform/harmony/sr_harmony_paragraph.h`
+- `svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_paragraph.cc`
 
 ### Skity
 
@@ -399,9 +400,14 @@ Current backend status:
 
 Because text goes through paragraph bridges instead of shape stroking/filling:
 
-- fill color and font size are the safest text attributes
+- solid fill, currentColor, font size, x/y, and text-anchor are supported by the text bridges
+- nested tspan inherits fill, color, font size, and fill-opacity without resetting unspecified properties
+- whole-text opacity uses an opacity layer; fill-opacity is applied once to each run's color alpha
 - generic shape-style attributes on text are not a good proxy for text support
-- Harmony and Skity text are not production-ready
+- Harmony uses NativeDrawing's alphabetic baseline and measured line width for SVG positioning
+- the paragraph retains its font collection until typography destruction, independently of the factory
+- Skity text remains unavailable; textPath, text stroke, per-span opacity and transforms remain unsupported
+- `svg/testing/harmony/` compares SVG pixels with independently built native typography on a device
 
 ### Filter Support Is Backend-Gated
 

@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <unordered_set>
 
@@ -206,6 +207,11 @@ void TestPaints() {
 }
 
 // Exercise the real DOM-to-canvas path while checking inputs at its boundary.
+struct TextRun {
+  std::string text;
+  SrTextStyle style;
+};
+
 class BoundaryCanvas final : public canvas::SrCanvas,
                              public canvas::PathFactory {
  public:
@@ -346,6 +352,30 @@ class BoundaryCanvas final : public canvas::SrCanvas,
     ++contents_ended;
     Restore();
   }
+  bool GetOffscreenPixelCount(size_t* out) const override {
+    if (!offscreen_pixels) {
+      return false;
+    }
+    *out = *offscreen_pixels;
+    return true;
+  }
+  bool TryBeginOpacityLayer(const SrSVGBox*, float) override {
+    ++opacity_attempts;
+    if (fail_opacity) {
+      return false;
+    }
+    Save();
+    return true;
+  }
+  void EndOpacityLayer() override {
+    ++opacity_ends;
+    Restore();
+  }
+  std::optional<size_t> offscreen_pixels;
+  bool fail_opacity = false;
+  unsigned opacity_attempts = 0, opacity_ends = 0;
+  std::vector<TextRun> text_runs;
+  std::vector<std::array<float, 2>> text_origins;
   int save_depth = 0, shapes = 0, clips = 0, masks = 0;
   int filter_attempts = 0, filters_ended = 0, content_attempts = 0,
       contents_ended = 0;
@@ -357,6 +387,165 @@ class BoundaryCanvas final : public canvas::SrCanvas,
   uint32_t last_fill = 0;
   SrSVGFillRule last_rule = SR_SVG_FILL;
 };
+
+class RecordingParagraph final : public canvas::Paragraph {
+ public:
+  explicit RecordingParagraph(std::vector<TextRun> runs)
+      : runs_(std::move(runs)) {}
+  void Layout(float) override {}
+  void Draw(canvas::SrCanvas* canvas, float x, float y) override {
+    auto& target = *static_cast<BoundaryCanvas*>(canvas);
+    target.text_origins.push_back({x, y});
+    target.text_runs.insert(target.text_runs.end(), runs_.begin(), runs_.end());
+  }
+
+ private:
+  std::vector<TextRun> runs_;
+};
+
+class RecordingParagraphFactory final : public canvas::ParagraphFactory {
+ public:
+  std::unique_ptr<canvas::Paragraph> CreateParagraph() override {
+    return std::make_unique<RecordingParagraph>(std::move(runs_));
+  }
+  void PushTextStyle(const SrTextStyle& style) override {
+    styles_.push_back(style);
+  }
+  void PopTextStyle() override { styles_.pop_back(); }
+  void SetParagraphStyle(SrParagraphStyle&&) override {}
+  void AddText(const std::string& text) override {
+    runs_.push_back({text, styles_.back()});
+  }
+  void Reset() override {
+    runs_.clear();
+    styles_.clear();
+  }
+
+ private:
+  std::vector<TextRun> runs_;
+  std::vector<SrTextStyle> styles_;
+};
+
+void TestTextRendering() {
+  const auto render = [](BoundaryCanvas& canvas, const std::string& body) {
+    const auto source = "<svg>\n" + body + "\n</svg>";
+    auto dom = parser::SrSVGDOM::make(source.data(), source.size(), nullptr);
+    assert(dom);
+    dom->SetDefaultColor(NSVG_RGB(0, 0, 255));
+    dom->Render(&canvas, {0, 0, 100, 100});
+    assert(canvas.save_depth == 0);
+  };
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<g color='red'><text color='currentColor' "
+           "fill='currentColor'>A<tspan color='currentColor'>B</tspan>"
+           "</text></g>"
+           "<text color='currentColor' fill='currentColor'>Host</text>");
+    assert(canvas.text_runs.size() == 3);
+    assert(canvas.text_runs[0].text == "A" &&
+           canvas.text_runs[0].style.color == NSVG_RGB(255, 0, 0));
+    assert(canvas.text_runs[1].text == "B" &&
+           canvas.text_runs[1].style.color == NSVG_RGB(255, 0, 0));
+    assert(canvas.text_runs[2].text == "Host" &&
+           canvas.text_runs[2].style.color == NSVG_RGB(0, 0, 255));
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<defs><linearGradient id='g'><stop stop-color='red'/>"
+           "<stop offset='1' stop-color='blue'/></linearGradient></defs>"
+           "<text fill='url(#g)'>Fallback<tspan fill='none'>Hidden</tspan>"
+           "<tspan fill-opacity='0.5'>Faded</tspan></text>");
+    assert(canvas.text_runs.size() == 3);
+    assert(canvas.text_runs[0].style.color == NSVG_RGBA(0, 0, 0, 255));
+    assert(canvas.text_runs[1].style.color == NSVG_RGBA(0, 0, 0, 0));
+    assert(canvas.text_runs[2].style.color == NSVG_RGBA(0, 0, 0, 128));
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<text x='2em' y='3em' font-size='20'>Position</text>"
+           "<text x='2em' y='3em'><tspan font-size='20'>Default</tspan></text>"
+           "<text x='50%' y='25%' font-size='2em'>Percentage</text>");
+    assert((canvas.text_origins ==
+            std::vector<std::array<float, 2>>{{40, 60}, {28, 42}, {50, 25}}));
+    assert(canvas.text_runs.size() == 3);
+    assert(canvas.text_runs[2].style.font_size == 28.f);
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<text font-size='0'>Hidden"
+           "<tspan font-size='20'>Shown</tspan>"
+           "<tspan font-size='150%'>Hidden</tspan></text>");
+    assert(canvas.text_runs.size() == 1);
+    assert(canvas.text_runs[0].text == "Shown" &&
+           canvas.text_runs[0].style.font_size == 20.f);
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<text>\n  A\t  B<tspan>\n C</tspan>\n  "
+           "<tspan fill='red'> D  </tspan>E \r\n</text>");
+    assert(canvas.text_runs.size() == 6);
+    assert(canvas.text_runs[0].text == "A B");
+    assert(canvas.text_runs[1].text == " C");
+    assert(canvas.text_runs[2].text == " " &&
+           canvas.text_runs[2].style.color == NSVG_RGB(0, 0, 0));
+    assert(canvas.text_runs[3].text == "D");
+    assert(canvas.text_runs[4].text == " " &&
+           canvas.text_runs[4].style.color == NSVG_RGB(255, 0, 0));
+    assert(canvas.text_runs[5].text == "E");
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<g xml:space='preserve'><text> A\r\n\tB "
+           "<tspan xml:space='default'>C   D</tspan> </text></g>");
+    assert(canvas.text_runs.size() == 3);
+    assert(canvas.text_runs[0].text == " A  B ");
+    assert(canvas.text_runs[1].text == "C D");
+    assert(canvas.text_runs[2].text == " ");
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<text>A&amp;B&#32;<tspan>&#x9;&#x4E2D;&#128512;</tspan>"
+           "&lt;&gt;&quot;&apos;&amp;lt;</text>"
+           "<text xml:space='preserve'>&#13;&#10;X\r\nY&#xA0;</text>"
+           "<text>&unknown; &#0; &#xD800; &#x110000; &#4294967296; "
+           "&#12 &amp</text>");
+    assert(canvas.text_runs.size() == 5);
+    assert(canvas.text_runs[0].text == "A&B");
+    assert(canvas.text_runs[1].text == u8" 中😀");
+    assert(canvas.text_runs[2].text == "<>\"'&lt;");
+    assert(canvas.text_runs[3].text == "  X Y\xC2\xA0");
+    assert(canvas.text_runs[4].text ==
+           "&unknown; &#0; &#xD800; &#x110000; &#4294967296; &#12 &amp");
+  }
+  {
+    BoundaryCanvas canvas;
+    render(canvas,
+           "<text opacity='0.5'>Text</text><text opacity='0'>Hidden</text>");
+    assert(canvas.opacity_attempts == 1 && canvas.opacity_ends == 1);
+    assert(canvas.text_runs.size() == 1 && canvas.text_runs[0].text == "Text");
+  }
+  {
+    BoundaryCanvas canvas;
+    canvas.fail_opacity = true;
+    render(canvas, "<text opacity='0.5'>Text</text>");
+    assert(canvas.opacity_attempts == 1 && canvas.opacity_ends == 0);
+    assert(canvas.text_runs.size() == 1);
+  }
+  {
+    BoundaryCanvas canvas;
+    canvas.offscreen_pixels = parser::SrSVGTraversalState::kMaxOffscreenPixels;
+    render(canvas, "<g opacity='0.5'><text opacity='0.5'>Text</text></g>");
+    assert(canvas.opacity_attempts == 1 && canvas.opacity_ends == 1);
+    assert(canvas.text_runs.size() == 1);
+  }
+}
 
 void TestNestedViewBox() {
   std::unique_ptr<element::SrSVGSVG> root(element::SrSVGSVG::Make()),
@@ -1224,13 +1413,14 @@ namespace svg {
 namespace canvas {
 std::unique_ptr<ParagraphFactory> CreateParagraphFactoryFactory(
     const SrCanvas*) {
-  std::abort();  // Parser-only tests never draw text.
+  return std::make_unique<RecordingParagraphFactory>();
 }
 }  // namespace canvas
 }  // namespace svg
 }  // namespace serval
 
 int main(int argc, char** argv) {
+  TestTextRendering();
   TestNestedViewBox();
   TestImplicitViewport();
   TestRenderBoundaries();

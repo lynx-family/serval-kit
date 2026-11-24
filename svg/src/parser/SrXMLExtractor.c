@@ -41,14 +41,16 @@ static bool SrXMLShouldCloseTagHere(const char* mark, const char* cursor,
   return true;
 }
 
+static bool SrXMLReportRawContent(const char* s, size_t len,
+                                  SrSVGContentCb content, void* context) {
+  return len != 0 && content && (*content)(context, s, len);
+}
+
 bool SrXMLParseContent(const char* s, size_t len, SrSVGContentCb content,
                        void* context) {
   const char* end = s + len;
   s = SrXMLSkipSpaces(s, end);
-  if (s == end || !content) {
-    return false;
-  }
-  return (*content)(context, s, (size_t)(end - s));
+  return SrXMLReportRawContent(s, (size_t)(end - s), content, context);
 }
 
 static SrXMLParseResult SrXMLParseElementInternal(
@@ -179,19 +181,22 @@ bool SrXMLParseElement(const char* s, size_t len,
                                    context) == SR_XML_PARSE_RESULT_STOP;
 }
 
-bool SrXMLParseXML(const char* input, size_t len,
-                   SrSVGStartElementCb startElement,
-                   SrSVGEndElementCb endElement, SrSVGContentCb content,
-                   void* context) {
+static bool SrXMLParseXMLInternal(const char* input, size_t len,
+                                  SrSVGStartElementCb startElement,
+                                  SrSVGEndElementCb endElement,
+                                  SrSVGContentCb content, void* context,
+                                  bool raw_content) {
   const char* cursor = input;
   const char* mark = input;
   const char* end = input + len;
   int state = SR_XML_PARSING_STATE_CONTENT;
   char quote = '\0';
+  bool (*report_content)(const char*, size_t, SrSVGContentCb, void*) =
+      raw_content ? SrXMLReportRawContent : SrXMLParseContent;
 
   while (cursor < end) {
     if (*cursor == '<' && state == SR_XML_PARSING_STATE_CONTENT) {
-      if (SrXMLParseContent(mark, (size_t)(cursor - mark), content, context)) {
+      if (report_content(mark, (size_t)(cursor - mark), content, context)) {
         return false;
       }
       cursor++;
@@ -229,8 +234,24 @@ bool SrXMLParseXML(const char* input, size_t len,
   }
 
   if (state == SR_XML_PARSING_STATE_CONTENT) {
-    return !SrXMLParseContent(mark, (size_t)(end - mark), content, context);
+    return !report_content(mark, (size_t)(end - mark), content, context);
   }
 
   return false;
+}
+
+bool SrXMLParseXML(const char* input, size_t len,
+                   SrSVGStartElementCb start_element,
+                   SrSVGEndElementCb end_element, SrSVGContentCb content,
+                   void* context) {
+  return SrXMLParseXMLInternal(input, len, start_element, end_element, content,
+                               context, false);
+}
+
+bool SrXMLParseXMLRawContent(const char* input, size_t len,
+                             SrSVGStartElementCb start_element,
+                             SrSVGEndElementCb end_element,
+                             SrSVGContentCb content, void* context) {
+  return SrXMLParseXMLInternal(input, len, start_element, end_element, content,
+                               context, true);
 }

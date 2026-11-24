@@ -459,7 +459,7 @@
       "platforms": {
         "android": "partial",
         "ios": "partial",
-        "harmony": "unsupported",
+        "harmony": "partial",
         "skity": "unsupported"
       },
       "supported_attributes": [
@@ -471,7 +471,9 @@
         "y",
         "text-anchor",
         "transform",
-        "style"
+        "style",
+        "opacity",
+        "fill-opacity"
       ],
       "partially_supported_attributes": {
         "style": "Inline style only affects the limited text properties currently supported."
@@ -483,13 +485,14 @@
         "stroke-linejoin": "Current text support mainly covers fill color and font size.",
         "stroke-dasharray": "Current text support mainly covers fill color and font size.",
         "stroke-dashoffset": "Current text support mainly covers fill color and font size.",
-        "opacity": "Text opacity is limited in the current renderer.",
-        "fill-opacity": "Text opacity is limited in the current renderer.",
         "clip-path": "clip-path behavior on text is unreliable in the current renderer."
       },
       "caveats": [
-        "Android and iOS provide the current text support path.",
-        "Skity and Harmony do not currently provide usable text rendering."
+        "Android, iOS, and Harmony provide basic text rendering.",
+        "Skity does not currently provide usable text rendering.",
+        "Text uses a single paragraph with alphabetic baseline positioning and start/middle/end anchoring.",
+        "Nested tspan inherits fill, color, font size, and fill opacity; text opacity is composed as a whole layer.",
+        "Text fill supports solid colors and currentColor; gradient and pattern text fills are not supported."
       ]
     },
     "tspan": {
@@ -497,7 +500,7 @@
       "platforms": {
         "android": "partial",
         "ios": "partial",
-        "harmony": "unsupported",
+        "harmony": "partial",
         "skity": "unsupported"
       },
       "supported_attributes": [
@@ -505,7 +508,8 @@
         "fill",
         "color",
         "font-size",
-        "style"
+        "style",
+        "fill-opacity"
       ],
       "partially_supported_attributes": {
         "style": "Inline style only affects the limited text properties currently supported."
@@ -516,7 +520,8 @@
         "opacity": "Current text rendering does not apply the generic opacity pipeline per span."
       },
       "caveats": [
-        "tspan support is limited to incremental text styling."
+        "tspan support is limited to incremental text styling.",
+        "Unspecified fill, color, font size, and fill opacity inherit from the enclosing text span."
       ]
     },
     "linearGradient": {

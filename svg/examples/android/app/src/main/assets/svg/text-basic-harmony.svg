@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="white"/>
+  <path d="M200 15V145 M20 60H380 M20 100H380 M20 140H380" stroke="#dddddd"/>
+  <text x="200" y="60" font-size="24" fill="#222222">start 中文 SVG</text>
+  <text x="200" y="100" font-size="24" text-anchor="middle" fill="#222222">middle 中文 SVG</text>
+  <text x="200" y="140" font-size="24" text-anchor="end" fill="#222222">end 中文 SVG</text>
+  <text x="20" y="185" font-size="22" fill="currentColor" color="#006644">继承<tspan color="#3366ff">蓝色<tspan font-size="30">大字</tspan>恢复</tspan>结束</text>
+  <g opacity="0.5">
+    <text x="20" y="240" font-size="24" fill="#ff3300" opacity="0.5" transform="translate(5 5)">透明度 Opacity</text>
+  </g>
+  <text x="20" y="280" style="font-size:22px;fill:#663399;fill-opacity:0.6">Style <tspan>样式继承</tspan></text>
+</svg>

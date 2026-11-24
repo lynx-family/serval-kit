@@ -11,6 +11,53 @@ namespace serval {
 namespace svg {
 namespace canvas {
 
+namespace {
+
+void AppendModifiedUtf8Surrogate(std::string& text, uint32_t surrogate) {
+  text.push_back(static_cast<char>(0xE0 | (surrogate >> 12)));
+  text.push_back(static_cast<char>(0x80 | ((surrogate >> 6) & 0x3F)));
+  text.push_back(static_cast<char>(0x80 | (surrogate & 0x3F)));
+}
+
+jstring NewParagraphString(JNIEnv* env, const std::string& text) {
+  // SVG text can mix Modified UTF-8 from GetStringUTFChars with standard
+  // UTF-8 from numeric references. Dalvik requires supplementary characters
+  // to be encoded as a UTF-16 surrogate pair in Modified UTF-8.
+  std::string modified;
+  size_t copied = 0;
+  for (size_t i = 0; i + 3 < text.size(); ++i) {
+    const auto first = static_cast<unsigned char>(text[i]);
+    if (first < 0xF0 || first > 0xF4) {
+      continue;
+    }
+    const auto second = static_cast<unsigned char>(text[i + 1]);
+    const auto third = static_cast<unsigned char>(text[i + 2]);
+    const auto fourth = static_cast<unsigned char>(text[i + 3]);
+    if ((second & 0xC0) != 0x80 || (third & 0xC0) != 0x80 ||
+        (fourth & 0xC0) != 0x80) {
+      continue;
+    }
+    const uint32_t code_point = ((first & 7) << 18) | ((second & 0x3F) << 12) |
+                                ((third & 0x3F) << 6) | (fourth & 0x3F);
+    if (code_point < 0x10000 || code_point > 0x10FFFF) {
+      continue;
+    }
+    modified.append(text, copied, i - copied);
+    const uint32_t supplementary = code_point - 0x10000;
+    AppendModifiedUtf8Surrogate(modified, 0xD800 | (supplementary >> 10));
+    AppendModifiedUtf8Surrogate(modified, 0xDC00 | (supplementary & 0x3FF));
+    i += 3;
+    copied = i + 1;
+  }
+  if (copied == 0) {
+    return env->NewStringUTF(text.c_str());
+  }
+  modified.append(text, copied, std::string::npos);
+  return env->NewStringUTF(modified.c_str());
+}
+
+}  // namespace
+
 SrAndroidParagraphFactory::SrAndroidParagraphFactory(const SrCanvas* srCanvas) {
   // create stringBuilder
   srCanvas_ = srCanvas;
@@ -85,7 +132,10 @@ void SrAndroidParagraphFactory::AddText(const std::string& text) {
       return;
     }
     android::JavaLocalRef<jstring> text_string_ref = {
-        jni_env, jni_env->NewStringUTF(text.c_str())};
+        jni_env, NewParagraphString(jni_env, text)};
+    if (text_string_ref.IsNull()) {
+      return;
+    }
     jni_env->CallStaticVoidMethod(engine_clazz_ref.Get(), append_span_method,
                                   j_paragraph_ref_.Get(), text_string_ref.Get(),
                                   style.color, style.font_size);

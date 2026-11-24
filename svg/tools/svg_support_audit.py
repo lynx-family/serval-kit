@@ -88,12 +88,12 @@ PUBLIC_TEXT_REPLACEMENTS = OrderedDict(
             "Android, iOS, Harmony, and Skity can render images when the host app provides image loading support.",
         ),
         (
-            "Android and iOS have paragraph bridges.",
-            "Android and iOS provide the current text support path.",
+            "Android, iOS, and Harmony have paragraph bridges.",
+            "Android, iOS, and Harmony provide basic text rendering.",
         ),
         (
-            "Skity and Harmony paragraph factories currently return no drawable paragraph output.",
-            "Skity and Harmony do not currently provide usable text rendering.",
+            "The Skity paragraph factory currently returns no drawable paragraph output.",
+            "Skity does not currently provide usable text rendering.",
         ),
         (
             "Skity supports pure blur and blur-based drop-shadow heuristics.",
@@ -641,7 +641,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="direct",
-                platform_ready=tag_platform("partial", "partial", "none", "none"),
+                platform_ready=tag_platform("partial", "partial", "partial", "none"),
                 supported_attributes=[
                     "id",
                     "fill",
@@ -652,6 +652,8 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "text-anchor",
                     "transform",
                     "style",
+                    "opacity",
+                    "fill-opacity",
                 ],
                 partial_attributes=OrderedDict(
                     [
@@ -688,22 +690,17 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                             "Current text rendering uses paragraph backends and only consumes fill color and font size.",
                         ),
                         (
-                            "opacity",
-                            "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
-                        ),
-                        (
-                            "fill-opacity",
-                            "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
-                        ),
-                        (
                             "clip-path",
                             "Text does not provide a real AsPath() implementation for clip-path geometry.",
                         ),
                     ]
                 ),
                 notes=[
-                    "Android and iOS have paragraph bridges.",
-                    "Skity and Harmony paragraph factories currently return no drawable paragraph output.",
+                    "Android, iOS, and Harmony have paragraph bridges.",
+                    "The Skity paragraph factory currently returns no drawable paragraph output.",
+                    "Text uses a single paragraph with alphabetic baseline positioning and start/middle/end anchoring.",
+                    "Nested tspan inherits fill, color, font size, and fill opacity; text opacity is composed as a whole layer.",
+                    "Text fill supports solid colors and currentColor; gradient and pattern text fills are not supported.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -712,6 +709,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "svg/platform/iOS/SrIOSParagraph.mm",
                     "svg/include/platform/skity/SrSkityParagraph.h",
                     "svg/include/platform/harmony/sr_harmony_paragraph.h",
+                    "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_paragraph.cc",
                 ],
             ),
         ),
@@ -724,13 +722,14 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 parsed="yes",
                 rendered="partial",
                 render_mode="direct",
-                platform_ready=tag_platform("partial", "partial", "none", "none"),
+                platform_ready=tag_platform("partial", "partial", "partial", "none"),
                 supported_attributes=[
                     "id",
                     "fill",
                     "color",
                     "font-size",
                     "style",
+                    "fill-opacity",
                 ],
                 partial_attributes=OrderedDict(
                     [
@@ -758,6 +757,7 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                 ),
                 notes=[
                     "TSpan support is limited to paragraph text style accumulation.",
+                    "Unspecified fill, color, font size, and fill opacity inherit from the enclosing text span.",
                 ],
                 source_files=[
                     "svg/src/parser/SrSVGDOM.cc",
@@ -1467,7 +1467,7 @@ def build_audit_matrix() -> OrderedDict[str, object]:
                             [
                                 "Core shapes, gradients, masks, and clip paths are implemented.",
                                 "Image rendering depends on the host image fetcher and PixelMap cache.",
-                                "Text paragraphs are currently incomplete.",
+                                "Basic text and nested tspan use NativeDrawing typography, alphabetic baselines, and text-anchor offsets.",
                                 "Filters are not executed because the Harmony canvas backend does not override SupportsFilters().",
                             ],
                         ),

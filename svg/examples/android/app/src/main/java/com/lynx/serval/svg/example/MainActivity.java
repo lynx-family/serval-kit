@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_SHAPE = "Shape";
   private static final String CATEGORY_VECTOR_EFFECT = "VectorEffect";
   private static final String CATEGORY_SMIL_ANIMATION = "SMILAnimation";
+  private static final String CATEGORY_TEXT = "Text";
   private static final String HOST_DEFAULT_COLOR = "#4F6BFF";
   private static final String[] PREVIEW_METADATA_FILES = {
       "svg_root_metadata.json", "svg_shape_metadata.json",
@@ -186,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             }
           });
 
-      String initialCategory = CATEGORY_SMIL_ANIMATION;
+      String initialCategory = CATEGORY_TEXT;
       int categoryIndex = Math.max(categories.indexOf(initialCategory), 0);
       categorySpinner.setSelection(categoryIndex);
       renderCategory(categories.get(categoryIndex));
@@ -208,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
              CATEGORY_MASK, CATEGORY_FILTER, CATEGORY_ILLEGAL_PARSING,
              CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
              CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_SMIL_ANIMATION,
-             CATEGORY_OTHERS}) {
+             CATEGORY_TEXT, CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
       categories.add(category);
     }
@@ -217,6 +218,10 @@ public class MainActivity extends AppCompatActivity {
       if (files != null) {
         files.add(fileName);
       }
+    }
+    List<String> textFiles = categorizedFiles.get(CATEGORY_TEXT);
+    if (textFiles.remove("text-binary-decimal.svg")) {
+      textFiles.add(0, "text-binary-decimal.svg");
     }
   }
 
@@ -258,6 +263,9 @@ public class MainActivity extends AppCompatActivity {
     }
     if (fileName.startsWith("smil_") || fileName.startsWith("smil-")) {
       return CATEGORY_SMIL_ANIMATION;
+    }
+    if ("text.svg".equals(fileName) || fileName.startsWith("text-")) {
+      return CATEGORY_TEXT;
     }
     return CATEGORY_OTHERS;
   }

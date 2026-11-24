@@ -444,7 +444,19 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
   } else if (strcmp(name, "transform-box") == 0) {
     ParseTransformBox(value);
   } else if (strcmp(name, "color") == 0) {
-    color_ = make_serval_color(value);
+    const auto color = make_serval_color(value);
+    // currentColor on the color property uses the inherited color.
+    if (color.type == SERVAL_CURRENT_COLOR) {
+      color_.reset();
+    } else {
+      color_ = color;
+    }
+  } else if (strcmp(name, "xml:space") == 0) {
+    if (strcmp(value, "preserve") == 0) {
+      preserve_xml_space_ = true;
+    } else if (strcmp(value, "default") == 0) {
+      preserve_xml_space_ = false;
+    }
   } else if (strcmp(name, "style") == 0) {
     ParseStyle(value);
   } else {

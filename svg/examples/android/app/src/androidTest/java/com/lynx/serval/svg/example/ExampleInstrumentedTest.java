@@ -13,6 +13,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.text.BoringLayout;
+import android.text.TextPaint;
 import android.util.Base64;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -56,6 +58,62 @@ public class ExampleInstrumentedTest {
     Context appContext =
         InstrumentationRegistry.getInstrumentation().getTargetContext();
     assertEquals("com.lynx.serval.svg.example", appContext.getPackageName());
+  }
+
+  @Test
+  public void textAnchor_staticLayoutUsesMeasuredWidth() {
+    // Force StaticLayout on Android versions that accept Chinese in BoringLayout.
+    String label = "\u200E1011\u2082 中文";
+    assertTrue(BoringLayout.isBoring(label, new TextPaint()) == null);
+    for (String anchor : Arrays.asList("middle", "end")) {
+      String svg = "<svg viewBox='0 0 400 100'><text x='200' y='60' "
+                   + "font-size='28' text-anchor='" + anchor + "'>" + label +
+                   "</text></svg>";
+      Bitmap output = Bitmap.createBitmap(400, 100, Bitmap.Config.ARGB_8888);
+      SVGRender.SVGRenderResult result =
+          new SVGRender().renderPictureWithResult(svg,
+                                                  new Rect(0, 0, 400, 100));
+      new Canvas(output).drawPicture(result.picture);
+      int left = output.getWidth();
+      int right = -1;
+      for (int y = 0; y < output.getHeight(); ++y) {
+        for (int x = 0; x < output.getWidth(); ++x) {
+          if (Color.alpha(output.getPixel(x, y)) > 0) {
+            left = Math.min(left, x);
+            right = Math.max(right, x);
+          }
+        }
+      }
+      assertTrue(anchor + " text should be visible", left <= right);
+      int inkAnchor = anchor.equals("middle") ? (left + right) / 2 : right;
+      assertTrue(anchor + " anchor should be near x=200, was " + inkAnchor,
+                 Math.abs(inkAnchor - 200) <= 6);
+    }
+  }
+
+  @Test
+  public void textReferences_renderLikeLiteralSupplementaryCharacters() {
+    Bitmap literal = renderTextSample(
+        "A\uD83D\uDE00中<tspan fill='blue'>\uD83D\uDE03\uD83D\uDE80</tspan>Z");
+    Bitmap references = renderTextSample(
+        "A&#128512;&#x4E2D;<tspan fill='blue'>&#x1F603;\uD83D\uDE80</tspan>Z");
+    Bitmap empty = Bitmap.createBitmap(literal.getWidth(), literal.getHeight(),
+                                       Bitmap.Config.ARGB_8888);
+    assertTrue("literal text should be visible", !literal.sameAs(empty));
+    assertTrue("character references should draw the same pixels as literals",
+               literal.sameAs(references));
+  }
+
+  private static Bitmap renderTextSample(String text) {
+    String svg = "<svg viewBox='0 0 400 100'><text x='20' y='60' "
+                 + "font-size='28'>" + text + "</text></svg>";
+    SVGRender.SVGRenderResult result =
+        new SVGRender().renderPictureWithResult(svg, new Rect(0, 0, 400, 100));
+    assertTrue("text should render without diagnostics",
+               result.diagnostics.isEmpty());
+    Bitmap output = Bitmap.createBitmap(400, 100, Bitmap.Config.ARGB_8888);
+    new Canvas(output).drawPicture(result.picture);
+    return output;
   }
 
   @Test

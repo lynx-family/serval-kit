@@ -40,6 +40,7 @@ struct Index {
   private static readonly CATEGORY_SHAPE: string = 'Shape';
   private static readonly CATEGORY_VECTOR_EFFECT: string = 'VectorEffect';
   private static readonly CATEGORY_SMIL_ANIMATION: string = 'SMILAnimation';
+  private static readonly CATEGORY_TEXT: string = 'Text';
   private static readonly HOST_COLOR_COMPARE_FILE: string = 'currentcolor-host-default-compare.svg';
   private static readonly HOST_COLOR_OVERRIDE_FILE: string = 'currentcolor-content-color-override.svg';
   private static readonly HOST_DEFAULT_COLOR: string = '#4F6BFF';
@@ -63,9 +64,10 @@ struct Index {
     Index.CATEGORY_GRADIENT,
     Index.CATEGORY_VECTOR_EFFECT,
     Index.CATEGORY_SMIL_ANIMATION,
+    Index.CATEGORY_TEXT,
     Index.CATEGORY_OTHERS
   ];
-  @State selectedCategory: string = Index.CATEGORY_SHAPE;
+  @State selectedCategory: string = Index.CATEGORY_TEXT;
   @State previewItems: SvgPreviewItem[] = [];
   private previewMetadataMap: Map<string, SvgPreviewMetadata> = new Map();
   @State files: string[] = [
@@ -167,6 +169,11 @@ struct Index {
     'svg-preserve-aspect-ratio-none.svg',
     'svg-root-explicit-width-height.svg',
     'svg-root-no-width-height.svg',
+    'text-binary-decimal.svg',
+    'text-anchor-mixed.svg',
+    'text-opacity-compositing.svg',
+    'text-whitespace-inheritance.svg',
+    'text-basic-harmony.svg',
     'text.svg',
     'transforms.svg',
     'smil_animation.svg',
@@ -180,11 +187,14 @@ struct Index {
 
   async aboutToAppear() {
     await this.loadPreviewMetadata();
-    this.selectedCategory = Index.CATEGORY_SHAPE;
+    this.selectedCategory = Index.CATEGORY_TEXT;
     await this.reloadCategory(this.selectedCategory);
   }
 
   private categoryForFile(fileName: string): string {
+    if (fileName === 'text.svg' || fileName.startsWith('text-')) {
+      return Index.CATEGORY_TEXT;
+    }
     if (fileName.startsWith('color-parsing-')) {
       return Index.CATEGORY_COLOR_PARSING;
     }
