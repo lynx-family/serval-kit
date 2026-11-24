@@ -22,7 +22,7 @@
     "harmony": [
       "Core shapes, gradients, masks, and clip paths are implemented.",
       "Image rendering depends on the host image fetcher and PixelMap cache.",
-      "Text paragraphs are currently incomplete.",
+      "Basic text and nested tspan use NativeDrawing typography, alphabetic baselines, and text-anchor offsets.",
       "Filters are not executed because the Harmony canvas backend does not override SupportsFilters()."
     ],
     "skity": [
@@ -250,6 +250,8 @@
         "examples/android/app/src/main/assets/svg/svg-preserve-aspect-ratio-none.svg",
         "examples/android/app/src/main/assets/svg/svg-root-explicit-width-height.svg",
         "examples/android/app/src/main/assets/svg/svg-root-no-width-height.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
+        "examples/android/app/src/main/assets/svg/text-binary-decimal.svg",
         "examples/android/app/src/main/assets/svg/text.svg",
         "examples/android/app/src/main/assets/svg/transforms.svg",
         "examples/android/app/src/main/assets/svg/use-basic.svg",
@@ -426,6 +428,8 @@
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-preserve-aspect-ratio-none.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-explicit-width-height.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-no-width-height.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-binary-decimal.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/text.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/use-basic.svg",
@@ -600,6 +604,8 @@
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-no-width-height.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-raw-text-child.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-zero-size-host-viewport.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-binary-decimal.svg",
         "examples/iOS/ServalPark/ServalPark/svg/text.svg",
         "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
         "examples/iOS/ServalPark/ServalPark/svg/use-basic.svg",
@@ -649,12 +655,18 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradient-radialGradient-gradientTransform.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradients.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/image.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-attr-gt-mismatched-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-clipPath-recursive-iri.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-color-function.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-comment-gt-before-close.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-extra-close-tag.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-image-png.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-iri-empty.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-iri-test.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-leading-text-root.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mask-recursive-iri.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mismatched-close-tag.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-multiple-root-tags.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-path-arc-flag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-path-garbage-token.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-path-incomplete-command.svg",
@@ -664,8 +676,10 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-polyline-garbage-token.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-polyline-odd-points.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-style-garbage.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-text-mismatched-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-transform-garbage-token.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-transform-incomplete.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-unclosed-root-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-deep-chain.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-long-cycle.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-mutual-reference.svg",
@@ -689,6 +703,7 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-href.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-non-whitelist.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-whitelist.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-control-image.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-control-vector.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-numeric.svg",
@@ -826,6 +841,8 @@
         "test_cases/smil-timing-restart.svg",
         "test_cases/smil-viewbox.svg",
         "test_cases/smil_animation.svg",
+        "test_cases/text-basic-harmony.svg",
+        "test_cases/text-binary-decimal.svg",
         "test_cases/text.svg",
         "test_cases/transforms.svg"
       ],
@@ -840,13 +857,13 @@
         "local_attribute_extracts": {
           "svg/src/element/SrSVGSVG.cc": [
             "viewBox",
+            "width",
+            "height",
             "preserveAspectRatio",
             "style",
             "transform"
           ],
-          "svg/src/element/SrSVGContainer.cc": [
-            "transform"
-          ],
+          "svg/src/element/SrSVGContainer.cc": [],
           "svg/src/element/SrSVGNode.cc": [
             "id",
             "onclick",
@@ -969,6 +986,7 @@
         "examples/android/app/src/main/assets/svg/smil-keytimes-calc.svg",
         "examples/android/app/src/main/assets/svg/smil-repeat-accumulate.svg",
         "examples/android/app/src/main/assets/svg/smil-timing-restart.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
         "examples/android/app/src/main/assets/svg/transforms.svg",
         "examples/android/app/src/main/assets/svg/use-inherit-fill-stroke.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-dash.svg",
@@ -1027,6 +1045,7 @@
         "examples/harmony/entry/src/main/resources/rawfile/svg/smil-keytimes-calc.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/smil-repeat-accumulate.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/smil-timing-restart.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/use-inherit-fill-stroke.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/vector-effect-dash.svg",
@@ -1081,6 +1100,7 @@
         "examples/iOS/ServalPark/ServalPark/svg/smil-repeat-accumulate.svg",
         "examples/iOS/ServalPark/ServalPark/svg/smil-timing-restart.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-raw-text-child.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
         "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
         "examples/iOS/ServalPark/ServalPark/svg/use-inherit-fill-stroke.svg",
         "examples/iOS/ServalPark/ServalPark/svg/vector-effect-dash.svg",
@@ -1104,10 +1124,15 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/filter-region-units.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/filter-unsupported-figma-inner-shadow-mask.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/filter-unsupported-graph.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-attr-gt-mismatched-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-clipPath-recursive-iri.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-comment-gt-before-close.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-extra-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mask-recursive-iri.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mismatched-close-tag.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-multiple-root-tags.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-pattern-use-cycle.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-unclosed-root-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-deep-chain.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-long-cycle.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-mutual-reference.svg",
@@ -1156,6 +1181,7 @@
         "test_cases/smil-keytimes-calc.svg",
         "test_cases/smil-repeat-accumulate.svg",
         "test_cases/smil-timing-restart.svg",
+        "test_cases/text-basic-harmony.svg",
         "test_cases/transforms.svg"
       ],
       "evidence": {
@@ -1167,9 +1193,7 @@
           "svg/include/element/SrSVGG.h"
         ],
         "local_attribute_extracts": {
-          "svg/src/element/SrSVGContainer.cc": [
-            "transform"
-          ],
+          "svg/src/element/SrSVGContainer.cc": [],
           "svg/src/element/SrSVGNode.cc": [
             "id",
             "onclick",
@@ -1539,6 +1563,7 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-href.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-non-whitelist.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-whitelist.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-control-vector.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-numeric.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-orientation.svg",
@@ -1611,9 +1636,7 @@
           "svg/include/element/SrSVGDefs.h"
         ],
         "local_attribute_extracts": {
-          "svg/src/element/SrSVGContainer.cc": [
-            "transform"
-          ],
+          "svg/src/element/SrSVGContainer.cc": [],
           "svg/src/element/SrSVGNode.cc": [
             "id",
             "onclick",
@@ -1827,6 +1850,8 @@
         "examples/android/app/src/main/assets/svg/svg-preserve-aspect-ratio-none.svg",
         "examples/android/app/src/main/assets/svg/svg-root-explicit-width-height.svg",
         "examples/android/app/src/main/assets/svg/svg-root-no-width-height.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
+        "examples/android/app/src/main/assets/svg/text-binary-decimal.svg",
         "examples/android/app/src/main/assets/svg/transforms.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-dash.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-line.svg",
@@ -1970,6 +1995,8 @@
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-preserve-aspect-ratio-none.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-explicit-width-height.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-no-width-height.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-binary-decimal.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/transforms.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/vector-effect-dash.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/vector-effect-gradient-line.svg",
@@ -2111,6 +2138,8 @@
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-no-width-height.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-raw-text-child.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-zero-size-host-viewport.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-binary-decimal.svg",
         "examples/iOS/ServalPark/ServalPark/svg/transforms.svg",
         "examples/iOS/ServalPark/ServalPark/svg/vector-effect-dash.svg",
         "examples/iOS/ServalPark/ServalPark/svg/vector-effect-gradient-line.svg",
@@ -2155,18 +2184,25 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradient-radialGradient-gradientTransform.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradients.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/image.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-attr-gt-mismatched-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-clipPath-recursive-iri.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-color-function.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-comment-gt-before-close.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-extra-close-tag.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-image-png.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-iri-empty.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-iri-test.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-leading-text-root.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mask-recursive-iri.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-mismatched-close-tag.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-multiple-root-tags.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-pattern-href-cycle.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-pattern-stop-child.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-pattern-use-cycle.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-style-garbage.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-transform-garbage-token.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-transform-incomplete.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-unclosed-root-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-deep-chain.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-use-self-reference-in-clipPath.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-viewBox-garbage-token.svg",
@@ -2184,6 +2220,7 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-content-units-obb-percent.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-content-units-obb.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-href.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-control-vector.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-numeric.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-orientation.svg",
@@ -2295,6 +2332,8 @@
         "test_cases/smil-timing-restart.svg",
         "test_cases/smil-viewbox.svg",
         "test_cases/smil_animation.svg",
+        "test_cases/text-basic-harmony.svg",
+        "test_cases/text-binary-decimal.svg",
         "test_cases/transforms.svg"
       ],
       "evidence": {
@@ -2574,6 +2613,7 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/filter-unsupported-graph.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradient-radialGradient-fx-fy.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/gradients.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-multiple-root-tags.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-alpha-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-alpha-units-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-comprehensive-test.svg",
@@ -3259,6 +3299,7 @@
         "examples/android/app/src/main/assets/svg/stroke-gradient-vs-pattern.svg",
         "examples/android/app/src/main/assets/svg/svg-root-explicit-width-height.svg",
         "examples/android/app/src/main/assets/svg/svg-root-no-width-height.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
         "examples/android/app/src/main/assets/svg/use-basic.svg",
         "examples/android/app/src/main/assets/svg/use-inherit-fill-stroke.svg",
         "examples/android/app/src/main/assets/svg/use-transform.svg",
@@ -3321,6 +3362,7 @@
         "examples/harmony/entry/src/main/resources/rawfile/svg/stroke-gradient-vs-pattern.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-explicit-width-height.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/svg-root-no-width-height.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/use-basic.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/use-inherit-fill-stroke.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/use-transform.svg",
@@ -3383,6 +3425,7 @@
         "examples/iOS/ServalPark/ServalPark/svg/stroke-gradient-vs-pattern.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-explicit-width-height.svg",
         "examples/iOS/ServalPark/ServalPark/svg/svg-root-no-width-height.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
         "examples/iOS/ServalPark/ServalPark/svg/use-basic.svg",
         "examples/iOS/ServalPark/ServalPark/svg/use-inherit-fill-stroke.svg",
         "examples/iOS/ServalPark/ServalPark/svg/use-transform.svg",
@@ -3465,7 +3508,8 @@
         "test_cases/pattern-vector-circle-control.svg",
         "test_cases/smil-motion-transform.svg",
         "test_cases/smil-path-morph.svg",
-        "test_cases/smil_animation.svg"
+        "test_cases/smil_animation.svg",
+        "test_cases/text-basic-harmony.svg"
       ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
@@ -3654,7 +3698,6 @@
             "stroke-linecap",
             "stroke-linejoin",
             "stroke-miterlimit",
-            "stroke-dashoffset",
             "stroke-dasharray"
           ],
           "svg/src/element/SrSVGNode.cc": [
@@ -3776,8 +3819,10 @@
         "examples/iOS/ServalPark/ServalPark/svg/shape-image-remote-non-whitelist.svg",
         "examples/iOS/ServalPark/ServalPark/svg/shape-image-remote-whitelist.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/image.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-image-png.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-non-whitelist.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-whitelist.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-control-image.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-numeric.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-orientation.svg",
@@ -3838,7 +3883,7 @@
       "platform_ready": {
         "android": "partial",
         "ios": "partial",
-        "harmony": "none",
+        "harmony": "partial",
         "skity": "none"
       },
       "attributes": {
@@ -3851,7 +3896,9 @@
           "y",
           "text-anchor",
           "transform",
-          "style"
+          "style",
+          "opacity",
+          "fill-opacity"
         ],
         "partial": {
           "style": "Inline style is only meaningful for the limited text properties that the paragraph bridge consumes."
@@ -3863,14 +3910,15 @@
           "stroke-linejoin": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
           "stroke-dasharray": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
           "stroke-dashoffset": "Current text rendering uses paragraph backends and only consumes fill color and font size.",
-          "opacity": "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
-          "fill-opacity": "Text color is not multiplied through the generic SrSVGShape opacity pipeline.",
           "clip-path": "Text does not provide a real AsPath() implementation for clip-path geometry."
         }
       },
       "notes": [
-        "Android and iOS have paragraph bridges.",
-        "Skity and Harmony paragraph factories currently return no drawable paragraph output."
+        "Android, iOS, and Harmony have paragraph bridges.",
+        "The Skity paragraph factory currently returns no drawable paragraph output.",
+        "Text uses a single paragraph with alphabetic baseline positioning and start/middle/end anchoring.",
+        "Nested tspan inherits fill, color, font size, and fill opacity; text opacity is composed as a whole layer.",
+        "Text fill supports solid colors and currentColor; gradient and pattern text fills are not supported."
       ],
       "examples": [
         "examples/android/app/src/main/assets/svg/invalid-iri-test.svg",
@@ -3881,6 +3929,8 @@
         "examples/android/app/src/main/assets/svg/mask-luminance-gradient-test.svg",
         "examples/android/app/src/main/assets/svg/mask-luminance-test.svg",
         "examples/android/app/src/main/assets/svg/paths.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
+        "examples/android/app/src/main/assets/svg/text-binary-decimal.svg",
         "examples/android/app/src/main/assets/svg/text.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-dash.svg",
         "examples/android/app/src/main/assets/svg/vector-effect-gradient-line.svg",
@@ -3895,6 +3945,8 @@
         "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-gradient-test.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/mask-luminance-test.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/paths.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-binary-decimal.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/text.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/vector-effect-dash.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/vector-effect-gradient-line.svg",
@@ -3909,6 +3961,8 @@
         "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-gradient-test.svg",
         "examples/iOS/ServalPark/ServalPark/svg/mask-luminance-test.svg",
         "examples/iOS/ServalPark/ServalPark/svg/paths.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-binary-decimal.svg",
         "examples/iOS/ServalPark/ServalPark/svg/text.svg",
         "examples/iOS/ServalPark/ServalPark/svg/vector-effect-dash.svg",
         "examples/iOS/ServalPark/ServalPark/svg/vector-effect-gradient-line.svg",
@@ -3921,6 +3975,7 @@
         "examples/mask-luminance-gradient-test.svg",
         "examples/mask-luminance-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-iri-test.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-text-mismatched-close-tag.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-alpha-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-alpha-units-test.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/mask-comprehensive-test.svg",
@@ -3933,6 +3988,8 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/vector-effect-gradient-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/vector-effect-non-scaling-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/vector-effect-pattern-stroke.svg",
+        "test_cases/text-basic-harmony.svg",
+        "test_cases/text-binary-decimal.svg",
         "test_cases/text.svg"
       ],
       "evidence": {
@@ -3943,7 +4000,8 @@
           "svg/platform/android/src/main/cpp/SrAndroidParagraphFactory.cc",
           "svg/platform/iOS/SrIOSParagraph.mm",
           "svg/include/platform/skity/SrSkityParagraph.h",
-          "svg/include/platform/harmony/sr_harmony_paragraph.h"
+          "svg/include/platform/harmony/sr_harmony_paragraph.h",
+          "svg/platform/harmony/servalsvg/src/main/cpp/platform/harmony/sr_harmony_paragraph.cc"
         ],
         "local_attribute_extracts": {
           "svg/src/element/SrSVGText.cc": [
@@ -3967,7 +4025,7 @@
       "platform_ready": {
         "android": "partial",
         "ios": "partial",
-        "harmony": "none",
+        "harmony": "partial",
         "skity": "none"
       },
       "attributes": {
@@ -3976,7 +4034,8 @@
           "fill",
           "color",
           "font-size",
-          "style"
+          "style",
+          "fill-opacity"
         ],
         "partial": {
           "style": "Inline style is only meaningful for the limited text properties that the paragraph bridge consumes."
@@ -3988,12 +4047,18 @@
         }
       },
       "notes": [
-        "TSpan support is limited to paragraph text style accumulation."
+        "TSpan support is limited to paragraph text style accumulation.",
+        "Unspecified fill, color, font size, and fill opacity inherit from the enclosing text span."
       ],
       "examples": [
         "examples/android/app/src/main/assets/svg/invalid-text-mismatched-close-tag.svg",
+        "examples/android/app/src/main/assets/svg/text-basic-harmony.svg",
         "examples/harmony/entry/src/main/resources/rawfile/svg/invalid-text-mismatched-close-tag.svg",
-        "examples/iOS/ServalPark/ServalPark/svg/invalid-text-mismatched-close-tag.svg"
+        "examples/harmony/entry/src/main/resources/rawfile/svg/text-basic-harmony.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/invalid-text-mismatched-close-tag.svg",
+        "examples/iOS/ServalPark/ServalPark/svg/text-basic-harmony.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/invalid-text-mismatched-close-tag.svg",
+        "test_cases/text-basic-harmony.svg"
       ],
       "evidence": {
         "parser_entry": "svg/src/parser/SrSVGDOM.cc",
@@ -4421,6 +4486,7 @@
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-href.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-non-whitelist.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-remote-whitelist.svg",
+        "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-image-stroke.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-numeric.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-orientation.svg",
         "examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg/pattern-percent-image-percent.svg",

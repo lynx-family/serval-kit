@@ -61,6 +61,36 @@ static UIImage* RenderView(NSString* svg) {
 
 @implementation RenderRegressionTests
 
+- (void)testMixedTextAnchorsMatchDrawnWidth {
+  const NSInteger anchorX = 160;
+  for (NSString* anchor in @[@"start", @"middle", @"end"]) {
+    NSString* svg = Wrap(
+        [NSString stringWithFormat:@"<text x='%ld' y='90' font-size='18' "
+                                    "text-anchor='%@'>SVG 中文 1011₂ نص</text>",
+                                   (long)anchorX, anchor]);
+    NSData* pixels = Pixels(Render(svg, 0));
+    XCTAssertNotNil(pixels);
+    const uint8_t* rgba = static_cast<const uint8_t*>(pixels.bytes);
+    NSInteger left = kSize.width;
+    NSInteger right = -1;
+    for (NSUInteger index = 0; index < pixels.length / 4; ++index) {
+      if (rgba[index * 4 + 3] >= 128) {
+        const NSInteger x = index % (NSUInteger)kSize.width;
+        left = MIN(left, x);
+        right = MAX(right, x);
+      }
+    }
+    XCTAssertGreaterThan(right, left, @"%@ should draw text", anchor);
+    CGFloat actualAnchor = left;
+    if ([anchor isEqualToString:@"middle"]) {
+      actualAnchor = (left + right) / 2.0;
+    } else if ([anchor isEqualToString:@"end"]) {
+      actualAnchor = right;
+    }
+    XCTAssertEqualWithAccuracy(actualAnchor, anchorX, 4, @"%@", anchor);
+  }
+}
+
 - (void)testPathAnimationMatchesExpectedGeometry {
   NSString* animated =
       Wrap(@"<path fill='none' stroke='#d03070' stroke-width='4' "

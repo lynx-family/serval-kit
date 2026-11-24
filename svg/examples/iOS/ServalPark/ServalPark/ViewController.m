@@ -154,6 +154,7 @@ static NSString* const kCategoryGradient = @"Gradient";
 static NSString* const kCategoryShape = @"Shape";
 static NSString* const kCategoryVectorEffect = @"VectorEffect";
 static NSString* const kCategorySMILAnimation = @"SMILAnimation";
+static NSString* const kCategoryText = @"Text";
 static NSArray<NSString*>* kPreviewMetadataFiles() {
   return @[
     @"svg_root_metadata", @"svg_shape_metadata", @"svg_use_metadata",
@@ -166,7 +167,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
     kCategoryShape, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
     kCategoryFilter, kCategoryIllegalParsing, kCategoryPattern,
     kCategorySvgRoot, kCategoryUse, kCategoryGradient, kCategoryVectorEffect,
-    kCategorySMILAnimation, kCategoryOthers
+    kCategorySMILAnimation, kCategoryText, kCategoryOthers
   ];
 }
 
@@ -239,6 +240,9 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 }
 
 - (NSString*)categoryForFile:(NSString*)fileName {
+  if ([fileName isEqualToString:@"text.svg"] || [fileName hasPrefix:@"text-"]) {
+    return kCategoryText;
+  }
   if ([fileName hasPrefix:@"color-parsing-"]) {
     return kCategoryColorParsing;
   }
@@ -544,10 +548,14 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
       [svgFiles addObject:fileName];
     }
   }
+  if ([svgFiles containsObject:@"text-binary-decimal.svg"]) {
+    [svgFiles removeObject:@"text-binary-decimal.svg"];
+    [svgFiles insertObject:@"text-binary-decimal.svg" atIndex:0];
+  }
   [svgFiles addObject:@"string_test.svg"];
   self.categories = [self orderedCategories];
   self.categorizedFiles = [self buildCategorizedFiles:svgFiles];
-  self.selectedCategory = kCategoryShape;
+  self.selectedCategory = kCategoryText;
 
   // Setup Picker View
   self.pickerView = [[UIPickerView alloc]

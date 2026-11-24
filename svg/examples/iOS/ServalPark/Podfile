@@ -1,6 +1,6 @@
 # Uncomment the next line to define a global platform for your project
 project './ServalPark.xcodeproj'
-platform :ios, '12.0'
+platform :ios, '15.0'
 target 'ServalPark' do
   # Comment the next line if you don't want to use dynamic frameworks
   # use_frameworks!
@@ -8,4 +8,16 @@ target 'ServalPark' do
   # Pods for ServalPark
   pod 'ServalSVG', :path => "../../../../"
 
+end
+
+post_install do |installer|
+  # Keep the example's Pods compatible with current Xcode simulator SDKs.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if deployment_target.nil? || Gem::Version.new(deployment_target) < Gem::Version.new('15.0')
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
+    end
+  end
 end

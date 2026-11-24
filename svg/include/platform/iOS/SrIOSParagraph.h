@@ -5,6 +5,8 @@
 #ifndef SVG_INCLUDE_PLATFORM_IOS_SRIOSPARAGRAPH_H_
 #define SVG_INCLUDE_PLATFORM_IOS_SRIOSPARAGRAPH_H_
 
+#import <UIKit/UIKit.h>
+
 #include <deque>
 #include <memory>
 #include <string>
@@ -15,43 +17,37 @@ namespace serval {
 namespace svg {
 namespace canvas {
 
-// TextKit implementation of Paragraph.
+// UIKit implementation of Paragraph.
 
 class ParagraphTK : public Paragraph {
  public:
-  ParagraphTK(NSTextStorage* text_storage, NSTextContainer* text_container,
-              NSLayoutManager* layout_manager, CGFloat ascent_offset,
-              SrParagraphStyle&& paragraph_style);
-  ~ParagraphTK() = default;
-  void Layout(float max_width);
-  void Draw(SrCanvas* canvas, float x, float y);
+  ParagraphTK(NSAttributedString* text, CGFloat ascent_offset,
+              SrParagraphStyle paragraph_style);
+  void Layout(float max_width) override;
+  void Draw(SrCanvas* canvas, float x, float y) override;
 
  private:
-  NSTextStorage* text_storage_;
-  NSTextContainer* text_container_;
-  NSLayoutManager* layout_manager_;
+  NSAttributedString* text_;
+  CGFloat text_width_{0};
   CGFloat ascent_offset_;
   SrParagraphStyle paragraph_style_;
 };
 
 class ParagraphFactoryTK : public ParagraphFactory {
  public:
-  ~ParagraphFactoryTK() = default;
-  std::unique_ptr<Paragraph> CreateParagraph();
-  void PushTextStyle(const SrTextStyle& style);
-  void PopTextStyle();
-  void SetParagraphStyle(SrParagraphStyle&& style);
-  void AddText(const std::string& text);
-  void Reset();
+  std::unique_ptr<Paragraph> CreateParagraph() override;
+  void PushTextStyle(const SrTextStyle& style) override;
+  void PopTextStyle() override;
+  void SetParagraphStyle(SrParagraphStyle&& style) override;
+  void AddText(const std::string& text) override;
+  void Reset() override;
   ParagraphFactoryTK();
 
  private:
   std::deque<SrTextStyle> style_stack_;
-  NSTextStorage* text_storage_;
-  NSTextContainer* text_container_;
-  NSLayoutManager* layout_manager_;
-  CGFloat max_ascent_{-1};
-  SrParagraphStyle paragraph_style_;
+  NSMutableAttributedString* text_;
+  CGFloat max_ascent_{0};
+  SrParagraphStyle paragraph_style_{SR_SVG_TEXT_ANCHOR_START};
 };
 
 }  // namespace canvas

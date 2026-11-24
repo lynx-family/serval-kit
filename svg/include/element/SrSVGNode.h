@@ -199,6 +199,7 @@ class SrSVGNode : public SrSVGNodeBase {
   std::optional<float> opacity_;
   std::optional<float> fill_opacity_;
   std::optional<float> stroke_opacity_;
+  std::optional<bool> preserve_xml_space_;
   std::optional<SrSVGLength>
       stroke_width_;  //{.value = 1.0f, .unit = SR_SVG_UNITS_PX}
 

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 228">
+  <rect width="420" height="228" fill="#f8fafc"/>
+  <text x="20" y="32" font-size="22" fill="#0f172a">空白、颜色与字号继承</text>
+  <rect x="16" y="48" width="388" height="88" rx="8" fill="#ffffff"/>
+  <text x="28" y="69" font-size="13" fill="#475569">源码单行</text>
+  <text x="220" y="69" font-size="13" fill="#475569">源码换行缩进</text>
+  <text x="28" y="105" font-size="23" fill="#0f172a">A B C</text>
+  <text x="220" y="105" font-size="23" fill="#0f172a">
+     A
+     <tspan> B </tspan>
+     C
+  </text>
+  <text x="28" y="125" font-size="12" fill="#475569">两边应同样显示 A B C，每个字母间有一个空格</text>
+  <rect x="16" y="142" width="190" height="71" rx="8" fill="#ffffff"/>
+  <rect x="214" y="142" width="190" height="71" rx="8" fill="#ffffff"/>
+  <text x="28" y="162" font-size="13" fill="#475569">currentColor · 都应显示</text>
+  <text x="226" y="162" font-size="13" fill="#475569">父字号为 0 · 只显示子文字</text>
+  <g color="#047857">
+    <text x="28" y="194" font-size="22" fill="currentColor">青色<tspan color="currentColor">同色</tspan></text>
+  </g>
+  <text x="226" y="194" font-size="0" fill="#7c3aed">隐藏<tspan font-size="22">子文字</tspan><tspan font-size="150%">隐藏</tspan></text>
+</svg>

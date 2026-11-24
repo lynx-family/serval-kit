@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 228">
+  <rect width="420" height="228" fill="#f8fafc"/>
+  <text x="20" y="32" font-size="22" fill="#0f172a">文字透明度</text>
+  <text x="20" y="53" font-size="13" fill="#475569">同一底色上，三组文字应逐渐变浅</text>
+  <rect x="16" y="67" width="124" height="112" rx="8" fill="#e0e7ff"/>
+  <rect x="148" y="67" width="124" height="112" rx="8" fill="#e0e7ff"/>
+  <rect x="280" y="67" width="124" height="112" rx="8" fill="#e0e7ff"/>
+  <text x="78" y="90" text-anchor="middle" font-size="13" fill="#3730a3">不透明</text>
+  <text x="210" y="90" text-anchor="middle" font-size="13" fill="#3730a3">文字 50%</text>
+  <text x="342" y="90" text-anchor="middle" font-size="13" fill="#3730a3">分组和文字各 50%</text>
+  <text x="78" y="143" text-anchor="middle" font-size="28" fill="#312e81">SVG 字</text>
+  <text x="210" y="143" text-anchor="middle" font-size="28" fill="#312e81" opacity="0.5">SVG 字</text>
+  <g opacity="0.5">
+    <text x="342" y="143" text-anchor="middle" font-size="28" fill="#312e81" opacity="0.5">SVG 字</text>
+  </g>
+  <text x="78" y="166" text-anchor="middle" font-size="13" fill="#3730a3">100%</text>
+  <text x="210" y="166" text-anchor="middle" font-size="13" fill="#3730a3">50%</text>
+  <text x="342" y="166" text-anchor="middle" font-size="13" fill="#3730a3">25%</text>
+  <text x="20" y="207" font-size="13" fill="#475569">透明度为 0 时，右侧白框应为空</text>
+  <rect x="254" y="185" width="150" height="31" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="329" y="207" text-anchor="middle" font-size="18" fill="#312e81" opacity="0">隐藏文字</text>
+</svg>

@@ -35,6 +35,10 @@ bool SrXMLParseXML(const char* input, size_t len,
                    SrSVGStartElementCb start_element,
                    SrSVGEndElementCb end_element, SrSVGContentCb content,
                    void* context);
+bool SrXMLParseXMLRawContent(const char* input, size_t len,
+                             SrSVGStartElementCb start_element,
+                             SrSVGEndElementCb end_element,
+                             SrSVGContentCb content, void* context);
 
 #ifdef __cplusplus
 }

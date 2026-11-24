@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 280">
+  <rect x="25" y="60" width="90" height="70" rx="10" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="70" y="105" text-anchor="middle" font-size="36" fill="#ffffff">1</text>
+  <text x="70" y="45" text-anchor="middle" font-size="15" fill="#475569">2³ = 8</text>
+  <text x="70" y="165" text-anchor="middle" font-size="16" fill="#1d4ed8">+8</text>
+  <rect x="145" y="60" width="90" height="70" rx="10" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="190" y="105" text-anchor="middle" font-size="36" fill="#94a3b8">0</text>
+  <text x="190" y="45" text-anchor="middle" font-size="15" fill="#475569">2² = 4</text>
+  <text x="190" y="165" text-anchor="middle" font-size="16" fill="#cbd5e1">0</text>
+  <rect x="265" y="60" width="90" height="70" rx="10" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="310" y="105" text-anchor="middle" font-size="36" fill="#ffffff">1</text>
+  <text x="310" y="45" text-anchor="middle" font-size="15" fill="#475569">2¹ = 2</text>
+  <text x="310" y="165" text-anchor="middle" font-size="16" fill="#1d4ed8">+2</text>
+  <rect x="385" y="60" width="90" height="70" rx="10" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="430" y="105" text-anchor="middle" font-size="36" fill="#ffffff">1</text>
+  <text x="430" y="45" text-anchor="middle" font-size="15" fill="#475569">2⁰ = 1</text>
+  <text x="430" y="165" text-anchor="middle" font-size="16" fill="#1d4ed8">+1</text>
+  <text x="240" y="215" text-anchor="middle" font-size="18" fill="#0f172a">1011₂ = 8 + 2 + 1 = 11</text>
+  <text x="240" y="248" text-anchor="middle" font-size="14" fill="#64748b">该位为 1 就把权重计入总和，为 0 则不计入</text>
+</svg>

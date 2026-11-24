@@ -8,6 +8,9 @@
 #include <memory>
 #include <string>
 
+#include <native_drawing/drawing_font_collection.h>
+#include <native_drawing/drawing_text_typography.h>
+
 #include "canvas/SrParagraph.h"
 
 namespace serval {
@@ -16,28 +19,41 @@ namespace canvas {
 
 class SrHarmonyParagraph : public Paragraph {
  public:
-  SrHarmonyParagraph() = default;
-  ~SrHarmonyParagraph() = default;
-  void Layout(float max_width) override{};
-  void Draw(SrCanvas* canvas, float x, float y) override{};
+  SrHarmonyParagraph(OH_Drawing_Typography* typography,
+                     std::shared_ptr<OH_Drawing_FontCollection> fonts,
+                     SrParagraphStyle style);
+  void Layout(float max_width) override;
+  void Draw(SrCanvas* canvas, float x, float y) override;
+
+ private:
+  // Keep the font collection alive until the typography has been destroyed.
+  std::shared_ptr<OH_Drawing_FontCollection> fonts_;
+  std::unique_ptr<OH_Drawing_Typography,
+                  decltype(&OH_Drawing_DestroyTypography)>
+      typography_{nullptr, OH_Drawing_DestroyTypography};
+  SrParagraphStyle style_;
 };
 
 class SrHarmonyParagraphFactory : public ParagraphFactory {
  public:
-  SrHarmonyParagraphFactory(const SrCanvas* srCanvas){
-      //TODO  create paragraphFactory
-  };
-  ~SrHarmonyParagraphFactory() = default;
+  explicit SrHarmonyParagraphFactory(const SrCanvas* sr_canvas);
+  std::unique_ptr<Paragraph> CreateParagraph() override;
+  void PushTextStyle(const SrTextStyle& style) override;
+  void PopTextStyle() override;
+  void SetParagraphStyle(SrParagraphStyle&& style) override;
+  void AddText(const std::string& text) override;
+  void Reset() override;
 
-  std::unique_ptr<Paragraph> CreateParagraph() override {
-    //TODO  adapt to paragraph
-    return std::unique_ptr<SrHarmonyParagraph>(nullptr);
-  };
-  void PushTextStyle(const SrTextStyle& style) override{};
-  void PopTextStyle() override{};
-  void SetParagraphStyle(SrParagraphStyle&& style) override{};
-  void AddText(const std::string& text) override{};
-  void Reset() override{};
+ private:
+  std::shared_ptr<OH_Drawing_FontCollection> fonts_;
+  std::unique_ptr<OH_Drawing_TypographyStyle,
+                  decltype(&OH_Drawing_DestroyTypographyStyle)>
+      typography_style_{nullptr, OH_Drawing_DestroyTypographyStyle};
+  std::unique_ptr<OH_Drawing_TypographyCreate,
+                  decltype(&OH_Drawing_DestroyTypographyHandler)>
+      handler_{nullptr, OH_Drawing_DestroyTypographyHandler};
+  SrParagraphStyle paragraph_style_{SR_SVG_TEXT_ANCHOR_START};
+  size_t style_depth_{0};
 };
 
 }  // namespace canvas

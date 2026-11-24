@@ -63,21 +63,21 @@ ServalSVG 当前重点覆盖以下能力：
 | 渐变 / `pattern` | 支持 | 支持 | 支持 | 支持 |
 | `clipPath` / `mask` | 支持 | 支持 | 支持 | 支持 |
 | `image` | 支持，需宿主图片提供者 | 支持，需宿主图片回调 | 支持，需通过 controller 注入 `imageFetcher` | 支持，需宿主图片回调 |
-| `text` / `tspan` | 有实现，属性有限 | 有实现，属性有限 | 未完成 | 未完成 |
+| `text` / `tspan` | 有实现，属性有限 | 有实现，属性有限 | 基础文本与嵌套样式 | 未完成 |
 | `filter` / `fe*` | 有限支持 | 有限支持 | 有限支持 | 有限支持 |
 
 说明：
 
 - `<use>` 的真实渲染通过节点展开完成，不依赖各平台的 `DrawUse()`；各平台 `DrawUse()` 目前都是空实现。`<use>` 不支持引用 `<svg>` 节点。
 - Harmony 的 `<image>` 渲染链路已经打通，但公开 `SvgView` 组件本身没有暴露 `imageFetcher` 入参；如果要用 `<image>`，应走 `SvgRenderNodeController.setImageFetcher(...)`。
-- Harmony 与 Skity 的段落工厂当前返回空段落对象，因此 `<text>` / `<tspan>` 在这两个平台实际上不会绘制。
+- Harmony 已支持基础文本、中文混排、基线定位、`text-anchor` 和嵌套 `tspan` 样式；Skity 的段落工厂仍返回空段落对象。
 - `filter` 与 `feGaussianBlur`、`feOffset`、`feColorMatrix`、`feComposite`、`feBlend`、`feFlood` 在解析层都能识别；当前四端只保证线性 `SourceGraphic` 链路中的有限模型，复杂 filter graph、分叉输入、`input2` 组合与完整 W3C 滤镜图仍未完整支持。
 
 ### 3.1 平台选型建议
 
 - 如果你的素材主要由基础图形、路径、渐变、遮罩组成，可按统一跨平台方案接入
 - 如果你的素材大量依赖 `image`，应优先确认宿主是否已经提供图片加载回调或资源管理器
-- 如果你的素材依赖 `text` / `tspan`，应按 Android、iOS 单独验收，不要默认 Harmony 或 Skity 可用
+- 如果你的素材依赖 `text` / `tspan`，应按 Android、iOS、Harmony 分别验收；系统字体可能造成字形差异，Skity 当前不可用
 - 如果你的素材依赖 `filter`，应单独验证具体 primitive 组合；不要默认复杂 W3C filter graph 已完整支持
 
 ## 4. 当前能力边界
@@ -135,7 +135,7 @@ ServalSVG 当前重点覆盖以下能力：
 - `<use>` 只接受同文档 `#id` 引用，不支持引用 `<svg>`；`x` / `y` / `transform` 会生效，`width` / `height` 不会缩放普通被引用图元
 - `<use opacity="...">` 会按整体离屏 layer 合成；当前 layer bounds 仍以正确性优先，后续可继续优化离屏范围
 - `<image>` 依赖宿主提供图片对象；没有宿主图片能力时不会显示；显式 `x` / `y` / `width` / `height`、百分比和 `opacity` 已支持，`auto` / intrinsic size 推导暂不支持
-- `<text>` / `<tspan>` 只实现了很小一部分属性，且 Harmony / Skity 当前段落实现未完成
+- `<text>` / `<tspan>` 只实现基础文本属性；Harmony 已接通原生排版，Skity 段落实现仍未完成
 - `<filter>` 当前只支持有限线性模型；复杂 DAG、`feComposite`、`feBlend`、`feFlood` 等完整组合能力仍需逐项验证
 
 ### 4.4 明确不支持的能力
@@ -145,7 +145,7 @@ ServalSVG 当前重点覆盖以下能力：
 - `<use>` 引用 `<svg>` 节点：同文档 `#id` 引用只支持普通可渲染图元/容器展开，引用到 `<svg>` 会跳过
 - `<image>` 的 `auto` / intrinsic size 推导：`width` / `height` 必须显式给出且解析后大于 0
 - 完整 W3C filter graph：不支持任意 DAG、分叉 result 复用、复杂 `input` / `input2` 组合；当前只支持已回归的有限线性模型
-- Harmony / Skity 的正式文本渲染：`text` / `tspan` 仍不作为这两个端的可用能力
+- Skity 的文本渲染，以及各端的 `textPath`、逐字定位、文本描边和 `tspan` 独立变换
 - 根节点 `svg@width` / `svg@height` 作为布局输入：根 SVG 的实际 viewport 由宿主传入
 
 ## 5. 接入说明
@@ -170,7 +170,8 @@ Harmony 当前更适合接入基础图形、路径、渐变、`pattern`、裁剪
 
 - `<image>` 可以渲染，但图片能力是通过 native `setImageFetcher` 链路接入的
 - 当前公开 `SvgView` 组件没有 `imageFetcher` 属性；如果你要使用 `<image>`，应使用 `SvgRenderNodeController.setImageFetcher(...)`
-- `<text>` / `<tspan>` 当前不会真正绘制，因为 Harmony 的段落工厂尚未完成
+- `<text>` 支持 `x` / `y`、`font-size`、纯色 `fill` / `currentColor`、`text-anchor`、`transform`、`opacity` 和 `fill-opacity`；`y` 按字母基线定位
+- 嵌套 `<tspan>` 支持颜色、字号和 `fill-opacity` 的继承与覆盖；不支持独立定位、变换和 opacity
 - `filter` 已进入有限渲染路径，但只建议使用已回归的线性 `SourceGraphic` primitive 组合
 
 ### 5.2 iOS
@@ -311,7 +312,7 @@ if (result.hasError) {
 - 根节点 `svg` 的 `width`、`height` 当前没有作为根节点布局输入解析，不应作为主要尺寸控制手段
 - `<use>` 只支持同文档内部引用，不支持引用 `<svg>`；`width`、`height` 当前不会改变普通被引用节点的渲染结果
 - `<image>` 在所有平台都依赖宿主图片能力；Harmony 额外要求通过 controller 注入 `imageFetcher`；`auto` / intrinsic size 暂不支持
-- `<text>`、`tspan` 在 Android、iOS 只建议使用 `fill`、`color`、`font-size`、`text-anchor`、基础定位；Harmony、Skity 当前不建议使用
+- `<text>`、`tspan` 在 Android、iOS、Harmony 建议使用纯色 `fill`、`color`、`font-size`、`text-anchor`、基础定位和文本整体 opacity；Skity 当前不可用，渐变/图案文本填充与复杂文本布局仍不支持
 - `filter` 只建议使用已验证的有限线性 primitive 组合，不应依赖完整 W3C filter graph
 - `line` 实际上是以描边为主的渲染路径，不建议依赖其填充语义
 - `clipPath`、`mask` 虽已支持，但复杂组合场景仍建议使用实际素材做回归验证

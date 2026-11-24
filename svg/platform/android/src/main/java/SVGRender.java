@@ -602,19 +602,22 @@ public class SVGRender {
 
   public void drawText(SpannableStringBuilder builder, int textAnchor, float x,
                        float y) {
+    if (mPictureCanvas == null || TextUtils.isEmpty(builder)) {
+      return;
+    }
     TextPaint textPaint = new TextPaint();
     textPaint.setAntiAlias(true);
     // create BoringLayout/staticLayout
     BoringLayout.Metrics boringMetrics =
         BoringLayout.isBoring(builder, textPaint);
     if (boringMetrics == null) {
+      float width = Layout.getDesiredWidth(builder, textPaint);
       StaticLayout staticLayout =
-          new StaticLayout(builder, textPaint, Integer.MAX_VALUE,
+          new StaticLayout(builder, textPaint, (int)Math.ceil(width),
                            Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-      int width = staticLayout.getWidth();
       if (textAnchor == 1) {  // middle
-        x = x - width / 2;
-      } else if (textAnchor == 2) {  // bottom
+        x = x - width / 2f;
+      } else if (textAnchor == 2) {  // end
         x = x - width;
       }
       if (staticLayout.getLineCount() > 0) {

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 228">
+  <rect width="420" height="228" fill="#f8fafc"/>
+  <text x="20" y="32" font-size="22" fill="#0f172a">混排文字锚点</text>
+  <text x="20" y="53" font-size="13" fill="#475569">蓝线是三个锚点共用的 x 坐标</text>
+  <rect x="16" y="67" width="388" height="47" rx="8" fill="#ffffff"/>
+  <rect x="16" y="118" width="388" height="47" rx="8" fill="#ffffff"/>
+  <rect x="16" y="169" width="388" height="47" rx="8" fill="#ffffff"/>
+  <path d="M210 67V216" fill="none" stroke="#93c5fd" stroke-width="1"/>
+  <text x="28" y="86" font-size="12" fill="#475569">start</text>
+  <text x="28" y="137" font-size="12" fill="#475569">middle</text>
+  <text x="28" y="188" font-size="12" fill="#475569">end</text>
+  <text x="210" y="103" text-anchor="start" font-size="18" fill="#1e3a8a">SVG 中文 1011₂ نص</text>
+  <text x="210" y="154" text-anchor="middle" font-size="18" fill="#1e3a8a">SVG 中文 1011₂ نص</text>
+  <text x="210" y="205" text-anchor="end" font-size="18" fill="#1e3a8a">SVG 中文 1011₂ نص</text>
+</svg>

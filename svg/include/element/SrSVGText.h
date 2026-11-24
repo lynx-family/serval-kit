@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGTEXT_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGTEXT_H_
 #include <list>
+#include <optional>
 #include <string>
 
 #include "canvas/SrParagraph.h"
@@ -12,10 +13,21 @@
 
 namespace serval::svg::element {
 
+class SrSVGTextParagraph;
+
+struct SrSVGTextStyle {
+  const SrSVGPaint* fill{nullptr};
+  uint32_t color{NSVG_RGBA(0, 0, 0, 255)};
+  float font_size{14.f};
+  float fill_opacity{1.f};
+  bool preserve_space{false};
+};
+
 class SrSVGBaseText : public SrSVGNode {
  public:
-  virtual void AppendToParagraph(canvas::ParagraphFactory* paragraph,
-                                 SrSVGRenderContext& context) const {}
+  virtual void AppendToParagraph(
+      SrSVGTextParagraph& paragraph, const SrSVGRenderContext& context,
+      const SrSVGTextStyle& inherited_style) const = 0;
 
  protected:
   explicit SrSVGBaseText(const SrSVGTag t) : SrSVGNode(t) {}
@@ -24,35 +36,38 @@ class SrSVGBaseText : public SrSVGNode {
 class SrSVGRawText final : public SrSVGBaseText {
  public:
   static SrSVGRawText* Make() { return new SrSVGRawText(); }
-  void SetText(const char* text) {
-    text_storage_ = text ? text : "";
-    text_ = text_storage_.c_str();
-  }
-  void AppendToParagraph(canvas::ParagraphFactory* paragraph,
-                         SrSVGRenderContext& context) const override;
+  void SetText(const char* text) { text_ = text ? text : ""; }
+  void AppendToParagraph(SrSVGTextParagraph& paragraph,
+                         const SrSVGRenderContext& context,
+                         const SrSVGTextStyle& inherited_style) const override;
 
  protected:
   SrSVGRawText() : SrSVGBaseText(SrSVGTag::kTextLiteral) {}
 
  private:
-  std::string text_storage_;
-  const char* text_ = nullptr;
+  std::string text_;
 };
 
 class SrSVGTextContainer : public SrSVGBaseText {
  public:
   bool ParseAndSetAttribute(const char* name, const char* value) override;
   void AppendChild(SrSVGNodeBase*) override;
-  void AppendToParagraph(canvas::ParagraphFactory* paragraph,
-                         SrSVGRenderContext& context) const override;
+  void AppendToParagraph(SrSVGTextParagraph& paragraph,
+                         const SrSVGRenderContext& context,
+                         const SrSVGTextStyle& inherited_style) const override;
   bool HasChildren() const override;
 
  protected:
   explicit SrSVGTextContainer(const SrSVGTag t) : SrSVGBaseText(t) {}
+  bool ResolveTextStyle(const SrSVGRenderContext& context,
+                        SrSVGTextStyle& style) const;
+  void AppendChildrenToParagraph(SrSVGTextParagraph& paragraph,
+                                 const SrSVGRenderContext& context,
+                                 const SrSVGTextStyle& style) const;
   std::list<SrSVGBaseText*> children_;
 
  private:
-  SrSVGLength font_size_{14.0f, SR_SVG_UNITS_PX};
+  std::optional<SrSVGLength> font_size_;
 };
 
 class SrSVGText final : public SrSVGTextContainer {
