@@ -86,6 +86,7 @@ add_library(
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGRadialGradient.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGClipPath.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGMask.h
+        ${SVG_SRC_DIRECTORY}/include/element/SrSVGMarker.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGPattern.h
         ${SVG_SRC_DIRECTORY}/include/element/SrSVGPatternResolver.h
         ${SVG_SRC_DIRECTORY}/include/utils/SrSVGPatternUtils.h
@@ -115,8 +116,10 @@ add_library(
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGImage.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGClipPath.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGMask.cc
+        ${SVG_SRC_DIRECTORY}/src/element/SrSVGMarker.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPattern.cc
         ${SVG_SRC_DIRECTORY}/src/element/SrSVGPatternResolver.cc
+        ${SVG_SRC_DIRECTORY}/src/utils/SrPathFactory.cc
         ${SVG_SRC_DIRECTORY}/src/utils/SrSVGPatternUtils.cc
         ${NATIVERENDER_ROOT_PATH}/platform/harmony/SrLogHarmony.cc
         #harmony

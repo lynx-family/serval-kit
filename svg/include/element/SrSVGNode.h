@@ -5,9 +5,11 @@
 #ifndef SVG_INCLUDE_ELEMENT_SRSVGNODE_H_
 #define SVG_INCLUDE_ELEMENT_SRSVGNODE_H_
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -49,6 +51,7 @@ enum class SrSVGTag {
   kLine,
   kLinearGradient,
   kMask,
+  kMarker,
   kMPath,
   kPath,
   kPattern,
@@ -137,9 +140,36 @@ enum class SrSVGTransformBox {
 };
 
 class SrSVGNode : public SrSVGNodeBase {
+  using MarkerReferences = std::array<std::optional<std::string>, 3>;
+
  public:
   // Leave xform unchanged on failure. The legacy wrapper uses identity.
   static bool TryParseTransform(const char* str, float* xform);
+  // Temporarily apply parent inheritance to a child or a use reference.
+  // Nested rendering restores each node's previous state on scope exit.
+  class ScopedInheritance {
+   public:
+    ScopedInheritance(SrSVGNode& node, const SrSVGNode& parent);
+    ~ScopedInheritance();
+    ScopedInheritance(const ScopedInheritance&) = delete;
+    ScopedInheritance& operator=(const ScopedInheritance&) = delete;
+
+   private:
+    struct InheritedState {
+      SrSVGPaint* fill_paint;
+      SrSVGPaint* stroke_paint;
+      SrSVGPaint* clip_path;
+      SrSVGPaint* mask;
+      std::optional<SrSVGLength> stroke_width;
+      std::optional<float> fill_opacity;
+      std::optional<float> stroke_opacity;
+      std::optional<SrSVGColor> color;
+      MarkerReferences markers;
+    };
+    SrSVGNode& node_;
+    InheritedState state_;
+  };
+
   static void ParseTransform(const char* str, float* xform);
   static int ParseMatrix(float* xform, const char* str);
   static int ParseTranslate(float* xform, const char* str);
@@ -182,10 +212,14 @@ class SrSVGNode : public SrSVGNodeBase {
 
  private:
   using SavedAttribute =
-      std::variant<std::optional<std::string>, std::optional<SrSVGLength>>;
+      std::variant<std::optional<std::string>, std::optional<SrSVGLength>,
+                   MarkerReferences>;
   bool ParseStrokeDashArray(const char* value);
   void ParseTransformOrigin(const char* value);
   void ParseTransformBox(const char* value);
+  void ApplyMarkerAnimation(const SrSVGAnimation& animation,
+                            std::string_view attribute, double seconds,
+                            const IDMapper* id_mapper);
   void RestoreAnimatedAttribute(const std::string& name,
                                 const std::optional<std::string>& base_value);
 
@@ -196,6 +230,9 @@ class SrSVGNode : public SrSVGNodeBase {
   SrSVGPaint* clip_path_{nullptr};
   SrSVGPaint* mask_{nullptr};
   SrSVGPaint* filter_{nullptr};
+  // Unset means inherit; an empty string explicitly disables the marker.
+  MarkerReferences markers_;
+  MarkerReferences inherit_markers_;
   std::optional<float> opacity_;
   std::optional<float> fill_opacity_;
   std::optional<float> stroke_opacity_;

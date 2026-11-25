@@ -550,6 +550,14 @@ SrSVGPaint* make_serval_paint(const char* value) {
   if (!paint)
     return NULL;
   *paint = (SrSVGPaint){.type = SERVAL_PAINT_NONE, .content = {0}};
+  if (strcmp(value, "context-fill") == 0 ||
+      strcmp(value, "context-stroke") == 0) {
+    *paint = (SrSVGPaint){.type = strcmp(value, "context-fill") == 0
+                                      ? SERVAL_PAINT_CONTEXT_FILL
+                                      : SERVAL_PAINT_CONTEXT_STROKE,
+                          .content = {0}};
+    return paint;
+  }
   if (strcmp(value, "none") == 0)
     return paint;
   if (strncmp(value, "url(", 4) == 0) {

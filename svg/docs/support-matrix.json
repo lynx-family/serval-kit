@@ -49,6 +49,10 @@
         "transform",
         "color",
         "style",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "viewBox",
         "preserveAspectRatio"
       ],
@@ -89,7 +93,11 @@
         "filter",
         "transform",
         "color",
-        "style"
+        "style",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end"
       ],
       "partially_supported_attributes": {
         "opacity": "Group opacity is inherited into children instead of using isolated group compositing."
@@ -116,6 +124,60 @@
       },
       "caveats": [
         "Defs is used as a non-rendering container for reusable nodes."
+      ]
+    },
+    "marker": {
+      "support": "partial",
+      "platforms": {
+        "android": "partial",
+        "ios": "partial",
+        "harmony": "partial",
+        "skity": "partial"
+      },
+      "supported_attributes": [
+        "id",
+        "fill",
+        "stroke",
+        "opacity",
+        "stroke-width",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "fill-opacity",
+        "stroke-opacity",
+        "clip-path",
+        "mask",
+        "filter",
+        "transform",
+        "color",
+        "style",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
+        "markerWidth",
+        "markerHeight",
+        "markerUnits",
+        "refX",
+        "refY",
+        "orient",
+        "viewBox",
+        "preserveAspectRatio",
+        "overflow"
+      ],
+      "partially_supported_attributes": {
+        "fill": "context-fill/context-stroke support solid colors and none; context gradients and patterns are not rendered.",
+        "stroke": "context-fill/context-stroke support solid colors and none; context gradients and patterns are not rendered."
+      },
+      "unsupported_attributes": {},
+      "caveats": [
+        "Local url(#id) vertex markers support start, mid, end, inheritance, inline style, auto and auto-start-reverse orientation.",
+        "Markers use their definition's style ancestry; referencing shapes supply colors only through explicit context-fill/context-stroke.",
+        "External marker references and stylesheet rules are unsupported.",
+        "Marker content retains the platform limitations of its child elements, including text, images and filters.",
+        "Eight marker fixtures and 99 reference probes, including three MDN examples, pass on Skity software, iPhone 11/iOS 18.3.1 Core Graphics, and ALN-AL80/OpenHarmony 6.1.0.115 ArkUI snapshots. The original five fixtures and 37 probes also pass on physical Android 10 software and hardware Canvas."
       ]
     },
     "rect": {
@@ -147,6 +209,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "x",
         "y",
         "rx",
@@ -187,6 +253,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "cx",
         "cy",
         "r"
@@ -224,6 +294,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "cx",
         "cy",
         "rx",
@@ -262,6 +336,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "x1",
         "y1",
         "x2",
@@ -305,6 +383,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "points"
       ],
       "partially_supported_attributes": {},
@@ -340,6 +422,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "points"
       ],
       "partially_supported_attributes": {},
@@ -375,6 +461,10 @@
         "style",
         "fill-rule",
         "vector-effect",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
         "d"
       ],
       "partially_supported_attributes": {},
@@ -410,7 +500,11 @@
         "filter",
         "transform",
         "color",
-        "style"
+        "style",
+        "marker",
+        "marker-start",
+        "marker-mid",
+        "marker-end"
       ],
       "partially_supported_attributes": {},
       "unsupported_attributes": {

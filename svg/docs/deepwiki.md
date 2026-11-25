@@ -105,6 +105,7 @@ Current recognized tags include:
 - `text`, `tspan`
 - `linearGradient`, `radialGradient`, `stop`
 - `clipPath`, `mask`
+- `marker`
 - `filter`, `feGaussianBlur`, `feOffset`, `feColorMatrix`, `feComposite`,
   `feBlend`, `feFlood`
 
@@ -138,6 +139,10 @@ Important inheritance / reference systems:
 - reusable IDs are collected while parsing in `SrSVGDOM.cc`
 - `url(#id)` references are resolved through an `IDMapper`
 - gradients, masks, clip paths, filters, and `<use>` all depend on this map
+- containers and `<use>` share `SrSVGNode::ScopedInheritance` to apply and
+  restore inherited state, including nested rendering and early returns
+- `marker-start`, `marker-mid`, and `marker-end` inherit through containers and
+  `<use>`; referenced marker definitions retain their own style ancestry
 
 Notable implementation detail:
 
@@ -429,6 +434,88 @@ Inside Skity, the implementation focuses on:
 
 It is not a general-purpose SVG filter graph evaluator.
 
+## Vertex Markers
+
+`SrSVGMarker` implements the vertex marker model in
+[SVG 2 painting](https://www.w3.org/TR/SVG2/painting.html#Markers).
+Definitions are registered in the ID map and skipped during ordinary child
+rendering. Shapes render markers after fill and stroke. Shape opacity isolates
+the shape and all marker instances in one layer.
+
+Each shape resolves its effective start/mid/end references once per render.
+The resulting marker nodes are reused for all vertices; declared references
+still trigger whole-shape opacity composition when a definition is unresolved.
+
+Paths read the current `SrSVGPath::path_data()` directly, including animated
+geometry. Other shapes use the shared recorder with their untransformed
+equivalent path. `PathFactory` provides default circle, ellipse, rect, line,
+polygon, and polyline builders in `src/utils/SrPathFactory.cc`, emitting SVG
+commands through `CreatePath`. `MarkerPathFactory` only records those commands;
+platform factories retain their native primitive overrides and can migrate
+individually. The geometry algorithm keeps command vertices, resolves
+cubic/quadratic/elliptical-arc endpoint tangents, bisects incoming/outgoing
+directions, and borrows directions for zero-length
+segments in linear time. Start/end apply to the entire path; intermediate
+subpath endpoints are mid vertices. A closed path keeps distinct start/end
+instances at its coincident endpoints.
+
+Each marker batch snapshots the context element's render state and paint values
+before rendering any instance. Shape rendering restores its enclosing member
+state on scope exit, so a marker's `<use>` can reenter the context element
+without leaving pointers to expired instance-local paints.
+
+Marker instances apply placement, orientation, markerUnits scaling, reference
+point translation, default viewport clipping, and viewBox/preserveAspectRatio
+mapping. `auto-start-reverse` reverses only start instances. `refX`/`refY`
+keywords include the viewBox origin. Non-scaling stroke uses the canvas CTM to
+keep strokeWidth markers in the stroke's device coordinate system. An active
+marker set in traversal state prevents recursive reference loops.
+
+Ordinary fill/stroke/color do not inherit from the referencing shape.
+Explicit context-fill/context-stroke resolve solid colors, currentColor, and
+none. Context gradients/patterns need a separate coordinate/bounding-box bridge
+and currently render as none. Regular gradients/patterns defined on marker
+children continue through the existing paint pipeline.
+
+External marker URLs and stylesheet rules remain unsupported. Inline CSS
+`marker` shorthand and marker-start/mid/end are supported; the parser also
+accepts a `marker` XML attribute as an extension (Chrome does not use that
+attribute as a standard presentation attribute). Marker child elements retain
+their existing platform limitations. Filters and masks continue using the
+referencing shape's existing geometry bounds. Android device coverage includes
+software rendering and PixelCopy of hardware Canvas output on a physical MIX 2S
+(Android 10/API 29). All 37 original reference probes pass in both modes.
+The expanded eight-fixture, 99-probe manifest also passes on Skity software,
+a physical iPhone 11 (iOS 18.3.1), using the
+current SrSVG/Core Graphics implementation, and an ALN-AL80 Harmony device
+(OpenHarmony-6.1.0.115), using SvgRenderNodeController and completed ArkUI
+component snapshots. Device runs export PNGs and per-probe JSON reports.
+This verifies the fixture coverage, not every possible SVG 2 marker combination.
+
+For iOS, `svg/tools/build_marker_ios_device.py` builds the standalone
+`svg/testing/ios/MarkerDeviceApp.mm` against current sources with a supplied
+signing identity and provisioning profile. Install and launch its bundle
+`com.lynx.servalkit.svg.marker` with `xcrun devicectl`, then copy `Documents`
+from its app data container. For Harmony, launch `EntryAbility` with
+`--pb markerRegression true`; it reuses the pixel regression runner with
+`marker_cases.json` and saves `marker-regression.json` plus per-case PNGs.
+Use `hdc file recv -b net.lynx.servalsvg` with source paths beneath
+`/data/storage/el2/base/haps/entry/files/` to export ability files.
+
+The manifest includes MDN's arrowheads, polymarkers, and context fill/stroke
+examples. The first two retain the original geometry and styling with explicit
+output dimensions. The context paint example expands MDN's stylesheet selector
+into equivalent inline `marker` styles; the original `<style>` form is retained
+under `svg/testing/fixtures/marker_mdn_context_paint_stylesheet.svg` as an
+unsupported-feature fixture. These examples caught Skity's missing initial black
+fill: its common path drawing entry now resolves an absent fill to black while
+preserving explicit `fill="none"`. The existing 14 pattern fixtures also pass
+after that fix.
+
+Key files: `svg/src/element/SrSVGMarker.cc`, `SrSVGShape.cc`,
+`svg/testing/marker_tests.cc`, `svg/testing/marker_cases.json`, and
+`svg/test_cases/marker_*.svg`.
+
 ## Testing Reality
 
 The SVG project is currently much stronger in sample assets than in engine
@@ -446,9 +533,18 @@ Observed coverage:
 
 What is missing:
 
-- C++ engine-level SVG unit tests comparable to the markdown subproject
-- backend parity tests for the same SVG fixture set
-- golden-image style regression tests
+- broader C++ engine-level SVG unit tests beyond marker coverage
+- iOS and Harmony device parity coverage for marker fixtures
+
+Marker coverage includes shared geometry/rendering tests with ASan/UBSan and
+Chrome-generated RGBA probes run through the actual Skity software backend.
+The pixel fixtures cover arrows, multi-subpath vertices, Bezier/arc tangents,
+viewport clipping, zero-sized markers, context color, shape opacity,
+non-scaling stroke, and cyclic references. See `svg/testing/README.md`.
+`MarkerInstrumentedTest` uses the same manifest in Android's packaged assets,
+checks software bitmaps and actual hardware Canvas output with PixelCopy, and
+exports PNGs plus per-probe reports. The Android example has a `Marker` category
+and supports selecting it with the `category` launch extra.
 
 ## Knowledge-System Workflow
 

@@ -12,6 +12,7 @@ SKITY_BUILD_DIR="${SKITY_BUILD_DIR:-${REPO_ROOT}/build/svg-pattern-percent-skity
 TEST_BUILD_DIR="${REPO_ROOT}/build/svg-pattern-percent-skity/runner"
 SERVAL_CMAKE_BIN="${SERVAL_CMAKE_BIN:-cmake}"
 SERVAL_BUILD_JOBS="${SERVAL_BUILD_JOBS:-4}"
+TEST_MANIFEST="${REPO_ROOT}/svg/testing/pattern_percent_cases.json"
 
 usage() {
   cat <<'USAGE'
@@ -23,6 +24,7 @@ Usage: run_skity_pattern_percent_tests.sh [options]
   --skity-build PATH   Dependency build directory (configured and built if needed)
   --build-dir PATH     Test runner build/output directory
   --cmake PATH         CMake executable (or set SERVAL_CMAKE_BIN)
+  --manifest PATH      Shared SVG/RGBA manifest (defaults to pattern cases)
   --help              Show this help
 
 Results and per-case PNG files are written beneath the test build's results/.
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --skity-build) SKITY_BUILD_DIR="$2"; shift 2 ;;
     --build-dir) TEST_BUILD_DIR="$2"; shift 2 ;;
     --cmake) SERVAL_CMAKE_BIN="$2"; shift 2 ;;
+    --manifest) TEST_MANIFEST="$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -68,5 +71,5 @@ source tools/envsetup.sh
   -DSKITY_BUILD_DIR="${SKITY_BUILD_DIR}"
 "${SERVAL_CMAKE_BIN}" --build "${TEST_BUILD_DIR}" --parallel "${SERVAL_BUILD_JOBS}"
 "${TEST_BUILD_DIR}/pattern_percent_runner" \
-  "${REPO_ROOT}/svg/testing/pattern_percent_cases.json" \
+  "${TEST_MANIFEST}" \
   "${REPO_ROOT}/svg/test_cases" "${TEST_BUILD_DIR}/results"

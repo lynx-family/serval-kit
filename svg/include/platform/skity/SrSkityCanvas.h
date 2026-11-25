@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PLATFORM_SKITY_SRSKITYCANVAS_H_
 #define SVG_INCLUDE_PLATFORM_SKITY_SRSKITYCANVAS_H_
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <optional>
@@ -85,6 +86,10 @@ class SrSkityCanvas : public canvas::SrCanvas {
     current_render_context_ = context;
   }
   canvas::PathFactory* PathFactory() override;
+  bool GetTransform(float (&form)[6]) const override {
+    std::copy(current_transform_.begin(), current_transform_.end(), form);
+    return true;
+  }
   ~SrSkityCanvas() override;
   void Save() override;
   void Restore() override;

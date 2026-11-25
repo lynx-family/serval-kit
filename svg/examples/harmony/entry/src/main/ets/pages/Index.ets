@@ -34,6 +34,7 @@ struct Index {
   private static readonly CATEGORY_MASK: string = 'Mask';
   private static readonly CATEGORY_FILTER: string = 'Filter';
   private static readonly CATEGORY_PATTERN: string = 'Pattern';
+  private static readonly CATEGORY_MARKER: string = 'Marker';
   private static readonly CATEGORY_SVG_ROOT: string = 'SvgRoot';
   private static readonly CATEGORY_USE: string = 'Use';
   private static readonly CATEGORY_GRADIENT: string = 'Gradient';
@@ -59,6 +60,7 @@ struct Index {
     Index.CATEGORY_MASK,
     Index.CATEGORY_FILTER,
     Index.CATEGORY_PATTERN,
+    Index.CATEGORY_MARKER,
     Index.CATEGORY_SVG_ROOT,
     Index.CATEGORY_USE,
     Index.CATEGORY_GRADIENT,
@@ -88,6 +90,14 @@ struct Index {
     'defs_use.svg',
     'gradients.svg',
     'image.svg',
+    'marker_arrows.svg',
+    'marker_compositing.svg',
+    'marker_curves.svg',
+    'marker_mdn_arrowheads.svg',
+    'marker_mdn_context_paint.svg',
+    'marker_mdn_polymarkers.svg',
+    'marker_vertices.svg',
+    'marker_viewport.svg',
     'invalid-attr-gt-mismatched-close-tag.svg',
     'invalid-comment-gt-before-close.svg',
     'invalid-extra-close-tag.svg',
@@ -194,6 +204,9 @@ struct Index {
   private categoryForFile(fileName: string): string {
     if (fileName === 'text.svg' || fileName.startsWith('text-')) {
       return Index.CATEGORY_TEXT;
+    }
+    if (fileName.startsWith('marker_')) {
+      return Index.CATEGORY_MARKER;
     }
     if (fileName.startsWith('color-parsing-')) {
       return Index.CATEGORY_COLOR_PARSING;

@@ -1,0 +1,19 @@
+<!-- Adapted from the MDN Using context fill and stroke example.
+     https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/marker#using_context_fill_and_stroke
+     The stylesheet rule path { marker: url("#circle"); } is expanded into
+     equivalent inline styles because stylesheet selectors are unsupported.
+     Geometry and paint values are unchanged; output dimensions are explicit.
+     The original stylesheet version is retained in testing/fixtures/. -->
+<svg width="300" height="300" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <marker id="circle" markerWidth="6" markerHeight="6" refX="3" refY="3"
+          markerUnits="strokeWidth">
+    <circle cx="3" cy="3" r="2" stroke="context-stroke" fill="context-fill" />
+  </marker>
+  <path d="M 10,10 30,10 h 10" stroke="black" style="marker: url('#circle')" />
+  <path d="M 10,20 30,20 h 10" stroke="blue" fill="red"
+        style="marker: url('#circle')" />
+  <path d="M 10,30 30,30 h 10" stroke="red" fill="none"
+        style="marker: url('#circle')" />
+  <path d="M 10,40 30,40 h 10" stroke="gray" fill="blue" stroke-width="1.5"
+        style="marker: url('#circle')" />
+</svg>

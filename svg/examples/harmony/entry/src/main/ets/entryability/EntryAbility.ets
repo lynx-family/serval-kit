@@ -7,6 +7,9 @@ export default class EntryAbility extends UIAbility {
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     this.patternRegression = want.parameters?.['patternRegression'] === true;
+    const markerRegression = want.parameters?.['markerRegression'] === true;
+    AppStorage.setOrCreate('markerRegression', markerRegression);
+    this.patternRegression = this.patternRegression || markerRegression;
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
   }
 

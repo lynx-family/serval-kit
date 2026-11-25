@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -55,6 +56,7 @@ struct SrSVGTraversalState {
       return 0;
     return static_cast<size_t>(pixels);
   }
+  std::unordered_set<const element::SrSVGNodeBase*> active_markers;
   std::vector<SrSVGDiagnostic> diagnostics;
 
   void Report(::SrSVGDiagnosticCode code, const char* message,

@@ -108,6 +108,24 @@ Always evaluate all layers:
   measured-width anchoring, nested style inheritance, opacity, and font
   collection lifetime with `svg/tools/run_harmony_text_tests.py`; the tests
   compare real SVG pixels against independent native typography on a device.
+- For markers, verify original path vertices and endpoint tangents rather than
+  flattened curves. Distinguish whole-path start/end from mid vertices across
+  subpaths. Check definition style ancestry, explicit context paint, clipping,
+  reference-point/viewBox transforms, and non-scaling stroke.
+- Run `svg/tools/run_marker_tests.sh` and the Chrome/Skity marker manifest.
+  Android's `MarkerInstrumentedTest` checks the same 37 probes in software and
+  hardware Canvas on a physical device; both modes passed on MIX 2S/API 29.
+  The expanded eight fixtures and 99 probes, including three MDN examples,
+  passed on Skity software and physical iPhone 11 /
+  iOS 18.3.1 (SrSVG/Core Graphics) and ALN-AL80 / OpenHarmony 6.1.0.115
+  (SvgRenderNodeController/ArkUI snapshots). Use the iOS standalone device app
+  and Harmony `markerRegression` launch flag to export PNGs and JSON reports.
+  MDN's context paint stylesheet example is tested with equivalent inline
+  marker styles; the original stylesheet form remains unsupported and is
+  retained separately. Do not infer stylesheet support from this regression.
+  Context paint servers currently render as none because referencing-element
+  coordinates and bounds are not bridged; do not claim full SVG 2 compliance
+  or device parity from the shared tests.
 
 ## Boundary
 

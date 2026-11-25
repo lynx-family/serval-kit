@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <marker id="clipped" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="10"
+            viewBox="0 0 10 10" refX="5" refY="5">
+      <rect x="-10" y="-10" width="30" height="30" fill="red"/>
+    </marker>
+    <marker id="visible" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="10"
+            viewBox="0 0 10 10" refX="5" refY="5" overflow="visible">
+      <rect x="-10" y="-10" width="30" height="30" fill="blue"/>
+    </marker>
+    <marker id="zero" markerWidth="0"><rect width="100" height="100" fill="red"/></marker>
+  </defs>
+  <path d="M10 30H50" fill="none" marker-end="url(#clipped)"/>
+  <path d="M10 80H50" fill="none" marker-end="url(#visible)"/>
+  <path d="M100 30H150" fill="none" marker-end="url(#zero)"/>
+</svg>

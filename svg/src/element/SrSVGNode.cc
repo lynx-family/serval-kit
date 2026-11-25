@@ -10,6 +10,7 @@
 #endif
 #include <math.h>
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <climits>
 #include <cmath>
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include "utils/SrSVGNumber.h"
 
@@ -27,6 +29,7 @@
 #include "element/SrSVGClipPath.h"
 #include "element/SrSVGFilter.h"
 #include "element/SrSVGFilterPrimitives.h"
+#include "element/SrSVGMarker.h"
 #include "element/SrSVGMask.h"
 #include "element/SrSVGTypes.h"
 #include "utils/SrFloatComparison.h"
@@ -44,6 +47,39 @@ bool SrPreparePattern(canvas::SrCanvas* canvas, SrSVGNodeBase* node,
                       SrSVGRenderContext& context);
 
 namespace {
+
+constexpr std::string_view kMarkerShorthand = "marker";
+constexpr std::array<std::string_view, 3> kMarkerLonghands{
+    "marker-start", "marker-mid", "marker-end"};
+
+bool IsMarkerProperty(std::string_view name) {
+  return name == kMarkerShorthand ||
+         std::find(kMarkerLonghands.begin(), kMarkerLonghands.end(), name) !=
+             kMarkerLonghands.end();
+}
+
+std::string MarkerAnimationBase(const std::optional<std::string>& reference) {
+  if (!reference) {
+    // Resolve inherited values at draw time, including a use instance's style.
+    return "inherit";
+  }
+  if (reference->empty()) {
+    return "none";
+  }
+  return "url(#" + *reference + ")";
+}
+
+template <typename T>
+void InheritProperty(T& inherited, const T& local, const T& parent_local,
+                     const T& parent_inherited) {
+  if (local) {
+    inherited = local;
+  } else if (parent_local) {
+    inherited = parent_local;
+  } else if (parent_inherited) {
+    inherited = parent_inherited;
+  }
+}
 
 SrSVGLength MakePercentage(float value) {
   return SrSVGLength{value, SR_SVG_UNITS_PERCENTAGE};
@@ -185,6 +221,50 @@ bool ParseOpacityAttribute(const char* value, std::optional<float>& out) {
 }
 
 }  // namespace
+SrSVGNode::ScopedInheritance::ScopedInheritance(SrSVGNode& node,
+                                                const SrSVGNode& parent)
+    : node_(node),
+      state_{node.inherit_fill_paint_,     node.inherit_stroke_paint_,
+             node.inherit_clip_path_,      node.inherit_mask_,
+             node.inherit_stroke_width_,   node.inherit_fill_opacity_,
+             node.inherit_stroke_opacity_, node.inherit_color_,
+             node.inherit_markers_} {
+  node.inherit_fill_paint_ =
+      parent.ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_);
+  node.inherit_stroke_paint_ = parent.ResolvePaint(
+      &SrSVGNode::stroke_, &SrSVGNode::inherit_stroke_paint_);
+  node.inherit_clip_path_ = parent.ResolvePaint(&SrSVGNode::clip_path_,
+                                                &SrSVGNode::inherit_clip_path_);
+  node.inherit_mask_ =
+      parent.ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_);
+  InheritProperty(node.inherit_stroke_width_, node.stroke_width_,
+                  parent.stroke_width_, parent.inherit_stroke_width_);
+  InheritProperty(node.inherit_fill_opacity_, node.fill_opacity_,
+                  parent.fill_opacity_, parent.inherit_fill_opacity_);
+  InheritProperty(node.inherit_stroke_opacity_, node.stroke_opacity_,
+                  parent.stroke_opacity_, parent.inherit_stroke_opacity_);
+  InheritProperty(node.inherit_color_, node.color_, parent.color_,
+                  parent.inherit_color_);
+  // Marker declarations on the child remain local. The inherited value comes
+  // entirely from this parent, including an unset or explicit none value.
+  for (size_t i = 0; i < node.markers_.size(); ++i) {
+    node.inherit_markers_[i] =
+        parent.markers_[i] ? parent.markers_[i] : parent.inherit_markers_[i];
+  }
+}
+
+SrSVGNode::ScopedInheritance::~ScopedInheritance() {
+  node_.inherit_fill_paint_ = state_.fill_paint;
+  node_.inherit_stroke_paint_ = state_.stroke_paint;
+  node_.inherit_clip_path_ = state_.clip_path;
+  node_.inherit_mask_ = state_.mask;
+  node_.inherit_stroke_width_ = state_.stroke_width;
+  node_.inherit_fill_opacity_ = state_.fill_opacity;
+  node_.inherit_stroke_opacity_ = state_.stroke_opacity;
+  node_.inherit_color_ = state_.color;
+  node_.inherit_markers_ = std::move(state_.markers);
+}
+
 void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                            SrSVGRenderContext& context) {
   parser::SrSVGRenderScope render_scope(&context);
@@ -364,7 +444,11 @@ void SrSVGNodeBase::Render(canvas::SrCanvas* const canvas,
                                     bounds.height, bounds.left, bounds.top};
                   canvas->Transform(xform);
                 }
+                // The marker opacity applies to the source, not the mask.
+                const float* marker_opacity = context.marker_fallback_opacity;
+                context.marker_fallback_opacity = nullptr;
                 mask_node->Render(canvas, context);
+                context.marker_fallback_opacity = marker_opacity;
                 canvas->Restore();
                 canvas->EndMaskContentLayer();
               }
@@ -435,6 +519,17 @@ bool SrSVGNode::ParseAndSetAttribute(const char* name, const char* value) {
     ReplacePaint(clip_path_, value);
   } else if (strcmp(name, "mask") == 0) {
     ReplacePaint(mask_, value);
+  } else if (IsMarkerProperty(name)) {
+    std::optional<std::string> reference;
+    if (!SrSVGMarker::ParseReference(value, &reference)) {
+      return false;
+    }
+    const std::string_view attribute = name;
+    for (size_t i = 0; i < markers_.size(); ++i) {
+      if (attribute == kMarkerShorthand || attribute == kMarkerLonghands[i]) {
+        markers_[i] = reference;
+      }
+    }
   } else if (strcmp(name, "filter") == 0) {
     ReplacePaint(filter_, value);
   } else if (strcmp(name, "transform") == 0) {
@@ -478,6 +573,26 @@ void SrSVGNode::AddAnimation(SrSVGAnimation* animation) {
   }
 }
 
+void SrSVGNode::ApplyMarkerAnimation(const SrSVGAnimation& animation,
+                                     std::string_view attribute, double seconds,
+                                     const IDMapper* id_mapper) {
+  for (size_t i = 0; i < markers_.size(); ++i) {
+    if (attribute != kMarkerShorthand && attribute != kMarkerLonghands[i]) {
+      continue;
+    }
+    // Each longhand keeps its parsed base when the shorthand animates.
+    const std::string underlying = MarkerAnimationBase(markers_[i]);
+    SrSVGAnimation::Effect effect;
+    std::optional<std::string> reference;
+    if (animation.Evaluate(seconds, id_mapper, underlying, &effect) &&
+        effect.value != underlying &&
+        SrSVGMarker::ParseReference(effect.value.c_str(), &reference)) {
+      animated_attributes_.try_emplace("marker", markers_);
+      markers_[i] = std::move(reference);
+    }
+  }
+}
+
 void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
   std::unordered_map<std::string, std::string> presentation_values;
   for (auto* animation : animations_) {
@@ -486,6 +601,10 @@ void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
     }
     const std::string target_attribute = animation->TargetAttributeName();
     if (target_attribute.empty()) {
+      continue;
+    }
+    if (IsMarkerProperty(target_attribute)) {
+      ApplyMarkerAnimation(*animation, target_attribute, seconds, id_mapper);
       continue;
     }
     auto presentation_it = presentation_values.find(target_attribute);
@@ -548,7 +667,9 @@ void SrSVGNode::ApplyAnimations(double seconds, const IDMapper* id_mapper) {
 
 void SrSVGNode::RestoreAnimatedAttributes() {
   for (auto& [name, saved] : animated_attributes_) {
-    if (auto* offset = std::get_if<std::optional<SrSVGLength>>(&saved)) {
+    if (auto* markers = std::get_if<MarkerReferences>(&saved)) {
+      markers_ = std::move(*markers);
+    } else if (auto* offset = std::get_if<std::optional<SrSVGLength>>(&saved)) {
       stroke_dash_offset_ = *offset;
     } else if (auto* text = std::get_if<std::optional<std::string>>(&saved)) {
       RestoreAnimatedAttribute(name, *text);
@@ -604,6 +725,16 @@ void SrSVGNode::ClearAnimatedAttribute(const std::string& name) {
   } else if (name == "filter") {
     release_serval_paint(filter_);
     filter_ = nullptr;
+  } else if (Tag() == SrSVGTag::kMarker &&
+             (name == "refX" || name == "refY" || name == "orient")) {
+    ParseAndSetAttribute(name.c_str(), "0");
+  } else if (Tag() == SrSVGTag::kMarker &&
+             (name == "markerWidth" || name == "markerHeight")) {
+    ParseAndSetAttribute(name.c_str(), "3");
+  } else if (Tag() == SrSVGTag::kMarker && name == "markerUnits") {
+    ParseAndSetAttribute(name.c_str(), "strokeWidth");
+  } else if (Tag() == SrSVGTag::kMarker && name == "overflow") {
+    ParseAndSetAttribute(name.c_str(), "hidden");
   } else if (name == "transform") {
     xform_identity(transform_);
   } else if (name == "transform-origin") {
@@ -621,7 +752,8 @@ void SrSVGNode::ClearAnimatedAttribute(const std::string& name) {
   } else if (name == "points") {
     ParseAndSetAttribute(name.c_str(), "");
   } else if (name == "viewBox") {
-    ParseAndSetAttribute(name.c_str(), "0 0 0 0");
+    ParseAndSetAttribute(name.c_str(),
+                         Tag() == SrSVGTag::kMarker ? "" : "0 0 0 0");
   } else if (HasZeroDefaultAnimatedAttribute(name)) {
     ParseAndSetAttribute(name.c_str(), "0");
   }

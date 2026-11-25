@@ -46,7 +46,7 @@ Pod::Spec.new do |s|
   #                   "src/SVGRenderEngine.cc"
   s.description  = <<-DESC
     ServalSVG provides an SVG parsing and rendering engine for iOS.
-    It includes DOM parsing, gradient support, shapes, paths and text rendering,
+    It includes DOM parsing, gradient support, shapes, paths, vertex markers and text rendering,
     with platform-specific canvas implementations and sample projects to help
     integrate into existing apps.
   DESC
