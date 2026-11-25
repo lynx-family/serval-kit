@@ -5,7 +5,7 @@
 #include "markdown/platform/android/markdown_platform_android.h"
 
 #include <textra/fontmgr_collection.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
+#include <textra/platform_helper.h>
 
 #include "markdown/platform/android/markdown_class_cache.h"
 #include "markdown/platform/android/markdown_java_canvas_helper.h"
@@ -14,15 +14,17 @@ namespace {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
-    tttext::FontmgrCollection font_collection(
-        tttext::TTTextJNIProxy::GetInstance().GetDefaultFontManager());
+    font_collection_ = std::make_unique<tttext::FontmgrCollection>(
+        tttext::PlatformHelper::CreateFontManager(
+            tttext::RenderingBackend::kAndroid));
     textlayout_ = std::make_unique<tttext::TextLayout>(
-        &font_collection, tttext::ShaperType::kSystem);
+        font_collection_.get(), tttext::RenderingBackend::kAndroid);
   }
   ~TextLayoutManager() = default;
   tttext::TextLayout* GetLayout() { return textlayout_.get(); }
 
  private:
+  std::unique_ptr<tttext::FontmgrCollection> font_collection_;
   std::unique_ptr<tttext::TextLayout> textlayout_;
 };
 

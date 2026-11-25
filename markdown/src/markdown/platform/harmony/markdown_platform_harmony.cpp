@@ -15,9 +15,9 @@ class TextLayoutManager {
  public:
   TextLayoutManager()
       : font_collection_(tttext::PlatformHelper::CreateFontManager(
-            tttext::PlatformType::kSystem)),
+            tttext::RenderingBackend::kOHOS)),
         text_layout_(std::make_unique<tttext::TextLayout>(
-            &font_collection_, tttext::ShaperType::kSystem)) {}
+            &font_collection_, tttext::RenderingBackend::kOHOS)) {}
   ~TextLayoutManager() = default;
 
   tttext::TextLayout* GetTextLayout() { return text_layout_.get(); }

@@ -39,7 +39,9 @@ class BufferOutputStream {
 
  public:
   template <typename T>
-  void WriteType(T value);
+  void WriteType(T value) {
+    WriteInternal(reinterpret_cast<const uint8_t*>(&value), sizeof(T));
+  }
 
  private:
   void WriteInternal(const uint8_t* buffer, size_t len);

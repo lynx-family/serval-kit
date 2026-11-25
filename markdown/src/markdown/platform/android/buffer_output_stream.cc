@@ -50,11 +50,6 @@ void BufferOutputStream::WriteBuffer(const uint8_t* buffer, size_t len) {
   buffer_.insert(buffer_.end(), buffer, buffer + len);
 }
 
-template <typename T>
-void BufferOutputStream::WriteType(T value) {
-  WriteInternal(reinterpret_cast<const uint8_t*>(&value), sizeof(value));
-}
-
 void BufferOutputStream::WriteInternal(const uint8_t* buffer, size_t len) {
   if (little_endian_ || len == 1) {
     WriteBuffer(buffer, len);

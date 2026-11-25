@@ -23,7 +23,7 @@ Pod::Spec.new do |s|
   s.public_header_files = "markdown/include/markdown/platform/ios/*.h"
   s.private_header_files = "markdown/include/markdown/platform/ios/internal/**/*.h"
 
-  s.dependency 'LynxTextra'
+  s.dependency 'LynxTextra', '0.3.0-rc.1'
 
   s.source_files =  "markdown/include/markdown/*.h",
                     "markdown/include/markdown/draw/**/*.h",

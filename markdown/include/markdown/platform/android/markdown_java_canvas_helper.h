@@ -6,8 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_ANDROID_MARKDOWN_JAVA_CANVAS_HELPER_H_
 
 #include <textra/i_canvas_helper.h>
-#include <textra/platform/java/buffer_output_stream.h>
-#include <textra/platform/java/java_canvas_helper.h>
+#include "markdown/platform/android/internal/serialized_java_canvas_helper.h"
 
 #include <memory>
 
@@ -23,7 +22,7 @@ enum class MarkdownCanvasOpExtend : int8_t {
   kDrawLinearGradientOnRect,
   kDrawLinearGradientOnPath,
 };
-class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
+class MarkdownJavaCanvasHelper : public internal::SerializedJavaCanvasHelper,
                                  public MarkdownCanvasExtend {
   static constexpr int8_t kCanvasOPExtend = -1;
 
@@ -67,7 +66,7 @@ class MarkdownJavaCanvasHelper : public tttext::JavaCanvasHelper,
   }
 
  private:
-  ::BufferOutputStream* stream_;
+  BufferOutputStream* stream_;
 };
 
 }  // namespace serval::markdown

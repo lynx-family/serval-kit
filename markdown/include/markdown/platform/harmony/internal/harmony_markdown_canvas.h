@@ -7,13 +7,14 @@
 #include <native_drawing/drawing_types.h>
 
 #include "markdown/draw/markdown_canvas.h"
-#include "textra/platform/ark_graphics/ag_canvas_helper.h"
+#include "markdown/draw/native_canvas_helper.h"
 namespace serval::markdown {
-class HarmonyMarkdownCanvas : public ttoffice::tttext::AGCanvasHelper,
+class HarmonyMarkdownCanvas : public NativeCanvasHelper,
                               public MarkdownCanvasExtend {
  public:
   explicit HarmonyMarkdownCanvas(OH_Drawing_Canvas* canvas)
-      : ttoffice::tttext::AGCanvasHelper(canvas), canvas_(canvas) {}
+      : NativeCanvasHelper(tttext::RenderingBackend::kOHOS, canvas),
+        canvas_(canvas) {}
   ~HarmonyMarkdownCanvas() override = default;
   void ClipPath(MarkdownPath* path) override;
   void DrawMarkdownPath(MarkdownPath* path, tttext::Painter* painter) override;

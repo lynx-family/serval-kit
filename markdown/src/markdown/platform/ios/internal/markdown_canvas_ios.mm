@@ -5,7 +5,6 @@
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 #include "markdown/draw/markdown_path.h"
 #include "markdown/platform/ios/internal/markdown_run_delegate_ios.h"
-#import "textra/platform/ios/typeface_coretext.h"
 
 namespace serval::markdown {
 namespace {
@@ -100,7 +99,10 @@ void DrawLinearGradientInPath(
 }  // namespace
 
 MarkdownCanvasIOS::MarkdownCanvasIOS(CGContextRef context, UIView* view)
-    : IOSCanvasBase(context), view_(view), gif_views_([NSMutableSet set]) {}
+    : NativeCanvasHelper(tttext::RenderingBackend::kIOS, context),
+      context_(context),
+      view_(view),
+      gif_views_([NSMutableSet set]) {}
 
 void MarkdownCanvasIOS::Save() {
   if (context_ == nullptr)

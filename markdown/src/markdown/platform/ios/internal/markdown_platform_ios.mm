@@ -7,7 +7,7 @@
 #include <memory>
 #include "markdown/platform/ios/internal/markdown_canvas_ios.h"
 #import "textra/fontmgr_collection.h"
-#import "textra/platform/ios/ios_font_manager.h"
+#import "textra/platform_helper.h"
 #import "textra/text_layout.h"
 
 namespace serval::markdown {
@@ -15,15 +15,17 @@ namespace {
 class TextLayoutManager {
  public:
   TextLayoutManager() {
-    FontManagerRef ft = std::make_shared<tttext::FontManagerCoreText>();
-    tttext::FontmgrCollection font_collection(ft);
+    FontManagerRef ft = tttext::PlatformHelper::CreateFontManager(
+        tttext::RenderingBackend::kIOS);
+    font_collection_ = std::make_unique<tttext::FontmgrCollection>(ft);
     textlayout_ = std::make_unique<tttext::TextLayout>(
-        &font_collection, tttext::ShaperType::kSystem);
+        font_collection_.get(), tttext::RenderingBackend::kIOS);
   }
   ~TextLayoutManager() = default;
   tttext::TextLayout* GetLayout() { return textlayout_.get(); }
 
  private:
+  std::unique_ptr<tttext::FontmgrCollection> font_collection_;
   std::unique_ptr<tttext::TextLayout> textlayout_;
 };
 
