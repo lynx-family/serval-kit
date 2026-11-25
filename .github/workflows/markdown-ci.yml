@@ -104,6 +104,27 @@ jobs:
       - name: Sync Common Dependencies
         uses: ./.github/actions/sync-deps
 
+      - name: Prepare Textra release candidate
+        shell: bash
+        run: |
+          source tools/envsetup.sh
+          HAR_PATH="$RUNNER_TEMP/lynxtextra-harmony-0.3.0-rc.1.har"
+          curl --fail --location --retry 3 \
+            https://github.com/lynx-family/lynx-textra/releases/download/0.3.0-rc.1/lynxtextra-harmony-0.3.0-rc.1.har \
+            --output "$HAR_PATH"
+          echo "b25842b964484236aedd1a840b9de75bf9e555dffee5fa8cff54657a38dfc224  $HAR_PATH" | sha256sum --check
+          python3 - "$HAR_PATH" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          import json5
+
+          path = Path("markdown/example/harmony/oh-package.json5")
+          config = json5.loads(path.read_text())
+          config.setdefault("overrides", {})["@lynx/lynxtextra"] = "file:" + sys.argv[1]
+          path.write_text(json.dumps(config, indent=2) + "\n")
+          PY
+
       - name: Install dependencies and Build
         shell: bash
         run: |

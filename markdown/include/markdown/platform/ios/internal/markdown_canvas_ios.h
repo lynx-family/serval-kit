@@ -7,13 +7,14 @@
 #import <UIKit/UIKit.h>
 #include <vector>
 #include "markdown/draw/markdown_canvas.h"
-#import "textra/platform/ios/ios_canvas_base.h"
+#include "markdown/draw/native_canvas_helper.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 namespace serval::markdown {
 
-class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
+class MarkdownCanvasIOS : public NativeCanvasHelper,
+                          public MarkdownCanvasExtend {
  public:
   MarkdownCanvasIOS(CGContextRef _Nullable context, UIView* view);
   ~MarkdownCanvasIOS() override = default;
@@ -49,6 +50,7 @@ class MarkdownCanvasIOS : public IOSCanvasBase, public MarkdownCanvasExtend {
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter);
 
  private:
+  CGContextRef _Nullable context_;
   UIView* view_;
   NSMutableSet<UIView*>* gif_views_;
   std::vector<PointF> translate_stack_;
