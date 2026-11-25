@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String CATEGORY_MASK = "Mask";
   private static final String CATEGORY_FILTER = "Filter";
   private static final String CATEGORY_PATTERN = "Pattern";
+  private static final String CATEGORY_MARKER = "Marker";
   private static final String CATEGORY_SVG_ROOT = "SvgRoot";
   private static final String CATEGORY_USE = "Use";
   private static final String CATEGORY_GRADIENT = "Gradient";
@@ -187,7 +188,10 @@ public class MainActivity extends AppCompatActivity {
             }
           });
 
-      String initialCategory = CATEGORY_TEXT;
+      String initialCategory = getIntent().getStringExtra("category");
+      if (initialCategory == null) {
+        initialCategory = CATEGORY_TEXT;
+      }
       int categoryIndex = Math.max(categories.indexOf(initialCategory), 0);
       categorySpinner.setSelection(categoryIndex);
       renderCategory(categories.get(categoryIndex));
@@ -207,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     for (String category : new String[] {
              CATEGORY_SHAPE, CATEGORY_COLOR_PARSING, CATEGORY_CURRENT_COLOR,
              CATEGORY_MASK, CATEGORY_FILTER, CATEGORY_ILLEGAL_PARSING,
-             CATEGORY_PATTERN, CATEGORY_SVG_ROOT, CATEGORY_USE,
+             CATEGORY_PATTERN, CATEGORY_MARKER, CATEGORY_SVG_ROOT, CATEGORY_USE,
              CATEGORY_GRADIENT, CATEGORY_VECTOR_EFFECT, CATEGORY_SMIL_ANIMATION,
              CATEGORY_TEXT, CATEGORY_OTHERS}) {
       categorizedFiles.put(category, new ArrayList<>());
@@ -226,6 +230,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private String categoryForFile(String fileName) {
+    if (fileName.startsWith("marker_")) {
+      return CATEGORY_MARKER;
+    }
     if (fileName.startsWith("color-parsing-")) {
       return CATEGORY_COLOR_PARSING;
     }

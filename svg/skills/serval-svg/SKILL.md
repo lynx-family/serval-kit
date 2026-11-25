@@ -53,6 +53,11 @@ This skill should answer:
 - Basic `text` / `tspan` is available with limited attributes on Android, iOS,
   and Harmony; Skity remains unavailable. Explain system-font differences and
   do not imply textPath, text stroke, or per-span positioning support.
+- Vertex markers support local references, start/mid/end, inline CSS shorthand,
+  auto/auto-start-reverse, markerUnits, viewBox, reference points and clipping.
+  Explain that context-fill/context-stroke currently support solid colors and
+  none; context gradients/patterns and external marker URLs are unsupported.
+  Marker children retain their normal platform limitations.
 
 ## Escalation
 

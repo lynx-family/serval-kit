@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PLATFORM_HARMONY_SR_HARMONY_CANVAS_H_
 #define SVG_INCLUDE_PLATFORM_HARMONY_SR_HARMONY_CANVAS_H_
 
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <memory>
@@ -94,6 +95,10 @@ class SrHarmonyCanvas : public canvas::SrCanvas {
                     const SrSVGRenderState& render_state) override;
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
+  bool GetTransform(float (&form)[6]) const override {
+    std::copy(current_transform_.begin(), current_transform_.end(), form);
+    return true;
+  }
   void ClipPath(canvas::Path* path, SrSVGFillRule clip_rule) override;
   bool SupportsFilters() const override { return true; }
   bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;

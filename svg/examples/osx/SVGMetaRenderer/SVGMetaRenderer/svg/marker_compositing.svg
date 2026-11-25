@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <marker id="m" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5"
+            orient="auto"><rect width="3" height="3" fill="context-stroke"/></marker>
+    <marker id="a"><path d="M0 0L1 0" marker-end="url(#b)"/></marker>
+    <marker id="b"><path d="M0 0L1 0" marker-end="url(#a)"/></marker>
+  </defs>
+  <path d="M20 25H80" stroke="red" stroke-width="8" opacity="0.5"
+        marker-end="url(#m)"/>
+  <path transform="scale(2)" d="M10 40H40" stroke="blue" stroke-width="4"
+        vector-effect="non-scaling-stroke" marker-end="url(#m)"/>
+  <path d="M130 25H150" fill="none" marker-end="url(#a)"/>
+</svg>

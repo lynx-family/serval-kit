@@ -931,7 +931,16 @@ bool SrSkityCanvas::DrawNonScalingStroke(::skity::Path& path,
 }
 
 void SrSkityCanvas::DrawPathWithRenderState(
-    ::skity::Path& path, const SrSVGRenderState& render_state) {
+    ::skity::Path& path, const SrSVGRenderState& input_render_state) {
+  SrSVGRenderState render_state = input_render_state;
+  SrSVGPaint default_fill{};
+  default_fill.type = SERVAL_PAINT_COLOR;
+  default_fill.content.color = {SERVAL_COLOR, NSVG_RGBA(0, 0, 0, 255)};
+  // A missing computed fill means SVG's initial black paint, while an
+  // explicit SERVAL_PAINT_NONE must continue to suppress filling.
+  if (!render_state.fill) {
+    render_state.fill = &default_fill;
+  }
   if (render_state.fill_rule == SR_SVG_EO_FILL) {
     path.SetFillType(::skity::Path::PathFillType::kEvenOdd);
   } else {

@@ -5,8 +5,9 @@
 """Render shared pattern percentage cases in Chrome and verify RGBA probes.
 
 Run from any directory. PNG references go to build/pattern-percent-chrome.
---update refreshes the manifest from Chrome; --sync-android copies the shared
-manifest and SVGs into Android's packaged test assets. No browser profile or
+--update refreshes the manifest from Chrome; --sync-android and --sync-harmony
+copy the manifest and SVGs into packaged test assets; --sync-ios copies the SVGs
+into the iOS example's bundled folder. No browser profile or
 long-running Chrome process is retained. This tool needs only Python's stdlib.
 """
 
@@ -110,7 +111,7 @@ def chrome_command(binary, arguments, timeout, screenshot=None):
         # inherit this dedicated process group; never touch an existing browser.
         try:
             os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
         try:
             process.wait(timeout=3)
@@ -120,7 +121,7 @@ def chrome_command(binary, arguments, timeout, screenshot=None):
         # dedicated group even when only a helper ignored SIGTERM.
         try:
             os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
         process.wait()
         process.stdout.close()
@@ -194,14 +195,17 @@ def find_chrome(override):
     raise RuntimeError("Chrome was not found; pass --chrome or set CHROME_BIN")
 
 
-def main():
+def main(default_output=None, generator_command=None):
     signal.signal(signal.SIGTERM, terminate)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chrome")
     parser.add_argument("--update", action="store_true")
     parser.add_argument("--sync-android", action="store_true")
+    parser.add_argument("--sync-harmony", action="store_true")
+    parser.add_argument("--sync-ios", action="store_true")
+    parser.add_argument("--sync-osx", action="store_true")
     parser.add_argument("--output-dir", type=Path,
-                        default=ROOT / "build/pattern-percent-chrome")
+                        default=default_output or ROOT / "build/pattern-percent-chrome")
     parser.add_argument("--timeout", type=float, default=30)
     args = parser.parse_args()
     try:
@@ -251,17 +255,29 @@ def main():
     if args.update:
         manifest["generator"] = {
             "browser": "Chrome Headless", "version": version,
-            "command": "python3 svg/tools/check_pattern_percent_chrome.py --update --sync-android",
-            "png_directory": "build/pattern-percent-chrome",
+            "command": generator_command or "python3 svg/tools/check_pattern_percent_chrome.py --update --sync-android",
+            "png_directory": os.path.relpath(args.output_dir, ROOT),
             "notes": "SVG occupies the top-left width x height pixels; reference PNG canvas is at least 500 x 500.",
         }
         MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
+    asset_directories = []
     if args.sync_android:
-        assets = ROOT / "svg/examples/android/app/src/main/assets"
+        asset_directories.append(ROOT / "svg/examples/android/app/src/main/assets")
+    if args.sync_harmony:
+        asset_directories.append(ROOT / "svg/examples/harmony/entry/src/main/resources/rawfile")
+    svg_directories = []
+    for assets in asset_directories:
         shutil.copyfile(MANIFEST, assets / MANIFEST.name)
+        svg_directories.append(assets / "svg")
+    if args.sync_ios:
+        svg_directories.append(ROOT / "svg/examples/iOS/ServalPark/ServalPark/svg")
+    if args.sync_osx:
+        svg_directories.append(
+            ROOT / "svg/examples/osx/SVGMetaRenderer/SVGMetaRenderer/svg")
+    for directory in svg_directories:
         for case in manifest["cases"]:
             shutil.copyfile(ROOT / "svg/test_cases" / case["file"],
-                            assets / "svg" / case["file"])
+                            directory / case["file"])
     if errors:
         raise SystemExit("\n".join(errors))
     print(f"{version}: all {sum(len(c['samples']) for c in manifest['cases'])} probes match")

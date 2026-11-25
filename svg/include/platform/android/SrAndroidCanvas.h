@@ -5,6 +5,7 @@
 #ifndef SVG_INCLUDE_PLATFORM_ANDROID_SRANDROIDCANVAS_H_
 #define SVG_INCLUDE_PLATFORM_ANDROID_SRANDROIDCANVAS_H_
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <string>
@@ -43,6 +44,7 @@ class SrAndroidCanvas : public canvas::SrCanvas {
   void Restore() override;
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
+  bool GetTransform(float (&form)[6]) const override;
   void DrawRect(const char* id, float x, float y, float rx, float ry,
                 float width, float height,
                 const SrSVGRenderState& render_state) override;

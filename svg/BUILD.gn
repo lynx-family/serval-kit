@@ -23,6 +23,7 @@ source_set("serval-svg") {
     "include/element/SrSVGImage.h",
     "include/element/SrSVGLine.h",
     "include/element/SrSVGLinearGradient.h",
+    "include/element/SrSVGMarker.h",
     "include/element/SrSVGMask.h",
     "include/element/SrSVGNode.h",
     "include/element/SrSVGPath.h",
@@ -77,6 +78,7 @@ source_set("serval-svg") {
     "src/element/SrSVGImage.cc",
     "src/element/SrSVGLine.cc",
     "src/element/SrSVGLinearGradient.cc",
+    "src/element/SrSVGMarker.cc",
     "src/element/SrSVGMask.cc",
     "src/element/SrSVGNode.cc",
     "src/element/SrSVGPath.cc",
@@ -100,6 +102,7 @@ source_set("serval-svg") {
     "src/parser/SrXMLExtractor.c",
     "src/parser/SrXMLParser.cc",
     "src/parser/SrXMLParserError.cc",
+    "src/utils/SrPathFactory.cc",
     "src/utils/SrSVGArc.c",
     "src/utils/SrSVGPatternUtils.cc",
   ]

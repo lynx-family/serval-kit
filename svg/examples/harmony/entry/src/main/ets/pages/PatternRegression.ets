@@ -11,6 +11,7 @@ import { runPatternPixelRegression } from '../testing/PatternPixelRegression';
 @Component
 struct PatternRegression {
   @State status: string = 'Waiting to run Chrome pixel regression';
+  @State renderedFiles: string[] = [];
   private started: boolean = false;
 
   @Builder
@@ -36,12 +37,18 @@ struct PatternRegression {
     this.status = 'Running Chrome pixel regression';
     try {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const markerRegression = AppStorage.get<boolean>('markerRegression') === true;
       const report = await runPatternPixelRegression(context.resourceManager, context.filesDir,
         this.getUIContext(), (controller: SvgRenderNodeController, width: number, height: number) => {
           return this.snapshot(controller, width, height);
-        });
+        }, markerRegression ? 'marker_cases.json' : 'pattern_percent_cases.json',
+        markerRegression ? 'marker-regression' : 'pattern-regression');
       this.status = `${report.passed ? 'PASS' : 'FAIL'}: ${report.caseCount} cases, ${report.probeCount} probes, ` +
         `${report.failedProbeCount} failures`;
+      if (markerRegression) {
+        this.renderedFiles = report.cases.map((testCase): string =>
+          `file://${context.filesDir}/${testCase.file.replace('.svg', '.png')}`);
+      }
     } catch (error) {
       this.status = `ERROR: ${(error as Error).message}`;
       console.error(`SVGPATTERN_FATAL ${this.status}`);
@@ -49,8 +56,13 @@ struct PatternRegression {
   }
 
   build() {
-    Column() {
-      Text(this.status).fontSize(18).padding(24)
+    Scroll() {
+      Column() {
+        Text(this.status).fontSize(18).padding(24)
+        ForEach(this.renderedFiles, (file: string) => {
+          Image(file).width(200).height(120).objectFit(ImageFit.Contain)
+        })
+      }.width('100%')
     }
     .width('100%')
     .height('100%')

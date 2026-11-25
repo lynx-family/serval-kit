@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="context-stroke"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke-width="4" marker-start="url(#arrow)" marker-end="url(#arrow)">
+    <path d="M30 25H160" stroke="#ff0000"/>
+    <path d="M30 65H100V100" stroke="#0000ff"/>
+    <path d="M30 100H70" stroke="#00aa00" style="marker:none"/>
+  </g>
+</svg>

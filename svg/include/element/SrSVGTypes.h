@@ -129,6 +129,11 @@ typedef struct SrSVGRenderContext {
   SrSVGBox view_box;
   uint8_t has_default_color;
   uint32_t default_color;
+  // Paints of the referencing element while rendering a marker instance.
+  void* context_fill;
+  void* context_stroke;
+  // Marker subtree opacity when the referencing shape could not use a layer.
+  const float* marker_fallback_opacity;
 } SrSVGRenderContext;
 
 typedef enum SrSVGLengthType {
@@ -166,7 +171,9 @@ typedef struct SrPath {
 typedef enum SrSVGPaintType {
   SERVAL_PAINT_NONE,
   SERVAL_PAINT_COLOR,
-  SERVAL_PAINT_IRI
+  SERVAL_PAINT_IRI,
+  SERVAL_PAINT_CONTEXT_FILL,
+  SERVAL_PAINT_CONTEXT_STROKE
 } SrSVGPaintType;
 
 typedef enum SrSVGColorType {

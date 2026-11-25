@@ -148,6 +148,7 @@ static NSString* const kCategoryIllegalParsing = @"IllegalParsing";
 static NSString* const kCategoryMask = @"Mask";
 static NSString* const kCategoryFilter = @"Filter";
 static NSString* const kCategoryPattern = @"Pattern";
+static NSString* const kCategoryMarker = @"Marker";
 static NSString* const kCategorySvgRoot = @"SvgRoot";
 static NSString* const kCategoryUse = @"Use";
 static NSString* const kCategoryGradient = @"Gradient";
@@ -165,7 +166,7 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 - (NSArray<NSString*>*)orderedCategories {
   return @[
     kCategoryShape, kCategoryColorParsing, kCategoryCurrentColor, kCategoryMask,
-    kCategoryFilter, kCategoryIllegalParsing, kCategoryPattern,
+    kCategoryFilter, kCategoryIllegalParsing, kCategoryPattern, kCategoryMarker,
     kCategorySvgRoot, kCategoryUse, kCategoryGradient, kCategoryVectorEffect,
     kCategorySMILAnimation, kCategoryText, kCategoryOthers
   ];
@@ -242,6 +243,9 @@ static NSArray<NSString*>* kPreviewMetadataFiles() {
 - (NSString*)categoryForFile:(NSString*)fileName {
   if ([fileName isEqualToString:@"text.svg"] || [fileName hasPrefix:@"text-"]) {
     return kCategoryText;
+  }
+  if ([fileName hasPrefix:@"marker_"]) {
+    return kCategoryMarker;
   }
   if ([fileName hasPrefix:@"color-parsing-"]) {
     return kCategoryColorParsing;

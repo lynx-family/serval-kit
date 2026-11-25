@@ -140,6 +140,16 @@ class SrIOSCanvas : public canvas::SrCanvas {
                     const SrSVGRenderState& render_state) override;
   void Translate(float x, float y) override;
   void Transform(const float (&form)[6]) override;
+  bool GetTransform(float (&form)[6]) const override {
+    const auto ctm = CGContextGetCTM(_context);
+    form[0] = ctm.a;
+    form[1] = ctm.b;
+    form[2] = ctm.c;
+    form[3] = ctm.d;
+    form[4] = ctm.tx;
+    form[5] = ctm.ty;
+    return true;
+  }
   void ClipPath(canvas::Path*, SrSVGFillRule clip_rule) override;
   bool SupportsFilters() const override { return true; }
   bool SupportsFilterModel(const canvas::SrFilterModel& filter) const override;

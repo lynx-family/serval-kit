@@ -8,11 +8,30 @@
 #include <math.h>
 
 #include "canvas/SrCanvas.h"
+#include "element/SrSVGMarker.h"
 #include "element/SrSVGTypes.h"
+#include "parser/SrSVGTraversalState.h"
 
 namespace serval {
 namespace svg {
 namespace element {
+
+namespace {
+
+class ScopedRenderState {
+ public:
+  explicit ScopedRenderState(SrSVGRenderState& state)
+      : state_(state), saved_(state) {}
+  ~ScopedRenderState() { state_ = saved_; }
+  ScopedRenderState(const ScopedRenderState&) = delete;
+  ScopedRenderState& operator=(const ScopedRenderState&) = delete;
+
+ private:
+  SrSVGRenderState& state_;
+  SrSVGRenderState saved_;
+};
+
+}  // namespace
 
 static inline uint32_t ResolveEffectiveColor(
     const SrSVGNode& node, const SrSVGRenderContext& context) {
@@ -34,10 +53,38 @@ void SrSVGShape::AppendChild(SrSVGNodeBase* node) {
 
 void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
                           SrSVGRenderContext& context) {
+  // Recursive marker references must restore the enclosing invocation's state.
+  ScopedRenderState scoped_render_state(render_state_);
   render_state_.fill =
       ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_);
   render_state_.stroke =
       ResolvePaint(&SrSVGNode::stroke_, &SrSVGNode::inherit_stroke_paint_);
+
+  // Resolve context paints without modifying the definition or inheriting the
+  // referencing shape's ordinary style into the marker.
+  SrSVGPaint no_paint{};
+  no_paint.type = SERVAL_PAINT_NONE;
+  auto context_paint = [&](void* value) -> SrSVGPaint* {
+    auto* paint = static_cast<SrSVGPaint*>(value);
+    // Paint servers need the context element's bounding box and coordinate
+    // system. Do not incorrectly resolve them against the marker geometry.
+    // Solid colors and none are supported until that backend bridge exists.
+    return paint && paint->type != SERVAL_PAINT_IRI ? paint : &no_paint;
+  };
+  auto resolve_context_paint = [&](SrSVGPaint* paint) -> SrSVGPaint* {
+    if (!paint) {
+      return nullptr;
+    }
+    if (paint->type == SERVAL_PAINT_CONTEXT_FILL) {
+      return context_paint(context.context_fill);
+    }
+    if (paint->type == SERVAL_PAINT_CONTEXT_STROKE) {
+      return context_paint(context.context_stroke);
+    }
+    return paint;
+  };
+  render_state_.fill = resolve_context_paint(render_state_.fill);
+  render_state_.stroke = resolve_context_paint(render_state_.stroke);
 
   if (render_state_.fill && render_state_.fill->type == SERVAL_PAINT_COLOR) {
     SrSVGColor& svgColor = render_state_.fill->content.color;
@@ -69,11 +116,16 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
   if (render_state_.stroke_width <= 0.f)
     render_state_.stroke = nullptr;
 
-  if (opacity_) {
-    render_state_.opacity = SrSVGNode::ClampOpacity(opacity_.value_or(1.0));
-  } else {
-    render_state_.opacity = 1.0;
+  const float shape_opacity = SrSVGNode::ClampOpacity(opacity_.value_or(1.f));
+  if (shape_opacity <= 0.f) {
+    return;
   }
+  const auto markers = SrSVGMarker::ResolveMarkers(*this, context);
+  const bool isolate_opacity = markers.has_references && shape_opacity < 1.f;
+  const float marker_opacity =
+      context.marker_fallback_opacity ? *context.marker_fallback_opacity : 1.f;
+  render_state_.opacity =
+      (isolate_opacity ? 1.f : shape_opacity) * marker_opacity;
 
   if (fill_opacity_) {
     render_state_.fill_opacity =
@@ -121,7 +173,20 @@ void SrSVGShape::OnRender(canvas::SrCanvas* canvas,
   float xform[6];
   ResolvedTransform(xform, context, canvas->PathFactory());
   canvas->Transform(xform);
+  parser::SrSVGOffscreenScope opacity_budget(context);
+  const bool has_opacity_layer =
+      isolate_opacity && opacity_budget.Reserve(*canvas, 1) &&
+      canvas->TryBeginOpacityLayer(nullptr, shape_opacity);
+  if (isolate_opacity && !has_opacity_layer) {
+    render_state_.opacity *= shape_opacity;
+    render_state_.fill_opacity *= shape_opacity;
+    render_state_.stroke_opacity *= shape_opacity;
+  }
   this->onDraw(canvas, context);
+  SrSVGMarker::RenderMarkers(canvas, context, *this, render_state_, markers);
+  if (has_opacity_layer) {
+    canvas->EndOpacityLayer();
+  }
 }
 
 bool SrSVGShape::ParseAndSetAttribute(const char* name, const char* value) {

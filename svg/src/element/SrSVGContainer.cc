@@ -19,6 +19,7 @@ bool IsContainerTag(SrSVGTag tag) {
     case SrSVGTag::kDefs:
     case SrSVGTag::kClipPath:
     case SrSVGTag::kMask:
+    case SrSVGTag::kMarker:
     case SrSVGTag::kFilter:
     case SrSVGTag::kPattern:
     case SrSVGTag::kLinearGradient:
@@ -60,99 +61,11 @@ void SrSVGContainer::OnRender(canvas::SrCanvas* canvas,
 void SrSVGContainer::RenderChild(canvas::SrCanvas* canvas,
                                  SrSVGRenderContext& context,
                                  SrSVGNodeBase* child) {
-  if (!PrepareChild(child)) {
-    return;
-  }
-  child->Render(canvas, context);
-  RestoreChild(child);
-}
-
-bool SrSVGContainer::PrepareChild(SrSVGNodeBase* child) {
   if (!child || !child->IsSVGNode()) {
-    return false;
-  }
-  auto node = static_cast<SrSVGNode*>(child);
-  child_render_state_stack_.push_back(ChildRenderState{
-      node->inherit_fill_paint_,
-      node->inherit_stroke_paint_,
-      node->inherit_clip_path_,
-      node->inherit_mask_,
-      node->inherit_stroke_width_,
-      node->inherit_fill_opacity_,
-      node->inherit_stroke_opacity_,
-      node->inherit_color_,
-  });
-
-  if (auto* paint =
-          ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_)) {
-    node->inherit_fill_paint_ = paint;
-  }
-
-  if (auto* paint = ResolvePaint(&SrSVGNode::stroke_,
-                                 &SrSVGNode::inherit_stroke_paint_)) {
-    node->inherit_stroke_paint_ = paint;
-  }
-
-  if (auto* paint = ResolvePaint(&SrSVGNode::clip_path_,
-                                 &SrSVGNode::inherit_clip_path_)) {
-    node->inherit_clip_path_ = paint;
-  }
-
-  if (auto* paint =
-          ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_)) {
-    node->inherit_mask_ = paint;
-  }
-
-  if (node->stroke_width_) {
-    node->inherit_stroke_width_ = node->stroke_width_;
-  } else if (stroke_width_) {
-    node->inherit_stroke_width_ = stroke_width_;
-  } else if (inherit_stroke_width_) {
-    node->inherit_stroke_width_ = inherit_stroke_width_;
-  }
-
-  if (node->fill_opacity_) {
-    node->inherit_fill_opacity_ = node->fill_opacity_;
-  } else if (fill_opacity_) {
-    node->inherit_fill_opacity_ = fill_opacity_;
-  } else if (inherit_fill_opacity_) {
-    node->inherit_fill_opacity_ = inherit_fill_opacity_;
-  }
-
-  if (node->stroke_opacity_) {
-    node->inherit_stroke_opacity_ = node->stroke_opacity_;
-  } else if (stroke_opacity_) {
-    node->inherit_stroke_opacity_ = stroke_opacity_;
-  } else if (inherit_stroke_opacity_) {
-    node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
-  }
-
-  if (node->color_) {
-    node->inherit_color_ = node->color_;
-  } else if (color_) {
-    node->inherit_color_ = color_;
-  } else if (inherit_color_) {
-    node->inherit_color_ = inherit_color_;
-  }
-
-  return true;
-}
-
-void SrSVGContainer::RestoreChild(SrSVGNodeBase* child) {
-  if (!child || !child->IsSVGNode() || child_render_state_stack_.empty()) {
     return;
   }
-  auto node = static_cast<SrSVGNode*>(child);
-  const ChildRenderState state = child_render_state_stack_.back();
-  child_render_state_stack_.pop_back();
-  node->inherit_fill_paint_ = state.fill_paint;
-  node->inherit_stroke_paint_ = state.stroke_paint;
-  node->inherit_clip_path_ = state.clip_path;
-  node->inherit_mask_ = state.mask;
-  node->inherit_fill_opacity_ = state.fill_opacity;
-  node->inherit_stroke_opacity_ = state.stroke_opacity;
-  node->inherit_stroke_width_ = state.stroke_width;
-  node->inherit_color_ = state.color;
+  ScopedInheritance inheritance(*static_cast<SrSVGNode*>(child), *this);
+  child->Render(canvas, context);
 }
 
 size_t SrSVGContainer::ChildCount() const {
@@ -191,15 +104,15 @@ bool SrSVGContainer::RenderChildPathAt(canvas::SrCanvas* canvas,
   canvas->Transform(xform);
 
   SrSVGNodeBase* child = children_[path[depth]];
-  if (!PrepareChild(child)) {
+  if (!child || !child->IsSVGNode()) {
     return false;
   }
+  ScopedInheritance inheritance(*static_cast<SrSVGNode*>(child), *this);
   bool rendered = false;
   if (IsContainerTag(child->Tag())) {
     auto* container = static_cast<SrSVGContainer*>(child);
     rendered = container->RenderChildPathAt(canvas, context, path, depth + 1);
   }
-  RestoreChild(child);
   return rendered;
 }
 

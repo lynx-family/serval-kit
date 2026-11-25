@@ -136,20 +136,21 @@ class Path {
 class PathFactory {
  public:
   virtual ~PathFactory() = default;
-  virtual std::unique_ptr<Path> CreateCircle(float cx, float cy, float r) = 0;
+  // Default shape builders preserve SVG vertices and arcs through CreatePath.
+  // Backends may override them to construct native primitives directly.
+  virtual std::unique_ptr<Path> CreateCircle(float cx, float cy, float r);
   virtual std::unique_ptr<Path> CreateRect(float x, float y, float rx, float ry,
-                                           float width, float height) = 0;
+                                           float width, float height);
   virtual std::unique_ptr<Path> CreateLine(float start_x, float start_y,
-                                           float end_x, float end_y) = 0;
+                                           float end_x, float end_y);
 
   virtual std::unique_ptr<Path> CreateEllipse(float center_x, float center_y,
-                                              float radius_x,
-                                              float radius_y) = 0;
+                                              float radius_x, float radius_y);
 
   virtual std::unique_ptr<Path> CreatePolygon(float points[],
-                                              uint32_t n_points) = 0;
+                                              uint32_t n_points);
   virtual std::unique_ptr<Path> CreatePolyline(float points[],
-                                               uint32_t n_points) = 0;
+                                               uint32_t n_points);
 
   virtual std::unique_ptr<Path> CreateMutable() = 0;
   virtual std::unique_ptr<Path> CreatePath(uint8_t ops[], uint64_t n_ops,
@@ -259,6 +260,7 @@ class SrCanvas {
                          float opacity = 1.f) = 0;
   virtual void Translate(float x, float y) = 0;
   virtual void Transform(const float (&form)[6]) = 0;
+  virtual bool GetTransform(float (&form)[6]) const { return false; }
   virtual void ClipPath(Path*, SrSVGFillRule clip_rule) = 0;
   virtual void Save() = 0;
   virtual void Restore() = 0;

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <marker id="m" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="6"
+            refX="0" refY="3" orient="auto" overflow="visible">
+      <rect width="14" height="6" fill="red"/>
+    </marker>
+  </defs>
+  <path d="M20 20C20 20 20 50 50 50Q80 50 80 80" fill="none" stroke="black"
+        marker-start="url(#m)" marker-mid="url(#m)" marker-end="url(#m)"/>
+  <path d="M160 30A30 30 0 0 1 130 60" fill="none" stroke="black"
+        marker-start="url(#m)" marker-end="url(#m)"/>
+</svg>

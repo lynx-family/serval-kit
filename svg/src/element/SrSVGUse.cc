@@ -4,7 +4,6 @@
 
 #include "element/SrSVGUse.h"
 #include <cstring>
-#include <optional>
 
 #include "canvas/SrCanvas.h"
 #include "parser/SrSVGTraversalState.h"
@@ -18,6 +17,10 @@ namespace svg {
 namespace element {
 
 namespace {
+
+bool IsSupportedUseTarget(SrSVGTag tag) {
+  return tag != SrSVGTag::kSvg && tag != SrSVGTag::kMarker;
+}
 
 parser::SrSVGTraversalState* GetTraversalState(SrSVGRenderContext& context) {
   return static_cast<parser::SrSVGTraversalState*>(context.traversal_state);
@@ -169,7 +172,7 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
   auto it = id_mapper->find(href_);
   if (it != id_mapper->end() && it->second) {
     SrSVGNodeBase* referenced_node = it->second;
-    if (referenced_node->Tag() == SrSVGTag::kSvg) {
+    if (!IsSupportedUseTarget(referenced_node->Tag())) {
       return nullptr;
     }
 
@@ -200,10 +203,8 @@ std::unique_ptr<canvas::Path> SrSVGUse::AsPath(
 
 void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
                               SrSVGRenderContext& context) {
-  if (!nodeBase || !nodeBase->IsSVGNode()) {
-    return;
-  }
-  if (nodeBase->Tag() == SrSVGTag::kSvg) {
+  if (!nodeBase || !nodeBase->IsSVGNode() ||
+      !IsSupportedUseTarget(nodeBase->Tag())) {
     return;
   }
   float x, y, form[6], translation[6], use_transform[6];
@@ -216,85 +217,13 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
   if (!ComposeAffineTransform(form, translation, use_transform))
     return;
   SrSVGNode* node = static_cast<SrSVGNode*>(nodeBase);
-  SrSVGPaint* local_fill_paint = node->inherit_fill_paint_;
-  SrSVGPaint* local_stroke_paint = node->inherit_stroke_paint_;
-  SrSVGPaint* local_clip_path = node->inherit_clip_path_;
-  SrSVGPaint* local_mask = node->inherit_mask_;
-  std::optional<SrSVGLength> local_stroke_width = node->inherit_stroke_width_;
-  std::optional<float> local_fill_opacity = node->inherit_fill_opacity_;
-  std::optional<float> local_stroke_opacity = node->inherit_stroke_opacity_;
-  std::optional<SrSVGColor> local_color = node->inherit_color_;
-  SrSVGStrokeCap local_stroke_cap = node->stroke_cap_;
-  SrSVGStrokeJoin local_stroke_join = node->stroke_join_;
-  float local_stroke_miter_limit = node->stoke_miter_limit_;
-  const auto local_stroke_dash_offset = node->stroke_dash_offset_;
-  std::vector<float> local_stroke_dash_array = node->stroke_dash_array_;
-
-  if (auto* paint =
-          ResolvePaint(&SrSVGNode::fill_, &SrSVGNode::inherit_fill_paint_)) {
-    node->inherit_fill_paint_ = paint;
-  }
-
-  if (auto* paint = ResolvePaint(&SrSVGNode::stroke_,
-                                 &SrSVGNode::inherit_stroke_paint_)) {
-    node->inherit_stroke_paint_ = paint;
-  }
-
-  if (auto* paint = ResolvePaint(&SrSVGNode::clip_path_,
-                                 &SrSVGNode::inherit_clip_path_)) {
-    node->inherit_clip_path_ = paint;
-  }
-
-  if (auto* paint =
-          ResolvePaint(&SrSVGNode::mask_, &SrSVGNode::inherit_mask_)) {
-    node->inherit_mask_ = paint;
-  }
-
-  if (node->stroke_width_) {
-    node->inherit_stroke_width_ = node->stroke_width_;
-  } else if (stroke_width_) {
-    node->inherit_stroke_width_ = stroke_width_;
-  } else if (inherit_stroke_width_) {
-    node->inherit_stroke_width_ = inherit_stroke_width_;
-  }
-
-  if (node->fill_opacity_) {
-    node->inherit_fill_opacity_ = node->fill_opacity_;
-  } else if (fill_opacity_) {
-    node->inherit_fill_opacity_ = fill_opacity_;
-  } else if (inherit_fill_opacity_) {
-    node->inherit_fill_opacity_ = inherit_fill_opacity_;
-  }
-
-  if (node->stroke_opacity_) {
-    node->inherit_stroke_opacity_ = node->stroke_opacity_;
-  } else if (stroke_opacity_) {
-    node->inherit_stroke_opacity_ = stroke_opacity_;
-  } else if (inherit_stroke_opacity_) {
-    node->inherit_stroke_opacity_ = inherit_stroke_opacity_;
-  }
+  ScopedInheritance inheritance(*node, *this);
 
   canvas->Transform(use_transform);
-
-  if (node->color_) {
-    node->inherit_color_ = node->color_;
-  } else if (color_) {
-    node->inherit_color_ = color_;
-  } else if (inherit_color_) {
-    node->inherit_color_ = inherit_color_;
-  }
 
   const float use_opacity =
       opacity_ ? SrSVGNode::ClampOpacity(opacity_.value_or(1.f)) : 1.f;
   if (opacity_ && use_opacity <= 0.f) {
-    node->inherit_fill_paint_ = local_fill_paint;
-    node->inherit_stroke_paint_ = local_stroke_paint;
-    node->inherit_fill_opacity_ = local_fill_opacity;
-    node->inherit_stroke_opacity_ = local_stroke_opacity;
-    node->inherit_stroke_width_ = local_stroke_width;
-    node->inherit_clip_path_ = local_clip_path;
-    node->inherit_mask_ = local_mask;
-    node->inherit_color_ = local_color;
     return;
   }
   parser::SrSVGOffscreenScope opacity_budget(context);
@@ -302,6 +231,11 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
       opacity_ && use_opacity < 1.f && opacity_budget.Reserve(*canvas, 1) &&
       canvas->TryBeginOpacityLayer(nullptr, use_opacity);
 
+  SrSVGStrokeCap local_stroke_cap = node->stroke_cap_;
+  SrSVGStrokeJoin local_stroke_join = node->stroke_join_;
+  float local_stroke_miter_limit = node->stoke_miter_limit_;
+  const auto local_stroke_dash_offset = node->stroke_dash_offset_;
+  std::vector<float> local_stroke_dash_array = node->stroke_dash_array_;
   if (has_stroke_cap_) {
     node->stroke_cap_ = stroke_cap_;
   }
@@ -325,14 +259,6 @@ void SrSVGUse::renderRealNode(SrSVGNodeBase* nodeBase, canvas::SrCanvas* canvas,
     canvas->EndOpacityLayer();
   }
 
-  node->inherit_fill_paint_ = local_fill_paint;
-  node->inherit_stroke_paint_ = local_stroke_paint;
-  node->inherit_fill_opacity_ = local_fill_opacity;
-  node->inherit_stroke_opacity_ = local_stroke_opacity;
-  node->inherit_stroke_width_ = local_stroke_width;
-  node->inherit_clip_path_ = local_clip_path;
-  node->inherit_mask_ = local_mask;
-  node->inherit_color_ = local_color;
   node->stroke_cap_ = local_stroke_cap;
   node->stroke_join_ = local_stroke_join;
   node->stoke_miter_limit_ = local_stroke_miter_limit;

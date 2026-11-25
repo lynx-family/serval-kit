@@ -592,6 +592,21 @@ public class SVGRender {
     }
   }
 
+  public float[] getCanvasTransform() {
+    if (mPictureCanvas == null) {
+      return null;
+    }
+    Matrix matrix = mPictureCanvas.getMatrix();
+    if (!matrix.isAffine()) {
+      return null;
+    }
+    float[] values = new float[9];
+    matrix.getValues(values);
+    return new float[] {values[Matrix.MSCALE_X], values[Matrix.MSKEW_Y],
+                        values[Matrix.MSKEW_X],  values[Matrix.MSCALE_Y],
+                        values[Matrix.MTRANS_X], values[Matrix.MTRANS_Y]};
+  }
+
   public void draw(Path path, FillPaintModel fillPaintModel,
                    StrokePaintModel strokePaintModel) {
     if (mPictureCanvas != null && path != null) {

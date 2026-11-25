@@ -24,6 +24,7 @@
 #include "element/SrSVGImage.h"
 #include "element/SrSVGLine.h"
 #include "element/SrSVGLinearGradient.h"
+#include "element/SrSVGMarker.h"
 #include "element/SrSVGMask.h"
 #include "element/SrSVGPath.h"
 #include "element/SrSVGPattern.h"
@@ -192,6 +193,7 @@ static bool IsNonRenderingTag(element::SrSVGTag tag) {
     case element::SrSVGTag::kRadialGradient:
     case element::SrSVGTag::kClipPath:
     case element::SrSVGTag::kMask:
+    case element::SrSVGTag::kMarker:
     case element::SrSVGTag::kFilter:
     case element::SrSVGTag::kPattern:
     case element::SrSVGTag::kFeBlend:
@@ -217,6 +219,11 @@ static bool ShouldAppendChild(const element::SrSVGNodeBase* parent,
     return false;
   }
   if (IsAnimationTag(child->Tag())) {
+    return false;
+  }
+  // Marker references resolve definitions through the ID map. A definition
+  // stays out of the child traversal even inside a pattern tile.
+  if (child->Tag() == element::SrSVGTag::kMarker) {
     return false;
   }
   if (parent->Tag() == element::SrSVGTag::kAnimateMotion &&
@@ -265,6 +272,11 @@ void parse_node_attribute(const SrDOM& dom, const SrDOM::Node* xmlNode,
 void pre_parse_inherit_attribute(const element::SrSVGNode* parent_node,
                                  element::SrSVGNode* node) {
   node->authored_parent_ = parent_node;
+  for (size_t i = 0; i < node->markers_.size(); ++i) {
+    node->inherit_markers_[i] = parent_node->markers_[i]
+                                    ? parent_node->markers_[i]
+                                    : parent_node->inherit_markers_[i];
+  }
   node->inherit_fill_opacity_ = parent_node->fill_opacity_
                                     ? parent_node->fill_opacity_
                                     : parent_node->inherit_fill_opacity_;
@@ -344,6 +356,8 @@ element::SrSVGNodeBase* ConstructSvgNode(
     node = element::SrSVGRadialGradient::Make();
   } else if (strcmp(el, "mask") == 0) {
     node = element::SrSVGMask::Make();
+  } else if (strcmp(el, "marker") == 0) {
+    node = element::SrSVGMarker::Make();
   } else if (strcmp(el, "use") == 0) {
     node = element::SrSVGUse::Make();
   } else if (strcmp(el, "image") == 0) {

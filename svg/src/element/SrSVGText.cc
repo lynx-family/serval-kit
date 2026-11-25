@@ -41,8 +41,8 @@ bool IsXmlSpace(char c) {
 
 class SrSVGTextParagraph {
  public:
-  explicit SrSVGTextParagraph(canvas::ParagraphFactory& factory)
-      : factory_(factory) {}
+  SrSVGTextParagraph(canvas::ParagraphFactory& factory, float opacity)
+      : factory_(factory), opacity_(opacity) {}
 
   bool HasText() const { return has_text_; }
 
@@ -93,7 +93,7 @@ class SrSVGTextParagraph {
     pending_space_.reset();
   }
 
-  static SrTextStyle ResolveRunStyle(const SrSVGTextStyle& style) {
+  SrTextStyle ResolveRunStyle(const SrSVGTextStyle& style) const {
     // Use the legacy solid black fallback for paint server fills.
     uint32_t color = NSVG_RGBA(0, 0, 0, 255);
     if (style.fill) {
@@ -106,7 +106,7 @@ class SrSVGTextParagraph {
       }
     }
     const auto alpha = static_cast<uint32_t>(
-        std::round(((color >> 24) & 0xFF) * style.fill_opacity));
+        std::round(((color >> 24) & 0xFF) * style.fill_opacity * opacity_));
     return {(color & 0x00FFFFFF) | (alpha << 24), style.font_size};
   }
 
@@ -117,6 +117,7 @@ class SrSVGTextParagraph {
   }
 
   canvas::ParagraphFactory& factory_;
+  const float opacity_;
   std::optional<SrTextStyle> pending_space_;
   bool has_text_{false};
 };
@@ -219,7 +220,9 @@ void SrSVGText::OnRender(canvas::SrCanvas* canvas,
   const auto paragraph_builder = canvas::CreateParagraphFactoryFactory(canvas);
   if (!paragraph_builder)
     return;
-  SrSVGTextParagraph text(*paragraph_builder);
+  const float* fallback_opacity = context.marker_fallback_opacity;
+  SrSVGTextParagraph text(*paragraph_builder,
+                          fallback_opacity ? *fallback_opacity : 1.f);
   AppendChildrenToParagraph(text, context, style);
   if (!text.HasText()) {
     return;

@@ -212,6 +212,25 @@ void SrAndroidCanvas::Transform(const float (&form)[6]) {
   }
 }
 
+bool SrAndroidCanvas::GetTransform(float (&form)[6]) const {
+  static const jmethodID method = [this] {
+    auto render_class = GetClass(jni_env_, j_render_);
+    return GetMethod(jni_env_, render_class.Get(), INSTANCE_METHOD,
+                     "getCanvasTransform", "()[F");
+  }();
+  if (!method) {
+    return false;
+  }
+  JavaLocalRef<jfloatArray> result(
+      jni_env_,
+      static_cast<jfloatArray>(jni_env_->CallObjectMethod(j_render_, method)));
+  if (ClearException(jni_env_) || result.IsNull()) {
+    return false;
+  }
+  jni_env_->GetFloatArrayRegion(result.Get(), 0, 6, form);
+  return !ClearException(jni_env_);
+}
+
 void SrAndroidCanvas::DrawRect(const char* id, float x, float y, float rx,
                                float ry, float width, float height,
                                const SrSVGRenderState& render_state) {
@@ -667,8 +686,8 @@ bool SrAndroidCanvas::RenderPatternStroke(JavaLocalRef<jobject>& path_ref,
   float inverse[6];
   bool use_non_scaling_stroke = false;
   if (render_state.vector_effect == SR_SVG_VECTOR_EFFECT_NON_SCALING_STROKE) {
-    CopyTransformArray(current_transform_, current);
-    use_non_scaling_stroke = element::InvertAffineTransform(current, inverse);
+    use_non_scaling_stroke = GetTransform(current) &&
+                             element::InvertAffineTransform(current, inverse);
   }
 
   std::unique_ptr<canvas::Path> stroke_clip_path;

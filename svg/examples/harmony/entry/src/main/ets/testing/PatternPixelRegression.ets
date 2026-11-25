@@ -139,7 +139,7 @@ function sampleRGBA(bytes: Uint8Array, offset: number, format: image.PixelMapFor
 }
 
 async function runCase(testCase: ReferenceCase, resources: resourceManager.ResourceManager,
-  uiContext: UIContext, snapshot: PatternSnapshot): Promise<CaseResult> {
+  uiContext: UIContext, snapshot: PatternSnapshot, outputDir: string): Promise<CaseResult> {
   validateReference(testCase);
   const content = readText(resources, `svg/${testCase.file}`);
   // Maps are unique to this drawable because its existing dispose contract
@@ -210,6 +210,19 @@ async function runCase(testCase: ReferenceCase, resources: resourceManager.Resou
           `expected=${JSON.stringify(sample.rgba)} actual=${JSON.stringify(actual)}`);
       }
     }
+    const packer = image.createImagePacker();
+    try {
+      const png = await packer.packing(rendered, { format: 'image/png', quality: 100 });
+      const file = fs.openSync(`${outputDir}/${testCase.file.replace('.svg', '.png')}`,
+        fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+      try {
+        fs.writeSync(file.fd, png);
+      } finally {
+        fs.closeSync(file);
+      }
+    } finally {
+      await packer.release();
+    }
     return { file: testCase.file, passed: passed, probes: probes };
   } finally {
     try {
@@ -239,8 +252,10 @@ async function runCase(testCase: ReferenceCase, resources: resourceManager.Resou
 }
 
 export async function runPatternPixelRegression(resources: resourceManager.ResourceManager,
-  filesDir: string, uiContext: UIContext, snapshot: PatternSnapshot): Promise<PatternRegressionReport> {
-  const manifest = JSON.parse(readText(resources, 'pattern_percent_cases.json')) as ReferenceManifest;
+  filesDir: string, uiContext: UIContext, snapshot: PatternSnapshot,
+  manifestFile: string = 'pattern_percent_cases.json',
+  reportName: string = 'pattern-regression'): Promise<PatternRegressionReport> {
+  const manifest = JSON.parse(readText(resources, manifestFile)) as ReferenceManifest;
   if (manifest.schema_version !== 1 || manifest.cases.length === 0) {
     throw new Error('Unsupported or empty pattern reference manifest.');
   }
@@ -251,7 +266,7 @@ export async function runPatternPixelRegression(resources: resourceManager.Resou
   for (const testCase of manifest.cases) {
     let result: CaseResult;
     try {
-      result = await runCase(testCase, resources, uiContext, snapshot);
+      result = await runCase(testCase, resources, uiContext, snapshot, filesDir);
     } catch (error) {
       const message = (error as Error).message;
       const probes: ProbeResult[] = testCase.samples.map((sample: ReferenceProbe): ProbeResult => {
@@ -273,7 +288,7 @@ export async function runPatternPixelRegression(resources: resourceManager.Resou
     console.info(`SVGPATTERN_CASE file=${testCase.file} passed=${result.passed} probes=${result.probes.length}`);
   }
   report.passed = report.failedCaseCount === 0;
-  const path = `${filesDir}/pattern-regression.json`;
+  const path = `${filesDir}/${reportName}.json`;
   const file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
   try {
     fs.writeSync(file.fd, JSON.stringify(report, null, 2));

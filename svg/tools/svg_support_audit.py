@@ -177,8 +177,9 @@ GRAPHIC_ATTRS = [
     "style",
 ]
 
-SHAPE_ATTRS = ordered_merge(GRAPHIC_ATTRS, ["fill-rule", "vector-effect"])
-GROUP_ATTRS = list(GRAPHIC_ATTRS)
+MARKER_ATTRS = ["marker", "marker-start", "marker-mid", "marker-end"]
+SHAPE_ATTRS = ordered_merge(GRAPHIC_ATTRS, ["fill-rule", "vector-effect"], MARKER_ATTRS)
+GROUP_ATTRS = ordered_merge(GRAPHIC_ATTRS, MARKER_ATTRS)
 LINE_GEOMETRY_ATTRS = ["x1", "y1", "x2", "y2"]
 RECT_GEOMETRY_ATTRS = ["x", "y", "rx", "ry", "width", "height"]
 CIRCLE_GEOMETRY_ATTRS = ["cx", "cy", "r"]
@@ -318,6 +319,42 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                     "svg/src/element/SrSVGContainer.cc",
                     "svg/src/element/SrSVGNode.cc",
                     "svg/include/element/SrSVGDefs.h",
+                ],
+            ),
+        ),
+        (
+            "marker",
+            TagSpec(
+                node_class="SrSVGMarker",
+                category="marker-definition",
+                recognized="yes",
+                parsed="yes",
+                rendered="partial",
+                render_mode="definition",
+                platform_ready=tag_platform("partial", "partial", "partial", "partial"),
+                supported_attributes=ordered_merge(
+                    GROUP_ATTRS,
+                    ["markerWidth", "markerHeight", "markerUnits", "refX", "refY",
+                     "orient", "viewBox", "preserveAspectRatio", "overflow"],
+                ),
+                partial_attributes=OrderedDict([
+                    ("fill", "context-fill/context-stroke support solid colors and none; context gradients and patterns are not rendered."),
+                    ("stroke", "context-fill/context-stroke support solid colors and none; context gradients and patterns are not rendered."),
+                ]),
+                parsed_but_not_rendered_attributes=OrderedDict(),
+                notes=[
+                    "Local url(#id) vertex markers support start, mid, end, inheritance, inline style, auto and auto-start-reverse orientation.",
+                    "Markers use their definition's style ancestry; referencing shapes supply colors only through explicit context-fill/context-stroke.",
+                    "External marker references and stylesheet rules are unsupported.",
+                    "Marker content retains the platform limitations of its child elements, including text, images and filters.",
+                    "Eight marker fixtures and 99 reference probes, including three MDN examples, pass on Skity software, iPhone 11/iOS 18.3.1 Core Graphics, and ALN-AL80/OpenHarmony 6.1.0.115 ArkUI snapshots. The original five fixtures and 37 probes also pass on physical Android 10 software and hardware Canvas.",
+                ],
+                source_files=[
+                    "svg/src/parser/SrSVGDOM.cc",
+                    "svg/src/element/SrSVGMarker.cc",
+                    "svg/src/element/SrSVGShape.cc",
+                    "svg/src/element/SrSVGNode.cc",
+                    "svg/include/canvas/SrCanvas.h",
                 ],
             ),
         ),
@@ -524,7 +561,8 @@ TAG_SPECS: "OrderedDict[str, TagSpec]" = OrderedDict(
                         "transform",
                         "color",
                         "style",
-                    ]
+                    ],
+                    MARKER_ATTRS,
                 ),
                 partial_attributes=OrderedDict(),
                 parsed_but_not_rendered_attributes=OrderedDict(

@@ -41,24 +41,9 @@ class SrSVGContainer : public SrSVGNode {
   [[nodiscard]] bool HasChildren() const final;
   void RenderChild(canvas::SrCanvas* canvas, SrSVGRenderContext& context,
                    SrSVGNodeBase* child);
-  bool PrepareChild(SrSVGNodeBase* child);
-  void RestoreChild(SrSVGNodeBase* child);
 
  protected:
   std::vector<SrSVGNodeBase*> children_;
-
- private:
-  struct ChildRenderState {
-    SrSVGPaint* fill_paint{nullptr};
-    SrSVGPaint* stroke_paint{nullptr};
-    SrSVGPaint* clip_path{nullptr};
-    SrSVGPaint* mask{nullptr};
-    std::optional<SrSVGLength> stroke_width;
-    std::optional<float> fill_opacity;
-    std::optional<float> stroke_opacity;
-    std::optional<SrSVGColor> color;
-  };
-  std::vector<ChildRenderState> child_render_state_stack_;
 };
 
 }  // namespace element

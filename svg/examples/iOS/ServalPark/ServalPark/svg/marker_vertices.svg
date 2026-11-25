@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <marker id="start" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10"
+            refX="5" refY="5"><rect width="10" height="10" fill="red"/></marker>
+    <marker id="mid" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10"
+            refX="5" refY="5"><rect width="10" height="10" fill="#00aa00"/></marker>
+    <marker id="end" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10"
+            refX="5" refY="5"><rect width="10" height="10" fill="blue"/></marker>
+  </defs>
+  <path d="M20 20L60 20 M100 20L140 20" fill="none" stroke="black"
+        marker-start="url(#start)" marker-mid="url(#mid)" marker-end="url(#end)"/>
+  <polyline points="20,70 60,70 60,100" fill="none" stroke="black"
+            style="marker-start:url('#start');marker-mid:url(#mid);marker-end:url(#end)"/>
+</svg>
