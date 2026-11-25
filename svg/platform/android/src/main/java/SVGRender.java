@@ -622,7 +622,7 @@ public class SVGRender {
     }
     TextPaint textPaint = new TextPaint();
     textPaint.setAntiAlias(true);
-    // create BoringLayout/staticLayout
+    // Android layouts draw from the top. Place the first baseline at SVG y.
     BoringLayout.Metrics boringMetrics =
         BoringLayout.isBoring(builder, textPaint);
     if (boringMetrics == null) {
@@ -636,9 +636,7 @@ public class SVGRender {
         x = x - width;
       }
       if (staticLayout.getLineCount() > 0) {
-        mPictureCanvas.translate(x, y + (staticLayout.getLineAscent(0) -
-                                         staticLayout.getLineDescent(0)) /
-                                            2);
+        mPictureCanvas.translate(x, y - staticLayout.getLineBaseline(0));
       }
       staticLayout.draw(mPictureCanvas);
     } else {
@@ -652,8 +650,7 @@ public class SVGRender {
       } else if (textAnchor == 2) {  // bottom
         x = x - boringMetrics.width;
       }
-      mPictureCanvas.translate(
-          x, y + (boringMetrics.ascent - boringMetrics.descent) / 2);
+      mPictureCanvas.translate(x, y - boringLayout.getLineBaseline(0));
       boringLayout.draw(mPictureCanvas);
     }
   }

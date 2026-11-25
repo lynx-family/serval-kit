@@ -184,6 +184,7 @@ struct Index {
     'text-opacity-compositing.svg',
     'text-whitespace-inheritance.svg',
     'text-basic-harmony.svg',
+    'text-emoji-translateion.svg',
     'text.svg',
     'transforms.svg',
     'smil_animation.svg',

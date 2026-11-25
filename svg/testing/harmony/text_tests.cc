@@ -178,6 +178,14 @@ int RunHarmonyTextTests() {
     passed &= Check(names[anchor], body, {{"Hello 中文 SVG", 28.f, 0xFF000000}},
                     anchor);
   }
+  passed &= Check("banana alphabetic baseline",
+                  "<text x='200' y='90' font-size='20' text-anchor='middle'>"
+                  "🍌</text>",
+                  {{"🍌", 20.f, 0xFF000000}}, 1);
+  passed &= Check("monkey alphabetic baseline",
+                  "<text x='200' y='90' font-size='20' text-anchor='middle'>"
+                  "🐒</text>",
+                  {{"🐒", 20.f, 0xFF000000}}, 1);
   passed &= Check("nested tspan inheritance",
                   "<text x=\"200\" y=\"90\" font-size=\"28\" fill=\"#ff0000\">A"
                   "<tspan fill=\"#00ff00\">B<tspan "

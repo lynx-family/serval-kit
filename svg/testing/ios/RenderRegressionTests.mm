@@ -2,6 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#import <CoreText/CoreText.h>
 #import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
 
@@ -46,6 +47,20 @@ static NSData* Pixels(UIImage* image) {
   return context ? pixels : nil;
 }
 
+static NSRange VisibleTextRows(NSData* pixels) {
+  const uint8_t* rgba = static_cast<const uint8_t*>(pixels.bytes);
+  NSUInteger first = NSNotFound;
+  NSUInteger last = 0;
+  for (NSUInteger index = 0; index < pixels.length / 4; ++index) {
+    if (rgba[index * 4 + 3] >= 128) {
+      const NSUInteger row = index / (NSUInteger)kSize.width;
+      first = MIN(first, row);
+      last = row;
+    }
+  }
+  return NSMakeRange(first, first == NSNotFound ? 0 : last - first + 1);
+}
+
 static UIImage* RenderView(NSString* svg) {
   SrSVGView* view = [[SrSVGView alloc] initWithString:svg];
   view.frame = CGRectMake(0, 0, 320, 180);
@@ -88,6 +103,42 @@ static UIImage* RenderView(NSString* svg) {
       actualAnchor = right;
     }
     XCTAssertEqualWithAccuracy(actualAnchor, anchorX, 4, @"%@", anchor);
+  }
+}
+
+- (void)testEmojiAndPlainTextUseTheSpecifiedBaseline {
+  for (NSString* label in @[@"Hg", @"🍌", @"🐒"]) {
+    NSString* svg =
+        Wrap([NSString stringWithFormat:@"<text x='160' y='90' font-size='20' "
+                                         "text-anchor='middle'>%@</text>",
+                                        label]);
+    NSRange actual = VisibleTextRows(Pixels(Render(svg, 0)));
+
+    UIFont* font = [UIFont systemFontOfSize:20];
+    NSAttributedString* text = [[NSAttributedString alloc]
+        initWithString:label
+            attributes:@{NSFontAttributeName: font}];
+    CTLineRef line =
+        CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)text);
+    const CGFloat width =
+        CTLineGetTypographicBounds(line, nullptr, nullptr, nullptr);
+    UIGraphicsBeginImageContextWithOptions(kSize, NO, 1);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextTranslateCTM(context, 0, kSize.height);
+    CGContextScaleCTM(context, 1, -1);
+    CGContextSetTextPosition(context, 160 - width / 2, kSize.height - 90);
+    CTLineDraw(line, context);
+    NSRange reference =
+        VisibleTextRows(Pixels(UIGraphicsGetImageFromCurrentImageContext()));
+    UIGraphicsEndImageContext();
+    CFRelease(line);
+
+    XCTAssertGreaterThan(actual.length, 0u, @"%@", label);
+    XCTAssertGreaterThan(reference.length, 0u, @"%@", label);
+    XCTAssertEqualWithAccuracy(actual.location, reference.location, 1,
+                               @"%@ top", label);
+    XCTAssertEqualWithAccuracy(NSMaxRange(actual), NSMaxRange(reference), 1,
+                               @"%@ bottom", label);
   }
 }
 
