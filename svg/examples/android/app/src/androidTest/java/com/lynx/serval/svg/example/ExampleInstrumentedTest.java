@@ -104,6 +104,42 @@ public class ExampleInstrumentedTest {
                literal.sameAs(references));
   }
 
+  @Test
+  public void textYAlignsPlainTextAndEmojiToBaseline() {
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setTextSize(28);
+    // U+200E forces StaticLayout even on devices that treat emoji as boring.
+    for (String text : Arrays.asList("Hg", "\u200E🍌", "🐒")) {
+      Bitmap actual = renderTextSample(text);
+      Bitmap reference = Bitmap.createBitmap(
+          actual.getWidth(), actual.getHeight(), Bitmap.Config.ARGB_8888);
+      new Canvas(reference).drawText(text, 20, 60, paint);
+
+      int top = actual.getHeight();
+      int bottom = -1;
+      int referenceTop = reference.getHeight();
+      int referenceBottom = -1;
+      for (int y = 0; y < actual.getHeight(); ++y) {
+        for (int x = 0; x < actual.getWidth(); ++x) {
+          if (Color.alpha(actual.getPixel(x, y)) > 0) {
+            top = Math.min(top, y);
+            bottom = y;
+          }
+          if (Color.alpha(reference.getPixel(x, y)) > 0) {
+            referenceTop = Math.min(referenceTop, y);
+            referenceBottom = y;
+          }
+        }
+      }
+      actual.recycle();
+      reference.recycle();
+      assertTrue(text + " should render visible ink",
+                 top <= bottom && referenceTop <= referenceBottom);
+      assertEquals(text + " ink top at SVG y", referenceTop, top, 1);
+      assertEquals(text + " ink bottom at SVG y", referenceBottom, bottom, 1);
+    }
+  }
+
   private static Bitmap renderTextSample(String text) {
     String svg = "<svg viewBox='0 0 400 100'><text x='20' y='60' "
                  + "font-size='28'>" + text + "</text></svg>";

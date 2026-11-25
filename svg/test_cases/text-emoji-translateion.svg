@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 310" font-family="sans-serif">
+  <rect x="32" y="26" width="396" height="252" fill="#ffffff" stroke="#94a3b8"/>
+  <path d="M68 26V278" stroke="#cbd5e1"/>
+  <path d="M104 26V278" stroke="#cbd5e1"/>
+  <path d="M140 26V278" stroke="#cbd5e1"/>
+  <path d="M176 26V278" stroke="#cbd5e1"/>
+  <path d="M212 26V278" stroke="#cbd5e1"/>
+  <path d="M248 26V278" stroke="#cbd5e1"/>
+  <path d="M284 26V278" stroke="#cbd5e1"/>
+  <path d="M320 26V278" stroke="#cbd5e1"/>
+  <path d="M356 26V278" stroke="#cbd5e1"/>
+  <path d="M392 26V278" stroke="#cbd5e1"/>
+  <path d="M32 62H428" stroke="#cbd5e1"/>
+  <path d="M32 98H428" stroke="#cbd5e1"/>
+  <path d="M32 134H428" stroke="#cbd5e1"/>
+  <path d="M32 170H428" stroke="#cbd5e1"/>
+  <path d="M32 206H428" stroke="#cbd5e1"/>
+  <path d="M32 242H428" stroke="#cbd5e1"/>
+  <text x="374" y="159" text-anchor="middle" font-size="20">🍌</text>
+  <text x="122" y="231" text-anchor="middle" font-size="20">🦴</text>
+  <text x="302" y="87" text-anchor="middle" font-size="20">🐕</text>
+  <text x="86" y="123" text-anchor="middle" font-size="20">🥕</text>
+  <text x="230" y="195" text-anchor="middle" font-size="20">🐰</text>
+  <text x="194" y="51" text-anchor="middle" font-size="20">🎍</text>
+  <text x="338" y="267" text-anchor="middle" font-size="20">🐼</text>
+  <circle cx="374" cy="152" r="15" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M158 116 L374 116 L374 152" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 4" opacity="0.5"/>
+  <circle cx="158" cy="116" r="15" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="158" y="123" text-anchor="middle" font-size="20">🐒</text>
+</svg>
