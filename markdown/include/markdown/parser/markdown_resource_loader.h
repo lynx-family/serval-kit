@@ -19,15 +19,6 @@ struct MarkdownReplacementView {
   // Text emitted when this replacement view is selected or copied.
   std::string alt_text_;
 };
-// Optional layout-time host service. Return null while loading or to keep the
-// original source. Once ready, request a measure on the owning layout thread.
-class MarkdownFormulaLoader {
- public:
-  virtual ~MarkdownFormulaLoader() = default;
-  virtual std::shared_ptr<MarkdownDrawable> LoadFormula(
-      std::string_view formula, float font_size, uint32_t color,
-      float max_width, bool display_mode) = 0;
-};
 class MarkdownResourceLoader {
  public:
   virtual ~MarkdownResourceLoader() = default;
@@ -40,6 +31,13 @@ class MarkdownResourceLoader {
   virtual MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
                                                       float max_width,
                                                       float max_height) = 0;
+  // Formula excludes delimiters. Return null to display the original source.
+  // When an asynchronous result is ready, request a measure on the layout thread.
+  virtual std::shared_ptr<MarkdownDrawable> LoadFormula(
+      std::string_view formula, float font_size, uint32_t color,
+      float max_width, bool display_mode) {
+    return nullptr;
+  }
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_RESOURCE_LOADER_H_

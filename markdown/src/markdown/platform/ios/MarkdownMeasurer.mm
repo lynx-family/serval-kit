@@ -134,7 +134,6 @@ class MarkdownMeasureHostIOS final
     auto* view = [self getMarkdownView];
     view->SetEventListener(event_listener_.get());
     view->SetResourceLoader(resource_loader_.get());
-    view->GetMarkdownContext()->SetFormulaLoader(resource_loader_.get());
   }
   return self;
 }
@@ -146,7 +145,6 @@ class MarkdownMeasureHostIOS final
   auto* view = [self getMarkdownView];
   if (view != nullptr) {
     view->SetExposureListener(nullptr);
-    view->GetMarkdownContext()->SetFormulaLoader(nullptr);
     view->SetEventListener(nullptr);
     view->SetResourceLoader(nullptr);
   }

@@ -72,7 +72,7 @@ TEST(MarkdownViewMeasurerTest, DashedDecorationScalesWithDensity) {
 }
 
 TEST(MarkdownViewMeasurerTest, PendingAndReadyFormulaSourceMapping) {
-  class Loader : public MarkdownFormulaLoader {
+  class Loader : public testing::MockMarkdownResourceLoader {
    public:
     std::shared_ptr<MarkdownDrawable> LoadFormula(std::string_view formula,
                                                   float font_size,
@@ -88,9 +88,9 @@ TEST(MarkdownViewMeasurerTest, PendingAndReadyFormulaSourceMapping) {
     }
     bool ready{false};
   } loader;
-  auto context = testing::CreateTestMarkdownSharedContext();
-  context->SetFormulaLoader(&loader);
-  MarkdownViewMeasurer measurer(context);
+  testing::MockMarkdownResourceLoader default_loader;
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext(),
+                                &loader);
   measurer.SetContent("> $$\n> x_1\n> $$Z");
   measurer.Measure({});
   EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 100),
@@ -102,6 +102,12 @@ TEST(MarkdownViewMeasurerTest, PendingAndReadyFormulaSourceMapping) {
   EXPECT_EQ(document->GetContentByCharPos(0, 1), "$$\nx_1\n$$");
   EXPECT_EQ(document->CharOffsetToMarkdownOffset(0), 2);
   EXPECT_EQ(document->CharOffsetToMarkdownOffset(1), 15);
+
+  measurer.SetResourceLoader(&default_loader);
+  measurer.Measure({});
+  EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 1), "$");
+  EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 100),
+            "$$\nx_1\n$$Z\n");
 }
 
 TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {

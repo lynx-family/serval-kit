@@ -12,7 +12,6 @@
 #include "markdown/utils/markdown_platform.h"
 
 namespace serval::markdown {
-class MarkdownFormulaLoader;
 
 class MarkdownContext {
  public:
@@ -30,12 +29,6 @@ class MarkdownContext {
   HexColorFormat GetHashHexColorFormat() const {
     return hash_hex_color_format_;
   }
-
-  // The host owns the loader for the duration of layout.
-  void SetFormulaLoader(MarkdownFormulaLoader* loader) {
-    formula_loader_ = loader;
-  }
-  MarkdownFormulaLoader* GetFormulaLoader() const { return formula_loader_; }
 
   void SetHarmonyShaperForceLowAPI(bool force_low_api) {
     harmony_shaper_force_low_api_ = force_low_api;
@@ -58,7 +51,6 @@ class MarkdownContext {
   HexColorFormat hash_hex_color_format_{HexColorFormat::kRGBA};
   bool harmony_shaper_force_low_api_{true};
   std::unique_ptr<MarkdownPlatform> platform_;
-  MarkdownFormulaLoader* formula_loader_{nullptr};
 };
 
 }  // namespace serval::markdown

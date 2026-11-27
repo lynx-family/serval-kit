@@ -16,8 +16,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 namespace serval::markdown {
-class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader,
-                                        public MarkdownFormulaLoader {
+class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
  public:
   explicit MarkdownResourceLoaderIOS(dispatch_block_t formula_ready)
       : formula_ready_([formula_ready copy]) {}

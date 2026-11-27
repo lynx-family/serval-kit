@@ -1400,17 +1400,16 @@ void MarkdownParserEmbed::AppendFormula(MarkdownFormulaNode* node,
                                         uint32_t char_offset,
                                         uint32_t markdown_offset) {
   const auto source = node->GetText();
-  auto* loader = document_->GetContextPtr()->GetFormulaLoader();
   std::shared_ptr<MarkdownDrawable> drawable;
-  if (loader != nullptr) {
+  if (loader_ != nullptr) {
     const auto& block = context_.block_style_;
     const float available = context_.max_width_ - context_.indent_ -
                             block.margin_left_ - block.padding_left_ -
                             block.margin_right_ - block.padding_right_ -
                             2 * context_.border_style_.border_width_;
-    drawable = loader->LoadFormula(node->GetFormula(), style.GetTextSize(),
-                                   style.GetForegroundColor(), available,
-                                   node->IsDisplayMode());
+    drawable = loader_->LoadFormula(node->GetFormula(), style.GetTextSize(),
+                                    style.GetForegroundColor(), available,
+                                    node->IsDisplayMode());
   }
   if (!drawable) {
     for (size_t start = 0; start < source.size();) {
