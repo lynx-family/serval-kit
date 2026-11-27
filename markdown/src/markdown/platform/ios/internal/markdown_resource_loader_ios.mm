@@ -61,6 +61,38 @@ std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadImage(
       image, desire_width, desire_height, max_width, max_height, border_radius);
 }
 
+std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadFormula(
+    std::string_view formula, float font_size, uint32_t color, float max_width,
+    bool display_mode) {
+  id<IMarkdownResourceDelegate> delegate = delegate_;
+  SEL load = @selector(loadFormula:fontSize:color:maxWidth:displayMode:);
+  if (![delegate respondsToSelector:load]) {
+    return nullptr;
+  }
+  NSString* text = [[NSString alloc] initWithBytes:formula.data()
+                                            length:formula.size()
+                                          encoding:NSUTF8StringEncoding];
+  id<IMarkdownFormula> result = [delegate loadFormula:text
+                                             fontSize:font_size
+                                                color:color
+                                             maxWidth:max_width
+                                          displayMode:display_mode];
+  if (result == nil)
+    return nullptr;
+  if ([result respondsToSelector:@selector(isLoaded)] && !result.isLoaded &&
+      [result respondsToSelector:@selector(setLoadCallback:)]) {
+    NSRunLoop* layout_loop = NSRunLoop.currentRunLoop;
+    dispatch_block_t ready = formula_ready_;
+    [result setLoadCallback:^{
+      CFRunLoopPerformBlock(layout_loop.getCFRunLoop, kCFRunLoopCommonModes,
+                            ready);
+      CFRunLoopWakeUp(layout_loop.getCFRunLoop);
+    }];
+    return nullptr;
+  }
+  return std::make_shared<MarkdownFormulaRunDelegate>(result);
+}
+
 std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadInlineView(
     const char* id_selector, float max_width, float max_height) {
   if (delegate_ == nil || id_selector == nullptr) {

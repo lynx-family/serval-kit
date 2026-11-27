@@ -31,6 +31,7 @@ typedef NS_ENUM(NSUInteger, ServalMarkdownProps) {
   kServalMarkdownPropsMarkdownEffect,
   kServalMarkdownPropsTextMarkAttachments,
   kServalMarkdownPropsTypewriterHeightTransitionPrefetch,
+  kServalMarkdownPropsEnableSyntaxCompletion,
 };
 
 typedef NS_ENUM(NSUInteger, ServalMarkdownTextOverflow) {

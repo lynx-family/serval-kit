@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
@@ -17,6 +18,15 @@ struct MarkdownReplacementView {
   std::shared_ptr<MarkdownDrawable> view_;
   // Text emitted when this replacement view is selected or copied.
   std::string alt_text_;
+};
+// Optional layout-time host service. Return null while loading or to keep the
+// original source. Once ready, request a measure on the owning layout thread.
+class MarkdownFormulaLoader {
+ public:
+  virtual ~MarkdownFormulaLoader() = default;
+  virtual std::shared_ptr<MarkdownDrawable> LoadFormula(
+      std::string_view formula, float font_size, uint32_t color,
+      float max_width, bool display_mode) = 0;
 };
 class MarkdownResourceLoader {
  public:

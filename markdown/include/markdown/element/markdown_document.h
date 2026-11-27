@@ -134,6 +134,10 @@ class L_EXPORT MarkdownDocument {
   void AllowBreakAroundPunctuation(const bool allow) {
     allow_break_around_punctuation = allow;
   }
+  bool GetEnableSyntaxCompletion() const { return enable_syntax_completion_; }
+  void SetEnableSyntaxCompletion(bool enable) {
+    enable_syntax_completion_ = enable;
+  }
   bool GetAllowBreakAroundPunctuation() const {
     return allow_break_around_punctuation;
   }
@@ -223,6 +227,7 @@ class L_EXPORT MarkdownDocument {
   std::shared_ptr<MarkdownDrawable> truncation_delegate_;
 
   bool allow_break_around_punctuation = false;
+  bool enable_syntax_completion_{false};
 
   PointF touch_down_point_{};
   bool touch_down_{false};

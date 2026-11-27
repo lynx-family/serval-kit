@@ -122,8 +122,10 @@ class MarkdownMeasureHostIOS final
     event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
     exposure_listener_ =
         std::make_unique<serval::markdown::MarkdownExposureIOS>();
+    __weak MarkdownMeasurer* weak_self = self;
     resource_loader_ =
-        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();
+        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>(
+            ^{ [weak_self markDirty]; });
     bound_view_ = nullptr;
     animation_paused_ = NO;
     current_time_ms_ = 0;
@@ -132,6 +134,7 @@ class MarkdownMeasureHostIOS final
     auto* view = [self getMarkdownView];
     view->SetEventListener(event_listener_.get());
     view->SetResourceLoader(resource_loader_.get());
+    view->GetMarkdownContext()->SetFormulaLoader(resource_loader_.get());
   }
   return self;
 }
@@ -143,6 +146,7 @@ class MarkdownMeasureHostIOS final
   auto* view = [self getMarkdownView];
   if (view != nullptr) {
     view->SetExposureListener(nullptr);
+    view->GetMarkdownContext()->SetFormulaLoader(nullptr);
     view->SetEventListener(nullptr);
     view->SetResourceLoader(nullptr);
   }

@@ -246,6 +246,65 @@ InlineNodeDescriptor HtmlEntity(const std::string& raw_text,
 }
 
 void Expect(std::string_view text, const InlineNodeDescriptor& node);
+TEST(MarkdownInlineParserTest, FormulasKeepLiteralMarkupAndSource) {
+  const std::string body = R"(x_1 * \frac{a}{b} + \$)";
+  for (const auto& markers : std::vector<std::pair<std::string, std::string>>{
+           {"$", "$"}, {"$$", "$$"}, {"\\(", "\\)"}, {"\\[", "\\]"}}) {
+    const auto source = markers.first + body + markers.second;
+    auto root = MarkdownInlineSyntaxParser::Parse(source);
+    ASSERT_EQ(root->Children().size(), 1u) << source;
+    auto* child = root->Children().front().get();
+    ASSERT_EQ(child->GetSyntax(), MarkdownInlineSyntax::kFormula);
+    auto* formula = static_cast<MarkdownFormulaNode*>(child);
+    EXPECT_EQ(formula->GetFormula(), body);
+    EXPECT_EQ(formula->GetText(), source);
+    EXPECT_EQ(formula->IsDisplayMode(),
+              markers.first == "$$" || markers.first == "\\[");
+  }
+}
+
+TEST(MarkdownInlineParserTest, FormulaBoundariesPreserveCodeLinksAndCurrency) {
+  for (const auto* text : {"$5 and $10", "$ x$", "$x $", "$$$x$$$", "$x\ny$"}) {
+    auto root = MarkdownInlineSyntaxParser::Parse(text);
+    for (const auto& child : root->Children()) {
+      EXPECT_NE(child->GetSyntax(), MarkdownInlineSyntax::kFormula) << text;
+    }
+  }
+  auto code = MarkdownInlineSyntaxParser::Parse(R"code(\$x\$ and `$y$`)code");
+  EXPECT_EQ(code->Children().back()->GetSyntax(),
+            MarkdownInlineSyntax::kInlineCode);
+  auto link = MarkdownInlineSyntaxParser::Parse("[link](a$b$c) $x$");
+  ASSERT_EQ(link->Children().size(), 3u);
+  ASSERT_EQ(link->Children()[0]->GetSyntax(), MarkdownInlineSyntax::kLink);
+  EXPECT_EQ(
+      static_cast<MarkdownLinkNode*>(link->Children()[0].get())->GetLink(),
+      "a$b$c");
+  EXPECT_EQ(link->Children()[2]->GetSyntax(), MarkdownInlineSyntax::kFormula);
+  auto partial = MarkdownInlineSyntaxParser::Parse("$x **bold**");
+  EXPECT_EQ(partial->Children().back()->GetSyntax(),
+            MarkdownInlineSyntax::kBold);
+}
+
+TEST(MarkdownInlineParserTest, CompleteOpenHtmlInsideOut) {
+  const std::string_view source = R"(<span class="red"><b>value)";
+  auto original = MarkdownInlineSyntaxParser::Parse(source);
+  ASSERT_EQ(original->Children().size(), 1u);
+  EXPECT_EQ(original->Children()[0]->GetSyntax(),
+            MarkdownInlineSyntax::kRawText);
+  auto root = MarkdownInlineSyntaxParser::Parse(source, true);
+  ASSERT_EQ(root->Children().size(), 1u);
+  auto* span = root->Children()[0].get();
+  ASSERT_EQ(span->GetSyntax(), MarkdownInlineSyntax::kInlineHtml);
+  EXPECT_EQ(span->GetText(), source);
+  ASSERT_EQ(span->Children().size(), 1u);
+  EXPECT_EQ(span->Children()[0]->GetSyntax(),
+            MarkdownInlineSyntax::kInlineHtml);
+  EXPECT_EQ(span->Children()[0]->GetText(), "<b>value");
+  auto incomplete = MarkdownInlineSyntaxParser::Parse("<span", true);
+  EXPECT_EQ(incomplete->Children().front()->GetSyntax(),
+            MarkdownInlineSyntax::kRawText);
+}
+
 TEST(MarkdownInlineParserTest, Stars) {
   Expect("*italic*normal text",
          Root({Italic("*", {RawText("italic")}), RawText("normal text")}));

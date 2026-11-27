@@ -28,6 +28,7 @@ enum class MarkdownProps {
   kMarkdownEffect,
   kTextMarkAttachments,
   kTypewriterHeightTransitionPrefetch,
+  kEnableSyntaxCompletion,
 };
 }
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_VIEW_MARKDOWN_PROPS_H_

@@ -21,6 +21,7 @@ enum class MarkdownRunDelegateType : uint8_t {
   kImage = 0,
   kView,
   kBackground,
+  kFormula,
 };
 
 class MarkdownRunDelegate : public MarkdownDrawable {
@@ -40,6 +41,26 @@ class MarkdownRunDelegate : public MarkdownDrawable {
   MarkdownRunDelegateType delegate_type_;
   float desire_width_;
   float desire_height_;
+};
+
+class MarkdownFormulaRunDelegate final : public MarkdownRunDelegate {
+ public:
+  explicit MarkdownFormulaRunDelegate(id<IMarkdownFormula> formula)
+      : MarkdownRunDelegate(formula.advance, formula.descent - formula.ascent,
+                            MarkdownRunDelegateType::kFormula),
+        formula_(formula) {}
+  void DrawFormula(CGContextRef context, CGRect rect) const {
+    [formula_ drawInContext:context rect:rect];
+  }
+
+ protected:
+  MeasureResult OnMeasure(MeasureSpec spec) override {
+    return {desire_width_, desire_height_,
+            static_cast<float>(-formula_.ascent)};
+  }
+
+ private:
+  id<IMarkdownFormula> formula_;
 };
 
 class MarkdownImageRunDelegate : public MarkdownRunDelegate {

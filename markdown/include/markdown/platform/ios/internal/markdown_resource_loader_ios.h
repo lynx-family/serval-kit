@@ -16,9 +16,11 @@
 NS_ASSUME_NONNULL_BEGIN
 
 namespace serval::markdown {
-class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
+class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader,
+                                        public MarkdownFormulaLoader {
  public:
-  MarkdownResourceLoaderIOS() = default;
+  explicit MarkdownResourceLoaderIOS(dispatch_block_t formula_ready)
+      : formula_ready_([formula_ready copy]) {}
   ~MarkdownResourceLoaderIOS() override;
 
   void SetDelegate(id<IMarkdownResourceDelegate> _Nullable delegate) {
@@ -30,6 +32,11 @@ class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
                                               float desire_height,
                                               float max_width, float max_height,
                                               float border_radius) override;
+
+  std::shared_ptr<MarkdownDrawable> LoadFormula(std::string_view formula,
+                                                float font_size, uint32_t color,
+                                                float max_width,
+                                                bool display_mode) override;
 
   std::shared_ptr<MarkdownDrawable> LoadInlineView(const char* id_selector,
                                                    float max_width,
@@ -44,6 +51,7 @@ class MarkdownResourceLoaderIOS final : public MarkdownResourceLoader {
 
  private:
   __weak id<IMarkdownResourceDelegate> _Nullable delegate_{nil};
+  dispatch_block_t formula_ready_;
   // Keep returned UIFont handles alive while the loader is alive.
   NSMutableSet<UIFont*>* _Nullable font_cache_{nil};
 };

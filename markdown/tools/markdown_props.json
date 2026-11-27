@@ -103,5 +103,10 @@
         "type": "boolean",
         "default": false,
         "description": "Whether to prefetch the height at transition end for typewriter."
+    },
+    "enable-syntax-completion": {
+        "type": "boolean",
+        "default": false,
+        "description": "Close unmatched inline HTML tags at the end of the current content."
     }
 }

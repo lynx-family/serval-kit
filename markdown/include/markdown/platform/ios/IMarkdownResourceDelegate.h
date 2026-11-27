@@ -10,6 +10,19 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+// Layout metrics are in points. Ascent is negative and descent is positive.
+@protocol IMarkdownFormula <NSObject>
+@property(nonatomic, readonly) CGFloat ascent;
+@property(nonatomic, readonly) CGFloat descent;
+@property(nonatomic, readonly) CGFloat advance;
+- (void)drawInContext:(CGContextRef)context rect:(CGRect)rect;
+@optional
+// Implement both methods for asynchronous resources. Call each registered
+// completion once, even when the result becomes ready before registration.
+@property(nonatomic, readonly, getter=isLoaded) BOOL loaded;
+- (void)setLoadCallback:(dispatch_block_t)callback;
+@end
+
 @protocol IMarkdownResourceDelegate <NSObject>
 // Called during layout, which may run off the main thread.
 - (nullable UIImage*)loadImageByURL:(nonnull NSString*)url;
@@ -20,6 +33,12 @@ NS_ASSUME_NONNULL_BEGIN
     (nonnull NSString*)idSelector;
 
 @optional
+// Called during layout. Return nil to display the literal Markdown source.
+- (nullable id<IMarkdownFormula>)loadFormula:(NSString*)formula
+                                    fontSize:(CGFloat)fontSize
+                                       color:(uint32_t)color
+                                    maxWidth:(CGFloat)maxWidth
+                                 displayMode:(BOOL)displayMode;
 // Called during layout, which may run off the main thread.
 // Return YES if the image needs an animated image view.
 - (BOOL)isAnimatedImage:(nonnull UIImage*)image;

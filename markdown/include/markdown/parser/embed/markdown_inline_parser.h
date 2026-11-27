@@ -13,6 +13,8 @@ class MarkdownInlineSyntaxParser {
  public:
   static std::unique_ptr<MarkdownInlineNode> Parse(
       const std::string_view content);
+  static std::unique_ptr<MarkdownInlineNode> Parse(
+      std::string_view content, bool enable_syntax_completion);
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_EMBED_MARKDOWN_INLINE_PARSER_H_

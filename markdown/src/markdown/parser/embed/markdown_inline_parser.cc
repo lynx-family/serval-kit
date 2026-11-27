@@ -241,7 +241,8 @@ struct ImageExtra {
 
 class MarkdownInlineSyntaxParserImpl {
  public:
-  std::unique_ptr<MarkdownInlineNode> Parse(const std::string_view content) {
+  std::unique_ptr<MarkdownInlineNode> Parse(std::string_view content,
+                                            bool enable_syntax_completion) {
     auto* processing = content.data();
     auto* begin = processing;
     auto* end = content.data() + content.length();
@@ -266,6 +267,29 @@ class MarkdownInlineSyntaxParserImpl {
         } else {
           PushRawText(std::string_view(processing, count));
           processing += count;
+        }
+      } else if (!InLinkDestination() &&
+                 (*processing == '$' ||
+                  (*processing == '\\' && processing + 1 != end &&
+                   (processing[1] == '(' || processing[1] == '[')))) {
+        const std::string_view rest(processing, end - processing);
+        const bool dollar = rest.front() == '$';
+        const size_t width = dollar ? SameCharCount(processing, end, '$') : 2;
+        const bool display = dollar ? width == 2 : rest[1] == '[';
+        const std::string_view closer =
+            dollar ? rest.substr(0, width) : (display ? "\\]" : "\\)");
+        const size_t length = FormulaLength(rest, closer, dollar, display);
+        if (length == 0) {
+          PushRawText(rest.substr(0, width));
+          processing += width;
+        } else {
+          const auto source = rest.substr(0, length);
+          tokens_.emplace_back(
+              Token{.type_ = TokenType::kNode,
+                    .content_ = source,
+                    .node_ = std::make_unique<MarkdownFormulaNode>(
+                        source, width, display)});
+          processing += length;
         }
       } else if (*processing == '\\') {
         if (processing + 1 != end) {
@@ -314,13 +338,13 @@ class MarkdownInlineSyntaxParserImpl {
                       TokenType::kKeywordWavy, processing, begin, end);
         processing += count;
       } else if (*processing == '<') {
-        if (*(processing + 1) == '/') {
+        if (processing + 1 != end && processing[1] == '/') {
           auto* tag_end = processing + 2;
-          while (*tag_end != '>' && tag_end != end &&
+          while (tag_end != end && *tag_end != '>' &&
                  IsValidHtmlChar(*tag_end)) {
             tag_end++;
           }
-          if (*tag_end == '>') {
+          if (tag_end != end && *tag_end == '>') {
             PushHtmlTagClose(
                 std::string_view(processing, tag_end - processing + 1),
                 std::string_view(processing + 2, tag_end - processing - 2));
@@ -375,6 +399,13 @@ class MarkdownInlineSyntaxParserImpl {
         processing++;
       }
     }
+    if (enable_syntax_completion) {
+      for (size_t i = tokens_.size(); i > 0; --i) {
+        if (tokens_[i - 1].type_ == TokenType::kKeywordHtmlOpen) {
+          PushHtmlTagClose(content.substr(content.size()), tokens_[i - 1].tag_);
+        }
+      }
+    }
     auto result = std::make_unique<MarkdownInlineNode>();
     result->SetText(content);
     ProcessDelimiters(tokens_, 0, static_cast<int32_t>(tokens_.size()),
@@ -383,6 +414,46 @@ class MarkdownInlineSyntaxParserImpl {
   }
 
  private:
+  static size_t FormulaLength(std::string_view text, std::string_view closer,
+                              bool dollar, bool display) {
+    const size_t width = closer.size();
+    if (text.size() == width || (dollar && width > 2))
+      return 0;
+    if (closer == "$" && (text[1] == ' ' || text[1] == '\t' || text[1] == '\n'))
+      return 0;
+    for (size_t i = width; i < text.size();) {
+      const char c = text[i];
+      if (!display && c == '\n')
+        return 0;
+      if (dollar && c == '$') {
+        const size_t count =
+            SameCharCount(text.data() + i, text.data() + text.size(), '$');
+        const size_t next = i + count;
+        if (i > width && count == width &&
+            (display ||
+             (text[i - 1] != ' ' && text[i - 1] != '\t' &&
+              (next == text.size() || text[next] < '0' || text[next] > '9'))))
+          return next;
+        i = next;
+      } else if (c == '\\') {
+        if (!dollar && i > width && text.substr(i, width) == closer)
+          return i + width;
+        i += 2;
+      } else {
+        ++i;
+      }
+    }
+    return 0;
+  }
+
+  bool InLinkDestination() const {
+    return link_destination_ > 0 && link_destination_ < tokens_.size() &&
+           tokens_[link_destination_].type_ ==
+               TokenType::kKeywordLeftRoundBrackets &&
+           tokens_[link_destination_ - 1].type_ ==
+               TokenType::kKeywordRightSquareBrackets;
+  }
+
   static uint32_t UnicodeBefore(const char* current, const char* begin) {
     while (current != begin) {
       --current;
@@ -733,6 +804,11 @@ class MarkdownInlineSyntaxParserImpl {
   }
 
   void PushRoundBracketStart(std::string_view brackets) {
+    if (!tokens_.empty() &&
+        tokens_.back().type_ == TokenType::kKeywordRightSquareBrackets &&
+        !InLinkDestination()) {
+      link_destination_ = tokens_.size();
+    }
     tokens_.emplace_back(Token{.type_ = TokenType::kKeywordLeftRoundBrackets,
                                .content_ = brackets,
                                .can_start_ = true});
@@ -895,12 +971,18 @@ class MarkdownInlineSyntaxParserImpl {
   }
 
   std::vector<Token> tokens_;
+  size_t link_destination_{0};
 };
 
 std::unique_ptr<MarkdownInlineNode> MarkdownInlineSyntaxParser::Parse(
     const std::string_view content) {
-  MarkdownInlineSyntaxParserImpl parser;
-  return parser.Parse(content);
+  return Parse(content, false);
+}
+
+std::unique_ptr<MarkdownInlineNode> MarkdownInlineSyntaxParser::Parse(
+    std::string_view content, bool enable_syntax_completion) {
+  return MarkdownInlineSyntaxParserImpl().Parse(content,
+                                                enable_syntax_completion);
 }
 
 }  // namespace serval::markdown
