@@ -44,6 +44,7 @@ export interface ServalMarkdownConfig {
   animationVelocity?: number
   typewriterDynamicHeight?: boolean
   enableSelection?: boolean
+  enableSyntaxCompletion?: boolean
   selectionHighlightColor?: string
   selectionHandleColor?: string
   selectionHandleSize?: number

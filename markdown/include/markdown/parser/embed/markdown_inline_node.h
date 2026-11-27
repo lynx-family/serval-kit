@@ -28,6 +28,7 @@ enum class MarkdownInlineSyntax : uint8_t {
   kRawText,
   kHtmlEntity,
   kBreakLine,
+  kFormula,
 };
 class MarkdownInlineNode {
  public:
@@ -56,6 +57,21 @@ class MarkdownRawTextNode : public MarkdownInlineNode {
   explicit MarkdownRawTextNode(std::string_view text)
       : MarkdownInlineNode(MarkdownInlineSyntax::kRawText, text) {}
   ~MarkdownRawTextNode() override = default;
+};
+class MarkdownFormulaNode final : public MarkdownInlineNode {
+ public:
+  MarkdownFormulaNode(std::string_view source, size_t delimiter_size,
+                      bool display)
+      : MarkdownInlineNode(MarkdownInlineSyntax::kFormula, source),
+        formula_(
+            source.substr(delimiter_size, source.size() - 2 * delimiter_size)),
+        display_(display) {}
+  std::string_view GetFormula() const { return formula_; }
+  bool IsDisplayMode() const { return display_; }
+
+ private:
+  std::string_view formula_;
+  bool display_;
 };
 class MarkdownHtmlEntityNode : public MarkdownInlineNode {
  public:

@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "markdown/element/markdown_drawable.h"
 #include "markdown/style/markdown_style.h"
@@ -30,6 +31,13 @@ class MarkdownResourceLoader {
   virtual MarkdownReplacementView LoadReplacementView(void* ud, int32_t id,
                                                       float max_width,
                                                       float max_height) = 0;
+  // Formula excludes delimiters. Return null to display the original source.
+  // When an asynchronous result is ready, request a measure on the layout thread.
+  virtual std::shared_ptr<MarkdownDrawable> LoadFormula(
+      std::string_view formula, float font_size, uint32_t color,
+      float max_width, bool display_mode) {
+    return nullptr;
+  }
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PARSER_MARKDOWN_RESOURCE_LOADER_H_

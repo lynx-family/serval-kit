@@ -136,7 +136,13 @@ void MarkdownCanvasIOS::DrawRunDelegate(const tttext::RunDelegate* run_delegate,
   auto* markdown_delegate =
       reinterpret_cast<const MarkdownRunDelegate*>(run_delegate);
   if (markdown_delegate->GetMarkdownRunDelegateType() ==
-      MarkdownRunDelegateType::kView) {
+      MarkdownRunDelegateType::kFormula) {
+    CGContextSaveGState(context_);
+    static_cast<const MarkdownFormulaRunDelegate*>(markdown_delegate)
+        ->DrawFormula(context_, rect);
+    CGContextRestoreGState(context_);
+  } else if (markdown_delegate->GetMarkdownRunDelegateType() ==
+             MarkdownRunDelegateType::kView) {
     auto* inline_view_delegate =
         reinterpret_cast<const MarkdownInlineViewRunDelegate*>(
             markdown_delegate);

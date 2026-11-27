@@ -4,6 +4,7 @@
 
 #include "markdown/parser/embed/markdown_parser_embed.h"
 
+#include <algorithm>
 #include <limits>
 
 #include "markdown/element/markdown_document.h"
@@ -441,6 +442,12 @@ void MarkdownParserEmbed::SetDecorationStyle(
       ConvertDecorationStyle(decoration_style_part.text_decoration_style_));
   style->SetDecorationType(
       ConvertDecorationLine(decoration_style_part.text_decoration_line_));
+  if (decoration_style_part.text_decoration_style_ ==
+      MarkdownTextDecorationStyle::kDashed) {
+    style->SetDecorationElementLength(MarkdownScreenMetrics::DPToPx(2.5f));
+    style->SetDecorationGapLength(MarkdownScreenMetrics::DPToPx(1.5f));
+    style->SetDecorationSideMargin(MarkdownScreenMetrics::DPToPx(2.5f));
+  }
 }
 
 tttext::DecorationType MarkdownParserEmbed::ConvertDecorationLine(
@@ -1104,7 +1111,8 @@ void MarkdownParserEmbed::ParseInlineSyntax(
     const std::string& content, tttext::Paragraph* para,
     const tttext::Style& base_style, bool* have_normal_text,
     uint32_t char_offset, uint32_t markdown_offset, bool check_paragraph_tag) {
-  auto result = MarkdownInlineSyntaxParser::Parse(content);
+  auto result = MarkdownInlineSyntaxParser::Parse(
+      content, document_->GetEnableSyntaxCompletion());
   if (have_normal_text != nullptr) {
     for (auto& child : result->Children()) {
       if (child->GetSyntax() != MarkdownInlineSyntax::kImg) {
@@ -1386,6 +1394,59 @@ void MarkdownParserEmbed::AppendInlineCode(MarkdownInlineNode* node,
       style_.inline_code_.border_, nullptr, para, char_start, char_end);
 }
 
+void MarkdownParserEmbed::AppendFormula(MarkdownFormulaNode* node,
+                                        tttext::Paragraph* para,
+                                        const tttext::Style& style,
+                                        uint32_t char_offset,
+                                        uint32_t markdown_offset) {
+  const auto source = node->GetText();
+  std::shared_ptr<MarkdownDrawable> drawable;
+  if (loader_ != nullptr) {
+    const auto& block = context_.block_style_;
+    const float available = context_.max_width_ - context_.indent_ -
+                            block.margin_left_ - block.padding_left_ -
+                            block.margin_right_ - block.padding_right_ -
+                            2 * context_.border_style_.border_width_;
+    drawable = loader_->LoadFormula(node->GetFormula(), style.GetTextSize(),
+                                    style.GetForegroundColor(), available,
+                                    node->IsDisplayMode());
+  }
+  if (!drawable) {
+    for (size_t start = 0; start < source.size();) {
+      size_t end = source.find('\n', start);
+      if (end == std::string_view::npos)
+        end = source.size();
+      MarkdownRawTextNode literal(source.substr(start, end - start));
+      AppendRawText(&literal, para, style, char_offset,
+                    markdown_offset + start);
+      if (end == source.size())
+        break;
+      MarkdownBreakLineNode newline(source.substr(end, 1));
+      AppendRawText(&newline, para, style, char_offset, markdown_offset + end);
+      start = end + 1;
+    }
+    return;
+  }
+
+  // Quoted or indented lines have different offsets in the original source.
+  const auto line_offset = [this]() {
+    return context_.line_index_ < context_.lines_offset_.size()
+               ? context_.lines_offset_[context_.line_index_]
+               : 0;
+  };
+  const int32_t source_start = markdown_offset + line_offset();
+  context_.line_index_ += std::count(source.begin(), source.end(), '\n');
+  const int32_t source_end = markdown_offset + source.size() + line_offset();
+  const auto start = static_cast<int32_t>(char_offset + para->GetCharCount());
+  document_->SetShapeRunAltString(start, source);
+  para->AddShapeRun(&style, std::move(drawable), false);
+  document_->markdown_index_to_char_index_.emplace_back(
+      Range{MarkdownSourceByteIndexToCharIndex(source_start),
+            MarkdownSourceByteIndexToCharIndex(source_end)},
+      Range{start, static_cast<int32_t>(char_offset + para->GetCharCount())});
+  context_.line_height_rule_ = tttext::RulerType::kAtLeast;
+}
+
 void MarkdownParserEmbed::AppendRawText(MarkdownInlineNode* node,
                                         tttext::Paragraph* para,
                                         const tttext::Style& base_style,
@@ -1562,6 +1623,9 @@ void MarkdownParserEmbed::AppendNodeToParagraph(MarkdownInlineNode* node,
                      base_style, char_offset, markdown_offset);
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kInlineCode) {
     AppendInlineCode(node, para, base_style, char_offset, markdown_offset);
+  } else if (node->GetSyntax() == MarkdownInlineSyntax::kFormula) {
+    AppendFormula(static_cast<MarkdownFormulaNode*>(node), para, base_style,
+                  char_offset, markdown_offset);
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kDoubleBraces) {
     AppendDoubleBraces(node, para, base_style, char_offset, markdown_offset);
   } else if (node->GetSyntax() == MarkdownInlineSyntax::kDoubleSquareBrackets) {

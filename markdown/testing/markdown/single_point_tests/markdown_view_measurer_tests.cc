@@ -8,15 +8,107 @@
 #include <vector>
 
 #include "../mock_platform/markdown_tests_platform.h"
+#include "../mock_platform/mock_markdown_canvas.h"
 #include "../mock_platform/mock_markdown_resource_loader.h"
+#include "markdown/draw/markdown_drawer.h"
 #include "markdown/element/markdown_paragraph.h"
 #include "markdown/layout/markdown_selection.h"
 #include "markdown/style/markdown_style_reader.h"
+#include "markdown/utils/markdown_screen_metrics.h"
 #include "markdown/utils/markdown_string_utils.h"
 #include "markdown/view/markdown_view_measurer.h"
 #include "testing/markdown/frame_driven_tests/markdown_case_builder.h"
 
 namespace serval::markdown {
+
+TEST(MarkdownViewMeasurerTest, HtmlCompletionCanBeToggledOnExistingContent) {
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
+  measurer.SetContent("word <span>tail");
+  for (bool enabled : {false, true, false}) {
+    measurer.SetEnableSyntaxCompletion(enabled);
+    measurer.Measure({});
+    EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 100),
+              enabled ? "word tail\n" : "word <span>tail\n");
+  }
+}
+
+TEST(MarkdownViewMeasurerTest, DashedDecorationScalesWithDensity) {
+  const float original = MarkdownScreenMetrics::GetDensity();
+  for (float density : {1.f, 3.3125f}) {
+    MarkdownScreenMetrics::SetDensity(density);
+    auto context = testing::CreateTestMarkdownSharedContext();
+    testing::MockMarkdownResourceLoader loader;
+    MarkdownViewMeasurer measurer(context, &loader);
+    auto config = MarkdownStyleReader::ReadStyle({}, &loader, context.get());
+    config.link_.decoration_.text_decoration_style_ =
+        MarkdownTextDecorationStyle::kDashed;
+    config.link_.decoration_.text_decoration_line_ =
+        MarkdownTextDecorationLine::kUnderline;
+    measurer.SetStyle(config);
+    measurer.SetContent("[dashed underline](url)");
+    measurer.Measure({});
+    testing::MockMarkdownCanvas canvas(&loader);
+    MarkdownDrawer drawer(&canvas, context.get());
+    canvas.StartPaint();
+    drawer.DrawPage(*measurer.GetDocument()->GetPage());
+    canvas.EndPaint();
+    int count = 0;
+    float painted_end = 0;
+    for (const auto& op : canvas.GetJson()[0].GetArray()) {
+      if (std::string_view(op["op"].GetString()) != "line")
+        continue;
+      float start = op["p1"]["x"].GetFloat();
+      float end = op["p2"]["x"].GetFloat();
+      float cap = op["painter"]["stroke_width"].GetFloat() / 2;
+      EXPECT_NEAR(end - start, 2.5f * density, 0.001f);
+      if (count > 0)
+        EXPECT_GT(start - cap, painted_end);
+      painted_end = end + cap;
+      ++count;
+    }
+    EXPECT_GT(count, 1);
+  }
+  MarkdownScreenMetrics::SetDensity(original);
+}
+
+TEST(MarkdownViewMeasurerTest, PendingAndReadyFormulaSourceMapping) {
+  class Loader : public testing::MockMarkdownResourceLoader {
+   public:
+    std::shared_ptr<MarkdownDrawable> LoadFormula(std::string_view formula,
+                                                  float font_size,
+                                                  uint32_t color, float width,
+                                                  bool display) override {
+      EXPECT_EQ(formula, "\nx_1\n");
+      EXPECT_TRUE(display);
+      EXPECT_GT(font_size, 0);
+      EXPECT_GT(width, 0);
+      return ready ? std::make_shared<testing::MockImage>("math", 40, 20, width,
+                                                          -1, 0)
+                   : nullptr;
+    }
+    bool ready{false};
+  } loader;
+  testing::MockMarkdownResourceLoader default_loader;
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext(),
+                                &loader);
+  measurer.SetContent("> $$\n> x_1\n> $$Z");
+  measurer.Measure({});
+  EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 100),
+            "$$\nx_1\n$$Z\n");
+  loader.ready = true;
+  measurer.NeedsMeasure();
+  measurer.Measure({});
+  auto document = measurer.GetDocument();
+  EXPECT_EQ(document->GetContentByCharPos(0, 1), "$$\nx_1\n$$");
+  EXPECT_EQ(document->CharOffsetToMarkdownOffset(0), 2);
+  EXPECT_EQ(document->CharOffsetToMarkdownOffset(1), 15);
+
+  measurer.SetResourceLoader(&default_loader);
+  measurer.Measure({});
+  EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 1), "$");
+  EXPECT_EQ(measurer.GetDocument()->GetContentByCharPos(0, 100),
+            "$$\nx_1\n$$Z\n");
+}
 
 TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {
   MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());

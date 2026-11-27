@@ -127,6 +127,7 @@ void NativeMarkdownMeasurer::SetConfig(const ValueMap& config) const {
        MarkdownProps::kTypewriterHeightTransitionDuration},
       {"typewriterHeightTransitionPrefetch",
        MarkdownProps::kTypewriterHeightTransitionPrefetch},
+      {"enableSyntaxCompletion", MarkdownProps::kEnableSyntaxCompletion},
       {"allowBreakAroundPunctuation",
        MarkdownProps::kAllowBreakAroundPunctuation},
       {"enableSelection", MarkdownProps::kEnableTextSelection},

@@ -823,6 +823,10 @@ void MarkdownView::SetNumberProp(MarkdownProps prop, double value) {
     case MarkdownProps::kTypewriterHeightTransitionPrefetch:
       SetTypewriterHeightTransitionPrefetch(static_cast<bool>(value));
       break;
+    case MarkdownProps::kEnableSyntaxCompletion:
+      measurer_.SetEnableSyntaxCompletion(static_cast<bool>(value));
+      measure_host_->RequestMeasure();
+      break;
     case MarkdownProps::kAllowBreakAroundPunctuation:
       SetEnableBreakAroundPunctuation(static_cast<bool>(value));
       break;

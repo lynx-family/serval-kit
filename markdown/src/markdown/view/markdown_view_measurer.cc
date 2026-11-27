@@ -91,6 +91,11 @@ void MarkdownViewMeasurer::SetTextMaxLines(int32_t max_lines) {
   NeedsMeasure();
 }
 
+void MarkdownViewMeasurer::SetEnableSyntaxCompletion(bool enable) {
+  enable_syntax_completion_ = enable;
+  NeedsMeasure();
+}
+
 void MarkdownViewMeasurer::SetEnableBreakAroundPunctuation(bool allow) {
   break_around_punctuation_ = allow;
   NeedsMeasure();
@@ -115,6 +120,7 @@ void MarkdownViewMeasurer::InitialDocument() {
   document_->SetMaxLines(text_max_lines_);
   document_->SetStyle(style_);
   document_->AllowBreakAroundPunctuation(break_around_punctuation_);
+  document_->SetEnableSyntaxCompletion(enable_syntax_completion_);
   document_->SetResourceLoader(resource_loader_);
   document_->SetMarkdownEventListener(event_listener_);
 }

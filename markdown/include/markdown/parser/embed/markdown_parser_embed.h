@@ -119,6 +119,9 @@ class MarkdownParserEmbed {
   void AppendImgToParagraph(MarkdownImageNode* node, tttext::Paragraph* para,
                             const tttext::Style& base_style,
                             uint32_t char_offset, uint32_t markdown_offset);
+  void AppendFormula(MarkdownFormulaNode* node, tttext::Paragraph* para,
+                     const tttext::Style& style, uint32_t char_offset,
+                     uint32_t markdown_offset);
   void AppendInlineCode(MarkdownInlineNode* node, tttext::Paragraph* para,
                         const tttext::Style& base_style, uint32_t char_offset,
                         uint32_t markdown_offset);

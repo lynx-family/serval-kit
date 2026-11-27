@@ -122,8 +122,10 @@ class MarkdownMeasureHostIOS final
     event_listener_ = std::make_unique<serval::markdown::MarkdownEventIOS>();
     exposure_listener_ =
         std::make_unique<serval::markdown::MarkdownExposureIOS>();
+    __weak MarkdownMeasurer* weak_self = self;
     resource_loader_ =
-        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>();
+        std::make_unique<serval::markdown::MarkdownResourceLoaderIOS>(
+            ^{ [weak_self markDirty]; });
     bound_view_ = nullptr;
     animation_paused_ = NO;
     current_time_ms_ = 0;
